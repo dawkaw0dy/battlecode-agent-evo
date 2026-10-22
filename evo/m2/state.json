@@ -453,9 +453,10 @@
    "generation": 0,
    "pushed_at": 1792694868,
    "pushed_commit": "703a7ef89288a5dad899ecf2cb9e8c4c789e89fe",
+   "results_commit": "3d9b11a43dc70df13d3f78f1708c48eeb4733b31",
    "retries": 0,
    "stage": "A",
-   "status": "pending"
+   "status": "arrived"
   }
  },
  "launch_errors_in_a_row": 0,
@@ -491,10 +492,11 @@
   "2026-10-22T18:47:25Z g00 t00-06: rejected: out of scope: bots/starter/src/extra.h",
   "2026-10-22T18:47:31Z g00 t00-07: rejected: main.cpp:2: include path '../../tools/evil.h' is not a plain name",
   "2026-10-22T18:47:37Z g00 phase EVAL_A_PENDING",
-  "2026-10-22T18:47:48Z g00 tg00-A: pushed 703a7ef892 with 15 shards"
+  "2026-10-22T18:47:48Z g00 tg00-A: pushed 703a7ef892 with 15 shards",
+  "2026-10-22T18:49:55Z g00 phase EVAL_A_DONE: results for tg00-A"
  ],
  "paused": null,
- "phase": "EVAL_A_PENDING",
+ "phase": "EVAL_A_DONE",
  "sessions_launched": 8,
  "version": 1
 }
