@@ -806,7 +806,8 @@ Per game, from bot X's view:
 | both faulted | discarded |
 | unfinished, no faults | discarded |
 
-A bot with more than `max_fault_rate` of its games faulted is `disqualified`
+A bot with more than `max_fault_rate` of its games faulted (engine faults and failed
+builds; caught exceptions count as losses but not here, D29) is `disqualified`
 (strength = −∞). This removes any reason to fault on purpose.
 
 **Strength.** Bradley–Terry fit by MM iteration over all valid games of the

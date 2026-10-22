@@ -58,6 +58,8 @@ def render(cfg, state, agent_id, root=ROOT):
     text = fill((PROMPTS / 'agent.md').read_text(encoding='utf-8'), {
         'id': agent_id, 'generation': g, 'slot': a['slot'], 'env_manifest_sha256': manifest_sha,
         'game_budget': cfg['agents']['local_game_budget'], 'deadline_minutes': deadline,
+        'opponents': ', '.join(dict.fromkeys(list(cfg['eval']['panel']) + list(state['hall_of_fame'])
+                                             + [p for p in a['parents'] if p not in cfg['eval']['panel']])),
         'starting_point': start, 'mutation': mutation, 'focus': focus,
         'evidence': evidence_table(a.get('evidence') or [], state['hall_of_fame']), 'failed_ideas': failed,
     })

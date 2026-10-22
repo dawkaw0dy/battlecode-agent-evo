@@ -29,3 +29,23 @@ are allowed; a `cambc run` game counts towards the budget.
 
 Anything with `/`, `\` or `..`, and `#embed`, `__has_include`, `asm` or a
 `#pragma` other than `once`, rejects the bot.
+
+## Known SDK pitfalls (found by earlier agents)
+
+Collected from the agents' own NOTES.md "Tried and failed" lists (generation 00). Each of these raised a
+caught exception (`bot error:` in stdout, so the game counts as a loss) until the agent worked around it.
+
+- Reading a unit taken from `cambc::vision::champions()` / `camps()` (health, state, position…) can throw
+  engine error 97 "Unit is not in vision" or 98 "not found", even after `is_visible()`, when the unit died or
+  moved this turn (including by your own attack). Several agents enumerate `vision::champion_tiles()` /
+  `camp_tiles()` and use `champion_at` / `camp_at` instead, and guard each decision block so one stale
+  handle does not end the turn.
+- Casting an ability marked "excludes walking" after moving this turn throws (engine error 126). Cast first, or skip it.
+- An attack-reset ability can throw engine error 26 "An available attack cannot be reset" in cases
+  `can_attack()` does not reveal. Use it only right after your own basic attack this turn.
+- After a move returns `false` (a hidden unit was revealed), a second move in the same turn can throw. Stop walking for that turn.
+- The starter's `move_towards_closest` picks the step with `field.get(tile) < field.get(step)`, but blocked or
+  unreached tiles read 0 there, so it can choose an occupied tile ("known occupied destination"). Only step
+  to free tiles that the distance field actually reached.
+- `bitboard::draw_chebyshev` near the map edge threw engine error 5 for one agent (01starvation). Set tiles
+  with your own bounds checks there.

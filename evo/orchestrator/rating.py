@@ -56,14 +56,22 @@ def margin(game, bot):
     return game['gems'].get(team, 0) - game['gems'].get(other, 0)
 
 
-def fault_rates(games, bots):
+def is_engine_fault(game, bot):
+    """Engine fault or failed build: what counts towards disqualification (D29). Caught exceptions do not."""
+    if game['outcome'] == 'build_failed':
+        return bot in game['build_failed']
+    return game['faults'].get(team_of(game, bot), 0) > 0
+
+
+def fault_rates(games, bots, include_exceptions=False):
     played = {b: 0 for b in bots}
     faulted = {b: 0 for b in bots}
+    count = is_faulted if include_exceptions else is_engine_fault
     for g in games:
         for bot in (g['A'], g['B']):
             if bot in played:
                 played[bot] += 1
-                faulted[bot] += is_faulted(g, bot)
+                faulted[bot] += count(g, bot)
     return {b: (faulted[b] / played[b] if played[b] else 0.0) for b in bots}
 
 
@@ -145,10 +153,14 @@ def mean_margins(games, bots):
     return {b: (total[b] / n[b] if n[b] else 0.0) for b in bots}
 
 
-def rate(games, bots, *, max_fault_rate, seed, replicates=200):
-    """Ratings for every bot: strength (-inf if disqualified), interval, fault rate, mean margin, rank order."""
+def rate(games, bots, *, max_fault_rate, seed, replicates=200, exceptions_disqualify=False):
+    """Ratings for every bot: strength (-inf if disqualified), interval, fault rate, mean margin, rank order.
+
+    Caught exceptions always make a game a loss (§11); they count towards disqualification only with
+    exceptions_disqualify (D29: off from generation 1; generation 0 was rated with it on).
+    """
     bots = sorted(bots)
-    faults = fault_rates(games, bots)
+    faults = fault_rates(games, bots, include_exceptions=exceptions_disqualify)
     strength = fit(games, bots)
     interval = bootstrap(games, bots, random.Random(seed), replicates)
     margins = mean_margins(games, bots)

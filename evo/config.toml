@@ -26,6 +26,7 @@ jobs_per_runner = 0                # 0 = nproc
 spotcheck_fraction = 0.02
 spotcheck_min = 4
 max_fault_rate = 0.10              # above this a bot is disqualified
+exceptions_disqualify = false      # D29: caught exceptions are losses but do not count towards max_fault_rate
 
 [mutation]
 operator_weights = { tweak = 0.40, subsystem = 0.30, crossover = 0.20, radical = 0.10 }

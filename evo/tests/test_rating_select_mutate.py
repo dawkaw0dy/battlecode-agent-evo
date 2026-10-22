@@ -134,3 +134,12 @@ def test_evidence_and_crossover_partner():
               game('r', 'o', 'm1', 'o'), game('r', 'o', 'm2', 'o'), game('r', 'o', 'm3', 'r')]
     assert mutate.crossover_partner('p', ['p', 'r', 'q'], games) == 'q'
     assert mutate.crossover_partner('p', ['p'], games) is None
+
+
+def test_d29_caught_exceptions_are_losses_but_do_not_disqualify():
+    games = [game('x', 'y', f'm{i}', 'x', ea=1 if i < 3 else 0) for i in range(10)]  # x threw in 3 of 10
+    rows, _ = rating.rate(games, ['x', 'y'], max_fault_rate=0.10, seed=1, replicates=5)
+    assert not rows['x']['disqualified'] and rows['x']['fault_rate'] == 0.0
+    assert rating.result(games[0]) == ('y', 'x')                                   # still a loss for x
+    rows, _ = rating.rate(games, ['x', 'y'], max_fault_rate=0.10, seed=1, replicates=5, exceptions_disqualify=True)
+    assert rows['x']['disqualified']

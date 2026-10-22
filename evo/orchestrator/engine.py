@@ -390,7 +390,8 @@ class Engine:
         bots = gen['members'] + [p for p in jobs.panel(self.cfg, self.state['hall_of_fame']) if p not in gen['members']]
         ratings, order = rating.rate(games, bots, max_fault_rate=self.cfg['eval']['max_fault_rate'],
                                      seed=f"{self.cfg['seed']}:{g}:{stage}",
-                                     replicates=self.cfg['run']['bootstrap_replicates'])
+                                     replicates=self.cfg['run']['bootstrap_replicates'],
+                                     exceptions_disqualify=self.cfg['eval'].get('exceptions_disqualify', False))
         gen[f'ratings_{stage}'] = ratings_json(ratings)
         gen[f'ranking_{stage}'] = order
         if stage == 'A':
