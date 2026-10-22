@@ -1746,7 +1746,7 @@
  "hall_of_fame": [
   "e00-01"
  ],
- "halted": null,
+ "halted": "g01-B: results failed verification: duplicate game ('e01-01', 'e00-01', '00collision', 'A'); duplicate game ('e01-01', 'e00-01', '00collision', 'B'); duplicate game ('e01-01', 'e00-01', '00contest', 'A'); duplicate game ('e01-01', 'e00-01', '00contest', 'B'); duplicate game ('e01-01', 'e00-01', '00corners', 'A')",
  "jobs": {
   "g00-A": {
    "generation": 0,
@@ -1849,7 +1849,8 @@
   "2026-10-22T21:08:12Z g01 g01-A: verified, 288 rows, spot-check 6 OK",
   "2026-10-22T21:08:15Z g01 phase EVAL_B_PENDING: stage A ranked: e01-01, e00-01, e01-02, e01-03, starter",
   "2026-10-22T21:08:30Z g01 g01-B: pushed 5df4587736 with 12 shards",
-  "2026-10-22T21:12:49Z g01 phase EVAL_B_DONE: results for g01-B"
+  "2026-10-22T21:12:49Z g01 phase EVAL_B_DONE: results for g01-B",
+  "2026-10-22T21:12:54Z g01 HALTED: g01-B: results failed verification: duplicate game ('e01-01', 'e00-01', '00collision', 'A'); duplicate game ('e01-01', 'e00-01', '00collision', 'B'); duplicate game ('e01-01', 'e00-01', '00contest', 'A'); duplicate game ('e01-01', 'e00-01', '00contest', 'B'); duplicate game ('e01-01', 'e00-01', '00corners', 'A')"
  ],
  "paused": null,
  "phase": "EVAL_B_DONE",
