@@ -146,7 +146,9 @@
    },
    "env_failed": 0,
    "jobs": {
-    "A": [],
+    "A": [
+     "g00-A"
+    ],
     "B": []
    },
    "members": [
@@ -154,6 +156,248 @@
     "e00-01",
     "e00-02",
     "e00-03"
+   ],
+   "plan_A": [
+    [
+     [
+      "e00-00",
+      "e00-01"
+     ],
+     [
+      "00expanse",
+      "00fragment",
+      "00gem-fields",
+      "00lost-world",
+      "00monolith",
+      "00packs",
+      "00road-of-riches",
+      "00rushbait-v2",
+      "00split",
+      "00swirl",
+      "01boss-battle",
+      "01elk-arena",
+      "01gold-rush",
+      "01islands",
+      "01the-farm",
+      "01yellow-brick-road"
+     ]
+    ],
+    [
+     [
+      "e00-00",
+      "e00-02"
+     ],
+     [
+      "00expanse",
+      "00fragment",
+      "00gem-fields",
+      "00lost-world",
+      "00monolith",
+      "00packs",
+      "00road-of-riches",
+      "00rushbait-v2",
+      "00split",
+      "00swirl",
+      "01boss-battle",
+      "01elk-arena",
+      "01gold-rush",
+      "01islands",
+      "01the-farm",
+      "01yellow-brick-road"
+     ]
+    ],
+    [
+     [
+      "e00-00",
+      "e00-03"
+     ],
+     [
+      "00expanse",
+      "00fragment",
+      "00gem-fields",
+      "00lost-world",
+      "00monolith",
+      "00packs",
+      "00road-of-riches",
+      "00rushbait-v2",
+      "00split",
+      "00swirl",
+      "01boss-battle",
+      "01elk-arena",
+      "01gold-rush",
+      "01islands",
+      "01the-farm",
+      "01yellow-brick-road"
+     ]
+    ],
+    [
+     [
+      "e00-01",
+      "e00-02"
+     ],
+     [
+      "00expanse",
+      "00fragment",
+      "00gem-fields",
+      "00lost-world",
+      "00monolith",
+      "00packs",
+      "00road-of-riches",
+      "00rushbait-v2",
+      "00split",
+      "00swirl",
+      "01boss-battle",
+      "01elk-arena",
+      "01gold-rush",
+      "01islands",
+      "01the-farm",
+      "01yellow-brick-road"
+     ]
+    ],
+    [
+     [
+      "e00-01",
+      "e00-03"
+     ],
+     [
+      "00expanse",
+      "00fragment",
+      "00gem-fields",
+      "00lost-world",
+      "00monolith",
+      "00packs",
+      "00road-of-riches",
+      "00rushbait-v2",
+      "00split",
+      "00swirl",
+      "01boss-battle",
+      "01elk-arena",
+      "01gold-rush",
+      "01islands",
+      "01the-farm",
+      "01yellow-brick-road"
+     ]
+    ],
+    [
+     [
+      "e00-02",
+      "e00-03"
+     ],
+     [
+      "00expanse",
+      "00fragment",
+      "00gem-fields",
+      "00lost-world",
+      "00monolith",
+      "00packs",
+      "00road-of-riches",
+      "00rushbait-v2",
+      "00split",
+      "00swirl",
+      "01boss-battle",
+      "01elk-arena",
+      "01gold-rush",
+      "01islands",
+      "01the-farm",
+      "01yellow-brick-road"
+     ]
+    ],
+    [
+     [
+      "e00-00",
+      "starter"
+     ],
+     [
+      "00expanse",
+      "00fragment",
+      "00gem-fields",
+      "00lost-world",
+      "00monolith",
+      "00packs",
+      "00road-of-riches",
+      "00rushbait-v2",
+      "00split",
+      "00swirl",
+      "01boss-battle",
+      "01elk-arena",
+      "01gold-rush",
+      "01islands",
+      "01the-farm",
+      "01yellow-brick-road"
+     ]
+    ],
+    [
+     [
+      "e00-01",
+      "starter"
+     ],
+     [
+      "00expanse",
+      "00fragment",
+      "00gem-fields",
+      "00lost-world",
+      "00monolith",
+      "00packs",
+      "00road-of-riches",
+      "00rushbait-v2",
+      "00split",
+      "00swirl",
+      "01boss-battle",
+      "01elk-arena",
+      "01gold-rush",
+      "01islands",
+      "01the-farm",
+      "01yellow-brick-road"
+     ]
+    ],
+    [
+     [
+      "e00-02",
+      "starter"
+     ],
+     [
+      "00expanse",
+      "00fragment",
+      "00gem-fields",
+      "00lost-world",
+      "00monolith",
+      "00packs",
+      "00road-of-riches",
+      "00rushbait-v2",
+      "00split",
+      "00swirl",
+      "01boss-battle",
+      "01elk-arena",
+      "01gold-rush",
+      "01islands",
+      "01the-farm",
+      "01yellow-brick-road"
+     ]
+    ],
+    [
+     [
+      "e00-03",
+      "starter"
+     ],
+     [
+      "00expanse",
+      "00fragment",
+      "00gem-fields",
+      "00lost-world",
+      "00monolith",
+      "00packs",
+      "00road-of-riches",
+      "00rushbait-v2",
+      "00split",
+      "00swirl",
+      "01boss-battle",
+      "01elk-arena",
+      "01gold-rush",
+      "01islands",
+      "01the-farm",
+      "01yellow-brick-road"
+     ]
+    ]
    ],
    "slots": [
     "e00-00",
@@ -165,7 +409,16 @@
  },
  "hall_of_fame": [],
  "halted": null,
- "jobs": {},
+ "jobs": {
+  "g00-A": {
+   "generation": 0,
+   "pushed_at": 1792700255,
+   "pushed_commit": "136db30bee643b76a11b00f60bc565635f2a00c0",
+   "retries": 0,
+   "stage": "A",
+   "status": "pending"
+  }
+ },
  "launch_errors_in_a_row": 0,
  "log": [
   "2026-10-22T19:59:38Z g00 initialised generation 0 with 4 immigrants",
@@ -186,7 +439,8 @@
   "2026-10-22T20:17:09Z g00 e00-01: admitted (cbd4ba2fc21f)",
   "2026-10-22T20:17:14Z g00 e00-02: admitted (ff637527e678)",
   "2026-10-22T20:17:18Z g00 e00-03: admitted (467dd63a6dc3)",
-  "2026-10-22T20:17:25Z g00 phase EVAL_A_PENDING"
+  "2026-10-22T20:17:25Z g00 phase EVAL_A_PENDING",
+  "2026-10-22T20:17:35Z g00 g00-A: pushed 136db30bee with 10 shards"
  ],
  "paused": null,
  "phase": "EVAL_A_PENDING",
