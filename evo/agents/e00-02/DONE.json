@@ -1,0 +1,4 @@
+{"agent": "e00-02", "task_sha256": "a9d9d813df31889b8999ea40fce2e8afbfcfc548a20d2d0ac15f5e4dd147774b", "base_commit": "d9560710e65bed40d1305f9565cb1b121e0f8478",
+ "session_id": "cse_01CMuwLaPgknby2uMQ9q3Ua1", "bot_dir": "bots/e00-02",
+ "self_eval": {"vs": "starter", "games": 26, "wins": 20}, "games_played": 88,
+ "summary": "Deathball: shared-memory leader picks camp groups, group gathers before engaging, banks and shops together"}
