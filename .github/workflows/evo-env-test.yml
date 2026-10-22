@@ -66,3 +66,5 @@ jobs:
         run: |
           ls -la ~/.cache/cambc || true
           cat /opt/evo-setup.log || true
+          # Job logs need a token to download; annotations are public, so surface the tail there.
+          tail -n 30 /opt/evo-setup.log 2>/dev/null | python3 -c 'import sys; print("::error title=setup log tail::" + sys.stdin.read().replace("%", "%25").replace("\r", "").replace("\n", "%0A"))' || true
