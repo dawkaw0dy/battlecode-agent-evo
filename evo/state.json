@@ -134,8 +134,8 @@
   },
   "e01-01": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evo-task-e01-01-ae83lg",
+   "commit": "f9ac9eff8a3cf299e5da171b6387de4a290aa568",
    "deadline_minutes": 40,
    "evidence": [
     {
@@ -197,13 +197,13 @@
    ],
    "slot": 1,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "736f21db805f1717b8640798abce4a823b66bfcecfa8f41bdb3cc321226038f1"
   },
   "e01-02": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evolution-agent-e01-02-hki6p8",
+   "commit": "cf06dd9ccc6622f9dbdbc0c4af9a43d7961e1115",
    "deadline_minutes": 40,
    "evidence": [
     {
@@ -265,13 +265,13 @@
    ],
    "slot": 2,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "029169c92c84a053f8cff63387921f0749396cdf6f613bd0de628e7a1f8eaf7e"
   },
   "e01-03": {
    "archetype": "split-farm",
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evo-task-e01-03-7z3na4",
+   "commit": "4f5f76486d4d6a9fd3c553d1e30105aef3dbc5da",
    "deadline_minutes": 40,
    "evidence": [],
    "failed_ideas": [
@@ -308,7 +308,7 @@
    ],
    "slot": 3,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "decfe555d117d096df25b605e5a621b275c17ea7f44dde59b6126bbedceb019c"
   }
  },
@@ -982,10 +982,14 @@
   "2026-10-22T20:54:19Z g01 phase RUNNING",
   "2026-10-22T20:54:41Z g01 e01-01: launched session_01QkwDrtRcLPt4E7HR8DLkB1",
   "2026-10-22T20:54:52Z g01 e01-02: launched session_01AifaAga3hW9c6wFtxcF95Q",
-  "2026-10-22T20:55:02Z g01 e01-03: launched session_01QXzXRuKf5JNA6eFkbPYFyK"
+  "2026-10-22T20:55:02Z g01 e01-03: launched session_01QXzXRuKf5JNA6eFkbPYFyK",
+  "2026-10-22T21:01:44Z g01 e01-01: done on origin/claude/evo-task-e01-01-ae83lg at f9ac9eff8a",
+  "2026-10-22T21:01:45Z g01 e01-02: done on origin/claude/evolution-agent-e01-02-hki6p8 at cf06dd9ccc",
+  "2026-10-22T21:01:47Z g01 e01-03: done on origin/claude/evo-task-e01-03-7z3na4 at 4f5f76486d",
+  "2026-10-22T21:01:47Z g01 phase ADMITTED"
  ],
  "paused": null,
- "phase": "RUNNING",
+ "phase": "ADMITTED",
  "sessions_launched": 7,
  "version": 1
 }
