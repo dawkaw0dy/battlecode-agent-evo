@@ -110,9 +110,10 @@
   "2026-10-22T19:47:45Z g00 r00-00: done on origin/claude/evolution-agent-r00-00-5gn23b at 747cddc3fb",
   "2026-10-22T19:47:45Z g00 phase ADMITTED",
   "2026-10-22T19:47:55Z g00 r00-00: admitted (f6dddb56e66d)",
-  "2026-10-22T19:48:00Z g00 r00-01: admitted (4220d81509e0)"
+  "2026-10-22T19:48:00Z g00 r00-01: admitted (4220d81509e0)",
+  "2026-10-22T19:48:07Z g00 PAUSED: only 2 admitted bots (need 3); not evaluating"
  ],
- "paused": null,
+ "paused": "only 2 admitted bots (need 3); not evaluating",
  "phase": "ADMITTED",
  "sessions_launched": 2,
  "version": 1
