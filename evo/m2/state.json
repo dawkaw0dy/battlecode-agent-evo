@@ -220,9 +220,10 @@
  "launch_errors_in_a_row": 0,
  "log": [
   "2026-10-22T18:42:52Z g00 initialised generation 0 with 8 immigrants",
-  "2026-10-22T18:42:59Z g00 phase TASKS_PUSHED: 8 task files"
+  "2026-10-22T18:42:59Z g00 phase TASKS_PUSHED: 8 task files",
+  "2026-10-22T18:43:12Z g00 PAUSED: waiting for approval: python -m evo approve 00"
  ],
- "paused": null,
+ "paused": "waiting for approval: python -m evo approve 00",
  "phase": "TASKS_PUSHED",
  "sessions_launched": 0,
  "version": 1
