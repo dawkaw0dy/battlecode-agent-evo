@@ -1,7 +1,10 @@
 # Progress
 
-**Milestone:** M0 complete except H5 (owner: narrow the network to Custom; steps in SETUP.md).
-Not started: M1 (waiting for the owner's go).
+**Milestone:** M1 done (2026-10-22, docs/evolve/M1.md). M2 not started: waiting for the owner's go.
+H5 done (Custom network). It is untested by a session until M3.
+
+**Done in M1**
+- Eval pipeline built (D21–D24). Hand-written job `m1-probe` → `results/m1-probe.json` matches the local run 8/8, down to the replay bytes.
 
 **Done in M0**
 - §0.5 items 1–13 and 15–16 recorded in M0.md. Item 14 (prebuilt WASM via `run-batch --jsonl`) is deferred as optional (§17).

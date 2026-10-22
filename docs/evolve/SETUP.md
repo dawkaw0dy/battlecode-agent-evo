@@ -211,7 +211,7 @@ After this, your own normal HTTPS pushes to `main` are refused too. This clone w
 **Reply with:** `H4 v2: done`. I then test it without any cloud session: an HTTPS push as you must be refused
 and an SSH push with the deploy key accepted. The test push is the cleanup commit that removes the probe's test file.
 
-## H5 — M0: narrow the `evo` environment's network to Custom
+## H5 — M0: narrow the `evo` environment's network to Custom  ✅ done 2026-10-22 (not yet exercised by a session)
 
 The setup script and the sessions need only these hosts (M0.md items 11 and 16, checked 2026-10-22):
 
