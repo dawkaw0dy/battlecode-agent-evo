@@ -67,12 +67,11 @@ jobs:
           ls -la ~/.cache/cambc || true
           cat /opt/evo-setup.log || true
           # Job logs need a token to download; annotations are public, so surface the tail there.
-          tail -n 30 /opt/evo-setup.log 2>/dev/null | python3 -c 'import sys; print("::error title=setup log tail::" + sys.stdin.read().replace("%", "%25").replace("\r", "").replace("\n", "%0A"))' || true
+          tail -n 30 /opt/evo-setup.log 2>/dev/null | python3 evo/m0/annotate.py 'setup log tail' error || true
       - name: Debug - which cmake does cambc try to run?
         if: failure()
         run: |
-          annotate() { python3 -c 'import sys; t=sys.argv[1]; print("::warning title=" + t + "::" + sys.stdin.read()[-3800:].replace("%", "%25").replace("", "").replace("
-", "%0A"))' "$1"; }
+          annotate() { python3 "$GITHUB_WORKSPACE/evo/m0/annotate.py" "$1"; }
           DEBIAN_FRONTEND=noninteractive apt-get install -y -qq strace >/dev/null
           mkdir -p /tmp/t1 && cd /tmp/t1
           CAMBC_OFFLINE=1 strace -f -e trace=execve,execveat -o /tmp/t1.strace /usr/local/bin/cambc init --yes . </dev/null > /tmp/t1.log 2>&1 || true
