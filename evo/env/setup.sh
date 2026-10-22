@@ -64,6 +64,14 @@ for name, url, top, lock in tools:
     print('ok', dest, flush=True)
 PY
 export CAMBC_OFFLINE=1         # cambc must not download anything itself
+# Offline, cambc still takes wasi-sdk from its cache but looks up `cmake` and `ninja`
+# on PATH (M0 item 11, strace in env-test). Link the cached copies, the same versions
+# cambc runs when online.
+BIN=/usr/local/bin; [ -w "$BIN" ] || { BIN="$HOME/.local/bin"; mkdir -p "$BIN"; }
+ln -sf "$CACHE/cmake-3.31.8-linux-x86_64/bin/cmake" "$BIN/cmake"
+ln -sf "$CACHE/ninja-1.12.1-linux-x86_64/ninja" "$BIN/ninja"
+export PATH="$BIN:$PATH"
+echo "cmake=$(command -v cmake) ($(cmake --version | head -1)) ninja=$(command -v ninja) ($(ninja --version))"
 
 # Reference workspace: gives check.sh a clean SDK copy to compare against and
 # proves the seeded toolchain builds a bot.

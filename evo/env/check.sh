@@ -9,6 +9,8 @@ if [ "${CLAUDE_CODE_REMOTE:-}" != "true" ] && [ "${EVO_FORCE_CHECK:-}" != "1" ];
   exit 0
 fi
 export CAMBC_NO_UPDATE_CHECK=1 CAMBC_OFFLINE=1   # toolchain is pre-seeded by setup.sh; cambc cannot pass the cloud TLS proxy
+CAMBC_CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/cambc"   # offline cambc finds cmake/ninja on PATH
+export PATH="$CAMBC_CACHE/cmake-3.31.8-linux-x86_64/bin:$CAMBC_CACHE/ninja-1.12.1-linux-x86_64:$PATH"
 cd "${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel)}"
 VER=$(sed -n 's/^sdk_version *= *"\(.*\)"/\1/p' cambc.toml)
 test "$(cambc --version)" = "cambc $VER"

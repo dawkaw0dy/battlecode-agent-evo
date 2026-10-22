@@ -11,9 +11,9 @@
   "env": {
    ".claude/settings.json": "03a586ce4c81c05fbb7c360d4a7b94ed60f07ac7ffacb778f948b2d177137dc2",
    "evo/env/TOOLS.md": "c8535dd8d7443477d7b164c8aed6c7ffae2d97ca8979770fbf0f2621cb038adb",
-   "evo/env/check.sh": "c50dac5708369ab64511e605dc18cdaee33710b07bf8bb28d03b815caa977371",
+   "evo/env/check.sh": "db2c5d586656073274d8002ece03071f3e230479f6e8a761d3c49b08125a9b65",
    "evo/env/fingerprint.py": "cd4b3e001d417c0262c1f23bbeb0103cd9c439a9a8c55f593812f08ef30923f5",
-   "evo/env/setup.sh": "2be427686dd3d0b8bf2306015331d310f2638cdda8da9bd9c552cf5a8a5d7dd9",
+   "evo/env/setup.sh": "3f45551cebad87c92324f1d6750215a93d3e55901be95c61f499f52e3c650a66",
    "evo/env/verify_manifest.py": "ef677648bb6288d4acd35c3f7028b99b9d9e21ce17b29102d21beb54c469b733"
   },
   "maps": {
