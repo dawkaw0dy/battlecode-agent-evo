@@ -1154,6 +1154,65 @@
      ]
     ]
    ],
+   "ranking_A": [
+    "e01-01",
+    "e00-01",
+    "e01-02",
+    "e01-03",
+    "starter"
+   ],
+   "ratings_A": {
+    "e00-01": {
+     "disqualified": false,
+     "fault_rate": 0.0,
+     "interval": [
+      0.3039327960435601,
+      0.9325358668108125
+     ],
+     "mean_margin": 257.171875,
+     "strength": 0.5876375286810873
+    },
+    "e01-01": {
+     "disqualified": false,
+     "fault_rate": 0.0,
+     "interval": [
+      0.5029774913658789,
+      1.1544485133340914
+     ],
+     "mean_margin": 299.03125,
+     "strength": 0.8029029248584867
+    },
+    "e01-02": {
+     "disqualified": false,
+     "fault_rate": 0.0,
+     "interval": [
+      0.17985735722026944,
+      1.0752698751096021
+     ],
+     "mean_margin": 72.8828125,
+     "strength": 0.5876375286810873
+    },
+    "e01-03": {
+     "disqualified": false,
+     "fault_rate": 0.0,
+     "interval": [
+      -1.2288332706746228,
+      -0.5065825924545957
+     ],
+     "mean_margin": -255.7578125,
+     "strength": -0.85348008994587
+    },
+    "starter": {
+     "disqualified": false,
+     "fault_rate": 0.0,
+     "interval": [
+      -1.7468378600215766,
+      -0.9019931034719005
+     ],
+     "mean_margin": -373.328125,
+     "strength": -1.2364459328174913
+    }
+   },
    "slots": [
     "e00-01",
     "e01-01",
@@ -1199,8 +1258,12 @@
    "pushed_commit": "1276975f56a750269c1423a927e70b844242a7da",
    "results_commit": "54bf5939bf02ffba973effcd56d7afdf8aa54306",
    "retries": 0,
+   "spotcheck": {
+    "games": 6,
+    "mismatches": []
+   },
    "stage": "A",
-   "status": "arrived"
+   "status": "verified"
   }
  },
  "launch_errors_in_a_row": 0,
@@ -1251,10 +1314,12 @@
   "2026-10-22T21:02:02Z g01 e01-03: admitted (857f8b84ca5b)",
   "2026-10-22T21:02:08Z g01 phase EVAL_A_PENDING",
   "2026-10-22T21:02:18Z g01 g01-A: pushed 1276975f56 with 9 shards",
-  "2026-10-22T21:04:28Z g01 phase EVAL_A_DONE: results for g01-A"
+  "2026-10-22T21:04:28Z g01 phase EVAL_A_DONE: results for g01-A",
+  "2026-10-22T21:08:12Z g01 g01-A: verified, 288 rows, spot-check 6 OK",
+  "2026-10-22T21:08:15Z g01 phase EVAL_B_PENDING: stage A ranked: e01-01, e00-01, e01-02, e01-03, starter"
  ],
  "paused": null,
- "phase": "EVAL_A_DONE",
+ "phase": "EVAL_B_PENDING",
  "sessions_launched": 7,
  "version": 1
 }
