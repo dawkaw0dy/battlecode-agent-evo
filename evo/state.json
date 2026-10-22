@@ -1670,6 +1670,13 @@
      ]
     ]
    ],
+   "ranking": [
+    "e01-01",
+    "e00-01",
+    "e01-02",
+    "e01-03",
+    "starter"
+   ],
    "ranking_A": [
     "e01-01",
     "e00-01",
@@ -1677,6 +1684,65 @@
     "e01-03",
     "starter"
    ],
+   "ranking_B": [
+    "e01-01",
+    "e00-01",
+    "e01-02",
+    "e01-03",
+    "starter"
+   ],
+   "ratings": {
+    "e00-01": {
+     "disqualified": false,
+     "fault_rate": 0.0,
+     "interval": [
+      0.5463988507221345,
+      1.04899083760006
+     ],
+     "mean_margin": 308.528125,
+     "strength": 0.7892572757138607
+    },
+    "e01-01": {
+     "disqualified": false,
+     "fault_rate": 0.0,
+     "interval": [
+      0.7742683721922897,
+      1.304556359640692
+     ],
+     "mean_margin": 315.6,
+     "strength": 1.015001990429308
+    },
+    "e01-02": {
+     "disqualified": false,
+     "fault_rate": 0.0,
+     "interval": [
+      0.06098092426619899,
+      0.5853515977879148
+     ],
+     "mean_margin": 62.146875,
+     "strength": 0.32657931863388895
+    },
+    "e01-03": {
+     "disqualified": false,
+     "fault_rate": 0.0,
+     "interval": [
+      -1.106188522606474,
+      -0.665832016701752
+     ],
+     "mean_margin": -269.58125,
+     "strength": -0.8641578375601147
+    },
+    "starter": {
+     "disqualified": false,
+     "fault_rate": 0.0,
+     "interval": [
+      -1.777703722759833,
+      -1.0802551148376525
+     ],
+     "mean_margin": -416.69375,
+     "strength": -1.3913276566687747
+    }
+   },
    "ratings_A": {
     "e00-01": {
      "disqualified": false,
@@ -1727,6 +1793,58 @@
      ],
      "mean_margin": -373.328125,
      "strength": -1.2364459328174913
+    }
+   },
+   "ratings_B": {
+    "e00-01": {
+     "disqualified": false,
+     "fault_rate": 0.0,
+     "interval": [
+      0.5463988507221345,
+      1.04899083760006
+     ],
+     "mean_margin": 308.528125,
+     "strength": 0.7892572757138607
+    },
+    "e01-01": {
+     "disqualified": false,
+     "fault_rate": 0.0,
+     "interval": [
+      0.7742683721922897,
+      1.304556359640692
+     ],
+     "mean_margin": 315.6,
+     "strength": 1.015001990429308
+    },
+    "e01-02": {
+     "disqualified": false,
+     "fault_rate": 0.0,
+     "interval": [
+      0.06098092426619899,
+      0.5853515977879148
+     ],
+     "mean_margin": 62.146875,
+     "strength": 0.32657931863388895
+    },
+    "e01-03": {
+     "disqualified": false,
+     "fault_rate": 0.0,
+     "interval": [
+      -1.106188522606474,
+      -0.665832016701752
+     ],
+     "mean_margin": -269.58125,
+     "strength": -0.8641578375601147
+    },
+    "starter": {
+     "disqualified": false,
+     "fault_rate": 0.0,
+     "interval": [
+      -1.777703722759833,
+      -1.0802551148376525
+     ],
+     "mean_margin": -416.69375,
+     "strength": -1.3913276566687747
     }
    },
    "slots": [
@@ -1793,8 +1911,12 @@
    "pushed_commit": "5df4587736e1b05e80d5b8fc1c0dacdf535829f2",
    "results_commit": "b03944c1e4942c5329f260e7345cb242bc01536e",
    "retries": 0,
+   "spotcheck": {
+    "games": 12,
+    "mismatches": []
+   },
    "stage": "B",
-   "status": "arrived"
+   "status": "verified"
   }
  },
  "launch_errors_in_a_row": 0,
@@ -1851,10 +1973,12 @@
   "2026-10-22T21:08:30Z g01 g01-B: pushed 5df4587736 with 12 shards",
   "2026-10-22T21:12:49Z g01 phase EVAL_B_DONE: results for g01-B",
   "2026-10-22T21:12:54Z g01 HALTED: g01-B: results failed verification: duplicate game ('e01-01', 'e00-01', '00collision', 'A'); duplicate game ('e01-01', 'e00-01', '00collision', 'B'); duplicate game ('e01-01', 'e00-01', '00contest', 'A'); duplicate game ('e01-01', 'e00-01', '00contest', 'B'); duplicate game ('e01-01', 'e00-01', '00corners', 'A')",
-  "2026-10-22T21:21:25Z g01 halt cleared (owner reviewed: g01-B duplicates came from the stage_b_pairs bug fixed in dca675e; all duplicates identical); was: g01-B: results failed verification: duplicate game ('e01-01', 'e00-01', '00collision', 'A'); duplicate game ('e01-01', 'e00-01', '00collision', 'B'); duplicate game ('e01-01', 'e00-01', '00contest', 'A'); duplicate game ('e01-01', 'e00-01', '00contest', 'B'); duplicate game ('e01-01', 'e00-01', '00c"
+  "2026-10-22T21:21:25Z g01 halt cleared (owner reviewed: g01-B duplicates came from the stage_b_pairs bug fixed in dca675e; all duplicates identical); was: g01-B: results failed verification: duplicate game ('e01-01', 'e00-01', '00collision', 'A'); duplicate game ('e01-01', 'e00-01', '00collision', 'B'); duplicate game ('e01-01', 'e00-01', '00contest', 'A'); duplicate game ('e01-01', 'e00-01', '00contest', 'B'); duplicate game ('e01-01', 'e00-01', '00c",
+  "2026-10-22T21:28:31Z g01 g01-B: verified, 576 rows, spot-check 12 OK",
+  "2026-10-22T21:28:34Z g01 phase SELECTED: final: e01-01, e00-01, e01-02, e01-03, starter"
  ],
  "paused": null,
- "phase": "EVAL_B_DONE",
+ "phase": "SELECTED",
  "sessions_launched": 7,
  "version": 1
 }
