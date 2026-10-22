@@ -2,8 +2,8 @@
  "agents": {
   "r00-00": {
    "archetype": "map-reader",
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evolution-agent-r00-00-5gn23b",
+   "commit": "747cddc3fb0e610117514b3b28aea7f203c37ba7",
    "deadline_minutes": 45,
    "evidence": [],
    "failed_ideas": [],
@@ -30,7 +30,7 @@
    ],
    "slot": 0,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "3628142faa8935c1325767e9bb1219290d41f04ea9c89284b874be88c6b06f66"
   },
   "r00-01": {
@@ -102,10 +102,12 @@
   "2026-10-22T19:37:48Z g00 phase RUNNING",
   "2026-10-22T19:38:11Z g00 r00-00: launched session_016tne4vkCTvXFJcxv11SnFr",
   "2026-10-22T19:38:23Z g00 r00-01: launched session_01Twx7RFtDAuhFhsEubUSAkT",
-  "2026-10-22T19:45:32Z g00 r00-01: done on origin/claude/evo-task-r00-01-wp5s3e at 3c675cd47c"
+  "2026-10-22T19:45:32Z g00 r00-01: done on origin/claude/evo-task-r00-01-wp5s3e at 3c675cd47c",
+  "2026-10-22T19:47:45Z g00 r00-00: done on origin/claude/evolution-agent-r00-00-5gn23b at 747cddc3fb",
+  "2026-10-22T19:47:45Z g00 phase ADMITTED"
  ],
  "paused": null,
- "phase": "RUNNING",
+ "phase": "ADMITTED",
  "sessions_launched": 2,
  "version": 1
 }
