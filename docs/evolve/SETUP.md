@@ -169,3 +169,44 @@ match, stop and tell me what you see instead of guessing.
    (The aggregate jobs ask for `contents: write` themselves; nothing else gets it.)
 
 **Reply with:** `H4: done`, plus whether **GitHub Actions** was offered as a bypass actor.
+
+## H4 v2 — M0: deploy keys are the only bypass (DECISIONS D20)
+
+Why: the probe session's push to `main` was **accepted**, because cloud sessions push as you and
+the rulesets let Repository admin bypass them. From now on only two deploy keys may bypass.
+I generated both key pairs on this PC (2026-10-22). Only the **public** halves appear below.
+
+### 1. Add two deploy keys
+
+Repo → **Settings** → **Deploy keys** → **Add deploy key**, twice:
+
+| Title | Key (paste the whole line) | Allow write access |
+|---|---|---|
+| `evo-orchestrator` | `ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIC1VpZe1U3TYwmRYupdz6nKUY7lugsjxFsZWYoSaV4o8 evo-orchestrator (battlecode-agent-evo deploy key, PC)` | **ticked** |
+| `evo-actions` | `ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMKiVd2WeSeYQKw5LIRVTXKqc8+NPbhHjBGpwseoLpes evo-actions (battlecode-agent-evo deploy key, Actions secret)` | **ticked** |
+
+### 2. Add the Actions secret
+
+1. In PowerShell run `notepad $env:USERPROFILE\.ssh\evo_actions`. This is the **private** key for `evo-actions`.
+   Copy the whole file, including the `-----BEGIN OPENSSH PRIVATE KEY-----` and `-----END …-----` lines.
+2. Repo → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**.
+   Name: `EVO_RESULTS_DEPLOY_KEY`. Secret: paste. **Add secret**.
+3. Do not paste it anywhere else (not in chat, not in a file in the repo). Once the secret is saved,
+   tell me and I will delete `evo_actions` from this PC (its public half stays).
+
+The PC key `~/.ssh/evo_orchestrator` stays only on this PC. Do not upload it anywhere.
+
+### 3. Change both rulesets
+
+Repo → **Settings** → **Rules** → **Rulesets**:
+
+1. **protect-main** → **Bypass list**: remove **Repository admin**. **Add bypass** → **Deploy keys** →
+   **Always allow**. Rules stay: **Restrict updates**, **Restrict deletions**, **Block force pushes**. **Save changes**.
+2. **protect-evo-results** → **Bypass list**: **Add bypass** → **Deploy keys** → **Always allow**
+   (no Repository admin). Rules: tick **Restrict updates** as well, so all three are on. **Save changes**.
+
+After this, your own normal HTTPS pushes to `main` are refused too. This clone will push over SSH with
+`evo-orchestrator`; I set that up locally (`git config` in this repo only).
+
+**Reply with:** `H4 v2: done`. I then test it without any cloud session: an HTTPS push as you must be refused
+and an SSH push with the deploy key accepted. The test push is the cleanup commit that removes the probe's test file.

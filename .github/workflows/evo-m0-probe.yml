@@ -86,7 +86,7 @@ jobs:
     needs: [games, concurrency]
     if: always()
     runs-on: ubuntu-latest
-    permissions: { contents: write }
+    permissions: { contents: read }
     steps:
       - uses: actions/checkout@v4
         with: { sparse-checkout: evo/m0 }
@@ -95,9 +95,15 @@ jobs:
       - name: Combine
         run: python evo/m0/combine.py parts m0.json
       - name: Commit to evo-results
+        # evo-results only accepts the evo-actions deploy key (DECISIONS D20).
+        env: { DEPLOY_KEY: '${{ secrets.EVO_RESULTS_DEPLOY_KEY }}' }
         run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/evo_actions && chmod 600 ~/.ssh/evo_actions
+          echo 'github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl' >> ~/.ssh/known_hosts
+          export GIT_SSH_COMMAND='ssh -i ~/.ssh/evo_actions -o IdentitiesOnly=yes'
           git init -q results && cd results
-          git remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
+          git remote add origin "git@github.com:${{ github.repository }}.git"
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           if git fetch -q --depth 1 origin evo-results; then git checkout -q -b evo-results FETCH_HEAD; else git checkout -q --orphan evo-results; fi

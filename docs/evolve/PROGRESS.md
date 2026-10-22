@@ -1,7 +1,7 @@
 # Progress
 
-**Milestone:** M0. **HARD STOP (§0.5 item 12):** a cloud session pushed to `main`. Waiting on the owner
-to agree to the H4 redesign below.
+**Milestone:** M0. Hard stop at item 12 (an agent pushed to `main`). The owner agreed to H4 v2 (D20). Waiting on
+the owner to apply H4 v2 (SETUP.md): deploy keys, the secret `EVO_RESULTS_DEPLOY_KEY`, rulesets.
 
 **Done**
 - M0 items 1–11 and 13–16 recorded in M0.md. Probe session 2 (`session_01HY3quh12DiamDT3sG6K8bZ`) succeeded:
@@ -11,7 +11,7 @@ to agree to the H4 redesign below.
 **Item 12 result:** pushes to `main`, `evo-test` and `evo-results` were all accepted. The proxy pushes as the owner,
 so the Repository-admin bypass covers agents too.
 
-**Proposed H4 v2 (asked in chat 2026-10-22; not agreed yet)**
+**H4 v2 (agreed 2026-10-22, D20). Keys generated in `~/.ssh/evo_orchestrator{,.pub}` and `~/.ssh/evo_actions{,.pub}`; the github.com host key was added to `~/.ssh/known_hosts` (fingerprint SHA256:+DiY3wvvV6TuJJhbpZisF/zLDA0zPMSvHdkr4UvCOqU checked)**
 - Remove "Repository admin" from every bypass list. Bypass = **Deploy keys** only.
 - `main`: Restrict updates + deletions + force pushes. `evo-results`: the same (this also replaces D19's interim setup).
 - Two SSH deploy keys with write access: `evo-orchestrator` (private key in `~/.ssh` on the PC; this clone pushes over
@@ -19,6 +19,8 @@ so the Repository-admin bypass covers agents too.
   `EVO_RESULTS_DEPLOY_KEY`; the aggregate jobs push `evo-results` with it).
 - Free test, no session: an HTTPS push from the PC as the owner (the same identity as the proxy) must be refused,
   and an SSH push with the deploy key must succeed.
+- After the owner's `H4 v2: done`: set `remote.origin.pushurl=git@github.com:dawkaw0dy/battlecode-agent-evo.git` and
+  `core.sshCommand` (this repo only); run the test; delete `~/.ssh/evo_actions` (private key) once the secret is saved.
 - Clean up afterwards with normal commits: remove `evo/agents/probe/push-test-main.txt` from `main` and
   `m0/probe-push-test.txt` from `evo-results`; `evo-test` can stay.
 

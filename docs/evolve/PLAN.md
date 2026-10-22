@@ -758,12 +758,12 @@ Stage C. Their hashes go in the job file as usual.
 The repository is public and owned by you. Orchestration runs only on your PC.
 Nothing Claude-related runs in the repo or in Actions.
 
-- Ruleset on `main`: Restrict updates (Repository admin bypass: you, the orchestrator),
-  Restrict deletions, Block force pushes. Ruleset on `evo-results`: Restrict deletions and
-  Block force pushes only, because GitHub Actions cannot be a bypass actor (D19). Each
-  cloud session pushes only to its own branch; M0 item 12 confirms that it cannot push to
-  `main` or `evo-results`. If it can push to `evo-results`, the aggregate job switches to a
-  deploy key that is the bypass actor, and `evo-results` gets Restrict updates.
+- Rulesets on `main` and `evo-results`: Restrict updates, Restrict deletions, Block force
+  pushes. The **only** bypass actors are deploy keys (D20). Cloud sessions push through a proxy
+  **as the owner** (M0 item 12), so no user or role may be a bypass actor. The orchestrator
+  pushes with deploy key `evo-orchestrator` (SSH, private key only on the PC), and the aggregate
+  jobs push `evo-results` with deploy key `evo-actions` (private key only in the Actions secret
+  `EVO_RESULTS_DEPLOY_KEY`). Each cloud session can then push only to branches outside these two.
 - Actions enabled, workflow token default read-only.
 - The workflow triggers only on `push` to `main`, never on `pull_request` or
   `pull_request_target`. Anyone can fork a public repo and open a PR, and that
