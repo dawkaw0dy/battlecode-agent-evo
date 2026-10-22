@@ -1,0 +1,232 @@
+{
+ "env_manifest_sha256": "42ad449a06998b25c35655069ec2505b1fea6ee599e59ca969cbe5cbe5b9d4ca",
+ "generation": 1,
+ "job_id": "g01-A",
+ "map_sha256": {
+  "00ambush": "81ac8b6689f275d24e57d586f2451a160484c15144f86afd0c4450e02c39e579",
+  "00gemfight": "1dfe5669ebcdf39e7769b5abf933c707804ee4a216881f89178e75e3dbc27239",
+  "00interlock": "140e5bc3ac11c7f74dfc4ed99cc53739a34be8d3f71a7f4d0520dc4a3c197e19",
+  "00lost-world": "566697c98eace1c84152f571e9e1fa0b54ec64e038e4695305c874bd3dc2bc6e",
+  "00pilgrimage": "7d7ddb9c37c77cd8b3721423e155400d936eaa76fa3c62fe24b308d0fd5eb673",
+  "00quadrants": "261fe6c133f076653bda84e88965dc35c5a59a70e7730082b4c6df9ca892df92",
+  "00reverse-spiral": "f57669ffc98b76a5c2e4eccba41690dc193efc29f067ee960605617b2cfb48e5",
+  "00rushbait-v2": "f4dcc30269aa7d0983e7d244f72c3d2a9a6d7ce918cd00495d465b78b2609157",
+  "00stampede": "49807e4756ec1b2030ed2ca7ebdd8a07f1a6ed7f2d2bd751e6941f5c0c877cdc",
+  "00swirl": "e6f860670947b1326f34c86515db8ef6893c565eaa69e3f9a6464ec5744e1c93",
+  "01big-world": "f1ecb726472858efb1d75d00b0d7668be18d83a010b2abf9a1f8c38aab456aa5",
+  "01concentrated-wealth": "dc09c386d5e9dec3cec8bc4575c19d43233e08790e138ccd02be4644f2808c65",
+  "01elk-arena": "72b8e03bc4378d5f988f9c1c07609848bfb42fd8a883cce01820d96212f21c0a",
+  "01gold-rush": "6e564fdf09fdf67a4182a909d6985737b488742e64f2c3e164204e78bc64c898",
+  "01islands": "d97cf04b738393812fb51024582e2a6cfba8a850b19ce031f2c1ad3d7b916acb",
+  "01the-farm": "5cca9ed6eaaf6ef15a170a4ea78488237fda7b256e182a2e3360a14b485e09c3"
+ },
+ "runner_version": "cambc==3.0.5",
+ "shards": [
+  {
+   "a": "e00-01",
+   "b": "e01-01",
+   "maps": [
+    "00ambush",
+    "00gemfight",
+    "00interlock",
+    "00lost-world",
+    "00pilgrimage",
+    "00quadrants",
+    "00reverse-spiral",
+    "00rushbait-v2",
+    "00stampede",
+    "00swirl",
+    "01big-world",
+    "01concentrated-wealth",
+    "01elk-arena",
+    "01gold-rush",
+    "01islands",
+    "01the-farm"
+   ]
+  },
+  {
+   "a": "e00-01",
+   "b": "e01-02",
+   "maps": [
+    "00ambush",
+    "00gemfight",
+    "00interlock",
+    "00lost-world",
+    "00pilgrimage",
+    "00quadrants",
+    "00reverse-spiral",
+    "00rushbait-v2",
+    "00stampede",
+    "00swirl",
+    "01big-world",
+    "01concentrated-wealth",
+    "01elk-arena",
+    "01gold-rush",
+    "01islands",
+    "01the-farm"
+   ]
+  },
+  {
+   "a": "e00-01",
+   "b": "e01-03",
+   "maps": [
+    "00ambush",
+    "00gemfight",
+    "00interlock",
+    "00lost-world",
+    "00pilgrimage",
+    "00quadrants",
+    "00reverse-spiral",
+    "00rushbait-v2",
+    "00stampede",
+    "00swirl",
+    "01big-world",
+    "01concentrated-wealth",
+    "01elk-arena",
+    "01gold-rush",
+    "01islands",
+    "01the-farm"
+   ]
+  },
+  {
+   "a": "e01-01",
+   "b": "e01-02",
+   "maps": [
+    "00ambush",
+    "00gemfight",
+    "00interlock",
+    "00lost-world",
+    "00pilgrimage",
+    "00quadrants",
+    "00reverse-spiral",
+    "00rushbait-v2",
+    "00stampede",
+    "00swirl",
+    "01big-world",
+    "01concentrated-wealth",
+    "01elk-arena",
+    "01gold-rush",
+    "01islands",
+    "01the-farm"
+   ]
+  },
+  {
+   "a": "e01-01",
+   "b": "e01-03",
+   "maps": [
+    "00ambush",
+    "00gemfight",
+    "00interlock",
+    "00lost-world",
+    "00pilgrimage",
+    "00quadrants",
+    "00reverse-spiral",
+    "00rushbait-v2",
+    "00stampede",
+    "00swirl",
+    "01big-world",
+    "01concentrated-wealth",
+    "01elk-arena",
+    "01gold-rush",
+    "01islands",
+    "01the-farm"
+   ]
+  },
+  {
+   "a": "e01-02",
+   "b": "e01-03",
+   "maps": [
+    "00ambush",
+    "00gemfight",
+    "00interlock",
+    "00lost-world",
+    "00pilgrimage",
+    "00quadrants",
+    "00reverse-spiral",
+    "00rushbait-v2",
+    "00stampede",
+    "00swirl",
+    "01big-world",
+    "01concentrated-wealth",
+    "01elk-arena",
+    "01gold-rush",
+    "01islands",
+    "01the-farm"
+   ]
+  },
+  {
+   "a": "e01-01",
+   "b": "starter",
+   "maps": [
+    "00ambush",
+    "00gemfight",
+    "00interlock",
+    "00lost-world",
+    "00pilgrimage",
+    "00quadrants",
+    "00reverse-spiral",
+    "00rushbait-v2",
+    "00stampede",
+    "00swirl",
+    "01big-world",
+    "01concentrated-wealth",
+    "01elk-arena",
+    "01gold-rush",
+    "01islands",
+    "01the-farm"
+   ]
+  },
+  {
+   "a": "e01-02",
+   "b": "starter",
+   "maps": [
+    "00ambush",
+    "00gemfight",
+    "00interlock",
+    "00lost-world",
+    "00pilgrimage",
+    "00quadrants",
+    "00reverse-spiral",
+    "00rushbait-v2",
+    "00stampede",
+    "00swirl",
+    "01big-world",
+    "01concentrated-wealth",
+    "01elk-arena",
+    "01gold-rush",
+    "01islands",
+    "01the-farm"
+   ]
+  },
+  {
+   "a": "e01-03",
+   "b": "starter",
+   "maps": [
+    "00ambush",
+    "00gemfight",
+    "00interlock",
+    "00lost-world",
+    "00pilgrimage",
+    "00quadrants",
+    "00reverse-spiral",
+    "00rushbait-v2",
+    "00stampede",
+    "00swirl",
+    "01big-world",
+    "01concentrated-wealth",
+    "01elk-arena",
+    "01gold-rush",
+    "01islands",
+    "01the-farm"
+   ]
+  }
+ ],
+ "src_sha256": {
+  "e00-01": "cbd4ba2fc21f3d089b6fec75fb22e9c7d01c1a88d45c80bafb950bcdc86ad132",
+  "e01-01": "4aaba25b8aa31d9086f29d08355d2eaf32f67e68dfe0f5991ef5f67dd75be75d",
+  "e01-02": "051a721301245f5b9f77150cb55ba3a3c6f0899e5b79cac6c5e215a436a54bae",
+  "e01-03": "857f8b84ca5b4cd0abc7ba305ad29d9e00cc8c84481133dca780284971e2fce9",
+  "starter": "9023e6a089796897d6ed661f26054d1b81b298e048a09a5df75d3b9cb5d3c6a9"
+ },
+ "stage": "A"
+}
