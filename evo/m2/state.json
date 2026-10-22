@@ -326,10 +326,11 @@
   "2026-10-22T18:47:14Z g00 t00-04: admitted (1a67faf67392)",
   "2026-10-22T18:47:20Z g00 t00-05: rejected: out of scope: tools/benchmark.py",
   "2026-10-22T18:47:25Z g00 t00-06: rejected: out of scope: bots/starter/src/extra.h",
-  "2026-10-22T18:47:31Z g00 t00-07: rejected: main.cpp:2: include path '../../tools/evil.h' is not a plain name"
+  "2026-10-22T18:47:31Z g00 t00-07: rejected: main.cpp:2: include path '../../tools/evil.h' is not a plain name",
+  "2026-10-22T18:47:37Z g00 phase EVAL_A_PENDING"
  ],
  "paused": null,
- "phase": "ADMITTED",
+ "phase": "EVAL_A_PENDING",
  "sessions_launched": 8,
  "version": 1
 }
