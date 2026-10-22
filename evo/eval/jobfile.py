@@ -12,7 +12,7 @@ from pathlib import Path
 from evo.eval.digest import digest
 
 ROOT = Path(__file__).resolve().parents[2]
-JOB_ID_CHARS = set('abcdefghijklmnopqrstuvwxyz0123456789-')
+JOB_ID_CHARS = set('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-')
 
 
 def runner_version(root=ROOT):
@@ -25,22 +25,30 @@ def map_sha256(root, name):
 
 def build(job_id, pairs, maps, *, generation=None, stage='M1', shard_games=200, root=ROOT):
     """A job dict; each pair is split into shards of at most shard_games games (2 per map)."""
+    return build_units(job_id, [(a, b, maps) for a, b in pairs], generation=generation, stage=stage,
+                       shard_games=shard_games, root=root)
+
+
+def build_units(job_id, units, *, generation=None, stage='M1', shard_games=200, root=ROOT):
+    """A job dict from (a, b, maps) units; each unit is split into shards of at most shard_games games."""
     if not job_id or set(job_id) - JOB_ID_CHARS:
         raise ValueError(f'bad job id {job_id!r}')
     root = Path(root)
-    bots = sorted({b for pair in pairs for b in pair})
+    bots = sorted({b for a, b_, _ in units for b in (a, b_)})
+    maps = sorted({m for _, _, ms in units for m in ms})
     per_shard = max(1, shard_games // 2)
     shards = []
-    for a, b in pairs:
-        for i in range(0, len(maps), per_shard):
-            shards.append({'a': a, 'b': b, 'maps': list(maps[i:i + per_shard])})
+    for a, b, unit_maps in units:
+        unit_maps = list(unit_maps)
+        for i in range(0, len(unit_maps), per_shard):
+            shards.append({'a': a, 'b': b, 'maps': unit_maps[i:i + per_shard]})
     manifest = (root / 'evo/env/manifest.json').read_bytes()
     return {
         'job_id': job_id, 'generation': generation, 'stage': stage,
         'runner_version': runner_version(root),
         'env_manifest_sha256': hashlib.sha256(manifest).hexdigest(),
         'src_sha256': {b: digest(root / 'bots' / b) for b in bots},
-        'map_sha256': {m: map_sha256(root, m) for m in sorted(set(maps))},
+        'map_sha256': {m: map_sha256(root, m) for m in maps},
         'shards': shards,
     }
 

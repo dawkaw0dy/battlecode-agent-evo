@@ -847,8 +847,10 @@ for b in ranked:
     if len(survivors) == s: break
 ```
 
-`similar(b, x)`: the per-map win vectors against the panel correlate above
-0.9 **and** their head-to-head is between 45% and 55%. Two bots that play the
+`similar(b, x)`: the per-(opponent, map) win vectors over every opponent both bots
+played this generation (excluding each other) correlate above 0.9 **and** their head-to-head
+is between 45% and 55%. An undefined correlation (fewer than 4 common cells, or a constant
+vector) or a missing head-to-head means not similar (D25). Two bots that play the
 same strategy count as one, and the next distinct bot survives instead.
 
 Hall of fame: append `survivors[0]` if it is not already in it.
@@ -912,7 +914,8 @@ crossover falls back to `subsystem`.
 ### 13.2 Focus
 
 Sample from `[mutation].focus`, weighted by the parent's losses: each focus
-area has a list of map tags (`collision`, `lanes`, `gem fields`, …). Weight =
+area has a list of map tags (`[mutation].focus_tags`; the tags of each map are derived from
+the map data into `evo/prompts/map_tags.json`, D26). Weight =
 1 + the number of evidence losses on maps with that tag. A focus the same
 lineage used in the previous generation gets half weight.
 
