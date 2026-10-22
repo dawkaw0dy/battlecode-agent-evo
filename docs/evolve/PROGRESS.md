@@ -1,7 +1,15 @@
 # Progress
 
-**Milestone:** M1 done (2026-10-22, docs/evolve/M1.md). M2 not started: waiting for the owner's go.
-H5 done (Custom network). It is untested by a session until M3.
+**Milestone:** M2 done (2026-10-22, docs/evolve/M2.md). M3 not started: waiting for the owner's go.
+
+**Done in M2**
+- Orchestrator (`evo/orchestrator/*`, CLI `python -m evo`), D25–D26. A real one-generation run with fake agents (`t00`) on
+  GitHub/Actions: 3 tampered branches rejected, faulter and build failure disqualified, spot-checks 7/7 matched.
+
+**M3 needs (to propose when it starts)**
+- A cloud launcher: `claude --cloud` refuses a non-TTY (M0 item 10); plan a ConPTY pseudo-terminal via `ctypes`.
+- Real prompt fragments (`evo/prompts/operators`, `focus`) and n + 2 = 10 archetypes in `evo/prompts/archetypes`.
+- 2 real sessions (stop point). Also check H5 (Custom network) and the second session's setup cache.
 
 **Done in M1**
 - Eval pipeline built (D21–D24). Hand-written job `m1-probe` → `results/m1-probe.json` matches the local run 8/8, down to the replay bytes.
