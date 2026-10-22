@@ -1,6 +1,17 @@
 # Progress
 
-**Milestone:** M2 done (2026-10-22, docs/evolve/M2.md). M3 not started: waiting for the owner's go.
+**Milestone:** M3 in progress. **Stop point:** waiting for the owner's yes to 2 cloud sessions.
+
+**Done in M3 so far**
+- D27: ConPTY launcher (`evo/orchestrator/conpty.py`, `launch.CloudLauncher`), tested through ConPTY with a fake CLI
+  that refuses non-terminals (no session spent).
+- Real prompts: `evo/prompts/operators/*` (4), `focus/*` (9), `archetypes/*` (10, from GameRules.md and the patch notes only),
+  and a scoring section in `agent.md`.
+- M3 run (`evo/m3/config.toml`): `init`, tasks `evo/tasks/r00-00.md` (map-reader) and `r00-01.md` (scaling-economy)
+  pushed at `bc7047e`; the state is paused at `approve 00`.
+
+**Next after the yes:** `python -m evo --config evo/m3/config.toml approve 00`, then `step` (launches both through
+ConPTY), poll with `step` until both are done/dead, admission; record in `docs/evolve/M3.md`.
 
 **Done in M2**
 - Orchestrator (`evo/orchestrator/*`, CLI `python -m evo`), D25–D26. A real one-generation run with fake agents (`t00`) on
