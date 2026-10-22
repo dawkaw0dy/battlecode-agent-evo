@@ -68,8 +68,8 @@
   },
   "e00-02": {
    "archetype": "deathball",
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evolution-agent-e00-02-ph0msk",
+   "commit": "1c1ef5d2567600c6ef2a9f0d95766cf699d346f7",
    "deadline_minutes": 60,
    "evidence": [],
    "failed_ideas": [],
@@ -96,7 +96,7 @@
    ],
    "slot": 2,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "a9d9d813df31889b8999ea40fce2e8afbfcfc548a20d2d0ac15f5e4dd147774b"
   },
   "e00-03": {
@@ -173,10 +173,12 @@
   "2026-10-22T20:03:18Z g00 e00-03: launched session_01V4G6svvU1rbA8q4ciWHjMr",
   "2026-10-22T20:12:21Z g00 e00-03: done on origin/claude/evo-task-e00-03-vpwxj8 at ccda13ad37",
   "2026-10-22T20:14:33Z g00 e00-00: done on origin/claude/evo-task-e00-00-3kq51g at 23238ed0fb",
-  "2026-10-22T20:14:34Z g00 e00-01: done on origin/claude/evo-e00-01-kjcv96 at c1b5c1182d"
+  "2026-10-22T20:14:34Z g00 e00-01: done on origin/claude/evo-e00-01-kjcv96 at c1b5c1182d",
+  "2026-10-22T20:16:50Z g00 e00-02: done on origin/claude/evolution-agent-e00-02-ph0msk at 1c1ef5d256",
+  "2026-10-22T20:16:50Z g00 phase ADMITTED"
  ],
  "paused": null,
- "phase": "RUNNING",
+ "phase": "ADMITTED",
  "sessions_launched": 4,
  "version": 1
 }
