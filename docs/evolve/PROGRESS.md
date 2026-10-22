@@ -1,17 +1,15 @@
 # Progress
 
-**Milestone:** M3 in progress. **Stop point:** waiting for the owner's yes to 2 cloud sessions.
+**Milestone:** M3 done (2026-10-22, docs/evolve/M3.md). M4 not started: waiting for the owner's go.
+Cloud sessions used so far: 4 (M0: 2, M3: 2), all approved.
 
-**Done in M3 so far**
-- D27: ConPTY launcher (`evo/orchestrator/conpty.py`, `launch.CloudLauncher`), tested through ConPTY with a fake CLI
-  that refuses non-terminals (no session spent).
-- Real prompts: `evo/prompts/operators/*` (4), `focus/*` (9), `archetypes/*` (10, from GameRules.md and the patch notes only),
-  and a scoring section in `agent.md`.
-- M3 run (`evo/m3/config.toml`): `init`, tasks `evo/tasks/r00-00.md` (map-reader) and `r00-01.md` (scaling-economy)
-  pushed at `bc7047e`; the state is paused at `approve 00`.
+**Done in M3**
+- ConPTY launcher (D27); real prompts and 10 archetypes. 2 real agents (r00-00, r00-01) launched automatically,
+  finished in 7–9 min, admitted. The M3 run is paused "too small", as expected.
 
-**Next after the yes:** `python -m evo --config evo/m3/config.toml approve 00`, then `step` (launches both through
-ConPTY), poll with `step` until both are done/dead, admission; record in `docs/evolve/M3.md`.
+**M4 plan (to confirm with the owner)**
+- Real run `evo/config.toml` with n = 4 (§14 "start with n = 4"): gen 0 = 4 immigrants, then gen 1. Stop points: each
+  generation needs `approve`. Ask the owner about `deadline_minutes` (M3 agents needed < 10 min) and about n.
 
 **Done in M2**
 - Orchestrator (`evo/orchestrator/*`, CLI `python -m evo`), D25–D26. A real one-generation run with fake agents (`t00`) on
