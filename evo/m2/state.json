@@ -229,10 +229,11 @@
   "2026-10-22T18:42:52Z g00 initialised generation 0 with 8 immigrants",
   "2026-10-22T18:42:59Z g00 phase TASKS_PUSHED: 8 task files",
   "2026-10-22T18:43:12Z g00 PAUSED: waiting for approval: python -m evo approve 00",
-  "2026-10-22T18:43:19Z g00 approved generation 00: {'sessions': 8, 'relaunches_per_slot': 1, 'nudges_per_session': 1, 'deadline_minutes': 270, 'max_sessions_total': 40, 'approved_at': 1792694599}"
+  "2026-10-22T18:43:19Z g00 approved generation 00: {'sessions': 8, 'relaunches_per_slot': 1, 'nudges_per_session': 1, 'deadline_minutes': 270, 'max_sessions_total': 40, 'approved_at': 1792694599}",
+  "2026-10-22T18:43:33Z g00 phase RUNNING"
  ],
  "paused": null,
- "phase": "TASKS_PUSHED",
+ "phase": "RUNNING",
  "sessions_launched": 0,
  "version": 1
 }
