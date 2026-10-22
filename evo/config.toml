@@ -1,0 +1,34 @@
+seed = 20261022            # master seed; every random choice derives from it
+population = 8             # n
+keep_fraction = 0.25       # k; survivors s = max(2, ceil(n*k))
+elites = 1                 # top bots carried over frozen, no new session
+immigrants = 1             # fresh agents from an archetype per generation
+language = "cpp"           # only C++ is admitted (§8)
+
+[agents]
+max_parallel = 4           # cloud sessions running at once
+require_approval = true    # pause each generation until `python -m evo approve gGG` (§0.4)
+max_sessions_total = 40    # hard cap on cloud sessions for the whole run
+deadline_minutes = 180     # no DONE marker by then -> slot is dead
+relaunch_dead = 1          # relaunch attempts per dead slot per generation
+local_game_budget = 120    # games an agent may play while developing
+
+[eval]
+runner_version = "cambc==3.0.5"    # pinned in M0 (M0.md item 1); keep equal to VER in evo/env/setup.sh
+map_pool = "maps"                  # the M maps `cambc init` downloaded (§1.1)
+heldout_pool = ""                  # optional private repo path (§9.4)
+panel = ["starter"]                # fixed opponents; plus hall of fame below
+hall_of_fame_in_panel = 3          # until 2 exist, Stage A is a round robin (§11)
+stage_a_maps = 16                  # rotating subset, chosen by generation seed
+stage_b_top = 4                    # bots promoted to the full round robin
+shard_games = 40                   # games per matrix job
+jobs_per_runner = 0                # 0 = nproc
+spotcheck_fraction = 0.02
+spotcheck_min = 4
+max_fault_rate = 0.10              # above this a bot is disqualified
+
+[mutation]
+operator_weights = { tweak = 0.40, subsystem = 0.30, crossover = 0.20, radical = 0.10 }
+focus = ["camps", "combat", "spells", "pathing", "opening", "endgame", "defense", "fuel", "map-adaptive"]
+evidence_losses = 3
+immigrant_base = "starter"         # or "hall_of_fame" from generation 2 (§13.4)
