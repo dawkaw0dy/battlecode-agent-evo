@@ -29,3 +29,29 @@ jobs:
           start=$(date +%s)
           bash evo/env/check.sh
           echo "check seconds: $(( $(date +%s) - start ))"
+
+  # Closer to the cloud VM: root user, system Python on Ubuntu 24.04 (PEP 668), no setup-python.
+  env-root:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    container: ubuntu:24.04
+    steps:
+      - name: Base packages
+        run: |
+          apt-get update -qq
+          DEBIAN_FRONTEND=noninteractive apt-get install -y -qq git python3 python3-pip nodejs ca-certificates >/dev/null
+      - uses: actions/checkout@v4
+      - name: Setup script (as root)
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          start=$(date +%s)
+          bash evo/env/setup.sh
+          echo "setup seconds: $(( $(date +%s) - start ))"
+      - name: SessionStart check (as root)
+        env: { EVO_FORCE_CHECK: '1' }
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          bash evo/env/check.sh
+      - name: Setup log
+        if: always()
+        run: cat /opt/evo-setup.log || true
