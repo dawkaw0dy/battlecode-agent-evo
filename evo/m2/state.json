@@ -18,10 +18,18 @@
    ],
    "reason": null,
    "rng_key": "20261022:0:0",
-   "sessions": [],
+   "sessions": [
+    {
+     "attempt": 1,
+     "base_commit": "7c72045d2ccf882c9f467665bd5561be2b961735",
+     "id": "session_faket0000a1",
+     "launched_at": 1792694629,
+     "url": null
+    }
+   ],
    "slot": 0,
    "src_sha256": null,
-   "status": "planned",
+   "status": "running",
    "task_sha256": "f408fdc659e652685c554efb1c876ef4c76901cf9d42ea79fe513160cfbfe9b4"
   },
   "t00-01": {
@@ -42,10 +50,18 @@
    ],
    "reason": null,
    "rng_key": "20261022:0:1",
-   "sessions": [],
+   "sessions": [
+    {
+     "attempt": 1,
+     "base_commit": "7c72045d2ccf882c9f467665bd5561be2b961735",
+     "id": "session_faket0001a1",
+     "launched_at": 1792694634,
+     "url": null
+    }
+   ],
    "slot": 1,
    "src_sha256": null,
-   "status": "planned",
+   "status": "running",
    "task_sha256": "2e07cd5b0d6ff13c17b1a12040ad8f252bebbe8f7478df1c70271a43cdbb5f83"
   },
   "t00-02": {
@@ -66,10 +82,18 @@
    ],
    "reason": null,
    "rng_key": "20261022:0:2",
-   "sessions": [],
+   "sessions": [
+    {
+     "attempt": 1,
+     "base_commit": "7c72045d2ccf882c9f467665bd5561be2b961735",
+     "id": "session_faket0002a1",
+     "launched_at": 1792694640,
+     "url": null
+    }
+   ],
    "slot": 2,
    "src_sha256": null,
-   "status": "planned",
+   "status": "running",
    "task_sha256": "ae67dbacc42da4c4e65d9dfeba4848f8729787996f1ec3f3bef7fcfdffa72b36"
   },
   "t00-03": {
@@ -90,10 +114,18 @@
    ],
    "reason": null,
    "rng_key": "20261022:0:3",
-   "sessions": [],
+   "sessions": [
+    {
+     "attempt": 1,
+     "base_commit": "7c72045d2ccf882c9f467665bd5561be2b961735",
+     "id": "session_faket0003a1",
+     "launched_at": 1792694645,
+     "url": null
+    }
+   ],
    "slot": 3,
    "src_sha256": null,
-   "status": "planned",
+   "status": "running",
    "task_sha256": "8aa619d5225b516d7bc36fd275a6d6cd515583e8cc6763b2ee18224243814419"
   },
   "t00-04": {
@@ -114,10 +146,18 @@
    ],
    "reason": null,
    "rng_key": "20261022:0:4",
-   "sessions": [],
+   "sessions": [
+    {
+     "attempt": 1,
+     "base_commit": "7c72045d2ccf882c9f467665bd5561be2b961735",
+     "id": "session_faket0004a1",
+     "launched_at": 1792694651,
+     "url": null
+    }
+   ],
    "slot": 4,
    "src_sha256": null,
-   "status": "planned",
+   "status": "running",
    "task_sha256": "234a297268d87c75d3df3ab54f340bd477d013dd3b3204e5c9c726d1bdb48c0d"
   },
   "t00-05": {
@@ -138,10 +178,18 @@
    ],
    "reason": null,
    "rng_key": "20261022:0:5",
-   "sessions": [],
+   "sessions": [
+    {
+     "attempt": 1,
+     "base_commit": "7c72045d2ccf882c9f467665bd5561be2b961735",
+     "id": "session_faket0005a1",
+     "launched_at": 1792694657,
+     "url": null
+    }
+   ],
    "slot": 5,
    "src_sha256": null,
-   "status": "planned",
+   "status": "running",
    "task_sha256": "e88454ded7c321453cc65b22a2c015ec8e8f61b73231e6fc73b930ead9cc89ec"
   },
   "t00-06": {
@@ -162,10 +210,18 @@
    ],
    "reason": null,
    "rng_key": "20261022:0:6",
-   "sessions": [],
+   "sessions": [
+    {
+     "attempt": 1,
+     "base_commit": "7c72045d2ccf882c9f467665bd5561be2b961735",
+     "id": "session_faket0006a1",
+     "launched_at": 1792694663,
+     "url": null
+    }
+   ],
    "slot": 6,
    "src_sha256": null,
-   "status": "planned",
+   "status": "running",
    "task_sha256": "6783839ac4e13fd652f61409187fd286a6d833276d3da6edd938fe5b7e0124b5"
   },
   "t00-07": {
@@ -186,10 +242,18 @@
    ],
    "reason": null,
    "rng_key": "20261022:0:7",
-   "sessions": [],
+   "sessions": [
+    {
+     "attempt": 1,
+     "base_commit": "7c72045d2ccf882c9f467665bd5561be2b961735",
+     "id": "session_faket0007a1",
+     "launched_at": 1792694668,
+     "url": null
+    }
+   ],
    "slot": 7,
    "src_sha256": null,
-   "status": "planned",
+   "status": "running",
    "task_sha256": "9834f0a9d9cb14b8107cc5c3f1995eb591e877a4825a498df5e8e6f3ba15da25"
   }
  },
@@ -230,10 +294,18 @@
   "2026-10-22T18:42:59Z g00 phase TASKS_PUSHED: 8 task files",
   "2026-10-22T18:43:12Z g00 PAUSED: waiting for approval: python -m evo approve 00",
   "2026-10-22T18:43:19Z g00 approved generation 00: {'sessions': 8, 'relaunches_per_slot': 1, 'nudges_per_session': 1, 'deadline_minutes': 270, 'max_sessions_total': 40, 'approved_at': 1792694599}",
-  "2026-10-22T18:43:33Z g00 phase RUNNING"
+  "2026-10-22T18:43:33Z g00 phase RUNNING",
+  "2026-10-22T18:43:49Z g00 t00-00: launched session_faket0000a1",
+  "2026-10-22T18:43:54Z g00 t00-01: launched session_faket0001a1",
+  "2026-10-22T18:44:00Z g00 t00-02: launched session_faket0002a1",
+  "2026-10-22T18:44:06Z g00 t00-03: launched session_faket0003a1",
+  "2026-10-22T18:44:11Z g00 t00-04: launched session_faket0004a1",
+  "2026-10-22T18:44:17Z g00 t00-05: launched session_faket0005a1",
+  "2026-10-22T18:44:23Z g00 t00-06: launched session_faket0006a1",
+  "2026-10-22T18:44:28Z g00 t00-07: launched session_faket0007a1"
  ],
  "paused": null,
  "phase": "RUNNING",
- "sessions_launched": 0,
+ "sessions_launched": 8,
  "version": 1
 }
