@@ -18,6 +18,16 @@ The sha256 of this file (`sha256sum evo/tasks/{{id}}.md`) goes into DONE.json as
   Budget: at most {{game_budget}} games in total, all tools together. Your self-reported results are not used for selection.
 - You have about {{deadline_minutes}} minutes. Leave time for the Finish steps.
 
+## How you are scored
+- Your bot is evaluated in GitHub Actions, not here: release builds, both sides of every map, against a
+  fixed panel (the starter and recent champions) and, early on, against the other bots of your generation.
+- A game where your bot faults, or prints `bot error:` (a caught exception, as the starter's main loop
+  prints), counts as a **loss**. If more than 10% of your games fault, the bot is disqualified. A bot
+  that does not build is disqualified. Avoid exceptions rather than hiding them: check preconditions
+  before each action (BotAPICpp.md: actions on known-invalid targets throw), and check the replay
+  stdout of your test games for `bot error:` lines.
+- Games are deterministic, so a result you see locally is the result Actions will see.
+
 ## Starting point
 {{starting_point}}
 
