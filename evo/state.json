@@ -606,9 +606,10 @@
    "generation": 0,
    "pushed_at": 1792700762,
    "pushed_commit": "ad2f8480282a12c3a1d108f8d2247a8fdc4a1628",
+   "results_commit": "1d42856abb7a5926c44e84723f2810a0ab27d176",
    "retries": 0,
    "stage": "B",
-   "status": "pending"
+   "status": "arrived"
   }
  },
  "launch_errors_in_a_row": 0,
@@ -636,10 +637,11 @@
   "2026-10-22T20:19:49Z g00 phase EVAL_A_DONE: results for g00-A",
   "2026-10-22T20:25:49Z g00 g00-A: verified, 320 rows, spot-check 7 OK",
   "2026-10-22T20:25:53Z g00 phase EVAL_B_PENDING: stage A ranked: e00-01, e00-03, starter, e00-02, e00-00",
-  "2026-10-22T20:26:02Z g00 g00-B: pushed ad2f848028 with 3 shards"
+  "2026-10-22T20:26:02Z g00 g00-B: pushed ad2f848028 with 3 shards",
+  "2026-10-22T20:30:27Z g00 phase EVAL_B_DONE: results for g00-B"
  ],
  "paused": null,
- "phase": "EVAL_B_PENDING",
+ "phase": "EVAL_B_DONE",
  "sessions_launched": 4,
  "version": 1
 }
