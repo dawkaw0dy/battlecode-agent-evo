@@ -642,7 +642,8 @@ report games played in `DONE.json.self_eval`.
 1. Preconditions: the local clone is on `main`, clean, and equal to `origin/main`
    (the task files are pushed), and `.claude/settings.local.json` pins the
    `evo` environment.
-2. Run `claude --cloud "<one-line prompt>"` in the local clone. Parse the
+2. Run `claude --cloud "<one-line prompt>"` in the local clone, inside a
+   pseudo-console (ConPTY, D27: the CLI refuses a non-terminal). Parse the
    session id and `claude.ai/code/…` URL from its output into
    `agents[*].session`. Treat a `Branch … is not on GitHub` line or a non-zero
    exit as a launch failure. The CLI shows a live setup checklist while the VM

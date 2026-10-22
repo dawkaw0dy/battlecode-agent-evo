@@ -212,7 +212,8 @@ class Engine:
             self.state['launch_errors_in_a_row'] = 0
             self.state['sessions_launched'] += 1
             a['sessions'].append({'id': info['id'], 'url': info.get('url'), 'launched_at': st.now(),
-                                  'attempt': len(a['sessions']) + 1, 'base_commit': gitops.head(self.root)})
+                                  'attempt': len(a['sessions']) + 1, 'base_commit': gitops.head(self.root),
+                                  'launch_output': info.get('output')})
             a['status'] = 'running'
             running += 1
             changed = True
