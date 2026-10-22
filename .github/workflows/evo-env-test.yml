@@ -68,3 +68,14 @@ jobs:
           cat /opt/evo-setup.log || true
           # Job logs need a token to download; annotations are public, so surface the tail there.
           tail -n 30 /opt/evo-setup.log 2>/dev/null | python3 -c 'import sys; print("::error title=setup log tail::" + sys.stdin.read().replace("%", "%25").replace("\r", "").replace("\n", "%0A"))' || true
+      - name: Debug - what does cambc itself install?
+        if: failure()
+        run: |
+          annotate() { python3 -c 'import sys; t=sys.argv[1]; print("::warning title=" + t + "::" + sys.stdin.read()[-3500:].replace("%", "%25").replace("\r", "").replace("\n", "%0A"))' "$1"; }
+          C="${XDG_CACHE_HOME:-$HOME/.cache}/cambc"
+          { echo "HOME=$HOME XDG_CACHE_HOME=${XDG_CACHE_HOME:-} id=$(id -un) getent=$(getent passwd "$(id -un)" | cut -d: -f6)"
+            find "$C" -maxdepth 2 | sort | head -40; } 2>&1 | annotate "seeded cache"
+          mv "$C" "$C.seeded"; mkdir -p /tmp/real && cd /tmp/real
+          env -u CAMBC_OFFLINE /usr/local/bin/cambc init --yes . </dev/null > /tmp/real.log 2>&1 || true
+          { tail -5 /tmp/real.log; find "$C" -maxdepth 2 | sort | head -40; find / -maxdepth 4 -name 'cmake-3.31*' -not -path '/proc/*' 2>/dev/null | head; } 2>&1 | annotate "cambc's own cache"
+          { diff <(cd "$C.seeded" && find . -maxdepth 3 | sort) <(cd "$C" && find . -maxdepth 3 | sort) | head -60; } 2>&1 | annotate "diff seeded vs real (depth 3)"
