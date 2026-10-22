@@ -21,7 +21,7 @@ panel = ["starter"]                # fixed opponents; plus hall of fame below
 hall_of_fame_in_panel = 3          # until 2 exist, Stage A is a round robin (§11)
 stage_a_maps = 16                  # rotating subset, chosen by generation seed
 stage_b_top = 4                    # bots promoted to the full round robin
-shard_games = 40                   # games per matrix job
+shard_games = 200                  # games per matrix job (D21)
 jobs_per_runner = 0                # 0 = nproc
 spotcheck_fraction = 0.02
 spotcheck_min = 4

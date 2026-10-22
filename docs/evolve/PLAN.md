@@ -320,7 +320,7 @@ panel = ["starter"]                # fixed opponents; plus hall of fame below
 hall_of_fame_in_panel = 3          # until 2 exist, Stage A is a round robin (§11)
 stage_a_maps = 16                  # rotating subset, chosen by generation seed
 stage_b_top = 4                    # bots promoted to the full round robin
-shard_games = 40                   # games per matrix job
+shard_games = 200                  # games per matrix job (D21)
 jobs_per_runner = 0                # 0 = nproc
 spotcheck_fraction = 0.02
 spotcheck_min = 4
@@ -708,11 +708,10 @@ on:
   push:
     branches: [main]
     paths: ['evo/jobs/*.json']
-concurrency: { group: evo-eval, cancel-in-progress: false }
 permissions: { contents: read }
 
 jobs:
-  plan:            # reads the job file added in this push, outputs the shard matrix
+  plan:            # reads the one job file added in this push (D24: no concurrency group), outputs the shard matrix
   shard:           # matrix: one entry per shard, fail-fast: false, timeout-minutes: 340
     needs: plan
     strategy: { fail-fast: false, matrix: { include: '${{ fromJSON(needs.plan.outputs.shards) }}' } }
@@ -729,14 +728,16 @@ jobs:
    files on disk, recompute
    `src_sha256` of both bots and `map_sha256` of the shard's maps, compare with
    the job file, re-run the §8 allowlist. Any mismatch fails the shard.
-4. `python tools/benchmark.py <a> <b> --maps … --jobs $(nproc) --output out --json --no-progress --color never`.
+4. `cambc build bots/<x> --release` for both bots (D22). If one fails, skip step 5 and
+   emit `build_failed` rows for every requested game.
+5. `python tools/benchmark.py <a> <b> --maps … --jobs $(nproc) --output out --json --no-progress --color never`.
    A non-zero exit is expected when games fault; continue.
-5. `python evo/eval/extract.py out --job <id> --shard <i> > rows.json`: reads
+6. `python evo/eval/extract.py out --job <id> --shard <i> > rows.json`: reads
    `out/<map>-<side>.json` and the replay zip directly. `benchmark.py`'s own
    `results.json` keeps the fault counts, but it drops gems and outcome detail
    for games whose stats file is missing or unreadable, and the row needs the
    exact §4 fields.
-6. Upload `rows.json` as an artifact (and `out/*.repl26a` with 7-day retention).
+7. Upload `rows.json` as an artifact (and `out/*.repl26a` with 7-day retention).
 
 ### 9.3 `aggregate` steps
 
@@ -800,7 +801,7 @@ Per game, from bot X's view:
 | Game | Counts as |
 |---|---|
 | finished, no faults or caught exceptions | win or loss by `outcome` |
-| only X faulted or threw | loss for X |
+| only X faulted or threw, or only X failed to build (D22) | loss for X |
 | both faulted | discarded |
 | unfinished, no faults | discarded |
 
@@ -966,7 +967,7 @@ Subscription: each generation runs `n − elites` sessions of up to
 | `claude --cloud` errors | slot stays `planned`, retried next step; 3 errors in a row pause the run |
 | session never writes a marker | `dead` at deadline, relaunched up to `relaunch_dead` times within the generation's approval (§0.4) |
 | submission out of scope or fails allowlist | `rejected`, reason in `lineage.jsonl`, no relaunch |
-| build fails in Actions | the shard reports every game as a fault for that bot → `disqualified` |
+| build fails in Actions | the shard builds each bot first and reports every game as `build_failed` for that bot (a fault) → `disqualified` (D22) |
 | shard times out or fails | listed in `missing_shards`, re-queued (§10.2) |
 | no results file after 8 hours | job re-pushed as `…-retry`; the second time the run pauses |
 | spot-check mismatch | `HALTED` |

@@ -1,0 +1,132 @@
+# Evaluation pipeline (PLAN §9). A push to main that adds exactly one evo/jobs/<id>.json
+# plays its games and commits results/<id>.json to evo-results. Everything runs from the
+# trigger commit; no agent branch is ever checked out. No concurrency group (D24).
+name: evo-eval
+on:
+  push:
+    branches: [main]
+    paths: ['evo/jobs/*.json']
+permissions: { contents: read }
+env:
+  CAMBC_NO_UPDATE_CHECK: '1'
+  PYTHONUTF8: '1'
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      job: ${{ steps.find.outputs.job }}
+      shards: ${{ steps.find.outputs.shards }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - id: find
+        name: Find the job file added by this push
+        env: { BEFORE: '${{ github.event.before }}' }
+        run: |
+          added=$(git diff --name-only --diff-filter=A "$BEFORE" "$GITHUB_SHA" -- 'evo/jobs/*.json')
+          count=$(printf '%s\n' "$added" | grep -c . || true)
+          if [ "$count" -ne 1 ]; then
+            echo "::error::expected exactly one new job file in this push, found $count: $added"; exit 1
+          fi
+          echo "job=$added" >> "$GITHUB_OUTPUT"
+          echo "shards=$(python evo/eval/check_job.py "$added" --matrix)" >> "$GITHUB_OUTPUT"
+          echo "job file: $added"
+
+  shard:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      matrix: { include: '${{ fromJSON(needs.plan.outputs.shards) }}' }
+    name: shard ${{ matrix.shard }} (${{ matrix.a }} vs ${{ matrix.b }}, ${{ matrix.games }} games)
+    env: { JOB: '${{ needs.plan.outputs.job }}', SHARD: '${{ matrix.shard }}' }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - name: Install the pinned runner
+        run: |
+          version=$(python -c "import json,os; print(json.load(open(os.environ['JOB']))['runner_version'])")
+          echo "RUNNER_VERSION=$version" >> "$GITHUB_ENV"
+          python -m venv .venv && .venv/bin/pip install --quiet "$version"
+      - uses: actions/cache@v4
+        with: { path: ~/.cache/cambc, key: 'cambc-${{ env.RUNNER_VERSION }}-${{ runner.os }}' }
+      - id: check
+        name: Check the job file against the checkout
+        run: python evo/eval/check_job.py "$JOB" --shard "$SHARD" --github-output "$GITHUB_OUTPUT"
+      - id: build
+        name: Build both bots
+        env: { A: '${{ steps.check.outputs.a }}', B: '${{ steps.check.outputs.b }}' }
+        run: |
+          failed=""
+          for bot in $(printf '%s\n' "$A" "$B" | sort -u); do
+            if ! .venv/bin/cambc build "bots/$bot" --release > "build-$bot.log" 2>&1; then
+              failed="$failed $bot"; tail -20 "build-$bot.log"
+            fi
+          done
+          echo "failed=$failed" >> "$GITHUB_OUTPUT"
+      - name: Play
+        if: steps.build.outputs.failed == ''
+        env: { A: '${{ steps.check.outputs.a }}', B: '${{ steps.check.outputs.b }}', MAPS: '${{ steps.check.outputs.maps }}' }
+        run: |
+          # A non-zero exit is expected when games fault; extract.py reads what was produced.
+          python tools/benchmark.py "$A" "$B" --maps $MAPS --jobs "$(nproc)" --timeout 300 \
+            --output out --runner .venv/bin/cambc --json --no-progress --color never > bench.jsonl || true
+          tail -1 bench.jsonl || true
+      - name: Extract rows
+        env: { FAILED: '${{ steps.build.outputs.failed }}' }
+        run: |
+          mkdir -p part out
+          python evo/eval/extract.py out --job "$JOB" --shard "$SHARD" --build-failed $FAILED > "part/rows-$SHARD.json"
+          python -c "import json,os,subprocess; json.dump({'cambc_version': subprocess.run(['.venv/bin/cambc','--version'],capture_output=True,text=True).stdout.strip(), 'nproc': os.cpu_count(), 'build_failed': os.environ['FAILED'].split(), 'runner_name': os.environ.get('RUNNER_NAME')}, open('part/meta-' + os.environ['SHARD'] + '.json','w'))"
+      - uses: actions/upload-artifact@v4
+        with: { name: 'rows-${{ matrix.shard }}', path: part/ }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: 'replays-${{ matrix.shard }}', path: 'out/*.repl26a', retention-days: 7, if-no-files-found: ignore }
+
+  aggregate:
+    needs: [plan, shard]
+    if: always() && needs.plan.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env: { JOB: '${{ needs.plan.outputs.job }}' }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - uses: actions/download-artifact@v4
+        with: { pattern: 'rows-*', path: parts, merge-multiple: true }
+        continue-on-error: true
+      - name: Aggregate
+        run: |
+          id=$(basename "$JOB" .json)
+          echo "JOB_ID=$id" >> "$GITHUB_ENV"
+          mkdir -p parts
+          python evo/eval/aggregate.py --job "$JOB" --parts parts --workflow .github/workflows/evo-eval.yml \
+            --out "out/results/$id.json"
+      - name: Commit to evo-results
+        # evo-results only accepts the evo-actions deploy key (DECISIONS D20).
+        env: { DEPLOY_KEY: '${{ secrets.EVO_RESULTS_DEPLOY_KEY }}' }
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/evo_actions && chmod 600 ~/.ssh/evo_actions
+          echo 'github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl' >> ~/.ssh/known_hosts
+          export GIT_SSH_COMMAND='ssh -i ~/.ssh/evo_actions -o IdentitiesOnly=yes'
+          git init -q results && cd results
+          git remote add origin "git@github.com:${{ github.repository }}.git"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for attempt in 1 2 3; do
+            if git fetch -q --depth 1 origin evo-results; then git checkout -q -B evo-results FETCH_HEAD; else git checkout -q --orphan evo-results; fi
+            mkdir -p results && cp "../out/results/$JOB_ID.json" "results/$JOB_ID.json"
+            git add results && git commit -q -m "results $JOB_ID (run $GITHUB_RUN_ID.$GITHUB_RUN_ATTEMPT, trigger $GITHUB_SHA)"
+            if git push -q origin evo-results; then exit 0; fi
+            echo "push raced with another run; retrying"; sleep $((attempt * 5))
+          done
+          exit 1
