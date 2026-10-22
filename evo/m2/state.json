@@ -28,8 +28,8 @@
     }
    ],
    "slot": 0,
-   "src_sha256": null,
-   "status": "done",
+   "src_sha256": "b9d8671d2d5dcef160ac089a27dae876af272b62c934af6d6796bcd3b6b4e1ab",
+   "status": "admitted",
    "task_sha256": "f408fdc659e652685c554efb1c876ef4c76901cf9d42ea79fe513160cfbfe9b4"
   },
   "t00-01": {
@@ -60,8 +60,8 @@
     }
    ],
    "slot": 1,
-   "src_sha256": null,
-   "status": "done",
+   "src_sha256": "02623bfa05722220e02f4cef49ac24b0b2fc3c81ac2d3ea0a69e9f42fdcf158c",
+   "status": "admitted",
    "task_sha256": "2e07cd5b0d6ff13c17b1a12040ad8f252bebbe8f7478df1c70271a43cdbb5f83"
   },
   "t00-02": {
@@ -92,8 +92,8 @@
     }
    ],
    "slot": 2,
-   "src_sha256": null,
-   "status": "done",
+   "src_sha256": "209e562acd67ef7689e76420f1e57fa064a1a51691ea8de76ed90b0301475052",
+   "status": "admitted",
    "task_sha256": "ae67dbacc42da4c4e65d9dfeba4848f8729787996f1ec3f3bef7fcfdffa72b36"
   },
   "t00-03": {
@@ -124,8 +124,8 @@
     }
    ],
    "slot": 3,
-   "src_sha256": null,
-   "status": "done",
+   "src_sha256": "038db11142b67401f2b623295d5b7f1ca5c51b17593235d0dddc1a7c27af79ce",
+   "status": "admitted",
    "task_sha256": "8aa619d5225b516d7bc36fd275a6d6cd515583e8cc6763b2ee18224243814419"
   },
   "t00-04": {
@@ -156,8 +156,8 @@
     }
    ],
    "slot": 4,
-   "src_sha256": null,
-   "status": "done",
+   "src_sha256": "1a67faf673926dda4904ae7563c44984ee28580eb5d8fdfe6ed03b34991c0121",
+   "status": "admitted",
    "task_sha256": "234a297268d87c75d3df3ab54f340bd477d013dd3b3204e5c9c726d1bdb48c0d"
   },
   "t00-05": {
@@ -176,7 +176,7 @@
    "parents": [
     "starter"
    ],
-   "reason": null,
+   "reason": "out of scope: tools/benchmark.py",
    "rng_key": "20261022:0:5",
    "sessions": [
     {
@@ -189,7 +189,7 @@
    ],
    "slot": 5,
    "src_sha256": null,
-   "status": "done",
+   "status": "rejected",
    "task_sha256": "e88454ded7c321453cc65b22a2c015ec8e8f61b73231e6fc73b930ead9cc89ec"
   },
   "t00-06": {
@@ -208,7 +208,7 @@
    "parents": [
     "starter"
    ],
-   "reason": null,
+   "reason": "out of scope: bots/starter/src/extra.h",
    "rng_key": "20261022:0:6",
    "sessions": [
     {
@@ -221,7 +221,7 @@
    ],
    "slot": 6,
    "src_sha256": null,
-   "status": "done",
+   "status": "rejected",
    "task_sha256": "6783839ac4e13fd652f61409187fd286a6d833276d3da6edd938fe5b7e0124b5"
   },
   "t00-07": {
@@ -240,7 +240,7 @@
    "parents": [
     "starter"
    ],
-   "reason": null,
+   "reason": "main.cpp:2: include path '../../tools/evil.h' is not a plain name",
    "rng_key": "20261022:0:7",
    "sessions": [
     {
@@ -253,7 +253,7 @@
    ],
    "slot": 7,
    "src_sha256": null,
-   "status": "done",
+   "status": "rejected",
    "task_sha256": "9834f0a9d9cb14b8107cc5c3f1995eb591e877a4825a498df5e8e6f3ba15da25"
   }
  },
@@ -273,6 +273,13 @@
     "A": [],
     "B": []
    },
+   "members": [
+    "t00-00",
+    "t00-01",
+    "t00-02",
+    "t00-03",
+    "t00-04"
+   ],
    "slots": [
     "t00-00",
     "t00-01",
@@ -311,7 +318,15 @@
   "2026-10-22T18:46:34Z g00 t00-05: done on origin/claude/fake-t00-05 at 010b50269d",
   "2026-10-22T18:46:36Z g00 t00-06: done on origin/claude/fake-t00-06 at 2aa2e217ce",
   "2026-10-22T18:46:39Z g00 t00-07: done on origin/claude/fake-t00-07 at edc7250f43",
-  "2026-10-22T18:46:39Z g00 phase ADMITTED"
+  "2026-10-22T18:46:39Z g00 phase ADMITTED",
+  "2026-10-22T18:46:50Z g00 t00-00: admitted (b9d8671d2d5d)",
+  "2026-10-22T18:46:56Z g00 t00-01: admitted (02623bfa0572)",
+  "2026-10-22T18:47:02Z g00 t00-02: admitted (209e562acd67)",
+  "2026-10-22T18:47:08Z g00 t00-03: admitted (038db11142b6)",
+  "2026-10-22T18:47:14Z g00 t00-04: admitted (1a67faf67392)",
+  "2026-10-22T18:47:20Z g00 t00-05: rejected: out of scope: tools/benchmark.py",
+  "2026-10-22T18:47:25Z g00 t00-06: rejected: out of scope: bots/starter/src/extra.h",
+  "2026-10-22T18:47:31Z g00 t00-07: rejected: main.cpp:2: include path '../../tools/evil.h' is not a plain name"
  ],
  "paused": null,
  "phase": "ADMITTED",

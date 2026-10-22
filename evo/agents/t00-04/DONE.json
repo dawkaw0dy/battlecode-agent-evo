@@ -1,0 +1,14 @@
+{
+ "agent": "t00-04",
+ "task_sha256": "234a297268d87c75d3df3ab54f340bd477d013dd3b3204e5c9c726d1bdb48c0d",
+ "base_commit": "7c72045d2ccf882c9f467665bd5561be2b961735",
+ "session_id": "cse_faket0004a1",
+ "bot_dir": "bots/t00-04",
+ "self_eval": {
+  "vs": "starter",
+  "games": 0,
+  "wins": 0
+ },
+ "games_played": 0,
+ "summary": "fake nobuild"
+}

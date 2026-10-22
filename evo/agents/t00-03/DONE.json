@@ -1,0 +1,14 @@
+{
+ "agent": "t00-03",
+ "task_sha256": "8aa619d5225b516d7bc36fd275a6d6cd515583e8cc6763b2ee18224243814419",
+ "base_commit": "7c72045d2ccf882c9f467665bd5561be2b961735",
+ "session_id": "cse_faket0003a1",
+ "bot_dir": "bots/t00-03",
+ "self_eval": {
+  "vs": "starter",
+  "games": 0,
+  "wins": 0
+ },
+ "games_played": 0,
+ "summary": "fake faulter"
+}
