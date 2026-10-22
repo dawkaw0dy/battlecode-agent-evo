@@ -1,0 +1,238 @@
+{
+ "cambc_version": [
+  "cambc 3.0.5"
+ ],
+ "job_id": "m1-probe",
+ "missing_shards": [],
+ "requested_games": 8,
+ "rows": [
+  {
+   "a": "probe-random",
+   "b": "starter",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 358,
+    "teamB": 458
+   },
+   "map": "00rows",
+   "map_sha256": "6a4203ae1bfe86ad0f6b083f390cfd8e2f5e45f7e4102f6a2f27205d5333e701",
+   "outcome": "teamB",
+   "replay_sha256": "dc5ce5ec7d7a0eca25e1ae31e99c2c87e6f616522cea70f8246fef98df167155",
+   "rounds": 2000,
+   "side": "A",
+   "src_sha256": {
+    "probe-random": "7c9a07acbf5690b39a0aa2eb066d0e8835fe5ba156d3b396ae0bc1d69334b03b",
+    "starter": "9023e6a089796897d6ed661f26054d1b81b298e048a09a5df75d3b9cb5d3c6a9"
+   },
+   "stats_sha256": "091749ace305de41a06a81970a29e75107d1375b522e872a7ee165f80949bafe"
+  },
+  {
+   "a": "probe-random",
+   "b": "starter",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 489,
+    "teamB": 334
+   },
+   "map": "00rows",
+   "map_sha256": "6a4203ae1bfe86ad0f6b083f390cfd8e2f5e45f7e4102f6a2f27205d5333e701",
+   "outcome": "teamA",
+   "replay_sha256": "c65e5df3eef49c6197307cbceaa7ca94b76224e7db01bab75f5325f5a8055522",
+   "rounds": 2000,
+   "side": "B",
+   "src_sha256": {
+    "probe-random": "7c9a07acbf5690b39a0aa2eb066d0e8835fe5ba156d3b396ae0bc1d69334b03b",
+    "starter": "9023e6a089796897d6ed661f26054d1b81b298e048a09a5df75d3b9cb5d3c6a9"
+   },
+   "stats_sha256": "ea0bae5a163d2bdf4b8d6adcac05a6680f5578bdc3cee18704256c0c82e37703"
+  },
+  {
+   "a": "probe-random",
+   "b": "starter",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 437,
+    "teamB": 740
+   },
+   "map": "00lanes",
+   "map_sha256": "8ca26ed2ea65c7d80ceb9604a7431ca1dc056922912b4e2f46cad06051e4886a",
+   "outcome": "teamB",
+   "replay_sha256": "811ea33edb74e1dd6388337677c4f59314ac2104df5850bf031c8045d3def612",
+   "rounds": 2000,
+   "side": "A",
+   "src_sha256": {
+    "probe-random": "7c9a07acbf5690b39a0aa2eb066d0e8835fe5ba156d3b396ae0bc1d69334b03b",
+    "starter": "9023e6a089796897d6ed661f26054d1b81b298e048a09a5df75d3b9cb5d3c6a9"
+   },
+   "stats_sha256": "3371be8aef988904b0b0e7d77c0dd8eb9792af7273a2de680d880800833432c6"
+  },
+  {
+   "a": "probe-random",
+   "b": "starter",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 616,
+    "teamB": 556
+   },
+   "map": "00lanes",
+   "map_sha256": "8ca26ed2ea65c7d80ceb9604a7431ca1dc056922912b4e2f46cad06051e4886a",
+   "outcome": "teamA",
+   "replay_sha256": "d316dd89fe7f09e7503bc3db174c2d2c9fc0967b763c19ebbed5df9a268a2c7f",
+   "rounds": 2000,
+   "side": "B",
+   "src_sha256": {
+    "probe-random": "7c9a07acbf5690b39a0aa2eb066d0e8835fe5ba156d3b396ae0bc1d69334b03b",
+    "starter": "9023e6a089796897d6ed661f26054d1b81b298e048a09a5df75d3b9cb5d3c6a9"
+   },
+   "stats_sha256": "d228792c22ba81e18be4ba255ba9adbdaae036670141327c414a53112d8b283f"
+  },
+  {
+   "a": "probe-random",
+   "b": "starter",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 490,
+    "teamB": 363
+   },
+   "map": "00eight",
+   "map_sha256": "76b5ce0895130f5f423f3ac6a630c5cf8e1202d4150e6ad4e287c75d21794765",
+   "outcome": "teamA",
+   "replay_sha256": "f70812c60bd9ed5dc9858a3dacd369b22b6efe86051f34f99ca165dd5b329ce0",
+   "rounds": 2000,
+   "side": "A",
+   "src_sha256": {
+    "probe-random": "7c9a07acbf5690b39a0aa2eb066d0e8835fe5ba156d3b396ae0bc1d69334b03b",
+    "starter": "9023e6a089796897d6ed661f26054d1b81b298e048a09a5df75d3b9cb5d3c6a9"
+   },
+   "stats_sha256": "7f266ef1affcc14e3e8295e1a6ab7a2d0653f3dd1dab7646cfb58a818773da70"
+  },
+  {
+   "a": "probe-random",
+   "b": "starter",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 571,
+    "teamB": 392
+   },
+   "map": "00eight",
+   "map_sha256": "76b5ce0895130f5f423f3ac6a630c5cf8e1202d4150e6ad4e287c75d21794765",
+   "outcome": "teamA",
+   "replay_sha256": "c34b9a29e8b83f0db183de5afcbfff785883d344459625424d9b161ded73fbcf",
+   "rounds": 2000,
+   "side": "B",
+   "src_sha256": {
+    "probe-random": "7c9a07acbf5690b39a0aa2eb066d0e8835fe5ba156d3b396ae0bc1d69334b03b",
+    "starter": "9023e6a089796897d6ed661f26054d1b81b298e048a09a5df75d3b9cb5d3c6a9"
+   },
+   "stats_sha256": "fdd7e87b14e9a1033c85bc9f5f4c8a47c5898e70f229ae7f16b5be024dbb9b88"
+  },
+  {
+   "a": "probe-random",
+   "b": "starter",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 290,
+    "teamB": 217
+   },
+   "map": "00corners",
+   "map_sha256": "97906cc38f503e027c041b681a877465519b3fcb19a410c316cf6efc40c909ea",
+   "outcome": "teamA",
+   "replay_sha256": "b3cb5ea611e4f0e632bb6b71d1ddc2e2b082970d02853c772acfb1d680b735a5",
+   "rounds": 2000,
+   "side": "A",
+   "src_sha256": {
+    "probe-random": "7c9a07acbf5690b39a0aa2eb066d0e8835fe5ba156d3b396ae0bc1d69334b03b",
+    "starter": "9023e6a089796897d6ed661f26054d1b81b298e048a09a5df75d3b9cb5d3c6a9"
+   },
+   "stats_sha256": "79c4105db75aacbbb9a0a73e9cd96dc3448b02d967e6b94ec0f0fba8433b97fd"
+  },
+  {
+   "a": "probe-random",
+   "b": "starter",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 457,
+    "teamB": 99
+   },
+   "map": "00corners",
+   "map_sha256": "97906cc38f503e027c041b681a877465519b3fcb19a410c316cf6efc40c909ea",
+   "outcome": "teamA",
+   "replay_sha256": "a751a6bb1329b0c894e081b35dd8deb32a1c18b7ede13025b22617fddbda6b31",
+   "rounds": 2000,
+   "side": "B",
+   "src_sha256": {
+    "probe-random": "7c9a07acbf5690b39a0aa2eb066d0e8835fe5ba156d3b396ae0bc1d69334b03b",
+    "starter": "9023e6a089796897d6ed661f26054d1b81b298e048a09a5df75d3b9cb5d3c6a9"
+   },
+   "stats_sha256": "fd7850c68822397b4fc89af822e6a326d5cd162c24e48ac2683e1468b0dcb922"
+  }
+ ],
+ "run_attempt": "1",
+ "run_id": "39825910736",
+ "shards": {
+  "0": {
+   "build_failed": [],
+   "cambc_version": "cambc 3.0.5",
+   "nproc": 4,
+   "runner_name": "GitHub Actions 1000000093"
+  }
+ },
+ "trigger_sha": "5adaafd6ec68276a81ea8a011d709490071852ae",
+ "workflow_sha256": "a27cd34275db02c149f59a901d8f997d2c914611da30e507bd855f716dd714f4"
+}
