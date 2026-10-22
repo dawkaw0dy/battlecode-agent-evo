@@ -58,7 +58,7 @@ into `docs/evolve/SETUP.md`, then wait for the owner to confirm.
 
 | # | When | Owner does | You need back |
 |---|---|---|---|
-| H1 | before M0 | confirm `claude auth login` is the subscription account; Python 3.12, Git and Node 20+ are installed; the clone can push | yes/no and versions |
+| H1 | before M0 | confirm `claude auth login` is the subscription account; Python 3.12 (3.13 accepted locally, D11), Git and Node 20+ are installed; the clone can push | yes/no and versions |
 | H2 | M0 | install the Claude GitHub App on this repository only | confirmation |
 | H3 | M0 | create the `evo` environment at claude.ai/code with the setup script and variables you wrote into `SETUP.md` (§6.1) | the `env_…` id (you then write `.claude/settings.local.json`) |
 | H4 | M0 | apply the rulesets on `main` and `evo-results` and the Actions settings from §9.5 | confirmation |
