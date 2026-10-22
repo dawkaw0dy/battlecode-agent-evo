@@ -47,8 +47,11 @@ def world(tmp_path):
     cfg['run'].update(id_prefix='t', job_prefix='tg', state='evo/m2/state.json', lineage='evo/m2/lineage.jsonl',
                       cache='evo/m2/cache.jsonl', launcher='fake', max_generations=2,
                       archetypes_dir='evo/m2/archetypes', bootstrap_replicates=20)
-    cfg['eval'].update(stage_a_maps=2, stage_b_top=2, spotcheck_min=2)
-    cfg['agents'].update(max_parallel=8)
+    # Pin everything the assertions depend on, independent of the real run's evo/config.toml.
+    cfg.update(population=8, keep_fraction=0.25, elites=1, immigrants=1)
+    cfg['eval'].update(stage_a_maps=2, stage_b_top=2, spotcheck_min=2, max_fault_rate=0.10, exceptions_disqualify=False)
+    cfg['agents'].update(max_parallel=8, require_approval=True, max_sessions_total=40, relaunch_dead=1,
+                         deadline_minutes=180)
     return work, origin, cfg
 
 
