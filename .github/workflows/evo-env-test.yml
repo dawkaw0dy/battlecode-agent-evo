@@ -44,10 +44,11 @@ jobs:
       - uses: actions/checkout@v4
       - name: Shim that breaks cambc's network access
         run: |
-          printf '#!/bin/sh
-export HTTPS_PROXY=http://127.0.0.1:9 https_proxy=http://127.0.0.1:9 ALL_PROXY=http://127.0.0.1:9 HTTP_PROXY=http://127.0.0.1:9
-exec /usr/local/bin/cambc "$@"
-' > /usr/local/sbin/cambc
+          {
+            echo '#!/bin/sh'
+            echo 'export HTTPS_PROXY=http://127.0.0.1:9 https_proxy=http://127.0.0.1:9 ALL_PROXY=http://127.0.0.1:9 HTTP_PROXY=http://127.0.0.1:9'
+            echo 'exec /usr/local/bin/cambc "$@"'
+          } > /usr/local/sbin/cambc
           chmod +x /usr/local/sbin/cambc
       - name: Setup script (as root)
         run: |
