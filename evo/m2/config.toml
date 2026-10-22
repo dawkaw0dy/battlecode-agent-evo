@@ -1,0 +1,47 @@
+# M2 done-test run (PLAN §16 M2): one generation with fake agents, real Actions evaluation.
+# Same knobs as evo/config.toml except where noted; ids and files are prefixed so they never
+# collide with the real run (agents t00-SS, jobs tg00-A/B, state under evo/m2/).
+seed = 20261022
+population = 8
+keep_fraction = 0.25
+elites = 1
+immigrants = 1
+language = "cpp"
+
+[run]
+id_prefix = "t"
+job_prefix = "tg"
+state = "evo/m2/state.json"
+lineage = "evo/m2/lineage.jsonl"
+cache = "evo/m2/cache.jsonl"
+archetypes_dir = "evo/m2/archetypes"
+launcher = "fake"            # sessions are played by evo/m2/fake_agents.py
+max_generations = 1          # stop after generation 00 is selected
+
+[agents]
+max_parallel = 8
+require_approval = true
+max_sessions_total = 40
+deadline_minutes = 180
+relaunch_dead = 1
+local_game_budget = 120
+
+[eval]
+runner_version = "cambc==3.0.5"
+map_pool = "maps"
+heldout_pool = ""
+panel = ["starter"]
+hall_of_fame_in_panel = 3
+stage_a_maps = 2             # test: 2 instead of 16
+stage_b_top = 2              # test: 2 instead of 4
+shard_games = 200
+jobs_per_runner = 0
+spotcheck_fraction = 0.02
+spotcheck_min = 2            # test: 2 instead of 4
+max_fault_rate = 0.10
+
+[mutation]
+operator_weights = { tweak = 0.40, subsystem = 0.30, crossover = 0.20, radical = 0.10 }
+focus = ["camps", "combat", "spells", "pathing", "opening", "endgame", "defense", "fuel", "map-adaptive"]
+evidence_losses = 3
+immigrant_base = "starter"

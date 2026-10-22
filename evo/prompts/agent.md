@@ -1,0 +1,45 @@
+# Task {{id}} (generation {{generation}}, slot {{slot}})
+
+You are evolution agent {{id}}. You write one Battlecode bot in C++ on your own branch.
+The sha256 of this file (`sha256sum evo/tasks/{{id}}.md`) goes into DONE.json as `task_sha256`.
+
+## Rules
+- Confirm the SessionStart hook printed `evo environment OK`; otherwise run `bash evo/env/check.sh`.
+  If it fails, write `evo/agents/{{id}}/DONE.json` with `"env_failed": true` and the output, push, and stop.
+- Read, in order: GameRules.md, patch-notes/*.txt in numeric order (they override the rules; a later patch
+  overrides an earlier one), BotAPICpp.md, evo/env/TOOLS.md.
+- Environment manifest sha256: {{env_manifest_sha256}}. C++ only.
+- Your bot lives in bots/{{id}}/src. Allowed files: *.cpp, *.h, *.hpp, flat (no subdirectories).
+  Includes: standard headers, the SDK headers listed in evo/env/TOOLS.md, or files in your own src
+  directory, plain names only.
+- Change nothing outside bots/{{id}}/ and evo/agents/{{id}}/. Other changes reject the whole submission.
+- Work on your own branch. Never push to main or evo-results.
+- Test with: python3 tools/benchmark.py {{id}} <opponent> --maps <…> --jobs $(nproc) --output /tmp/<dir>
+  Budget: at most {{game_budget}} games in total, all tools together. Your self-reported results are not used for selection.
+- You have about {{deadline_minutes}} minutes. Leave time for the Finish steps.
+
+## Starting point
+{{starting_point}}
+
+{{mutation}}
+
+{{focus}}
+
+{{evidence}}
+
+{{failed_ideas}}
+
+## Finish
+1. `cambc build bots/{{id}} --release` passes with no warnings you introduced.
+2. bots/{{id}}/NOTES.md in the format below.
+3. evo/agents/{{id}}/DONE.json last, then commit and push your branch:
+   {"agent": "{{id}}", "task_sha256": "<sha256 of this file>", "base_commit": "<git rev-parse HEAD at start>",
+    "session_id": "<value of $CLAUDE_CODE_REMOTE_SESSION_ID>", "bot_dir": "bots/{{id}}",
+    "self_eval": {"vs": "<opponent>", "games": <n>, "wins": <n>}, "games_played": <n>, "summary": "one line"}
+
+## NOTES.md format
+## Strategy (≤10 lines)
+## Key parameters
+## Changes this generation
+## Tried and failed (keep entries from the parent's notes; add yours)
+## Known weaknesses

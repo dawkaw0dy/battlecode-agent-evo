@@ -1,0 +1,232 @@
+{
+ "00ambush": [
+  "large",
+  "champs-5",
+  "elk"
+ ],
+ "00collision": [
+  "medium",
+  "champs-3",
+  "elk"
+ ],
+ "00contest": [
+  "medium",
+  "champs-5",
+  "gold-clusters",
+  "monolith"
+ ],
+ "00corners": [
+  "large",
+  "champs-5",
+  "elk",
+  "gold-clusters"
+ ],
+ "00eight": [
+  "small",
+  "champs-5",
+  "elk"
+ ],
+ "00elkring": [
+  "small",
+  "champs-5",
+  "elk"
+ ],
+ "00expanse": [
+  "large",
+  "champs-5",
+  "elk",
+  "gold-clusters"
+ ],
+ "00fragment": [
+  "small",
+  "champs-3"
+ ],
+ "00gem-fields": [
+  "medium",
+  "champs-5",
+  "gem-clusters"
+ ],
+ "00gemfight": [
+  "small",
+  "champs-4"
+ ],
+ "00great-wall": [
+  "medium",
+  "champs-5",
+  "gem-clusters",
+  "monolith",
+  "golem"
+ ],
+ "00interlock": [
+  "small",
+  "champs-4"
+ ],
+ "00lanes": [
+  "medium",
+  "champs-5",
+  "gold-clusters"
+ ],
+ "00lost-world": [
+  "small",
+  "champs-5",
+  "gem-clusters",
+  "monolith",
+  "golem",
+  "many-camps"
+ ],
+ "00monolith": [
+  "medium",
+  "champs-5",
+  "monolith"
+ ],
+ "00packs": [
+  "small",
+  "champs-3"
+ ],
+ "00pilgrimage": [
+  "medium",
+  "champs-5",
+  "gold-clusters"
+ ],
+ "00quadrants": [
+  "medium",
+  "champs-5",
+  "gem-clusters",
+  "golem",
+  "many-camps"
+ ],
+ "00reverse-spiral": [
+  "small",
+  "champs-4",
+  "golem"
+ ],
+ "00road-of-riches": [
+  "small",
+  "champs-5",
+  "gem-clusters",
+  "gold-clusters",
+  "monolith",
+  "golem",
+  "many-camps"
+ ],
+ "00rows": [
+  "medium",
+  "champs-4",
+  "monolith"
+ ],
+ "00rushbait-v2": [
+  "medium",
+  "champs-4"
+ ],
+ "00split": [
+  "small",
+  "champs-5",
+  "gem-clusters",
+  "monolith",
+  "golem"
+ ],
+ "00stampede": [
+  "medium",
+  "champs-5",
+  "gold-clusters"
+ ],
+ "00swirl": [
+  "small",
+  "champs-4",
+  "elk",
+  "gold-clusters",
+  "many-camps"
+ ],
+ "01big-world": [
+  "large",
+  "champs-5",
+  "gem-clusters",
+  "monolith",
+  "many-camps"
+ ],
+ "01boss-battle": [
+  "medium",
+  "champs-5",
+  "elk",
+  "gold-clusters",
+  "monolith",
+  "many-camps"
+ ],
+ "01broken-curve": [
+  "small",
+  "champs-3",
+  "elk",
+  "monolith"
+ ],
+ "01concentrated-wealth": [
+  "medium",
+  "champs-5"
+ ],
+ "01corridors": [
+  "medium",
+  "champs-5",
+  "elk",
+  "monolith"
+ ],
+ "01elk-arena": [
+  "medium",
+  "champs-5",
+  "gold-clusters"
+ ],
+ "01fracture": [
+  "medium",
+  "champs-5",
+  "elk",
+  "gold-clusters",
+  "monolith"
+ ],
+ "01gold-rush": [
+  "small",
+  "champs-3",
+  "monolith"
+ ],
+ "01hooks": [
+  "small",
+  "champs-4"
+ ],
+ "01islands": [
+  "medium",
+  "champs-5",
+  "elk",
+  "gold-clusters",
+  "many-camps"
+ ],
+ "01shortcut": [
+  "small",
+  "champs-4",
+  "elk",
+  "gem-clusters",
+  "monolith"
+ ],
+ "01starfish": [
+  "medium",
+  "champs-5",
+  "elk"
+ ],
+ "01starvation": [
+  "large",
+  "champs-5",
+  "monolith"
+ ],
+ "01the-farm": [
+  "medium",
+  "champs-3",
+  "elk",
+  "gem-clusters",
+  "gold-clusters",
+  "monolith",
+  "many-camps"
+ ],
+ "01yellow-brick-road": [
+  "small",
+  "champs-5",
+  "elk",
+  "gold-clusters",
+  "many-camps"
+ ]
+}
