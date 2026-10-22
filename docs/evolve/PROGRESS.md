@@ -1,34 +1,26 @@
 # Progress
 
-**Milestone:** M0, in progress. Every item that needs no cloud session is done (1–9, 14–16).
-Waiting on the owner: the probe-session yes (stop point).
+**Milestone:** M0. **HARD STOP (§0.5 item 12):** a cloud session pushed to `main`. Waiting on the owner
+to agree to the H4 redesign below.
 
 **Done**
-- H1 (2026-10-22). D1–D18 recorded and applied to PLAN.md.
-- Bootstrap (§1.1) committed: cambc 3.0.5 workspace, `bots/starter`, pruned and fixed `tools/`,
-  `evo/` (config, manifest, `python -m evo bootstrap|manifest`, digest, tests), `evo/env/*`,
-  `.claude/settings.json` hook, `bots/probe-random`, workflows `evo-env-test.yml` and `evo-m0-probe.yml`.
-- Actions run 39799008988 (`evo-m0-probe`) and the `evo-env-test` run passed. Determinism holds
-  on two runners and the PC, down to the replay bytes. About 7 s per game, 4 cores, ≥22 jobs at once.
-  Setup script 36 s. Everything is in M0.md.
-- Tests: `tools/tests` + `evo/tests` give 11 passed on Linux, and 10 passed + 1 skipped on Windows.
+- M0 items 1–11 and 13–16 recorded in M0.md. Probe session 2 (`session_01HY3quh12DiamDT3sG6K8bZ`) succeeded:
+  setup 54 s, hook OK, repo absent during setup, `cse_`/`session_` ids match, branch `claude/m0-probe-eplb7b`.
+- Two cloud sessions used so far (both approved): session 1 failed in setup (TLS proxy), session 2 succeeded.
 
-**Waiting on owner**
-- H2, H4 done (D19 for `evo-results`). H3: env `env_01HkiFrTm9YE8qLL1T7rKYdV` is pinned in the
-  gitignored `.claude/settings.local.json`. `/remote-env` also set it at user level; the owner has
-  not said yet whether to remove that.
-- The owner must re-paste `evo/env/setup.sh` into the `evo` environment (it changed in `61dc38c`: it
-  now logs to `/opt/evo-setup.log`).
-- Stop point: a yes for ONE probe session (task `evo/tasks/probe.md`, 30 min deadline).
+**Item 12 result:** pushes to `main`, `evo-test` and `evo-results` were all accepted. The proxy pushes as the owner,
+so the Repository-admin bypass covers agents too.
 
-**Launch plan for the probe (item 10)**
-- From the clone on `main` (clean, `HEAD == origin/main`): `claude --cloud "You are the M0 probe
-  session. Read evo/tasks/probe.md on main and follow it exactly."` with stdin closed. Capture all
-  output, and kill the local process after 5 minutes if it is still attached (the docs say the cloud
-  session persists). Record what it prints and whether it returned.
-- Docs (code.claude.com, 2026-10-22): the git proxy does **not** limit which branches a push updates;
-  only GitHub rulesets do. So `main` should refuse (Restrict updates) and `evo-results` will probably
-  accept, which triggers D19's deploy-key switch.
+**Proposed H4 v2 (asked in chat 2026-10-22; not agreed yet)**
+- Remove "Repository admin" from every bypass list. Bypass = **Deploy keys** only.
+- `main`: Restrict updates + deletions + force pushes. `evo-results`: the same (this also replaces D19's interim setup).
+- Two SSH deploy keys with write access: `evo-orchestrator` (private key in `~/.ssh` on the PC; this clone pushes over
+  SSH with it via local `core.sshCommand`) and `evo-actions` (private key only in the Actions secret
+  `EVO_RESULTS_DEPLOY_KEY`; the aggregate jobs push `evo-results` with it).
+- Free test, no session: an HTTPS push from the PC as the owner (the same identity as the proxy) must be refused,
+  and an SSH push with the deploy key must succeed.
+- Clean up afterwards with normal commits: remove `evo/agents/probe/push-test-main.txt` from `main` and
+  `m0/probe-push-test.txt` from `evo-results`; `evo-test` can stay.
 
 **Open review issues (not yet decided)**
 - 12 Build-failure attribution (`runner.log` names the bot, M0.md item 7). M1.
