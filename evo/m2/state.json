@@ -578,6 +578,14 @@
      ]
     ]
    ],
+   "ranking": [
+    "t00-00",
+    "starter",
+    "t00-01",
+    "t00-02",
+    "t00-04",
+    "t00-03"
+   ],
    "ranking_A": [
     "t00-00",
     "starter",
@@ -586,6 +594,76 @@
     "t00-04",
     "t00-03"
    ],
+   "ranking_B": [
+    "t00-00",
+    "starter",
+    "t00-01",
+    "t00-02",
+    "t00-04",
+    "t00-03"
+   ],
+   "ratings": {
+    "starter": {
+     "disqualified": false,
+     "fault_rate": 0.011627906976744186,
+     "interval": [
+      0.08510095508811202,
+      2.0801128741736883
+     ],
+     "mean_margin": 46.421052631578945,
+     "strength": 1.6196049184807317
+    },
+    "t00-00": {
+     "disqualified": false,
+     "fault_rate": 0.011627906976744186,
+     "interval": [
+      0.08510095508811202,
+      2.0801128741736883
+     ],
+     "mean_margin": 46.421052631578945,
+     "strength": 1.6196049184807317
+    },
+    "t00-01": {
+     "disqualified": false,
+     "fault_rate": 0.023255813953488372,
+     "interval": [
+      -0.2544016515851295,
+      1.716297247918766
+     ],
+     "mean_margin": -64.47058823529412,
+     "strength": 1.2926134191180658
+    },
+    "t00-02": {
+     "disqualified": false,
+     "fault_rate": 0.0,
+     "interval": [
+      -0.7919817860225287,
+      0.0
+     ],
+     "mean_margin": -122.9,
+     "strength": -0.5388915184442157
+    },
+    "t00-03": {
+     "disqualified": true,
+     "fault_rate": 0.8,
+     "interval": [
+      -2.6332294818916036,
+      0.0
+     ],
+     "mean_margin": -122.9,
+     "strength": null
+    },
+    "t00-04": {
+     "disqualified": true,
+     "fault_rate": 1.0,
+     "interval": [
+      -5.049756197878654,
+      0.0
+     ],
+     "mean_margin": 0.0,
+     "strength": null
+    }
+   },
    "ratings_A": {
     "starter": {
      "disqualified": false,
@@ -648,6 +726,68 @@
      "strength": null
     }
    },
+   "ratings_B": {
+    "starter": {
+     "disqualified": false,
+     "fault_rate": 0.011627906976744186,
+     "interval": [
+      0.08510095508811202,
+      2.0801128741736883
+     ],
+     "mean_margin": 46.421052631578945,
+     "strength": 1.6196049184807317
+    },
+    "t00-00": {
+     "disqualified": false,
+     "fault_rate": 0.011627906976744186,
+     "interval": [
+      0.08510095508811202,
+      2.0801128741736883
+     ],
+     "mean_margin": 46.421052631578945,
+     "strength": 1.6196049184807317
+    },
+    "t00-01": {
+     "disqualified": false,
+     "fault_rate": 0.023255813953488372,
+     "interval": [
+      -0.2544016515851295,
+      1.716297247918766
+     ],
+     "mean_margin": -64.47058823529412,
+     "strength": 1.2926134191180658
+    },
+    "t00-02": {
+     "disqualified": false,
+     "fault_rate": 0.0,
+     "interval": [
+      -0.7919817860225287,
+      0.0
+     ],
+     "mean_margin": -122.9,
+     "strength": -0.5388915184442157
+    },
+    "t00-03": {
+     "disqualified": true,
+     "fault_rate": 0.8,
+     "interval": [
+      -2.6332294818916036,
+      0.0
+     ],
+     "mean_margin": -122.9,
+     "strength": null
+    },
+    "t00-04": {
+     "disqualified": true,
+     "fault_rate": 1.0,
+     "interval": [
+      -5.049756197878654,
+      0.0
+     ],
+     "mean_margin": 0.0,
+     "strength": null
+    }
+   },
    "slots": [
     "t00-00",
     "t00-01",
@@ -686,8 +826,12 @@
    "pushed_commit": "e6da5c572f26a470b2cf8ae232035dbd062f1a3a",
    "results_commit": "e53247f21781c0e6855c0190329510bea8a5c06a",
    "retries": 0,
+   "spotcheck": {
+    "games": 5,
+    "mismatches": []
+   },
    "stage": "B",
-   "status": "arrived"
+   "status": "verified"
   }
  },
  "launch_errors_in_a_row": 0,
@@ -728,10 +872,12 @@
   "2026-10-22T18:51:23Z g00 tg00-A: verified, 60 rows, spot-check 2 OK",
   "2026-10-22T18:51:25Z g00 phase EVAL_B_PENDING: stage A ranked: t00-00, starter, t00-01, t00-02, t00-04, t00-03",
   "2026-10-22T18:51:36Z g00 tg00-B: pushed e6da5c572f with 3 shards",
-  "2026-10-22T18:55:01Z g00 phase EVAL_B_DONE: results for tg00-B"
+  "2026-10-22T18:55:01Z g00 phase EVAL_B_DONE: results for tg00-B",
+  "2026-10-22T18:58:53Z g00 tg00-B: verified, 228 rows, spot-check 5 OK",
+  "2026-10-22T18:58:58Z g00 phase SELECTED: final: t00-00, starter, t00-01, t00-02, t00-04, t00-03"
  ],
  "paused": null,
- "phase": "EVAL_B_DONE",
+ "phase": "SELECTED",
  "sessions_launched": 8,
  "version": 1
 }
