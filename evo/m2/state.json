@@ -270,7 +270,9 @@
    },
    "env_failed": 0,
    "jobs": {
-    "A": [],
+    "A": [
+     "tg00-A"
+    ],
     "B": []
    },
    "members": [
@@ -279,6 +281,158 @@
     "t00-02",
     "t00-03",
     "t00-04"
+   ],
+   "plan_A": [
+    [
+     [
+      "t00-00",
+      "t00-01"
+     ],
+     [
+      "00fragment",
+      "00rushbait-v2"
+     ]
+    ],
+    [
+     [
+      "t00-00",
+      "t00-02"
+     ],
+     [
+      "00fragment",
+      "00rushbait-v2"
+     ]
+    ],
+    [
+     [
+      "t00-00",
+      "t00-03"
+     ],
+     [
+      "00fragment",
+      "00rushbait-v2"
+     ]
+    ],
+    [
+     [
+      "t00-00",
+      "t00-04"
+     ],
+     [
+      "00fragment",
+      "00rushbait-v2"
+     ]
+    ],
+    [
+     [
+      "t00-01",
+      "t00-02"
+     ],
+     [
+      "00fragment",
+      "00rushbait-v2"
+     ]
+    ],
+    [
+     [
+      "t00-01",
+      "t00-03"
+     ],
+     [
+      "00fragment",
+      "00rushbait-v2"
+     ]
+    ],
+    [
+     [
+      "t00-01",
+      "t00-04"
+     ],
+     [
+      "00fragment",
+      "00rushbait-v2"
+     ]
+    ],
+    [
+     [
+      "t00-02",
+      "t00-03"
+     ],
+     [
+      "00fragment",
+      "00rushbait-v2"
+     ]
+    ],
+    [
+     [
+      "t00-02",
+      "t00-04"
+     ],
+     [
+      "00fragment",
+      "00rushbait-v2"
+     ]
+    ],
+    [
+     [
+      "t00-03",
+      "t00-04"
+     ],
+     [
+      "00fragment",
+      "00rushbait-v2"
+     ]
+    ],
+    [
+     [
+      "t00-00",
+      "starter"
+     ],
+     [
+      "00fragment",
+      "00rushbait-v2"
+     ]
+    ],
+    [
+     [
+      "t00-01",
+      "starter"
+     ],
+     [
+      "00fragment",
+      "00rushbait-v2"
+     ]
+    ],
+    [
+     [
+      "t00-02",
+      "starter"
+     ],
+     [
+      "00fragment",
+      "00rushbait-v2"
+     ]
+    ],
+    [
+     [
+      "t00-03",
+      "starter"
+     ],
+     [
+      "00fragment",
+      "00rushbait-v2"
+     ]
+    ],
+    [
+     [
+      "t00-04",
+      "starter"
+     ],
+     [
+      "00fragment",
+      "00rushbait-v2"
+     ]
+    ]
    ],
    "slots": [
     "t00-00",
@@ -294,7 +448,16 @@
  },
  "hall_of_fame": [],
  "halted": null,
- "jobs": {},
+ "jobs": {
+  "tg00-A": {
+   "generation": 0,
+   "pushed_at": 1792694868,
+   "pushed_commit": "703a7ef89288a5dad899ecf2cb9e8c4c789e89fe",
+   "retries": 0,
+   "stage": "A",
+   "status": "pending"
+  }
+ },
  "launch_errors_in_a_row": 0,
  "log": [
   "2026-10-22T18:42:52Z g00 initialised generation 0 with 8 immigrants",
@@ -327,7 +490,8 @@
   "2026-10-22T18:47:20Z g00 t00-05: rejected: out of scope: tools/benchmark.py",
   "2026-10-22T18:47:25Z g00 t00-06: rejected: out of scope: bots/starter/src/extra.h",
   "2026-10-22T18:47:31Z g00 t00-07: rejected: main.cpp:2: include path '../../tools/evil.h' is not a plain name",
-  "2026-10-22T18:47:37Z g00 phase EVAL_A_PENDING"
+  "2026-10-22T18:47:37Z g00 phase EVAL_A_PENDING",
+  "2026-10-22T18:47:48Z g00 tg00-A: pushed 703a7ef892 with 15 shards"
  ],
  "paused": null,
  "phase": "EVAL_A_PENDING",
