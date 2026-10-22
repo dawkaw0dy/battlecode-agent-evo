@@ -1,7 +1,12 @@
 # Progress
 
-**Milestone:** M3 done (2026-10-22, docs/evolve/M3.md). M4 not started: waiting for the owner's go.
-Cloud sessions used so far: 4 (M0: 2, M3: 2), all approved.
+**Milestone:** M4 in progress. **Stop point:** generation 00 (4 sessions) waits for the owner's yes.
+
+**M4 so far**
+- D28 settings. Real run initialised (`evo/state.json`): e00-00 map-reader, e00-01 scaling-economy, e00-02 deathball,
+  e00-03 camp-sweep; tasks pushed; paused at `approve 00`.
+- After the yes: `python -m evo approve 00`, then `python -m evo step` every 2 min until selected; then read every
+  NOTES.md and diff, propose template changes, and plan generation 01 (3 sessions, its own approval).
 
 **Done in M3**
 - ConPTY launcher (D27); real prompts and 10 archetypes. 2 real agents (r00-00, r00-01) launched automatically,
