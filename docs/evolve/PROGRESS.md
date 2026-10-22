@@ -1,7 +1,7 @@
 # Progress
 
 **Milestone:** M0, in progress. Every item that needs no cloud session is done (1–9, 14–16).
-Waiting on the owner for H2–H4.
+Waiting on the owner: the probe-session yes (stop point).
 
 **Done**
 - H1 (2026-10-22). D1–D18 recorded and applied to PLAN.md.
@@ -14,15 +14,21 @@ Waiting on the owner for H2–H4.
 - Tests: `tools/tests` + `evo/tests` give 11 passed on Linux, and 10 passed + 1 skipped on Windows.
 
 **Waiting on owner**
-- H2 (Claude GitHub App), H3 (`evo` environment, reply with `env_…`), H4 (rulesets, Actions settings).
-  Instructions in SETUP.md.
+- H2, H4 done (D19 for `evo-results`). H3: env `env_01HkiFrTm9YE8qLL1T7rKYdV` is pinned in the
+  gitignored `.claude/settings.local.json`. `/remote-env` also set it at user level; the owner has
+  not said yet whether to remove that.
+- The owner must re-paste `evo/env/setup.sh` into the `evo` environment (it changed in `61dc38c`: it
+  now logs to `/opt/evo-setup.log`).
+- Stop point: a yes for ONE probe session (task `evo/tasks/probe.md`, 30 min deadline).
 
-**Next steps after H2–H4**
-1. Write `.claude/settings.local.json` with the env id.
-2. Write the probe task (`evo/tasks/probe.md`) and commit it.
-3. Stop point: ask for a yes to **one** cloud session (items 10–13), with its deadline and task.
-4. Run it; record items 10–13; H5 (network → Custom with the recorded hosts).
-5. Report M0 done.
+**Launch plan for the probe (item 10)**
+- From the clone on `main` (clean, `HEAD == origin/main`): `claude --cloud "You are the M0 probe
+  session. Read evo/tasks/probe.md on main and follow it exactly."` with stdin closed. Capture all
+  output, and kill the local process after 5 minutes if it is still attached (the docs say the cloud
+  session persists). Record what it prints and whether it returned.
+- Docs (code.claude.com, 2026-10-22): the git proxy does **not** limit which branches a push updates;
+  only GitHub rulesets do. So `main` should refuse (Restrict updates) and `evo-results` will probably
+  accept, which triggers D19's deploy-key switch.
 
 **Open review issues (not yet decided)**
 - 12 Build-failure attribution (`runner.log` names the bot, M0.md item 7). M1.
