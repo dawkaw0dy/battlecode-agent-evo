@@ -1197,9 +1197,10 @@
    "generation": 1,
    "pushed_at": 1792702938,
    "pushed_commit": "1276975f56a750269c1423a927e70b844242a7da",
+   "results_commit": "54bf5939bf02ffba973effcd56d7afdf8aa54306",
    "retries": 0,
    "stage": "A",
-   "status": "pending"
+   "status": "arrived"
   }
  },
  "launch_errors_in_a_row": 0,
@@ -1249,10 +1250,11 @@
   "2026-10-22T21:01:58Z g01 e01-02: admitted (051a72130124)",
   "2026-10-22T21:02:02Z g01 e01-03: admitted (857f8b84ca5b)",
   "2026-10-22T21:02:08Z g01 phase EVAL_A_PENDING",
-  "2026-10-22T21:02:18Z g01 g01-A: pushed 1276975f56 with 9 shards"
+  "2026-10-22T21:02:18Z g01 g01-A: pushed 1276975f56 with 9 shards",
+  "2026-10-22T21:04:28Z g01 phase EVAL_A_DONE: results for g01-A"
  ],
  "paused": null,
- "phase": "EVAL_A_PENDING",
+ "phase": "EVAL_A_DONE",
  "sessions_launched": 7,
  "version": 1
 }
