@@ -1,0 +1,3 @@
+{"agent": "r00-01", "task_sha256": "3676d85ee0f59d00e7e33e10702316b11810f8a310d959cdf22c79fb0955c7a6", "base_commit": "d8a0dfd48bfac1dcdeb9a18c1a5c713f71c5cfec",
+ "session_id": "cse_01Twx7RFtDAuhFhsEubUSAkT", "bot_dir": "bots/r00-01",
+ "self_eval": {"vs": "starter", "games": 20, "wins": 17}, "games_played": 35, "summary": "scaling economy: Vesper/Marcella-first draft, Treasure-then-Power shards, ability use, sticky gem batching, respawn memory"}
