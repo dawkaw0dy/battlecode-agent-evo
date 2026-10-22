@@ -30,7 +30,7 @@
    ],
    "slot": 0,
    "src_sha256": "b36e3b13ecc894325b39a51521d473d9c93be6a46601ef3ad43b62230d86ab70",
-   "status": "admitted",
+   "status": "disqualified",
    "task_sha256": "3e596d696c1c70a354e5ea963b1ccc83862d592763f160d5c1984fe771cf3680"
   },
   "e00-01": {
@@ -96,7 +96,7 @@
    ],
    "slot": 2,
    "src_sha256": "ff637527e6788f92f78b0e4e0459b381026a0e54313a488c273c0a95043ca0ff",
-   "status": "admitted",
+   "status": "disqualified",
    "task_sha256": "a9d9d813df31889b8999ea40fce2e8afbfcfc548a20d2d0ac15f5e4dd147774b"
   },
   "e00-03": {
@@ -129,11 +129,163 @@
    ],
    "slot": 3,
    "src_sha256": "467dd63a6dc3ca38d9172627da9ce113495dc692bc1090040796f025cff2a991",
-   "status": "admitted",
+   "status": "rated",
    "task_sha256": "35a12a6c1aadc0f345be72cd08b666a4da914ca0ff924d2e66efe1a0f6a1c2c1"
+  },
+  "e01-01": {
+   "archetype": null,
+   "branch": null,
+   "commit": null,
+   "deadline_minutes": 40,
+   "evidence": [
+    {
+     "gems_opponent": 1009,
+     "gems_parent": 174,
+     "map": "00split",
+     "opponent": "e00-00",
+     "rounds": 1081,
+     "side": "B"
+    },
+    {
+     "gems_opponent": 1116,
+     "gems_parent": 337,
+     "map": "01starfish",
+     "opponent": "e00-03",
+     "rounds": 1839,
+     "side": "A"
+    },
+    {
+     "gems_opponent": 1010,
+     "gems_parent": 246,
+     "map": "00lost-world",
+     "opponent": "e00-00",
+     "rounds": 760,
+     "side": "A"
+    }
+   ],
+   "failed_ideas": [
+    "e00-00: Strict danger filter with no fallback: on 01big-world every group was rejected and champions idled at spawn (0 gold).",
+    "e00-00: Re-skipping unreachable groups for a fixed 40-60 rounds: on 100x100 maps they were re-picked at once",
+    "e00-00: (skip check uses round + distance); now unreachable groups are dropped at init and skips add the distance.",
+    "e00-00: Several live queries (camp health/state, group state, ability use) can throw engine errors 97/98 even after",
+    "e00-00: is_visible(); they are wrapped in a local guard that skips the unit for the turn.",
+    "e00-02: Iterating cambc::vision::champions()/camps() and querying handles after our own move threw engine errors 97/98.",
+    "e00-02: Checking is_visible + champion_tiles before queries was not enough; tile-based enumeration plus local catches fixed it.",
+    "e00-02: bitboard::draw_chebyshev near the map edge (01starvation) threw engine error 5; tiles are now set by hand with bounds checks.",
+    "e00-02: Attack reset after our own attack still sometimes threw error 26 (cause unknown); now caught inside fight()."
+   ],
+   "focus": "defense",
+   "generation": 1,
+   "id": "e01-01",
+   "kind": "child",
+   "nudged": [],
+   "operator": "tweak",
+   "parents": [
+    "e00-01"
+   ],
+   "reason": null,
+   "rng_key": "20261022:1:1",
+   "sessions": [],
+   "slot": 1,
+   "src_sha256": null,
+   "status": "planned",
+   "task_sha256": null
+  },
+  "e01-02": {
+   "archetype": null,
+   "branch": null,
+   "commit": null,
+   "deadline_minutes": 40,
+   "evidence": [
+    {
+     "gems_opponent": 1028,
+     "gems_parent": 16,
+     "map": "01elk-arena",
+     "opponent": "e00-02",
+     "rounds": 1562,
+     "side": "A"
+    },
+    {
+     "gems_opponent": 1003,
+     "gems_parent": 0,
+     "map": "00rows",
+     "opponent": "e00-01",
+     "rounds": 1930,
+     "side": "B"
+    },
+    {
+     "gems_opponent": 1000,
+     "gems_parent": 8,
+     "map": "00packs",
+     "opponent": "e00-02",
+     "rounds": 1487,
+     "side": "B"
+    }
+   ],
+   "failed_ideas": [
+    "e00-00: Strict danger filter with no fallback: on 01big-world every group was rejected and champions idled at spawn (0 gold).",
+    "e00-00: Re-skipping unreachable groups for a fixed 40-60 rounds: on 100x100 maps they were re-picked at once",
+    "e00-00: (skip check uses round + distance); now unreachable groups are dropped at init and skips add the distance.",
+    "e00-00: Several live queries (camp health/state, group state, ability use) can throw engine errors 97/98 even after",
+    "e00-00: is_visible(); they are wrapped in a local guard that skips the unit for the turn.",
+    "e00-02: Iterating cambc::vision::champions()/camps() and querying handles after our own move threw engine errors 97/98.",
+    "e00-02: Checking is_visible + champion_tiles before queries was not enough; tile-based enumeration plus local catches fixed it.",
+    "e00-02: bitboard::draw_chebyshev near the map edge (01starvation) threw engine error 5; tiles are now set by hand with bounds checks.",
+    "e00-02: Attack reset after our own attack still sometimes threw error 26 (cause unknown); now caught inside fight()."
+   ],
+   "focus": "camps",
+   "generation": 1,
+   "id": "e01-02",
+   "kind": "child",
+   "nudged": [],
+   "operator": "tweak",
+   "parents": [
+    "e00-03"
+   ],
+   "reason": null,
+   "rng_key": "20261022:1:2",
+   "sessions": [],
+   "slot": 2,
+   "src_sha256": null,
+   "status": "planned",
+   "task_sha256": null
+  },
+  "e01-03": {
+   "archetype": "split-farm",
+   "branch": null,
+   "commit": null,
+   "deadline_minutes": 40,
+   "evidence": [],
+   "failed_ideas": [
+    "e00-00: Strict danger filter with no fallback: on 01big-world every group was rejected and champions idled at spawn (0 gold).",
+    "e00-00: Re-skipping unreachable groups for a fixed 40-60 rounds: on 100x100 maps they were re-picked at once",
+    "e00-00: (skip check uses round + distance); now unreachable groups are dropped at init and skips add the distance.",
+    "e00-00: Several live queries (camp health/state, group state, ability use) can throw engine errors 97/98 even after",
+    "e00-00: is_visible(); they are wrapped in a local guard that skips the unit for the turn.",
+    "e00-02: Iterating cambc::vision::champions()/camps() and querying handles after our own move threw engine errors 97/98.",
+    "e00-02: Checking is_visible + champion_tiles before queries was not enough; tile-based enumeration plus local catches fixed it.",
+    "e00-02: bitboard::draw_chebyshev near the map edge (01starvation) threw engine error 5; tiles are now set by hand with bounds checks.",
+    "e00-02: Attack reset after our own attack still sometimes threw error 26 (cause unknown); now caught inside fight()."
+   ],
+   "focus": null,
+   "generation": 1,
+   "id": "e01-03",
+   "kind": "immigrant",
+   "nudged": [],
+   "operator": null,
+   "parents": [
+    "starter"
+   ],
+   "reason": null,
+   "rng_key": "20261022:1:3",
+   "sessions": [],
+   "slot": 3,
+   "src_sha256": null,
+   "status": "planned",
+   "task_sha256": null
   }
  },
- "generation": 0,
+ "generation": 1,
  "generations": {
   "0": {
    "approval": {
@@ -692,19 +844,43 @@
      "strength": -1.048981449150324
     }
    },
+   "similar_skipped": [],
    "slots": [
     "e00-00",
     "e00-01",
     "e00-02",
     "e00-03"
    ],
+   "survivors": [
+    "e00-01",
+    "e00-03"
+   ],
    "top": [
     "e00-01",
     "e00-03"
    ]
+  },
+  "1": {
+   "approval": null,
+   "elites": [
+    "e00-01"
+   ],
+   "env_failed": 0,
+   "jobs": {
+    "A": [],
+    "B": []
+   },
+   "slots": [
+    "e00-01",
+    "e01-01",
+    "e01-02",
+    "e01-03"
+   ]
   }
  },
- "hall_of_fame": [],
+ "hall_of_fame": [
+  "e00-01"
+ ],
  "halted": null,
  "jobs": {
   "g00-A": {
@@ -762,10 +938,12 @@
   "2026-10-22T20:26:02Z g00 g00-B: pushed ad2f848028 with 3 shards",
   "2026-10-22T20:30:27Z g00 phase EVAL_B_DONE: results for g00-B",
   "2026-10-22T20:35:59Z g00 g00-B: verified, 144 rows, spot-check 4 OK",
-  "2026-10-22T20:36:03Z g00 phase SELECTED: final: e00-01, e00-03, starter, e00-02, e00-00"
+  "2026-10-22T20:36:03Z g00 phase SELECTED: final: e00-01, e00-03, starter, e00-02, e00-00",
+  "2026-10-22T20:36:09Z g00 survivors ['e00-01', 'e00-03'], hall of fame ['e00-01']",
+  "2026-10-22T20:36:09Z g01 phase PLANNED: 4 slots"
  ],
  "paused": null,
- "phase": "SELECTED",
+ "phase": "PLANNED",
  "sessions_launched": 4,
  "version": 1
 }
