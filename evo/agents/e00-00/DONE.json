@@ -1,0 +1,4 @@
+{"agent": "e00-00", "task_sha256": "3e596d696c1c70a354e5ea963b1ccc83862d592763f160d5c1984fe771cf3680", "base_commit": "8622115d8a144c91c65fd43b062cd035b1e70eb5",
+ "session_id": "cse_01KgvAkboBqUPGYt5Z9aq8da", "bot_dir": "bots/e00-00",
+ "self_eval": {"vs": "starter", "games": 8, "wins": 5}, "games_played": 64,
+ "summary": "Map-reader: draft picks farm/hunt/aggro plan from map metrics into draft memory; champions claim camp groups via shared memory"}

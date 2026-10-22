@@ -29,8 +29,8 @@
     }
    ],
    "slot": 0,
-   "src_sha256": null,
-   "status": "done",
+   "src_sha256": "b36e3b13ecc894325b39a51521d473d9c93be6a46601ef3ad43b62230d86ab70",
+   "status": "admitted",
    "task_sha256": "3e596d696c1c70a354e5ea963b1ccc83862d592763f160d5c1984fe771cf3680"
   },
   "e00-01": {
@@ -62,8 +62,8 @@
     }
    ],
    "slot": 1,
-   "src_sha256": null,
-   "status": "done",
+   "src_sha256": "cbd4ba2fc21f3d089b6fec75fb22e9c7d01c1a88d45c80bafb950bcdc86ad132",
+   "status": "admitted",
    "task_sha256": "90f5afc91cce88ff11cfaab272dce38c8eb843ce1ff8db10f8568e8c98ab2eb7"
   },
   "e00-02": {
@@ -95,8 +95,8 @@
     }
    ],
    "slot": 2,
-   "src_sha256": null,
-   "status": "done",
+   "src_sha256": "ff637527e6788f92f78b0e4e0459b381026a0e54313a488c273c0a95043ca0ff",
+   "status": "admitted",
    "task_sha256": "a9d9d813df31889b8999ea40fce2e8afbfcfc548a20d2d0ac15f5e4dd147774b"
   },
   "e00-03": {
@@ -128,8 +128,8 @@
     }
    ],
    "slot": 3,
-   "src_sha256": null,
-   "status": "done",
+   "src_sha256": "467dd63a6dc3ca38d9172627da9ce113495dc692bc1090040796f025cff2a991",
+   "status": "admitted",
    "task_sha256": "35a12a6c1aadc0f345be72cd08b666a4da914ca0ff924d2e66efe1a0f6a1c2c1"
   }
  },
@@ -149,6 +149,12 @@
     "A": [],
     "B": []
    },
+   "members": [
+    "e00-00",
+    "e00-01",
+    "e00-02",
+    "e00-03"
+   ],
    "slots": [
     "e00-00",
     "e00-01",
@@ -175,7 +181,11 @@
   "2026-10-22T20:14:33Z g00 e00-00: done on origin/claude/evo-task-e00-00-3kq51g at 23238ed0fb",
   "2026-10-22T20:14:34Z g00 e00-01: done on origin/claude/evo-e00-01-kjcv96 at c1b5c1182d",
   "2026-10-22T20:16:50Z g00 e00-02: done on origin/claude/evolution-agent-e00-02-ph0msk at 1c1ef5d256",
-  "2026-10-22T20:16:50Z g00 phase ADMITTED"
+  "2026-10-22T20:16:50Z g00 phase ADMITTED",
+  "2026-10-22T20:17:04Z g00 e00-00: admitted (b36e3b13ecc8)",
+  "2026-10-22T20:17:09Z g00 e00-01: admitted (cbd4ba2fc21f)",
+  "2026-10-22T20:17:14Z g00 e00-02: admitted (ff637527e678)",
+  "2026-10-22T20:17:18Z g00 e00-03: admitted (467dd63a6dc3)"
  ],
  "paused": null,
  "phase": "ADMITTED",
