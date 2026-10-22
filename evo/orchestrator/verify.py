@@ -25,18 +25,28 @@ def check_results(job, pushed_commit, results, root=ROOT):
     wf = gitops.show(pushed_commit, WORKFLOW, root)
     if wf is None or hashlib.sha256(wf).hexdigest() != results.get('workflow_sha256'):
         problems.append('workflow_sha256 does not match evo-eval.yml at the pushed commit')
-    wanted = {g: 0 for g in jobfile.requested_games(job)}
+    requested = {}
+    for g in jobfile.requested_games(job):
+        requested[g] = requested.get(g, 0) + 1
+    wanted = {g: 0 for g in requested}
+    first = {}
     for row in results.get('rows', []):
         key = (row.get('a'), row.get('b'), row.get('map'), row.get('side'))
         if key not in wanted:
             problems.append(f'unrequested game {key}')
             continue
         wanted[key] += 1
+        played = (row.get('outcome'), row.get('gems'), row.get('rounds'), row.get('faults'), row.get('bot_errors'),
+                  row.get('replay_sha256'))
+        if key in first and first[key] != played:
+            problems.append(f'game {key} was played twice with different results')
+        first.setdefault(key, played)
         if row.get('src_sha256') != {row['a']: job['src_sha256'][row['a']], row['b']: job['src_sha256'][row['b']]}:
             problems.append(f'{key}: src_sha256 differs from the job')
         if row.get('map_sha256') != job['map_sha256'][row['map']]:
             problems.append(f'{key}: map_sha256 differs from the job')
-    problems += [f'duplicate game {k}' for k, n in wanted.items() if n > 1]
+    # A job may request a game more than once (it should not: jobs.dedupe_pairs); identical repeats are fine.
+    problems += [f'duplicate game {k}' for k, n in wanted.items() if n > requested[k]]
     missing = [k for k, n in wanted.items() if n == 0]
     return problems, missing
 

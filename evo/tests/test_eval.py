@@ -154,3 +154,29 @@ def test_aggregate_header_and_missing_shards(tmp_path):
     assert res['missing_shards'] == [1] and res['rows'] == [{'x': 1}]
     assert (res['trigger_sha'], res['run_id'], res['workflow_sha256']) == ('abc', '7', 'wf')
     assert res['cambc_version'] == ['cambc 3.0.5'] and res['requested_games'] == 6
+
+
+def test_stage_pairs_have_no_duplicate_cells():
+    from evo.orchestrator import jobs
+    # e00-01 is in the top 4 and in the panel (hall of fame): its games must be planned once (g01-B halt).
+    pairs = jobs.stage_b_pairs(['e01-01', 'e00-01', 'e01-02'], ['starter', 'e00-01'], ['m1', 'm2', 'm3'], ['m1'])
+    cells = [(frozenset(p), m) for p, ms in pairs for m in ms]
+    assert len(cells) == len(set(cells))
+    assert (frozenset(('e01-01', 'e00-01')), 'm2') in set(cells)
+    a = jobs.stage_a_pairs(['x', 'h'], ['starter', 'h'], ['m1'], round_robin=False)
+    cells = [(frozenset(p), m) for p, ms in a for m in ms]
+    assert len(cells) == len(set(cells)) == 3
+
+
+def test_verification_accepts_identical_repeats_of_requested_duplicates(tmp_path):
+    from evo.orchestrator import verify
+    job = dict(JOB, shards=[{'a': 'p', 'b': 's', 'maps': ['m1']}, {'a': 'p', 'b': 's', 'maps': ['m1']}])
+    row = {'a': 'p', 'b': 's', 'map': 'm1', 'side': 'A', 'outcome': 'teamA', 'gems': {'teamA': 1, 'teamB': 0},
+           'rounds': 5, 'faults': {}, 'bot_errors': {}, 'replay_sha256': 'r',
+           'src_sha256': {'p': 'sp', 's': 'ss'}, 'map_sha256': 'h1'}
+    rows = [row, dict(row, side='B'), dict(row), dict(row, side='B')]
+    problems, missing = verify.check_results(job, 'c', {'job_id': 'j1', 'trigger_sha': 'c', 'rows': rows}, tmp_path)
+    assert [p for p in problems if 'workflow' not in p] == [] and missing == []
+    rows[2] = dict(row, outcome='teamB')
+    problems, _ = verify.check_results(job, 'c', {'job_id': 'j1', 'trigger_sha': 'c', 'rows': rows}, tmp_path)
+    assert any('different results' in p for p in problems)

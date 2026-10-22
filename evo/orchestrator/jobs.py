@@ -121,7 +121,7 @@ def stage_a_pairs(bots, panel_bots, maps, round_robin):
             for p in panel:
                 if p != a:
                     pairs.append(((a, p), maps))
-    return pairs
+    return dedupe_pairs(pairs)
 
 
 def stage_b_pairs(top, panel, maps_all, maps_a):
@@ -133,9 +133,21 @@ def stage_b_pairs(top, panel, maps_all, maps_a):
     rest = [m for m in maps_all if m not in set(maps_a)]
     for a in top:
         for p in panel:
-            if p != a and rest:
+            # A panel bot that is also in the top (an elite hall-of-fame bot) already plays the round robin.
+            if p != a and p not in top and rest:
                 pairs.append(((a, p), rest))
-    return pairs
+    return dedupe_pairs(pairs)
+
+
+def dedupe_pairs(pairs):
+    """Keep each unordered (pair, map) cell once; games cover both sides anyway."""
+    seen, out = set(), []
+    for (a, b), maps in pairs:
+        keep = [m for m in maps if (frozenset((a, b)), m) not in seen]
+        seen.update((frozenset((a, b)), m) for m in keep)
+        if keep:
+            out.append(((a, b), keep))
+    return out
 
 
 def write_job(cfg, job_id, units, generation, stage, root=ROOT):

@@ -92,6 +92,15 @@ class Engine:
         st.log(self.state, f'approved generation {g:02d}: {approval}')
         self.save(f'evo: approve generation {g:02d}')
 
+    def unhalt(self, reason):
+        """Clear a HALT after a human looked at it (§10.4); the next step redoes the halted phase's checks."""
+        if not self.state or not self.state['halted']:
+            self.out('not halted')
+            return
+        st.log(self.state, f"halt cleared ({reason}); was: {self.state['halted'][:300]}")
+        self.state['halted'] = None
+        self.save(f'evo: halt cleared: {reason[:60]}')
+
     # ---------------------------------------------------------------- step
     def step(self, max_transitions=20):
         if self.state is None:
