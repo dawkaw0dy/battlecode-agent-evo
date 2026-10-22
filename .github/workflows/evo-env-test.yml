@@ -30,8 +30,9 @@ jobs:
           bash evo/env/check.sh
           echo "check seconds: $(( $(date +%s) - start ))"
 
-  # Closer to the cloud VM: root user, system Python on Ubuntu 24.04 (PEP 668), no setup-python.
-  env-root:
+  # Closer to the cloud VM: root, system Python on Ubuntu 24.04 (PEP 668), and cambc's own
+  # downloads blocked (in the cloud its TLS proxy breaks them; M0 item 11). Python downloads still work.
+  env-root-proxy:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     container: ubuntu:24.04
@@ -41,6 +42,13 @@ jobs:
           apt-get update -qq
           DEBIAN_FRONTEND=noninteractive apt-get install -y -qq git python3 python3-pip nodejs ca-certificates >/dev/null
       - uses: actions/checkout@v4
+      - name: Shim that breaks cambc's network access
+        run: |
+          printf '#!/bin/sh
+export HTTPS_PROXY=http://127.0.0.1:9 https_proxy=http://127.0.0.1:9 ALL_PROXY=http://127.0.0.1:9 HTTP_PROXY=http://127.0.0.1:9
+exec /usr/local/bin/cambc "$@"
+' > /usr/local/sbin/cambc
+          chmod +x /usr/local/sbin/cambc
       - name: Setup script (as root)
         run: |
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
@@ -52,6 +60,8 @@ jobs:
         run: |
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           bash evo/env/check.sh
-      - name: Setup log
+      - name: Cache listing and setup log
         if: always()
-        run: cat /opt/evo-setup.log || true
+        run: |
+          ls -la ~/.cache/cambc || true
+          cat /opt/evo-setup.log || true

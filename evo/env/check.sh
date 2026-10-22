@@ -8,7 +8,7 @@ set -euo pipefail
 if [ "${CLAUDE_CODE_REMOTE:-}" != "true" ] && [ "${EVO_FORCE_CHECK:-}" != "1" ]; then
   exit 0
 fi
-export CAMBC_NO_UPDATE_CHECK=1
+export CAMBC_NO_UPDATE_CHECK=1 CAMBC_OFFLINE=1   # toolchain is pre-seeded by setup.sh; cambc cannot pass the cloud TLS proxy
 cd "${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel)}"
 VER=$(sed -n 's/^sdk_version *= *"\(.*\)"/\1/p' cambc.toml)
 test "$(cambc --version)" = "cambc $VER"
