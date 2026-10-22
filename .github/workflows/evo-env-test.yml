@@ -1,0 +1,31 @@
+# Runs the cloud environment's setup script and SessionStart check on a plain
+# Ubuntu runner (PLAN §0.5), so they can be tested without a cloud session.
+name: evo-env-test
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['evo/env/**', '.github/workflows/evo-env-test.yml']
+permissions: { contents: read }
+concurrency: { group: evo-env-test, cancel-in-progress: false }
+
+jobs:
+  env:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - name: Setup script
+        run: |
+          sudo mkdir -p /opt/cambc-ref && sudo chown "$USER" /opt/cambc-ref
+          start=$(date +%s)
+          bash evo/env/setup.sh
+          echo "setup seconds: $(( $(date +%s) - start ))"
+      - name: SessionStart check
+        env: { EVO_FORCE_CHECK: '1' }
+        run: |
+          start=$(date +%s)
+          bash evo/env/check.sh
+          echo "check seconds: $(( $(date +%s) - start ))"
