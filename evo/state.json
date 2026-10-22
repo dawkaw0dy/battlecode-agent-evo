@@ -196,8 +196,8 @@
     }
    ],
    "slot": 1,
-   "src_sha256": null,
-   "status": "done",
+   "src_sha256": "4aaba25b8aa31d9086f29d08355d2eaf32f67e68dfe0f5991ef5f67dd75be75d",
+   "status": "admitted",
    "task_sha256": "736f21db805f1717b8640798abce4a823b66bfcecfa8f41bdb3cc321226038f1"
   },
   "e01-02": {
@@ -264,8 +264,8 @@
     }
    ],
    "slot": 2,
-   "src_sha256": null,
-   "status": "done",
+   "src_sha256": "051a721301245f5b9f77150cb55ba3a3c6f0899e5b79cac6c5e215a436a54bae",
+   "status": "admitted",
    "task_sha256": "029169c92c84a053f8cff63387921f0749396cdf6f613bd0de628e7a1f8eaf7e"
   },
   "e01-03": {
@@ -307,8 +307,8 @@
     }
    ],
    "slot": 3,
-   "src_sha256": null,
-   "status": "done",
+   "src_sha256": "857f8b84ca5b4cd0abc7ba305ad29d9e00cc8c84481133dca780284971e2fce9",
+   "status": "admitted",
    "task_sha256": "decfe555d117d096df25b605e5a621b275c17ea7f44dde59b6126bbedceb019c"
   }
  },
@@ -904,6 +904,12 @@
     "A": [],
     "B": []
    },
+   "members": [
+    "e00-01",
+    "e01-01",
+    "e01-02",
+    "e01-03"
+   ],
    "slots": [
     "e00-01",
     "e01-01",
@@ -986,7 +992,10 @@
   "2026-10-22T21:01:44Z g01 e01-01: done on origin/claude/evo-task-e01-01-ae83lg at f9ac9eff8a",
   "2026-10-22T21:01:45Z g01 e01-02: done on origin/claude/evolution-agent-e01-02-hki6p8 at cf06dd9ccc",
   "2026-10-22T21:01:47Z g01 e01-03: done on origin/claude/evo-task-e01-03-7z3na4 at 4f5f76486d",
-  "2026-10-22T21:01:47Z g01 phase ADMITTED"
+  "2026-10-22T21:01:47Z g01 phase ADMITTED",
+  "2026-10-22T21:01:55Z g01 e01-01: admitted (4aaba25b8aa3)",
+  "2026-10-22T21:01:58Z g01 e01-02: admitted (051a72130124)",
+  "2026-10-22T21:02:02Z g01 e01-03: admitted (857f8b84ca5b)"
  ],
  "paused": null,
  "phase": "ADMITTED",

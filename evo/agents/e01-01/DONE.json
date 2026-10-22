@@ -1,0 +1,14 @@
+{
+ "agent": "e01-01",
+ "task_sha256": "736f21db805f1717b8640798abce4a823b66bfcecfa8f41bdb3cc321226038f1",
+ "base_commit": "1b03491d0f44455e1e8374b25b07018ae869a013",
+ "session_id": "cse_01QkwDrtRcLPt4E7HR8DLkB1",
+ "bot_dir": "bots/e01-01",
+ "self_eval": {
+  "vs": "e00-01",
+  "games": 12,
+  "wins": 7
+ },
+ "games_played": 100,
+ "summary": "Parent e00-01 with gem banking threshold 30->20 and local guards against stale-unit engine errors 97/98"
+}

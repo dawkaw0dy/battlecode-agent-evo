@@ -1,0 +1,3 @@
+{"agent": "e01-03", "task_sha256": "decfe555d117d096df25b605e5a621b275c17ea7f44dde59b6126bbedceb019c", "base_commit": "1b03491d0f44455e1e8374b25b07018ae869a013",
+ "session_id": "cse_01QXzXRuKf5JNA6eFkbPYFyK", "bot_dir": "bots/e01-03",
+ "self_eval": {"vs": "e00-01", "games": 4, "wins": 1}, "games_played": 40, "summary": "split-farm immigrant: draft-time region split per champion, region altars, shared-memory invasion reports; beats starter 11/12, weak vs e00-01"}
