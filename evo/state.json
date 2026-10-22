@@ -951,10 +951,11 @@
   "2026-10-22T20:36:16Z g01 phase TASKS_PUSHED: 3 task files",
   "2026-10-22T20:36:35Z g01 PAUSED: waiting for approval: python -m evo approve 01",
   "2026-10-22T20:42:14Z g01 generation 01 tasks re-rendered after D29-D31 (pitfalls in TOOLS.md, test opponents, manifest)",
-  "2026-10-22T20:54:07Z g01 approved generation 01: {'sessions': 3, 'relaunches_per_slot': 0, 'nudges_per_session': 1, 'deadline_minutes': 40, 'max_sessions_total': 8, 'approved_at': 1792702447}"
+  "2026-10-22T20:54:07Z g01 approved generation 01: {'sessions': 3, 'relaunches_per_slot': 0, 'nudges_per_session': 1, 'deadline_minutes': 40, 'max_sessions_total': 8, 'approved_at': 1792702447}",
+  "2026-10-22T20:54:19Z g01 phase RUNNING"
  ],
  "paused": null,
- "phase": "TASKS_PUSHED",
+ "phase": "RUNNING",
  "sessions_launched": 4,
  "version": 1
 }
