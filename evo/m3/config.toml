@@ -22,7 +22,7 @@ max_generations = 1
 max_parallel = 2
 require_approval = true
 max_sessions_total = 2       # hard cap: exactly the two approved sessions, no relaunch
-deadline_minutes = 60        # generation 0 gets 1.5x = 90 minutes
+deadline_minutes = 30        # generation 0 gets 1.5x = 45 minutes (owner, 2026-10-22)
 relaunch_dead = 0
 local_game_budget = 120
 
