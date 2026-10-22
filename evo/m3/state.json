@@ -22,7 +22,7 @@
    "slot": 0,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "f60a87630fc5ee307b0aabe807d2bd3ffdad53806710b41370e1c61860916e15"
   },
   "r00-01": {
    "archetype": "scaling-economy",
@@ -46,7 +46,7 @@
    "slot": 1,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "030cb33988da728b109a942342cd8f49ad5bf53230ff69672b0971e9b6030d57"
   }
  },
  "generation": 0,
@@ -69,10 +69,11 @@
  "jobs": {},
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-22T19:32:55Z g00 initialised generation 0 with 2 immigrants"
+  "2026-10-22T19:32:55Z g00 initialised generation 0 with 2 immigrants",
+  "2026-10-22T19:33:01Z g00 phase TASKS_PUSHED: 2 task files"
  ],
  "paused": null,
- "phase": "PLANNED",
+ "phase": "TASKS_PUSHED",
  "sessions_launched": 0,
  "version": 1
 }
