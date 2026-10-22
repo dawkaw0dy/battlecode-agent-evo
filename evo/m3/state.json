@@ -35,8 +35,8 @@
   },
   "r00-01": {
    "archetype": "scaling-economy",
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evo-task-r00-01-wp5s3e",
+   "commit": "3c675cd47c09c0d52e8384a9e0d94b263ab862c9",
    "deadline_minutes": 45,
    "evidence": [],
    "failed_ideas": [],
@@ -63,7 +63,7 @@
    ],
    "slot": 1,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "3676d85ee0f59d00e7e33e10702316b11810f8a310d959cdf22c79fb0955c7a6"
   }
  },
@@ -101,7 +101,8 @@
   "2026-10-22T19:37:35Z g00 approved generation 00: {'sessions': 2, 'relaunches_per_slot': 0, 'nudges_per_session': 1, 'deadline_minutes': 45, 'max_sessions_total': 2, 'approved_at': 1792697855}",
   "2026-10-22T19:37:48Z g00 phase RUNNING",
   "2026-10-22T19:38:11Z g00 r00-00: launched session_016tne4vkCTvXFJcxv11SnFr",
-  "2026-10-22T19:38:23Z g00 r00-01: launched session_01Twx7RFtDAuhFhsEubUSAkT"
+  "2026-10-22T19:38:23Z g00 r00-01: launched session_01Twx7RFtDAuhFhsEubUSAkT",
+  "2026-10-22T19:45:32Z g00 r00-01: done on origin/claude/evo-task-r00-01-wp5s3e at 3c675cd47c"
  ],
  "paused": null,
  "phase": "RUNNING",
