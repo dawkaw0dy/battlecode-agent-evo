@@ -13,7 +13,7 @@
    "evo/env/TOOLS.md": "c8535dd8d7443477d7b164c8aed6c7ffae2d97ca8979770fbf0f2621cb038adb",
    "evo/env/check.sh": "6f05a2c1470119344ceb240c8954fc4b796218ec1f6e09e07fb2ffea2c3af778",
    "evo/env/fingerprint.py": "cd4b3e001d417c0262c1f23bbeb0103cd9c439a9a8c55f593812f08ef30923f5",
-   "evo/env/setup.sh": "11c8e11de33f253e4eda3090234810e8b05c756a8550cf6d036fcfa098a33db5",
+   "evo/env/setup.sh": "e0b055de7e5d49f0e5b6a585b8da491e386979d17900f00b32e94c23b10ff25b",
    "evo/env/verify_manifest.py": "ef677648bb6288d4acd35c3f7028b99b9d9e21ce17b29102d21beb54c469b733"
   },
   "maps": {
