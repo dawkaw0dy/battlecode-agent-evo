@@ -1,0 +1,3 @@
+{"agent": "e00-03", "task_sha256": "35a12a6c1aadc0f345be72cd08b666a4da914ca0ff924d2e66efe1a0f6a1c2c1", "base_commit": "8622115d8a144c91c65fd43b062cd035b1e70eb5",
+ "session_id": "cse_01V4G6svvU1rbA8q4ciWHjMr", "bot_dir": "bots/e00-03",
+ "self_eval": {"vs": "r00-01", "games": 8, "wins": 2}, "games_played": 45, "summary": "camp-sweep: draft-rated group loop, shared-memory target claims, small-batch banking, guarded actions"}
