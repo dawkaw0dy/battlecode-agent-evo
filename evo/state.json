@@ -399,6 +399,65 @@
      ]
     ]
    ],
+   "ranking_A": [
+    "e00-01",
+    "e00-03",
+    "starter",
+    "e00-02",
+    "e00-00"
+   ],
+   "ratings_A": {
+    "e00-00": {
+     "disqualified": true,
+     "fault_rate": 0.1171875,
+     "interval": [
+      -0.29711106696764533,
+      0.6212817361265227
+     ],
+     "mean_margin": 46.21875,
+     "strength": null
+    },
+    "e00-01": {
+     "disqualified": false,
+     "fault_rate": 0.0390625,
+     "interval": [
+      0.5298171914930565,
+      1.455020375780597
+     ],
+     "mean_margin": 336.8671875,
+     "strength": 0.902346849077106
+    },
+    "e00-02": {
+     "disqualified": true,
+     "fault_rate": 0.140625,
+     "interval": [
+      -0.4608623007690919,
+      0.3088847350160367
+     ],
+     "mean_margin": 69.5078125,
+     "strength": null
+    },
+    "e00-03": {
+     "disqualified": false,
+     "fault_rate": 0.0078125,
+     "interval": [
+      -0.3976082014495477,
+      0.34060548864740253
+     ],
+     "mean_margin": -36.5546875,
+     "strength": -9.121777871634866e-08
+    },
+    "starter": {
+     "disqualified": false,
+     "fault_rate": 0.03125,
+     "interval": [
+      -1.5112740892645624,
+      -0.6467771708385794
+     ],
+     "mean_margin": -416.0390625,
+     "strength": -1.0022897001331352
+    }
+   },
    "slots": [
     "e00-00",
     "e00-01",
@@ -416,8 +475,12 @@
    "pushed_commit": "136db30bee643b76a11b00f60bc565635f2a00c0",
    "results_commit": "98ebf45387adfcb9a5a423a32c0f8660dea03c06",
    "retries": 0,
+   "spotcheck": {
+    "games": 7,
+    "mismatches": []
+   },
    "stage": "A",
-   "status": "arrived"
+   "status": "verified"
   }
  },
  "launch_errors_in_a_row": 0,
@@ -442,10 +505,12 @@
   "2026-10-22T20:17:18Z g00 e00-03: admitted (467dd63a6dc3)",
   "2026-10-22T20:17:25Z g00 phase EVAL_A_PENDING",
   "2026-10-22T20:17:35Z g00 g00-A: pushed 136db30bee with 10 shards",
-  "2026-10-22T20:19:49Z g00 phase EVAL_A_DONE: results for g00-A"
+  "2026-10-22T20:19:49Z g00 phase EVAL_A_DONE: results for g00-A",
+  "2026-10-22T20:25:49Z g00 g00-A: verified, 320 rows, spot-check 7 OK",
+  "2026-10-22T20:25:53Z g00 phase EVAL_B_PENDING: stage A ranked: e00-01, e00-03, starter, e00-02, e00-00"
  ],
  "paused": null,
- "phase": "EVAL_A_DONE",
+ "phase": "EVAL_B_PENDING",
  "sessions_launched": 4,
  "version": 1
 }
