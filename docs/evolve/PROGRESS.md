@@ -1,13 +1,14 @@
 # Progress
 
-**Milestone:** M4 in progress. Generation 00 is done (M4.md). **Stop point:** generation 01 (3 sessions) waits for the owner's yes.
-Cloud sessions used overall: 8 (M0 2, M3 2, M4 4). The real run's own cap is 8: 4 used, gen 01 needs 3 → 7.
+**Milestone:** M4 done (2026-10-22, docs/evolve/M4.md). M5 not started: waiting for the owner's go.
+Cloud sessions used overall: 11 (M0 2, M3 2, M4 7). The real run (`evo/state.json`) is paused after generation 01
+(`max_generations = 2`): hall of fame [e00-01, e01-01], survivors e01-01 and e00-01.
 
-**M4 so far**
-- Gen 00: 4 agents admitted; e00-01 (scaling-economy) and e00-03 (camp-sweep) survived; e00-00 and e00-02 were disqualified
-  for caught exceptions. D29–D31 applied: exceptions no longer disqualify, SDK pitfalls in TOOLS.md, test bots removed,
-  tasks name their opponents. Gen 01 tasks re-rendered (`fa47a71`).
-- After the yes: `python -m evo approve 01`, then `step` every 2 min until selected; final M4 review; report.
+**Done in M4**
+- Generations 00 and 01 at n = 4; D28–D31; fix `dca675e` for duplicate Stage B games (halt cleared with the owner's OK).
+
+**M5 (§16):** n = 8, cache, hall of fame, held-out pool, Stage C. To continue the real run: raise
+`max_generations` (or remove it), set n = 8 and the session cap, then `python -m evo step` → approval gate for gen 02.
 
 **Done in M3**
 - ConPTY launcher (D27); real prompts and 10 archetypes. 2 real agents (r00-00, r00-01) launched automatically,
