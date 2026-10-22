@@ -92,7 +92,7 @@ match, stop and tell me what you see instead of guessing.
 
 **Reply with:** `H2: done` (and whether it was a new install or a change).
 
-## H3 — M0: the `evo` cloud environment
+## H3 — M0: the `evo` cloud environment  ✅ done 2026-10-22 (`env_01HkiFrTm9YE8qLL1T7rKYdV`; setup script re-pasted after the TLS fix, `CAMBC_OFFLINE=1` added)
 
 1. Open <https://claude.ai/code>.
 2. Open the **environment selector** (next to the repository picker, where a new
@@ -170,7 +170,7 @@ match, stop and tell me what you see instead of guessing.
 
 **Reply with:** `H4: done`, plus whether **GitHub Actions** was offered as a bypass actor.
 
-## H4 v2 — M0: deploy keys are the only bypass (DECISIONS D20)
+## H4 v2 — M0: deploy keys are the only bypass (DECISIONS D20)  ✅ done 2026-10-22 (verified: HTTPS as owner refused, deploy keys accepted; local `evo_actions` private key deleted)
 
 Why: the probe session's push to `main` was **accepted**, because cloud sessions push as you and
 the rulesets let Repository admin bypass them. From now on only two deploy keys may bypass.
@@ -210,3 +210,26 @@ After this, your own normal HTTPS pushes to `main` are refused too. This clone w
 
 **Reply with:** `H4 v2: done`. I then test it without any cloud session: an HTTPS push as you must be refused
 and an SSH push with the deploy key accepted. The test push is the cleanup commit that removes the probe's test file.
+
+## H5 — M0: narrow the `evo` environment's network to Custom
+
+The setup script and the sessions need only these hosts (M0.md items 11 and 16, checked 2026-10-22):
+
+| Host | Used for |
+|---|---|
+| `pypi.org` | `pip install cambc` (index) |
+| `files.pythonhosted.org` | `pip install cambc` (the wheel) |
+| `github.com` | wasi-sdk, CMake and Ninja release downloads (setup script) |
+| `release-assets.githubusercontent.com` | where those GitHub release downloads redirect |
+
+cambc itself runs offline (`CAMBC_OFFLINE=1`); its map host `2026a.battlecode.co.uk` is **not** needed (maps are in the repo).
+
+1. claude.ai/code → environment selector → hover **evo** → settings icon.
+2. **Network access** → **Custom**. If the dialog offers to keep the default/trusted list in addition to
+   your own entries, keep it on (Claude Code's own and the GitHub proxy's traffic may rely on it).
+3. Add the four hosts above, one per entry. Save.
+
+Changing the network rebuilds the environment's snapshot. The next cloud session (M3, a stop point with
+its own approval) will show whether setup still passes. I will not start one just to test this.
+
+**Reply with:** `H5: done` (and whether a "default list" option existed and what you chose).

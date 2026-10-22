@@ -1,28 +1,25 @@
 # Progress
 
-**Milestone:** M0. Hard stop at item 12 (an agent pushed to `main`). The owner agreed to H4 v2 (D20). Waiting on
-the owner to apply H4 v2 (SETUP.md): deploy keys, the secret `EVO_RESULTS_DEPLOY_KEY`, rulesets.
+**Milestone:** M0 complete except H5 (owner: narrow the network to Custom; steps in SETUP.md).
+Not started: M1 (waiting for the owner's go).
 
-**Done**
-- M0 items 1–11 and 13–16 recorded in M0.md. Probe session 2 (`session_01HY3quh12DiamDT3sG6K8bZ`) succeeded:
-  setup 54 s, hook OK, repo absent during setup, `cse_`/`session_` ids match, branch `claude/m0-probe-eplb7b`.
-- Two cloud sessions used so far (both approved): session 1 failed in setup (TLS proxy), session 2 succeeded.
+**Done in M0**
+- §0.5 items 1–13 and 15–16 recorded in M0.md. Item 14 (prebuilt WASM via `run-batch --jsonl`) is deferred as optional (§17).
+- Hard stops: item 8 (determinism) matched; item 12 failed, was fixed by H4 v2 (D20) and verified.
+- Two cloud sessions used, both approved: probe 1 (setup failed: TLS proxy), probe 2 (succeeded).
+- D1–D20 recorded and applied to PLAN.md.
+- This clone pushes over SSH with deploy key `~/.ssh/evo_orchestrator` (`remote.origin.pushurl`,
+  `core.sshCommand` in the local git config); HTTPS pushes as the owner are refused by the rulesets.
 
-**Item 12 result:** pushes to `main`, `evo-test` and `evo-results` were all accepted. The proxy pushes as the owner,
-so the Repository-admin bypass covers agents too.
+**Waiting on owner**
+- H5 (SETUP.md). Then the owner's go for M1.
 
-**H4 v2 (agreed 2026-10-22, D20). Keys generated in `~/.ssh/evo_orchestrator{,.pub}` and `~/.ssh/evo_actions{,.pub}`; the github.com host key was added to `~/.ssh/known_hosts` (fingerprint SHA256:+DiY3wvvV6TuJJhbpZisF/zLDA0zPMSvHdkr4UvCOqU checked)**
-- Remove "Repository admin" from every bypass list. Bypass = **Deploy keys** only.
-- `main`: Restrict updates + deletions + force pushes. `evo-results`: the same (this also replaces D19's interim setup).
-- Two SSH deploy keys with write access: `evo-orchestrator` (private key in `~/.ssh` on the PC; this clone pushes over
-  SSH with it via local `core.sshCommand`) and `evo-actions` (private key only in the Actions secret
-  `EVO_RESULTS_DEPLOY_KEY`; the aggregate jobs push `evo-results` with it).
-- Free test, no session: an HTTPS push from the PC as the owner (the same identity as the proxy) must be refused,
-  and an SSH push with the deploy key must succeed.
-- After the owner's `H4 v2: done`: set `remote.origin.pushurl=git@github.com:dawkaw0dy/battlecode-agent-evo.git` and
-  `core.sshCommand` (this repo only); run the test; delete `~/.ssh/evo_actions` (private key) once the secret is saved.
-- Clean up afterwards with normal commits: remove `evo/agents/probe/push-test-main.txt` from `main` and
-  `m0/probe-push-test.txt` from `evo-results`; `evo-test` can stay.
+**Facts the next milestones need**
+- The launcher cannot capture `claude --cloud` output from a pipe ("requires an interactive terminal"). M3 needs a
+  pseudo-terminal launcher (ConPTY via `ctypes`, stdlib) or another design. Propose it when M3 starts. From a TTY
+  it returns in about 10 s and prints `View: https://claude.ai/code/session_…`.
+- Cloud: root, Python 3.13, TLS-intercepting proxy; cambc must run with `CAMBC_OFFLINE=1` and the seeded toolchain.
+- Games take about 7 s each on 4-core runners; at least 22 concurrent jobs; replays are byte-identical between the PC and Linux.
 
 **Open review issues (not yet decided)**
 - 12 Build-failure attribution (`runner.log` names the bot, M0.md item 7). M1.
