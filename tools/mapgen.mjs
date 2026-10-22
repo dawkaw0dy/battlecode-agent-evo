@@ -1,6 +1,27 @@
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
 import { WASI } from 'node:wasi';
-const WASM='/root/.cache/cambc/assets/27ebcf251dc5bec6799b656ef0831248d1c9317f2a3d308d56c3073bb6c3d56a/mapeditor/assets/v0_0_3-zaIi77qe.wasm';
+
+// The CLI unpacks its assets into one hash-named directory per release; use the newest map-editor engine.
+function newestMapEditor() {
+  const roots = [process.env.CAMBC_CACHE_DIR, join(homedir(), '.cache', 'cambc'), process.env.LOCALAPPDATA && join(process.env.LOCALAPPDATA, 'cambc')]
+    .filter(Boolean).map(r => join(r, 'assets'));
+  const version = f => f.match(/^v(\d+)_(\d+)_(\d+)-/).slice(1).map(Number);
+  const newer = (a, b) => { const x = version(a), y = version(b); for (let i = 0; i < 3; i++) if (x[i] !== y[i]) return x[i] > y[i]; return false; };
+  let best = null;
+  for (const root of roots) {
+    let dirs; try { dirs = readdirSync(root); } catch { continue; }
+    for (const d of dirs) {
+      const dir = join(root, d, 'mapeditor', 'assets');
+      let files; try { files = readdirSync(dir); } catch { continue; }
+      for (const f of files) if (/^v\d+_\d+_\d+-.*\.wasm$/.test(f) && (!best || newer(f, best.f))) best = { f, path: join(dir, f) };
+    }
+  }
+  if (!best) throw new Error(`no mapeditor/assets/v*.wasm under ${roots.join(', ')}; run any cambc command once`);
+  return best.path;
+}
+const WASM = newestMapEditor();
 const wasi = new WASI({ version: 'preview1', args: [], env: {} });
 const mod = await WebAssembly.compile(readFileSync(WASM));
 const imports = { ...wasi.getImportObject(), deep_wasm: { on_assert_fail_impl: (a,b,c,d)=>{ console.error('assert fail'); return 1; } } };

@@ -2,22 +2,61 @@
 // usage: node --no-warnings tools/replay.mjs replay.repl26a out.json
 // The JSON has: meta (rounds, outcome, drafts, gems), rounds[] (per-round champion state),
 // events[] (deaths, submits, captures, recalls) and actions (per-champion step histogram).
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, readdirSync, statSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
+import { inflateRawSync } from 'node:zlib';
 import { WASI } from 'node:wasi';
-const A = '/root/.cache/cambc/assets/27ebcf251dc5bec6799b656ef0831248d1c9317f2a3d308d56c3073bb6c3d56a/visualiser/assets/';
 const TYPES = ['Ryth', 'VesperVale', 'Vendetta', 'Cassi', 'Issac', 'Stellar', 'Prism', 'Marcella', 'Willow', 'Ren', 'Varg', 'Tavi', 'HeartOfRuin'];
 const KINDS = 'Phase.Respawn.Capture.Tick.Move.Attack.Cast.Input.EndTurn.SetPriority..Recall.SubmitGems.Shop.PlaceWard.Consumable.CancelChannel.Sandbox.GemsSubmitted.Draft.AltarLock.TeleportChannel.TeleportComplete.MovementBlocked.Resign.SellItem.TurnRollover.BotError'.split('.');
 
-import { execFileSync } from 'node:child_process';
+// The CLI unpacks its assets into one hash-named directory per release; search them all, newest first.
+function findAsset(sub, prefix) {
+  const roots = [process.env.CAMBC_CACHE_DIR, join(homedir(), '.cache', 'cambc'), process.env.LOCALAPPDATA && join(process.env.LOCALAPPDATA, 'cambc')]
+    .filter(Boolean).map(r => join(r, 'assets'));
+  const hits = [];
+  for (const root of roots) {
+    let dirs; try { dirs = readdirSync(root); } catch { continue; }
+    for (const d of dirs) {
+      const dir = join(root, d, sub);
+      let files; try { files = readdirSync(dir); } catch { continue; }
+      for (const f of files) if (f.startsWith(prefix) && f.endsWith('.wasm')) hits.push(join(dir, f));
+    }
+  }
+  if (!hits.length) throw new Error(`no ${sub}/${prefix}*.wasm under ${roots.join(', ')}; run any cambc command once`);
+  return hits.sort((a, b) => statSync(b).mtimeMs - statSync(a).mtimeMs)[0];
+}
+
+// Read one stored or deflated member from a zip, without an external unzip.
+function zipMember(buf, name) {
+  let eocd = buf.length - 22;
+  while (eocd >= 0 && buf.readUInt32LE(eocd) !== 0x06054b50) eocd--;
+  if (eocd < 0) throw new Error('not a zip file');
+  let at = buf.readUInt32LE(eocd + 16);
+  for (let i = 0, n = buf.readUInt16LE(eocd + 10); i < n; i++) {
+    const method = buf.readUInt16LE(at + 10), size = buf.readUInt32LE(at + 20);
+    const nameLen = buf.readUInt16LE(at + 28), extra = buf.readUInt16LE(at + 30), comment = buf.readUInt16LE(at + 32);
+    const local = buf.readUInt32LE(at + 42);
+    if (buf.toString('utf8', at + 46, at + 46 + nameLen) === name) {
+      const start = local + 30 + buf.readUInt16LE(local + 26) + buf.readUInt16LE(local + 28);
+      const data = buf.subarray(start, start + size);
+      if (method === 0) return data;
+      if (method === 8) return inflateRawSync(data);
+      throw new Error('unsupported zip method ' + method);
+    }
+    at += 46 + nameLen + extra + comment;
+  }
+  throw new Error(`${name} not found in zip`);
+}
+
 let bytes = readFileSync(process.argv[2]);
 // A match bundle from `cambc run` is a zip holding replay.repl26a; a downloaded match is the raw file.
-if (bytes[0] === 0x50 && bytes[1] === 0x4b) bytes = execFileSync('unzip', ['-p', process.argv[2], 'replay.repl26a'], { maxBuffer: 1 << 28 });
+if (bytes[0] === 0x50 && bytes[1] === 0x4b) bytes = zipMember(bytes, 'replay.repl26a');
 const dv0 = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
 const ver = `v${bytes[8]}_${bytes[9]}_${bytes[10]}`;
-const wasmFile = { v0_0_1: 'v0_0_1-ctH8uuEb.wasm', v0_0_2: 'v0_0_2-DFj19m76.wasm', v0_0_3: 'v0_0_3-zaIi77qe.wasm' }[ver];
-if (!wasmFile) throw new Error('unknown engine version ' + ver);
+const wasmPath = findAsset(join('visualiser', 'assets'), ver + '-');
 const wasi = new WASI({ version: 'preview1', args: [], env: {} });
-const mod = await WebAssembly.compile(readFileSync(A + wasmFile));
+const mod = await WebAssembly.compile(readFileSync(wasmPath));
 const inst = await WebAssembly.instantiate(mod, { ...wasi.getImportObject(), deep_wasm: { on_assert_fail_impl: () => 1 } });
 wasi.initialize(inst);
 const E = inst.exports;

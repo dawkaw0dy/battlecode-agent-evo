@@ -1,9 +1,10 @@
 .venv/
 .vscode/
 __pycache__/
+.pytest_cache/
 
-cambc/
-build/
+/cambc/
+/build/
 benchmarks/
 
 # generated
@@ -25,3 +26,6 @@ bots/ar_*/
 bots/qk_*/
 bots/v16b/
 bots/v16tr/
+
+# local only: pins the evo cloud environment (PLAN §6.1)
+.claude/settings.local.json

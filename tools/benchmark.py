@@ -16,6 +16,8 @@ import time
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+from evo.eval.digest import digest as source_digest  # noqa: E402  (shared with evo admission)
 
 
 def duration(seconds):
@@ -147,14 +149,21 @@ def run_batch(cmd, output, progress):
         except KeyboardInterrupt:
             interrupted = True
             progress.say('  Stopping matches; saving completed results…')
+            # Windows has no process groups; terminate()/kill() stop the runner there.
             try:
-                os.killpg(process.pid, signal.SIGTERM)
+                if hasattr(os, 'killpg'):
+                    os.killpg(process.pid, signal.SIGTERM)
+                else:
+                    process.terminate()
             except ProcessLookupError:
                 pass
             try:
                 process.wait(timeout=5)
             except subprocess.TimeoutExpired:
-                os.killpg(process.pid, signal.SIGKILL)
+                if hasattr(os, 'killpg'):
+                    os.killpg(process.pid, signal.SIGKILL)
+                else:
+                    process.kill()
                 process.wait()
             returncode = 130
         finally:
@@ -283,13 +292,7 @@ def main():
     if args.no_progress:
         progress.enabled = False
     def digest(bot):
-        h = hashlib.sha256()
-        for path in sorted((ROOT / 'bots' / bot / 'src').rglob('*')):
-            if not path.is_file() or '__pycache__' in path.parts:
-                continue
-            h.update(str(path.relative_to(ROOT / 'bots' / bot)).encode())
-            h.update(path.read_bytes())
-        return h.hexdigest()
+        return source_digest(ROOT / 'bots' / bot)
     metadata = {'candidate': args.candidate, 'opponent': args.opponent,
                 'source_sha256': {b: digest(b) for b in (args.candidate, args.opponent)},
                 'runner': runner_version,

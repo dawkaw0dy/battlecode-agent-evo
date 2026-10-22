@@ -4,7 +4,7 @@ Plays every candidate vs every opponent on every map, both sides, in one run-bat
 Candidates/opponents are directories under bots/. Prints per (cand,opp) totals and per-map tallies."""
 import argparse, json, os, subprocess, zipfile, glob, collections, sys, time
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__))).replace(os.sep, '/')
-CAMBC = ROOT + '/.venv/Scripts/cambc.exe'
+CAMBC = ROOT + ('/.venv/Scripts/cambc.exe' if os.name == 'nt' else '/.venv/bin/cambc')
 ap = argparse.ArgumentParser()
 ap.add_argument('out'); ap.add_argument('cands', nargs='+')
 ap.add_argument('--opps', required=True); ap.add_argument('--maps', default='')
