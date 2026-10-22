@@ -941,9 +941,10 @@
   "2026-10-22T20:36:03Z g00 phase SELECTED: final: e00-01, e00-03, starter, e00-02, e00-00",
   "2026-10-22T20:36:09Z g00 survivors ['e00-01', 'e00-03'], hall of fame ['e00-01']",
   "2026-10-22T20:36:09Z g01 phase PLANNED: 4 slots",
-  "2026-10-22T20:36:16Z g01 phase TASKS_PUSHED: 3 task files"
+  "2026-10-22T20:36:16Z g01 phase TASKS_PUSHED: 3 task files",
+  "2026-10-22T20:36:35Z g01 PAUSED: waiting for approval: python -m evo approve 01"
  ],
- "paused": null,
+ "paused": "waiting for approval: python -m evo approve 01",
  "phase": "TASKS_PUSHED",
  "sessions_launched": 4,
  "version": 1
