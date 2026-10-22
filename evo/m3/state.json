@@ -18,10 +18,19 @@
    ],
    "reason": null,
    "rng_key": "20261022:0:0",
-   "sessions": [],
+   "sessions": [
+    {
+     "attempt": 1,
+     "base_commit": "d8a0dfd48bfac1dcdeb9a18c1a5c713f71c5cfec",
+     "id": "session_016tne4vkCTvXFJcxv11SnFr",
+     "launch_output": "Created cloud session: Evolution agent r00-00\nView: https://claude.ai/code/session_016tne4vkCTvXFJcxv11SnFr?from=cli&m=0\nResume with: claude --teleport session_016tne4vkCTvXFJcxv11SnFr",
+     "launched_at": 1792697891,
+     "url": "https://claude.ai/code/session_016tne4vkCTvXFJcxv11SnFr"
+    }
+   ],
    "slot": 0,
    "src_sha256": null,
-   "status": "planned",
+   "status": "running",
    "task_sha256": "3628142faa8935c1325767e9bb1219290d41f04ea9c89284b874be88c6b06f66"
   },
   "r00-01": {
@@ -42,10 +51,19 @@
    ],
    "reason": null,
    "rng_key": "20261022:0:1",
-   "sessions": [],
+   "sessions": [
+    {
+     "attempt": 1,
+     "base_commit": "d8a0dfd48bfac1dcdeb9a18c1a5c713f71c5cfec",
+     "id": "session_01Twx7RFtDAuhFhsEubUSAkT",
+     "launch_output": "Created cloud session: Evo task r00-01\nView: https://claude.ai/code/session_01Twx7RFtDAuhFhsEubUSAkT?from=cli&m=0\nResume with: claude --teleport session_01Twx7RFtDAuhFhsEubUSAkT",
+     "launched_at": 1792697903,
+     "url": "https://claude.ai/code/session_01Twx7RFtDAuhFhsEubUSAkT"
+    }
+   ],
    "slot": 1,
    "src_sha256": null,
-   "status": "planned",
+   "status": "running",
    "task_sha256": "3676d85ee0f59d00e7e33e10702316b11810f8a310d959cdf22c79fb0955c7a6"
   }
  },
@@ -81,10 +99,12 @@
   "2026-10-22T19:33:11Z g00 PAUSED: waiting for approval: python -m evo approve 00",
   "2026-10-22T19:37:11Z g00 deadline set to 45 minutes by the owner; tasks re-rendered",
   "2026-10-22T19:37:35Z g00 approved generation 00: {'sessions': 2, 'relaunches_per_slot': 0, 'nudges_per_session': 1, 'deadline_minutes': 45, 'max_sessions_total': 2, 'approved_at': 1792697855}",
-  "2026-10-22T19:37:48Z g00 phase RUNNING"
+  "2026-10-22T19:37:48Z g00 phase RUNNING",
+  "2026-10-22T19:38:11Z g00 r00-00: launched session_016tne4vkCTvXFJcxv11SnFr",
+  "2026-10-22T19:38:23Z g00 r00-01: launched session_01Twx7RFtDAuhFhsEubUSAkT"
  ],
  "paused": null,
  "phase": "RUNNING",
- "sessions_launched": 0,
+ "sessions_launched": 2,
  "version": 1
 }
