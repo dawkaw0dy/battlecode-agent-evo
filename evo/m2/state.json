@@ -434,6 +434,76 @@
      ]
     ]
    ],
+   "ranking_A": [
+    "t00-00",
+    "starter",
+    "t00-01",
+    "t00-02",
+    "t00-04",
+    "t00-03"
+   ],
+   "ratings_A": {
+    "starter": {
+     "disqualified": false,
+     "fault_rate": 0.0,
+     "interval": [
+      1.502167845054238,
+      2.3782056758530694
+     ],
+     "mean_margin": 127.7,
+     "strength": 1.8166563578595831
+    },
+    "t00-00": {
+     "disqualified": false,
+     "fault_rate": 0.0,
+     "interval": [
+      1.502167845054238,
+      2.3782056758530694
+     ],
+     "mean_margin": 127.7,
+     "strength": 1.8166563578595831
+    },
+    "t00-01": {
+     "disqualified": false,
+     "fault_rate": 0.0,
+     "interval": [
+      0.5606388384032704,
+      1.502167845054238
+     ],
+     "mean_margin": -9.6,
+     "strength": 1.0246136777305437
+    },
+    "t00-02": {
+     "disqualified": false,
+     "fault_rate": 0.0,
+     "interval": [
+      -0.5660079538488022,
+      -0.5380152612635454
+     ],
+     "mean_margin": -122.9,
+     "strength": -0.543278364219951
+    },
+    "t00-03": {
+     "disqualified": true,
+     "fault_rate": 0.8,
+     "interval": [
+      -1.8090876844721986,
+      -1.765301297342436
+     ],
+     "mean_margin": -122.9,
+     "strength": null
+    },
+    "t00-04": {
+     "disqualified": true,
+     "fault_rate": 1.0,
+     "interval": [
+      -3.469509613430805,
+      -3.4247707981915756
+     ],
+     "mean_margin": 0.0,
+     "strength": null
+    }
+   },
    "slots": [
     "t00-00",
     "t00-01",
@@ -455,8 +525,12 @@
    "pushed_commit": "703a7ef89288a5dad899ecf2cb9e8c4c789e89fe",
    "results_commit": "3d9b11a43dc70df13d3f78f1708c48eeb4733b31",
    "retries": 0,
+   "spotcheck": {
+    "games": 2,
+    "mismatches": []
+   },
    "stage": "A",
-   "status": "arrived"
+   "status": "verified"
   }
  },
  "launch_errors_in_a_row": 0,
@@ -493,10 +567,12 @@
   "2026-10-22T18:47:31Z g00 t00-07: rejected: main.cpp:2: include path '../../tools/evil.h' is not a plain name",
   "2026-10-22T18:47:37Z g00 phase EVAL_A_PENDING",
   "2026-10-22T18:47:48Z g00 tg00-A: pushed 703a7ef892 with 15 shards",
-  "2026-10-22T18:49:55Z g00 phase EVAL_A_DONE: results for tg00-A"
+  "2026-10-22T18:49:55Z g00 phase EVAL_A_DONE: results for tg00-A",
+  "2026-10-22T18:51:23Z g00 tg00-A: verified, 60 rows, spot-check 2 OK",
+  "2026-10-22T18:51:25Z g00 phase EVAL_B_PENDING: stage A ranked: t00-00, starter, t00-01, t00-02, t00-04, t00-03"
  ],
  "paused": null,
- "phase": "EVAL_A_DONE",
+ "phase": "EVAL_B_PENDING",
  "sessions_launched": 8,
  "version": 1
 }
