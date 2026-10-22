@@ -101,8 +101,8 @@
   },
   "e00-03": {
    "archetype": "camp-sweep",
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evo-task-e00-03-vpwxj8",
+   "commit": "ccda13ad374638ac6787187c22529b7b77b31ff1",
    "deadline_minutes": 60,
    "evidence": [],
    "failed_ideas": [],
@@ -129,7 +129,7 @@
    ],
    "slot": 3,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "35a12a6c1aadc0f345be72cd08b666a4da914ca0ff924d2e66efe1a0f6a1c2c1"
   }
  },
@@ -170,7 +170,8 @@
   "2026-10-22T20:02:36Z g00 e00-00: launched session_01KgvAkboBqUPGYt5Z9aq8da",
   "2026-10-22T20:02:54Z g00 e00-01: launched session_01Wuu9kNfNWzAZVZPMh2Ezs5",
   "2026-10-22T20:03:05Z g00 e00-02: launched session_01CMuwLaPgknby2uMQ9q3Ua1",
-  "2026-10-22T20:03:18Z g00 e00-03: launched session_01V4G6svvU1rbA8q4ciWHjMr"
+  "2026-10-22T20:03:18Z g00 e00-03: launched session_01V4G6svvU1rbA8q4ciWHjMr",
+  "2026-10-22T20:12:21Z g00 e00-03: done on origin/claude/evo-task-e00-03-vpwxj8 at ccda13ad37"
  ],
  "paused": null,
  "phase": "RUNNING",
