@@ -25,7 +25,7 @@ locally for the spot-check, and neither works from inside a cloud VM.
 | Evaluation | GitHub Actions `ubuntu-latest` | Ubuntu | bash |
 
 The repository starts with `GameRules.md`, `BotAPICpp.md`, `patch-notes/`,
-`tools/`, `.gitignore` and this plan. Everything else is yours to create.
+`tools/`, `.gitignore`, `README.md` and this plan. Everything else is yours to create.
 
 ### 0.2 Ground rules
 
@@ -37,8 +37,9 @@ The repository starts with `GameRules.md`, `BotAPICpp.md`, `patch-notes/`,
    ask. Record every agreed deviation in `docs/evolve/DECISIONS.md` with the date
    and the reason.
 3. Never edit `GameRules.md`, `BotAPICpp.md` or `patch-notes/`. Change `tools/`
-   only as §1.1 lists, plus moving `digest()` into `evo/eval/digest.py` (§8.4) and
-   the Windows interrupt fix in §0.6. Log each such change in `DECISIONS.md`.
+   only as §1.1 lists, plus moving `digest()` into `evo/eval/digest.py` (§8.4),
+   the Windows interrupt fix in §0.6 and the asset-path fix in `replay.mjs` and
+   `mapgen.mjs` (§1.1). Log each such change in `DECISIONS.md`.
 4. Never run `cambc login`, `submit`, `bundle`, `match-groups`, `ladder` or
    `matches`. Never force-push. Push only to `main`, plus `evo-results` and
    `evo-test` during M0 and M1 tests.
@@ -72,7 +73,10 @@ need no approval. Never push job files in a loop, though: a failing workflow
 re-pushed automatically is a bug.
 
 Before each of these, tell the owner how many sessions will start, their deadline,
-and what they will do, then wait for an explicit yes:
+and what they will do, then wait for an explicit yes. An approval covers only
+what was shown: for a generation that is at most `n − elites` sessions, up to
+`relaunch_dead` relaunches per slot, and one nudge (§7.4) per session. Anything
+beyond that needs a new approval.
 
 | Stop point | Sessions |
 |---|---|
@@ -83,7 +87,9 @@ and what they will do, then wait for an explicit yes:
 
 Build the same rule into the orchestrator. `[agents].require_approval = true`
 (the default) stops every generation at `TASKS_PUSHED` until the owner runs
-`python -m evo approve gGG`. `[agents].max_sessions_total` is a hard cap across
+`python -m evo approve gGG`. `approve` first prints the maximum it approves
+(sessions, relaunches, nudges, deadline) and records it in the state; the launcher
+never exceeds it. `[agents].max_sessions_total` is a hard cap across
 the whole run. Reaching it pauses the run.
 
 ### 0.5 M0 discoveries to record
@@ -94,7 +100,7 @@ does not match.
 
 | # | Find out | Plan assumes | If different |
 |---|---|---|---|
-| 1 | `cambc` version installed by `pip install cambc` vs the patch notes | 3.0.4 matches the newest patch note | ask which version to pin |
+| 1 | newest `cambc` on PyPI, and evidence that its SDK/engine reflects `patch102.txt` (e.g. Stellar health 650, focus 70) | the newest release matches patch102 | **stop** and tell the owner if no installable version matches |
 | 2 | files `cambc init --yes .` creates; whether it needs a login | `sdk/`, `maps/`, `bots/`, `cambc.toml`; no login | ask |
 | 3 | non-interactive command that creates a C++ bot, and its layout | a single command; `bots/<name>/src/*.cpp, *.h` | if not `bots/<name>/src`, ask (`benchmark.py` depends on it) |
 | 4 | map count M and names | some dozens | adjust `stage_a_maps` with the owner |
@@ -109,7 +115,7 @@ does not match.
 | 13 | in the probe session: values of `CLAUDE_CODE_REMOTE` and `CLAUDE_CODE_REMOTE_SESSION_ID` | `true` and `cse_…` | adjust the hook guard and `DONE.json` |
 | 14 | can `cambc run-batch` run prebuilt WASM | unknown | optional optimisation (§17) |
 | 15 | `tools/tests` and each kept tool on Linux (Actions) and on Windows | Linux all pass | mark Windows-only gaps in `TOOLS.md` |
-| 16 | `tools/mapgen.mjs` asset path after `cambc init` | unknown | allow or forbid it in `TOOLS.md` |
+| 16 | `tools/mapgen.mjs` and `tools/replay.mjs` find their assets under `~/.cache/cambc/assets` after `cambc init` (after the §1.1 glob fix) | yes | allow or forbid each in `TOOLS.md` |
 
 Items 1–9 and 14–16 need no cloud session. Items 10–13 share one probe session
 (stop point in §0.4). Its task: run the hook, print the two variables, try both
@@ -190,13 +196,16 @@ The system runs in a new repository that initially holds only:
 - `BotAPICpp.md`
 - `patch-notes/` (`patch100.txt` … `patch102.txt`)
 - `tools/`
+- `.gitignore`, `README.md`
 
 There are no maps, SDK, bots, earlier reports or benchmark history.
 `python -m evo bootstrap` creates the rest once, as the first commit after
 those files (milestone M0):
 
 1. Create `.venv` and `pip install cambc==<version>`. The version is pinned in
-   `evo/config.toml`: the release the patch notes describe, 3.0.4 today.
+   `evo/config.toml` and in the §6.1 setup script, always together: the newest
+   release on PyPI at M0 time whose SDK/engine reflects the newest patch note
+   (`patch102.txt`). M0 records the evidence in `M0.md` (§0.5 item 1).
 2. `cambc init --yes .` creates `sdk/`, `maps/`, `bots/` and `cambc.toml`. Check
    `sdk_version` in `cambc.toml` equals the pinned version.
 3. Create the C++ starter bot as `bots/starter` (`cambc new`). Check it has the
@@ -210,8 +219,14 @@ those files (milestone M0):
    - **Delete `quick.sh`, `panel.sh`, `arena.sh` and the `sweep*.sh` and
      `variant*.sh` scripts.** They name bots from the old repo (v12-x, v14,
      v16), which don't exist here.
+   - **Delete `bench.py`.** It calls a `cambc` binary at the repo root that
+     does not exist; `bench2.py` covers it.
    - **Fix `pool.py`'s hard-coded Windows `cambc.exe` path**, so it also runs
      on Linux.
+   - **Fix `replay.mjs` and `mapgen.mjs`:** find the asset directory under
+     `~/.cache/cambc/assets/*/` by glob instead of the hard-coded
+     `/root/.cache/cambc/assets/<hash>/` path, and read the replay zip in Node
+     instead of calling `unzip`.
    - **Keep** `benchmark.py`, `bench2.py`, `analyze.py`, `teamstats.py`,
      `replay.mjs`, `mapgen.mjs` and `tests/`.
 6. Add `evo/` (orchestrator, eval scripts, env scripts, prompts, archetypes)
@@ -228,10 +243,10 @@ Agents can read `evo/`, but the scope check (§8) rejects any change to it.
 
 ```
 evo/
+  __main__.py                  CLI (`python -m evo`): bootstrap | init | step | run | status | approve | verify | spotcheck
   config.toml                  population and budget knobs (§3)
   state.json                   orchestrator state, committed after every step
   orchestrator/
-    __main__.py                CLI: init | step | run | status | verify | spotcheck
     state.py                   load/save, generation state machine (§5)
     tasks.py                   renders evo/tasks/<id>.md from templates (§6)
     launch.py                  claude --cloud wrapper, session bookkeeping (§7)
@@ -248,6 +263,7 @@ evo/
     focus/*.md                 one fragment per focus area
     archetypes/*.md            immigrant starting strategies
   eval/
+    digest.py                  src_sha256, shared with tools/benchmark.py (§8.4)
     check_job.py               re-verifies a job file inside Actions
     extract.py                 benchmark output dir -> per-game rows
     aggregate.py               shard rows -> one results file
@@ -283,7 +299,7 @@ relaunch_dead = 1          # relaunch attempts per dead slot per generation
 local_game_budget = 120    # games an agent may play while developing
 
 [eval]
-runner_version = "cambc==3.0.4"      # must equal sdk_version in cambc.toml
+runner_version = "cambc==X.Y.Z"      # pinned in M0 (§1.1); must equal sdk_version in cambc.toml
 map_pool = "maps"                  # the M maps `cambc init` downloaded (§1.1)
 heldout_pool = ""                  # optional private repo path (§9.4)
 panel = ["starter"]                # fixed opponents; plus hall of fame below
@@ -344,7 +360,7 @@ into the state and must come back in `DONE.json`.
 **Job file `evo/jobs/g03-A.json`:**
 
 ```json
-{"job_id": "g03-A", "generation": 3, "stage": "A", "runner_version": "cambc==3.0.4",
+{"job_id": "g03-A", "generation": 3, "stage": "A", "runner_version": "cambc==X.Y.Z",
  "env_manifest_sha256": "…",
  "src_sha256": {"e03-05": "…", "starter": "…"},
  "map_sha256": {"<map1>": "…"},
@@ -413,7 +429,7 @@ Task sha256 is the hash of this file; copy it into DONE.json.
 - Read, in order: GameRules.md, patch-notes/*.txt (they override the rules), BotAPICpp.md, evo/env/TOOLS.md.
 - Environment manifest sha256: {env_manifest_sha256}. C++ only.
 - Your bot lives in bots/e03-05/src. Allowed files: *.cpp, *.h, *.hpp.
-  Includes: standard headers or files in your own src directory, plain names only.
+  Includes: standard headers, the SDK headers listed in evo/env/TOOLS.md, or files in your own src directory, plain names only.
 - Change nothing outside bots/e03-05/ and evo/agents/e03-05/. Other changes reject the whole submission.
 - Work on your own branch. Never push to main or evo-results.
 - Test with: python tools/benchmark.py e03-05 <opponent> --maps <…> --jobs $(nproc) --output /tmp/<dir>
@@ -512,7 +528,7 @@ picked by where `claude --cloud` runs, and the environment by a setting:
   ```bash
   #!/bin/bash
   set -euo pipefail
-  VER=3.0.4                      # keep equal to [eval].runner_version
+  VER=X.Y.Z                      # pinned in M0; keep equal to [eval].runner_version
   pip install --quiet "cambc==$VER"
   # Reference workspace: warms ~/.cache/cambc (wasi-sdk, CMake, Ninja) and
   # gives check.sh a clean SDK copy to compare against.
@@ -572,7 +588,8 @@ The hook's output is visible to the agent. Its first instruction is to confirm
 `evo environment OK` was printed, or to run `bash evo/env/check.sh` itself. If the
 check fails, the agent writes `DONE.json` with `"env_failed": true` and the
 output, then stops. The orchestrator relaunches the slot at once instead of
-waiting for the deadline. It pauses the run if two slots fail this way in one
+waiting for the deadline, if the generation's approval (§0.4) still has a
+relaunch left for that slot; otherwise the slot is `dead`. It pauses the run if two slots fail this way in one
 generation, because then the environment is broken, not the agent.
 
 **Reading list** (in this order, part of `prompts/agent.md`):
@@ -595,9 +612,9 @@ them and must keep them.
 |---|---|---|
 | `tools/benchmark.py` | main A-vs-B test, both sides, deterministic | allowed (the eval tool) |
 | `tools/bench2.py`, `tools/teamstats.py`, `tools/analyze.py` | quick matches and per-game stats | allowed |
-| `tools/replay.mjs` | dump a replay to JSON to see why a game was lost | allowed |
+| `tools/replay.mjs` | dump a replay to JSON to see why a game was lost | allowed if M0 confirms it finds its assets (§0.5 item 16) |
 | `tools/pool.py` | many candidates vs many opponents | allowed (path fixed in bootstrap) |
-| `tools/mapgen.mjs` | read or generate maps | allowed if M0 confirms its asset path exists in the cloud cache |
+| `tools/mapgen.mjs` | read or generate maps | allowed if M0 confirms it finds its assets (§0.5 item 16) |
 | `cambc login`, `submit`, `bundle`, `match-groups`, `ladder`, `matches` | **forbidden**: they act on the team's platform account, and an upload replaces the live ladder bot |
 | `cambc init`, `cambc maps` in the repo | **forbidden**: they rewrite tracked SDK and map files (scope check rejects it anyway) |
 
@@ -621,10 +638,12 @@ report games played in `DONE.json.self_eval`.
 3. At most `max_parallel` sessions are `running` at once. Others wait as `planned`.
 4. Nudges: at `deadline_minutes − 20` the launcher sends
    `claude -p "20 minutes left: finish, write NOTES.md and DONE.json, push." --cloud <session-id>`.
-   This queues a message into the running session and exits.
+   This queues a message into the running session and exits. At most one nudge
+   per session, and only within the generation's approval (§0.4).
 5. A slot is `dead` after `deadline_minutes` with no valid marker. It is
-   relaunched with the same task up to `relaunch_dead` times (attempt number
-   increments, same seed).
+   relaunched with the same task file up to `relaunch_dead` times, within the
+   generation's approval (§0.4). The attempt number increments; the task, and
+   so every sampled choice, stays the same.
 6. After admission or death, the orchestrator archives nothing by itself.
    Finished sessions stay in your claude.ai/code sidebar for you to read.
 
@@ -653,8 +672,10 @@ For each `done` agent, all checks against `git diff --name-only <base_commit> <c
    bundled with the SDK, `"cambc.h"`-style SDK headers, or `"name.h"` for a file in
    the same directory. `/`, `\`, `..`, `#embed`, `__has_include`, `asm` and
    `#pragma` other than `once` reject the bot.
-4. **Digest.** Compute `src_sha256` with exactly the `digest()` from
-   `tools/benchmark.py` (move it into `evo/eval/digest.py` and import it from both).
+4. **Digest.** Compute `src_sha256` with the `digest()` from
+   `tools/benchmark.py`, moved into `evo/eval/digest.py` and imported from both.
+   The one change: the relative path is hashed as `relative_to(...).as_posix()`,
+   so Windows and Linux give the same digest (on Linux the value is unchanged).
 5. **Copy.** Write `bots/<id>/src`, `bots/<id>/NOTES.md` and `evo/agents/<id>/DONE.json`
    from the agent commit into `main`, one commit `evo: admit generation GG`.
    Status `admitted`.
@@ -696,8 +717,10 @@ jobs:
 4. `python tools/benchmark.py <a> <b> --maps … --jobs $(nproc) --output out --json --no-progress --color never`.
    A non-zero exit is expected when games fault; continue.
 5. `python evo/eval/extract.py out --job <id> --shard <i> > rows.json`: reads
-   `out/<map>-<side>.json` and the replay zip directly, so faulted games keep
-   their per-team fault counts (`benchmark.py`'s own `results.json` drops them).
+   `out/<map>-<side>.json` and the replay zip directly. `benchmark.py`'s own
+   `results.json` keeps the fault counts, but it drops gems and outcome detail
+   for games whose stats file is missing or unreadable, and the row needs the
+   exact §4 fields.
 6. Upload `rows.json` as an artifact (and `out/*.repl26a` with 7-day retention).
 
 ### 9.3 `aggregate` steps
@@ -831,7 +854,9 @@ Non-survivors are discarded. Their bots stay in git, their `NOTES.md`
 
 ### 12.3 Randomness
 
-`rng = Random(hash(seed, generation, slot, attempt))`. Every choice in §12–§13
+`rng = Random(int(sha256(f"{seed}:{generation}:{slot}").hexdigest(), 16))`.
+A relaunch reuses the same task file and therefore the same choices, so the
+attempt number is not part of the key. Every choice in §12–§13
 draws from it and is written to `lineage.jsonl`, so a generation can be
 regenerated exactly. The seed itself never appears in the prompt, because a
 number gives the model nothing to act on. Variance comes from the sampled
@@ -841,7 +866,9 @@ instructions.
 
 No survivors and no strong bot exist yet. All `n` slots are immigrants
 starting from `bots/starter`, each with a different archetype (§13.4), so
-`archetypes/` needs at least `n` files. Generation 0 explores whole strategies.
+`archetypes/` needs at least `n + 2` files: generation 0 uses `n`, and the
+"not used in the previous two generations" rule then needs spares for
+generations 1 and 2. Generation 0 explores whole strategies.
 Mutation only starts in generation 1.
 
 Generation-0 agents also have the most work: they write a whole bot from the
@@ -878,7 +905,7 @@ This is the strongest single input: it tells the child where to look.
 
 ### 13.4 Immigrants
 
-`archetypes/*.md` hold at least `n` one-page strategies (for example rush, camp
+`archetypes/*.md` hold at least `n + 2` one-page strategies (for example rush, camp
 monopoly, defensive turtle, late-game gem hoard). They are written once in M3
 from `GameRules.md` and the patch notes only, so they carry no knowledge
 that agents could not have derived themselves. An immigrant gets one that
@@ -919,7 +946,7 @@ Subscription: each generation runs `n − elites` sessions of up to
 | Failure | Handling |
 |---|---|
 | `claude --cloud` errors | slot stays `planned`, retried next step; 3 errors in a row pause the run |
-| session never writes a marker | `dead` at deadline, relaunched `relaunch_dead` times |
+| session never writes a marker | `dead` at deadline, relaunched up to `relaunch_dead` times within the generation's approval (§0.4) |
 | submission out of scope or fails allowlist | `rejected`, reason in `lineage.jsonl`, no relaunch |
 | build fails in Actions | the shard reports every game as a fault for that bot → `disqualified` |
 | shard times out or fails | listed in `missing_shards`, re-queued (§10.2) |
