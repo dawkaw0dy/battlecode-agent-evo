@@ -2,8 +2,8 @@
  "agents": {
   "t00-00": {
    "archetype": "stub06",
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/fake-t00-00",
+   "commit": "c2ff886915574138573f4961339e61151bdd727e",
    "deadline_minutes": 270,
    "evidence": [],
    "failed_ideas": [],
@@ -29,13 +29,13 @@
    ],
    "slot": 0,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "f408fdc659e652685c554efb1c876ef4c76901cf9d42ea79fe513160cfbfe9b4"
   },
   "t00-01": {
    "archetype": "stub08",
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/fake-t00-01",
+   "commit": "c9c3e01fa4132fd6bf6dae7c8abbf188493a3f6c",
    "deadline_minutes": 270,
    "evidence": [],
    "failed_ideas": [],
@@ -61,13 +61,13 @@
    ],
    "slot": 1,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "2e07cd5b0d6ff13c17b1a12040ad8f252bebbe8f7478df1c70271a43cdbb5f83"
   },
   "t00-02": {
    "archetype": "stub04",
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/fake-t00-02",
+   "commit": "b5b5544332317e2943015a1edd34f35eff650874",
    "deadline_minutes": 270,
    "evidence": [],
    "failed_ideas": [],
@@ -93,13 +93,13 @@
    ],
    "slot": 2,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "ae67dbacc42da4c4e65d9dfeba4848f8729787996f1ec3f3bef7fcfdffa72b36"
   },
   "t00-03": {
    "archetype": "stub03",
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/fake-t00-03",
+   "commit": "1162de69fc870791ab21569eab7619df76117346",
    "deadline_minutes": 270,
    "evidence": [],
    "failed_ideas": [],
@@ -125,13 +125,13 @@
    ],
    "slot": 3,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "8aa619d5225b516d7bc36fd275a6d6cd515583e8cc6763b2ee18224243814419"
   },
   "t00-04": {
    "archetype": "stub09",
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/fake-t00-04",
+   "commit": "b4da8a395f9e050ccf93aea2a6b8973f9ff3ab8a",
    "deadline_minutes": 270,
    "evidence": [],
    "failed_ideas": [],
@@ -157,13 +157,13 @@
    ],
    "slot": 4,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "234a297268d87c75d3df3ab54f340bd477d013dd3b3204e5c9c726d1bdb48c0d"
   },
   "t00-05": {
    "archetype": "stub01",
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/fake-t00-05",
+   "commit": "010b50269d081d4e6cee3fc483ea6bae58e78a63",
    "deadline_minutes": 270,
    "evidence": [],
    "failed_ideas": [],
@@ -189,13 +189,13 @@
    ],
    "slot": 5,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "e88454ded7c321453cc65b22a2c015ec8e8f61b73231e6fc73b930ead9cc89ec"
   },
   "t00-06": {
    "archetype": "stub02",
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/fake-t00-06",
+   "commit": "2aa2e217ceae4e091b3e6d20610f6edc5e68c34f",
    "deadline_minutes": 270,
    "evidence": [],
    "failed_ideas": [],
@@ -221,13 +221,13 @@
    ],
    "slot": 6,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "6783839ac4e13fd652f61409187fd286a6d833276d3da6edd938fe5b7e0124b5"
   },
   "t00-07": {
    "archetype": "stub05",
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/fake-t00-07",
+   "commit": "edc7250f43ccdeb77aebe3f24d62169bf16ae5c3",
    "deadline_minutes": 270,
    "evidence": [],
    "failed_ideas": [],
@@ -253,7 +253,7 @@
    ],
    "slot": 7,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "9834f0a9d9cb14b8107cc5c3f1995eb591e877a4825a498df5e8e6f3ba15da25"
   }
  },
@@ -302,10 +302,19 @@
   "2026-10-22T18:44:11Z g00 t00-04: launched session_faket0004a1",
   "2026-10-22T18:44:17Z g00 t00-05: launched session_faket0005a1",
   "2026-10-22T18:44:23Z g00 t00-06: launched session_faket0006a1",
-  "2026-10-22T18:44:28Z g00 t00-07: launched session_faket0007a1"
+  "2026-10-22T18:44:28Z g00 t00-07: launched session_faket0007a1",
+  "2026-10-22T18:46:22Z g00 t00-00: done on origin/claude/fake-t00-00 at c2ff886915",
+  "2026-10-22T18:46:25Z g00 t00-01: done on origin/claude/fake-t00-01 at c9c3e01fa4",
+  "2026-10-22T18:46:27Z g00 t00-02: done on origin/claude/fake-t00-02 at b5b5544332",
+  "2026-10-22T18:46:29Z g00 t00-03: done on origin/claude/fake-t00-03 at 1162de69fc",
+  "2026-10-22T18:46:32Z g00 t00-04: done on origin/claude/fake-t00-04 at b4da8a395f",
+  "2026-10-22T18:46:34Z g00 t00-05: done on origin/claude/fake-t00-05 at 010b50269d",
+  "2026-10-22T18:46:36Z g00 t00-06: done on origin/claude/fake-t00-06 at 2aa2e217ce",
+  "2026-10-22T18:46:39Z g00 t00-07: done on origin/claude/fake-t00-07 at edc7250f43",
+  "2026-10-22T18:46:39Z g00 phase ADMITTED"
  ],
  "paused": null,
- "phase": "RUNNING",
+ "phase": "ADMITTED",
  "sessions_launched": 8,
  "version": 1
 }
