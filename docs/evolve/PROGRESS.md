@@ -1,12 +1,13 @@
 # Progress
 
-**Milestone:** M4 in progress. **Stop point:** generation 00 (4 sessions) waits for the owner's yes.
+**Milestone:** M4 in progress. Generation 00 is done (M4.md). **Stop point:** generation 01 (3 sessions) waits for the owner's yes.
+Cloud sessions used overall: 8 (M0 2, M3 2, M4 4). The real run's own cap is 8: 4 used, gen 01 needs 3 → 7.
 
 **M4 so far**
-- D28 settings. Real run initialised (`evo/state.json`): e00-00 map-reader, e00-01 scaling-economy, e00-02 deathball,
-  e00-03 camp-sweep; tasks pushed; paused at `approve 00`.
-- After the yes: `python -m evo approve 00`, then `python -m evo step` every 2 min until selected; then read every
-  NOTES.md and diff, propose template changes, and plan generation 01 (3 sessions, its own approval).
+- Gen 00: 4 agents admitted; e00-01 (scaling-economy) and e00-03 (camp-sweep) survived; e00-00 and e00-02 were disqualified
+  for caught exceptions. D29–D31 applied: exceptions no longer disqualify, SDK pitfalls in TOOLS.md, test bots removed,
+  tasks name their opponents. Gen 01 tasks re-rendered (`fa47a71`).
+- After the yes: `python -m evo approve 01`, then `step` every 2 min until selected; final M4 review; report.
 
 **Done in M3**
 - ConPTY launcher (D27); real prompts and 10 archetypes. 2 real agents (r00-00, r00-01) launched automatically,
