@@ -38,8 +38,9 @@ The repository starts with `GameRules.md`, `BotAPICpp.md`, `patch-notes/`,
    and the reason.
 3. Never edit `GameRules.md`, `BotAPICpp.md` or `patch-notes/`. Change `tools/`
    only as §1.1 lists, plus moving `digest()` into `evo/eval/digest.py` (§8.4),
-   the Windows interrupt fix in §0.6 and the asset-path fix in `replay.mjs` and
-   `mapgen.mjs` (§1.1). Log each such change in `DECISIONS.md`.
+   the Windows interrupt fix in §0.6, the asset-path fix in `replay.mjs` and
+   `mapgen.mjs` (§1.1) and the rewrite of `tools/tests` so it runs in a throwaway
+   repo tree on Linux and Windows (§1.1). Log each such change in `DECISIONS.md`.
 4. Never run `cambc login`, `submit`, `bundle`, `match-groups`, `ladder` or
    `matches`. Never force-push. Push only to `main`, plus `evo-results` and
    `evo-test` during M0 and M1 tests.
@@ -126,6 +127,13 @@ pushes touching `evo/env/**`). It runs the §6.1 setup script and then `check.sh
 with `EVO_FORCE_CHECK=1` on `ubuntu-latest`. That tests the cloud environment
 scripts without using a cloud session.
 
+Items 8, 9, 15 and 16 on Linux use a second workflow,
+`.github/workflows/evo-m0-probe.yml`, triggered by pushes to `main` that touch
+`evo/m0/**`. It plays `probe-random` vs `starter` on two maps, both sides, in two
+separate jobs, records timing, `nproc` and job concurrency, runs `tools/tests`
+and each kept tool, and commits one JSON file to `evo-results` under `m0/`.
+The PC reads it with `git fetch` (there is no `gh`).
+
 ### 0.6 Windows notes
 
 - **Line endings decide the hashes.** `src_sha256` is computed on the PC at
@@ -206,12 +214,18 @@ those files (milestone M0):
    `evo/config.toml` and in the §6.1 setup script, always together: the newest
    release on PyPI at M0 time whose SDK/engine reflects the newest patch note
    (`patch102.txt`). M0 records the evidence in `M0.md` (§0.5 item 1).
-2. `cambc init --yes .` creates `sdk/`, `maps/`, `bots/` and `cambc.toml`. Check
-   `sdk_version` in `cambc.toml` equals the pinned version.
-3. Create the C++ starter bot as `bots/starter` (`cambc new`). Check it has the
-   `bots/starter/src` layout `benchmark.py` expects.
+2. `cambc init --yes .` creates `cambc.toml`, `cmake/CMakeLists.txt` (the
+   workspace build every C++ bot uses), `sdk/` for four languages, `maps/` and
+   starters `bots/starter-{cpp,rust,python,ocaml}` (M0.md item 2). Commit
+   `cambc.toml`, `cmake/`, all of `sdk/` and `maps/`. Delete the four
+   `bots/starter-*` bots. Check `sdk_version` in `cambc.toml` equals the pinned version.
+3. Create the C++ starter bot as `bots/starter` with `cambc new starter --lang cpp`
+   (identical to `starter-cpp`). Commit its `src/`, `.clangd` and `.gitignore`.
+   Check it has the `bots/starter/src` layout `benchmark.py` expects.
 4. Write `.gitattributes`: `* text=auto eol=lf`, `*.map26a binary`,
-   `*.repl26a binary` (§0.6). Extend `.gitignore` with `.venv/`, `.cambc/`, `bots/*/.cambc/`, `bots/*/build/`,
+   `*.repl26a binary` (§0.6). Anchor the existing `.gitignore` entries `cambc/`
+   and `build/` as `/cambc/` and `/build/` (unanchored they hide
+   `sdk/python/cambc/`), and extend it with `.venv/`, `.cambc/`, `bots/*/.cambc/`, `bots/*/build/`,
    `benchmarks/`, `replays/`, `matches/`, `__pycache__/`, `.claude/settings.local.json`.
 5. Prune `tools/`:
    - **Delete `scrim.py`.** It uploads bots to the platform account, and nothing
@@ -481,7 +495,7 @@ from stale rules.
 | Game rules | `GameRules.md` | present, hash recorded |
 | Bot API | `BotAPICpp.md` | present, hash recorded |
 | Patch notes | `patch-notes/patch100.txt` … `patch102.txt` (all files in the folder) | present, hashes recorded |
-| SDK | `sdk/cpp/*`, `cambc.toml` | `sdk_version` in `cambc.toml` equals the pinned CLI version |
+| SDK and build | `sdk/**`, `cmake/CMakeLists.txt`, `cambc.toml` | `sdk_version` in `cambc.toml` equals the pinned CLI version; hashes recorded |
 | Maps | `maps/*.map26a` (the M maps from `cambc init`) | committed, hashes recorded |
 | Tools | `tools/`, pruned as in §1.1 | committed; `tools/tests` pass on Linux |
 | Environment scripts | `.claude/settings.json` (SessionStart hook), `evo/env/check.sh`, `verify_manifest.py`, `fingerprint.py`, `TOOLS.md` | committed |
@@ -534,8 +548,8 @@ picked by where `claude --cloud` runs, and the environment by a setting:
   # gives check.sh a clean SDK copy to compare against.
   mkdir -p /opt/cambc-ref && cd /opt/cambc-ref
   cambc init --yes >/dev/null
-  cambc new --help >/dev/null    # M0: replace with the non-interactive command that creates a C++ bot
-  cambc build bots/<starter> --release
+  cambc new starter --lang cpp </dev/null >/dev/null
+  cambc build bots/starter --release
   ```
 
   Changing the script or the network settings rebuilds the snapshot.
@@ -669,8 +683,9 @@ For each `done` agent, all checks against `git diff --name-only <base_commit> <c
 2. **Allowlist.** `bots/<id>/src` contains only `*.cpp`, `*.h`, `*.hpp`, regular
    files, no symlinks; at most 64 files, 300 KB per file, 1 MB in total.
 3. **Includes.** Every `#include` is `<name>` from the standard library list
-   bundled with the SDK, `"cambc.h"`-style SDK headers, or `"name.h"` for a file in
-   the same directory. `/`, `\`, `..`, `#embed`, `__has_include`, `asm` and
+   bundled with the SDK (the wasi-sdk sysroot's libc++ and C headers, no `__*`
+   internals), one of the SDK headers `cambc.h`, `imports.h`, `wasm_simd128.h`
+   written as `<…>` or `"…"`, or `"name.h"` for a file in the same directory. `/`, `\`, `..`, `#embed`, `__has_include`, `asm` and
    `#pragma` other than `once` reject the bot.
 4. **Digest.** Compute `src_sha256` with the `digest()` from
    `tools/benchmark.py`, moved into `evo/eval/digest.py` and imported from both.
