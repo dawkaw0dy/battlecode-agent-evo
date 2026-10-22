@@ -1,0 +1,152 @@
+Cassi
+
+    Health (Health) : 700 → 600
+    Health per shard (+Health) : 71.25 → 65
+    Strength per shard (+Strength) : 3.5 → 3
+    Focus per shard (+Focus) : 15 → 13
+
+Issac
+
+    Health per shard (+Health) : 95 → 80
+    Strength per shard (+Strength) : 4.75 → 3
+
+We felt that Cassi and Issac was overly picked on every map and thus are toning them down a little. We wish to keep their niche of having the highest base stats (combined) in the early game, but heavily reduce their scaling into mid-late game.
+Stellar
+
+    Focus (Focus) : 100 → 85
+    Strength (Strength) : 35 → 30
+    Focus per shard (+Focus) : 10 → 9
+
+Stellar was the premier ranged DPS overshadowing many of the other champions and so we are toning her down.
+Varg
+
+    Strength (Strength) : 50 → 40
+
+Varg has had a ton of presence across all maps thanks to his AoE attacks, however he was too good at clearing single camps with his high base strength (Strength). We are toning this down whilst hopefully keeping his niche for large camp groups.
+Ren
+
+    Strength (Strength) : 40 → 35
+    Focus per shard (+Focus) : 10 → 9
+
+Ren is a champion that can generally do everything as long as he had the stats, we felt that he was able to come online too early and thus are reducing his scaling slightly.
+Ryth
+
+    Strength (Strength) : 50 → 45
+
+Like Varg, has had a ton of presence with his high base strength (Strength) and AoE damaging ability (S1). We wish to tone down his single target damage a little.
+Marcella
+
+    Passive: Gain 2 gold (Gold) per gem (Gems) tributed and has stun immunity
+    Focus (Focus) : 50 → 60
+    Focus per shard (+Focus) : 10 → 15
+
+Marcella lacked presence due to her simple kit, with this buff and change to her passive we hope to bring her presence up this week!
+Willow
+
+    Strength (Strength) : 45 → 55
+    Focus (Focus) : 105 → 120
+
+As the only healer in the game, Willow holds a special role but simply was not efficient to build items on. We are going to lean into this and push Willow towards early game power and sustain to help other weaker early game champions scale or push tempo with the ability to stay on the map for longer.
+Vesper Vale
+
+    Passive bonus gold: 20% → 33%
+    Strength (Strength) : 45 → 50
+
+Vesper vale has been one of the weaker champions in the game, we have decided to buff her early game power and gold income to help her hit her power spikes sooner.
+Vendetta
+
+    Strength per shard (+Strength) : 5 → 6
+
+We think that vendetta is in a decent spot, but struggles to scale well with items and thus are giving her a little nudge.
+Prism
+
+    Passive focus (Focus) per gem (Gems) : 0.2 → 1
+    Health per shard (+Health) : 75 → 60
+    Strength per shard (+Strength) : 3.5 → 2.5
+    Focus per shard (+Focus) : 10 → 8
+
+Prism saw very little play, only really used with Stellar to cheese camps from out of their range as he has 2 ranged damaging abilities. By increasing his gem scaling and reducing his stat scaling we hope to bring prism into his intended playstyle as a high risk mage.
+Tavi
+
+    Stun damage (S2): 2.2 x Focus (Focus) → 1.4 x Focus (Focus)
+    Strength (Strength) : 35 → 45
+
+Tavi was incredibly strong last patch due to their high damage multipler and we intend to tone this down shifting them more into a strength focussed character.
+Heart of Ruin
+
+    Melee
+
+    Passive: Increases damage dealt by up to 50% based on missing % health. (50% bonus damage at 0% health, 25% bonus damage at 50% health, 0% bonus damage at 100% health)
+        This applies to all damage sources (abilities + basic attack)
+
+    Health (Health) : 1000 (+100 per shard)
+
+    Strength (Strength) : 40 (+5 per shard)
+
+    Focus (Focus) : 100 (+15 per shard)
+
+    S1: Shield self for 1.5 * Focus for 5 turns
+
+    S2: 2-tile range dash. Upon landing at the destination, deals 1.75 * Focus and stuns enemies/camps for 1 turn within 1 chebyshev radius of the landing location.
+
+We are happy to introduce our 12th and final champion, Heart of Ruin!
+
+Camp Changelog
+Wolf
+
+    Gems (Gems): 22 → 4
+    Gold (Gold): 90 → 40
+
+Elk
+
+    Gems (Gems): 36 → 15
+    Gold (Gold): 160 → 90
+    Range (Range): 3 → 4
+
+Gem cluster
+
+    Health (Health): 500 → 120
+    Gems (Gems): 24 → 7
+
+Gold cluster
+
+    Health (Health): 500 → 120
+    Gold (Gold): 35 → 20
+
+Monolith
+
+    Range (Range): 3 → 5
+
+We felt that games were ending way to quickly, and so are toning down gold and gem income per camp. The listed numbers are so low as we plan to alter the value of camp groups through the use of Gem and Gold clusters as we can add clusters to increase the groups gem or gold value without increasing clear difficulty by much.
+
+We've noticed some camps getting cheesed by Stellar, Prism, Ryth and other champions that have long ranged damage and have thus decided to increase the range of some camps to nerf this form of farming.
+Golem (new)
+
+    Health (Health): 5000
+    Strength (Strength): 120
+    Range (Range): 4
+    Gold (Gold): 160
+    Gems (Gems): 36
+    Respawn (Cooldown): 80 rounds
+
+Monolith has been very difficult to fight and often too hard to work towards on some maps, so we are adding Golem as a bridge between the regular camps and Monolith.
+Kill reward
+
+    Gold (Gold): 50 → 100
+
+We want to incentivise more aggressive strategies such as invades and contesting camps, and to do this we are raising the kill reward.
+Wards
+
+    Cooldown (Cooldown): 1 → 10
+
+We found that being able to ward every round allowed champions to essentially sweep bushes very quickly which is not intended. By increasing the ward cooldown placement has to have a little more thought behind it.
+Altar Lock HP
+
+    Health (Health): 3 → 5
+
+Many champions have a form of attack reset which lets them clear altar locks incredibly quickly. We hope to remedy this by increasing altar lock hp slightly.
+Breaking SDK details
+
+With the new balance patch, the SDK has changed adding new Enum values for both the new camps and champions. Adjustments to the dash ability data structure has also been made adding ability_dash/AbilityDash.
+
+Old submissions that relied on these patterns will now fail to compile. The teams with these submissions will be removed from matchmaking until they upload a new working submission.

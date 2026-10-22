@@ -1,0 +1,27 @@
+.venv/
+.vscode/
+__pycache__/
+
+cambc/
+build/
+benchmarks/
+
+# generated
+.cambc/
+bots/*/.cambc/
+matches/
+replays/
+bots/*/build/
+bots/*/target/
+bots/*/compile_commands.json
+
+# Local benchmark runs and artifacts.
+/benchmarks/
+
+# temporary sweep variants
+bots/sw_*/
+bots/pn_*/
+bots/ar_*/
+bots/qk_*/
+bots/v16b/
+bots/v16tr/

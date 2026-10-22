@@ -1,0 +1,12 @@
+Heart of Ruin
+
+We have made an emergency nerf to Heart of Ruin due to near 100% usage rates in top ladder:
+
+    Strength per shard (+Strength) : 5 → 4
+    Focus per shard (+Focus) : 15 → 12
+
+Important Ladder Changes
+
+    Previously, new patches that caused compilation errors would remove your bot from matchmaking and you could essentially freeze your elo
+    This has now been changed such that your team will be marked as having an out of date submission ("invalid bot") and you will have a grace period for 24 hours to patch it before you will start auto losing ranked matches.
+        The site will alert you if you are in this situation and need to submit a new bot
