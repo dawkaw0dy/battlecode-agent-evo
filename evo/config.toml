@@ -33,3 +33,6 @@ operator_weights = { tweak = 0.40, subsystem = 0.30, crossover = 0.20, radical =
 focus = ["camps", "combat", "spells", "pathing", "opening", "endgame", "defense", "fuel", "map-adaptive"]
 evidence_losses = 3
 immigrant_base = "starter"         # or "hall_of_fame" from generation 2 (§13.4)
+
+[run]
+max_generations = 2         # M4 covers generations 0 and 1: pause after generation 01 is selected
