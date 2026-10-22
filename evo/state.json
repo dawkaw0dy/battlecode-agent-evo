@@ -149,7 +149,9 @@
     "A": [
      "g00-A"
     ],
-    "B": []
+    "B": [
+     "g00-B"
+    ]
    },
    "members": [
     "e00-00",
@@ -399,6 +401,120 @@
      ]
     ]
    ],
+   "plan_B": [
+    [
+     [
+      "e00-01",
+      "e00-03"
+     ],
+     [
+      "00ambush",
+      "00collision",
+      "00contest",
+      "00corners",
+      "00eight",
+      "00elkring",
+      "00expanse",
+      "00fragment",
+      "00gem-fields",
+      "00gemfight",
+      "00great-wall",
+      "00interlock",
+      "00lanes",
+      "00lost-world",
+      "00monolith",
+      "00packs",
+      "00pilgrimage",
+      "00quadrants",
+      "00reverse-spiral",
+      "00road-of-riches",
+      "00rows",
+      "00rushbait-v2",
+      "00split",
+      "00stampede",
+      "00swirl",
+      "01big-world",
+      "01boss-battle",
+      "01broken-curve",
+      "01concentrated-wealth",
+      "01corridors",
+      "01elk-arena",
+      "01fracture",
+      "01gold-rush",
+      "01hooks",
+      "01islands",
+      "01shortcut",
+      "01starfish",
+      "01starvation",
+      "01the-farm",
+      "01yellow-brick-road"
+     ]
+    ],
+    [
+     [
+      "e00-01",
+      "starter"
+     ],
+     [
+      "00ambush",
+      "00collision",
+      "00contest",
+      "00corners",
+      "00eight",
+      "00elkring",
+      "00gemfight",
+      "00great-wall",
+      "00interlock",
+      "00lanes",
+      "00pilgrimage",
+      "00quadrants",
+      "00reverse-spiral",
+      "00rows",
+      "00stampede",
+      "01big-world",
+      "01broken-curve",
+      "01concentrated-wealth",
+      "01corridors",
+      "01fracture",
+      "01hooks",
+      "01shortcut",
+      "01starfish",
+      "01starvation"
+     ]
+    ],
+    [
+     [
+      "e00-03",
+      "starter"
+     ],
+     [
+      "00ambush",
+      "00collision",
+      "00contest",
+      "00corners",
+      "00eight",
+      "00elkring",
+      "00gemfight",
+      "00great-wall",
+      "00interlock",
+      "00lanes",
+      "00pilgrimage",
+      "00quadrants",
+      "00reverse-spiral",
+      "00rows",
+      "00stampede",
+      "01big-world",
+      "01broken-curve",
+      "01concentrated-wealth",
+      "01corridors",
+      "01fracture",
+      "01hooks",
+      "01shortcut",
+      "01starfish",
+      "01starvation"
+     ]
+    ]
+   ],
    "ranking_A": [
     "e00-01",
     "e00-03",
@@ -463,6 +579,10 @@
     "e00-01",
     "e00-02",
     "e00-03"
+   ],
+   "top": [
+    "e00-01",
+    "e00-03"
    ]
   }
  },
@@ -481,6 +601,14 @@
    },
    "stage": "A",
    "status": "verified"
+  },
+  "g00-B": {
+   "generation": 0,
+   "pushed_at": 1792700762,
+   "pushed_commit": "ad2f8480282a12c3a1d108f8d2247a8fdc4a1628",
+   "retries": 0,
+   "stage": "B",
+   "status": "pending"
   }
  },
  "launch_errors_in_a_row": 0,
@@ -507,7 +635,8 @@
   "2026-10-22T20:17:35Z g00 g00-A: pushed 136db30bee with 10 shards",
   "2026-10-22T20:19:49Z g00 phase EVAL_A_DONE: results for g00-A",
   "2026-10-22T20:25:49Z g00 g00-A: verified, 320 rows, spot-check 7 OK",
-  "2026-10-22T20:25:53Z g00 phase EVAL_B_PENDING: stage A ranked: e00-01, e00-03, starter, e00-02, e00-00"
+  "2026-10-22T20:25:53Z g00 phase EVAL_B_PENDING: stage A ranked: e00-01, e00-03, starter, e00-02, e00-00",
+  "2026-10-22T20:26:02Z g00 g00-B: pushed ad2f848028 with 3 shards"
  ],
  "paused": null,
  "phase": "EVAL_B_PENDING",
