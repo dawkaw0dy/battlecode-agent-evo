@@ -80,10 +80,11 @@
   "2026-10-22T19:33:01Z g00 phase TASKS_PUSHED: 2 task files",
   "2026-10-22T19:33:11Z g00 PAUSED: waiting for approval: python -m evo approve 00",
   "2026-10-22T19:37:11Z g00 deadline set to 45 minutes by the owner; tasks re-rendered",
-  "2026-10-22T19:37:35Z g00 approved generation 00: {'sessions': 2, 'relaunches_per_slot': 0, 'nudges_per_session': 1, 'deadline_minutes': 45, 'max_sessions_total': 2, 'approved_at': 1792697855}"
+  "2026-10-22T19:37:35Z g00 approved generation 00: {'sessions': 2, 'relaunches_per_slot': 0, 'nudges_per_session': 1, 'deadline_minutes': 45, 'max_sessions_total': 2, 'approved_at': 1792697855}",
+  "2026-10-22T19:37:48Z g00 phase RUNNING"
  ],
  "paused": null,
- "phase": "TASKS_PUSHED",
+ "phase": "RUNNING",
  "sessions_launched": 0,
  "version": 1
 }
