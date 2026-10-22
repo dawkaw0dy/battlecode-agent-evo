@@ -185,10 +185,11 @@
   "2026-10-22T20:17:04Z g00 e00-00: admitted (b36e3b13ecc8)",
   "2026-10-22T20:17:09Z g00 e00-01: admitted (cbd4ba2fc21f)",
   "2026-10-22T20:17:14Z g00 e00-02: admitted (ff637527e678)",
-  "2026-10-22T20:17:18Z g00 e00-03: admitted (467dd63a6dc3)"
+  "2026-10-22T20:17:18Z g00 e00-03: admitted (467dd63a6dc3)",
+  "2026-10-22T20:17:25Z g00 phase EVAL_A_PENDING"
  ],
  "paused": null,
- "phase": "ADMITTED",
+ "phase": "EVAL_A_PENDING",
  "sessions_launched": 4,
  "version": 1
 }
