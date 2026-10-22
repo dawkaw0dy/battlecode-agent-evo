@@ -11,7 +11,7 @@ The game budget (`local_game_budget` in your task) counts games from all tools t
 | `python3 tools/teamstats.py <dir>` | per-game team stats for a `bench2.py --keep <dir>` run | allowed |
 | `python3 tools/analyze.py <stats.json>` | per-champion summary of one game's stats file | allowed |
 | `python3 tools/pool.py <out> CAND... --opps a,b` | many candidates vs many opponents | allowed |
-| `node tools/mapgen.mjs info maps/<m>.map26a` | read a map's layout, spawns and camps | allowed if M0 item 16 confirms it on Linux |
+| `node tools/mapgen.mjs info maps/<m>.map26a` | read a map's layout, spawns and camps | allowed |
 | `node tools/replay.mjs` | dump a replay to JSON | **not usable**: written for an older engine; fails on engine 1.0.3 replays |
 | `cambc login`, `submit`, `bundle`, `match-groups`, `ladder`, `matches` | — | **forbidden**: they act on the team's platform account, and an upload replaces the live ladder bot |
 | `cambc init`, `cambc maps` in the repo | — | **forbidden**: they rewrite tracked SDK and map files (the scope check rejects it anyway) |

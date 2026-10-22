@@ -10,7 +10,7 @@
   },
   "env": {
    ".claude/settings.json": "03a586ce4c81c05fbb7c360d4a7b94ed60f07ac7ffacb778f948b2d177137dc2",
-   "evo/env/TOOLS.md": "bef99fc85efb8f0d0ad4c68242c1127ca353f19707ce9271dde98c6eb98d2437",
+   "evo/env/TOOLS.md": "c8535dd8d7443477d7b164c8aed6c7ffae2d97ca8979770fbf0f2621cb038adb",
    "evo/env/check.sh": "6f05a2c1470119344ceb240c8954fc4b796218ec1f6e09e07fb2ffea2c3af778",
    "evo/env/fingerprint.py": "cd4b3e001d417c0262c1f23bbeb0103cd9c439a9a8c55f593812f08ef30923f5",
    "evo/env/setup.sh": "11c8e11de33f253e4eda3090234810e8b05c756a8550cf6d036fcfa098a33db5",
