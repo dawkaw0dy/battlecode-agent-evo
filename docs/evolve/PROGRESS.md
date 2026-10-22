@@ -4,6 +4,8 @@
 Cloud sessions used overall: 11 (M0 2, M3 2, M4 7). The real run (`evo/state.json`) is paused after generation 01
 (`max_generations = 2`): hall of fame [e00-01, e01-01], survivors e01-01 and e00-01.
 
+**Since M4:** `local_game_budget` 120 → 400 (D32, owner). Takes effect when generation 02's tasks are rendered.
+
 **Done in M4**
 - Generations 00 and 01 at n = 4; D28–D31; fix `dca675e` for duplicate Stage B games (halt cleared with the owner's OK).
 

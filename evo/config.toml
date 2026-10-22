@@ -11,7 +11,7 @@ require_approval = true    # pause each generation until `python -m evo approve 
 max_sessions_total = 8     # hard cap on cloud sessions for the whole run (M4: owner)
 deadline_minutes = 40      # no DONE marker by then -> slot is dead; gen 0 gets 1.5x (M4: owner)
 relaunch_dead = 0          # relaunch attempts per dead slot per generation (M4: owner)
-local_game_budget = 120    # games an agent may play while developing
+local_game_budget = 400    # games an agent may play while developing (D32: owner, 2026-10-22)
 
 [eval]
 runner_version = "cambc==3.0.5"    # pinned in M0 (M0.md item 1); keep equal to VER in evo/env/setup.sh
