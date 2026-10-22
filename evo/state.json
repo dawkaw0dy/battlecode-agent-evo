@@ -22,7 +22,7 @@
    "slot": 0,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "3e596d696c1c70a354e5ea963b1ccc83862d592763f160d5c1984fe771cf3680"
   },
   "e00-01": {
    "archetype": "scaling-economy",
@@ -46,7 +46,7 @@
    "slot": 1,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "90f5afc91cce88ff11cfaab272dce38c8eb843ce1ff8db10f8568e8c98ab2eb7"
   },
   "e00-02": {
    "archetype": "deathball",
@@ -70,7 +70,7 @@
    "slot": 2,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "a9d9d813df31889b8999ea40fce2e8afbfcfc548a20d2d0ac15f5e4dd147774b"
   },
   "e00-03": {
    "archetype": "camp-sweep",
@@ -94,7 +94,7 @@
    "slot": 3,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "35a12a6c1aadc0f345be72cd08b666a4da914ca0ff924d2e66efe1a0f6a1c2c1"
   }
  },
  "generation": 0,
@@ -119,10 +119,11 @@
  "jobs": {},
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-22T19:59:38Z g00 initialised generation 0 with 4 immigrants"
+  "2026-10-22T19:59:38Z g00 initialised generation 0 with 4 immigrants",
+  "2026-10-22T19:59:44Z g00 phase TASKS_PUSHED: 4 task files"
  ],
  "paused": null,
- "phase": "PLANNED",
+ "phase": "TASKS_PUSHED",
  "sessions_launched": 0,
  "version": 1
 }
