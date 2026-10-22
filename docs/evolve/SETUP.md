@@ -79,7 +79,7 @@ The three sections below are independent; do them in this order if you can.
 Web UIs change, so a label may read slightly differently. If something does not
 match, stop and tell me what you see instead of guessing.
 
-## H2 — M0: Claude GitHub App on this repository only
+## H2 — M0: Claude GitHub App on this repository only  ✅ done 2026-10-22 (new install, this repo only)
 
 1. Open <https://github.com/apps/claude> and click **Configure** (or **Install**
    if it was never installed).
@@ -113,15 +113,21 @@ match, stop and tell me what you see instead of guessing.
    and pins `VER=3.0.5`).
 7. Save. Do not start a session from the web UI; the probe session (a stop point)
    is started by me from this PC after your yes.
-8. Find the environment id. It starts with `env_`: look in the environment's
-   settings page or its URL. If you cannot find it, say so. A local `claude`
-   terminal's `/remote-env` command lists environments, but it also changes your
-   user-level default, so do not run it unless I ask.
+8. The web UI does not show the id (confirmed in the Claude Code docs). Get it from the CLI:
+   1. Open a **new** PowerShell window (not this session) and run `claude` in any folder.
+   2. Type `/remote-env` and press Enter. A picker of your environments opens. Choose **evo**.
+   3. Type `/exit`.
 
-**Reply with:** `H3: env_…` (the id only). I then write `.claude/settings.local.json`
-(gitignored) with `{"remote": {"defaultEnvironmentId": "env_…"}}`.
+   This writes `"remote": {"defaultEnvironmentId": "env_…"}` into your **user** settings,
+   `C:\Users\dawka\.claude\settings.json`. Before this step that file had no `remote` key
+   (checked 2026-10-22), so nothing of yours is overwritten. I then copy the id into this
+   repo's `.claude/settings.local.json` (gitignored). That file takes precedence over user
+   settings for this repo. With your OK I then remove the user-level key again, so
+   `claude --cloud` in your other projects does not default to `evo`.
 
-## H4 — M0: rulesets and Actions settings (PLAN §9.5)
+**Reply with:** `H3: picked evo`, and whether I should remove the user-level key afterwards.
+
+## H4 — M0: rulesets and Actions settings (PLAN §9.5)  ✅ done 2026-10-22 (GitHub Actions not offered as bypass, so `evo-results` has no Restrict updates)
 
 ### Ruleset for `main`
 
