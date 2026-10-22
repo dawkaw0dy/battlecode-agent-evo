@@ -1,5 +1,5 @@
 seed = 20261022            # master seed; every random choice derives from it
-population = 8             # n
+population = 4             # n (M4: owner, 2026-10-22; §14 "start with n = 4")
 keep_fraction = 0.25       # k; survivors s = max(2, ceil(n*k))
 elites = 1                 # top bots carried over frozen, no new session
 immigrants = 1             # fresh agents from an archetype per generation
@@ -8,9 +8,9 @@ language = "cpp"           # only C++ is admitted (§8)
 [agents]
 max_parallel = 4           # cloud sessions running at once
 require_approval = true    # pause each generation until `python -m evo approve gGG` (§0.4)
-max_sessions_total = 40    # hard cap on cloud sessions for the whole run
-deadline_minutes = 180     # no DONE marker by then -> slot is dead
-relaunch_dead = 1          # relaunch attempts per dead slot per generation
+max_sessions_total = 8     # hard cap on cloud sessions for the whole run (M4: owner)
+deadline_minutes = 40      # no DONE marker by then -> slot is dead; gen 0 gets 1.5x (M4: owner)
+relaunch_dead = 0          # relaunch attempts per dead slot per generation (M4: owner)
 local_game_budget = 120    # games an agent may play while developing
 
 [eval]
