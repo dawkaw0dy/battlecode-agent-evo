@@ -104,8 +104,12 @@ match, stop and tell me what you see instead of guessing.
 
    ```
    CAMBC_NO_UPDATE_CHECK=1
+   CAMBC_OFFLINE=1
    BASH_DEFAULT_TIMEOUT_MS=600000
    ```
+
+   (`CAMBC_OFFLINE=1` was added after the first probe: cambc cannot pass the cloud's TLS proxy, so
+   the setup script downloads its toolchain instead; M0.md item 11.)
 
    No secrets or tokens.
 6. **Setup script:** paste the whole contents of
