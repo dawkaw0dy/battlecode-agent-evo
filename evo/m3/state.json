@@ -52,7 +52,14 @@
  "generation": 0,
  "generations": {
   "0": {
-   "approval": null,
+   "approval": {
+    "approved_at": 1792697855,
+    "deadline_minutes": 45,
+    "max_sessions_total": 2,
+    "nudges_per_session": 1,
+    "relaunches_per_slot": 0,
+    "sessions": 2
+   },
    "env_failed": 0,
    "jobs": {
     "A": [],
@@ -72,9 +79,10 @@
   "2026-10-22T19:32:55Z g00 initialised generation 0 with 2 immigrants",
   "2026-10-22T19:33:01Z g00 phase TASKS_PUSHED: 2 task files",
   "2026-10-22T19:33:11Z g00 PAUSED: waiting for approval: python -m evo approve 00",
-  "2026-10-22T19:37:11Z g00 deadline set to 45 minutes by the owner; tasks re-rendered"
+  "2026-10-22T19:37:11Z g00 deadline set to 45 minutes by the owner; tasks re-rendered",
+  "2026-10-22T19:37:35Z g00 approved generation 00: {'sessions': 2, 'relaunches_per_slot': 0, 'nudges_per_session': 1, 'deadline_minutes': 45, 'max_sessions_total': 2, 'approved_at': 1792697855}"
  ],
- "paused": "waiting for approval: python -m evo approve 00",
+ "paused": null,
  "phase": "TASKS_PUSHED",
  "sessions_launched": 0,
  "version": 1
