@@ -11741,17 +11741,18 @@
    "status": "verified"
   },
   "g05-A": {
+   "arrived_at": 1792793602,
    "generation": 5,
    "pushed_at": 1792793469,
    "pushed_commit": "31d21ff50f6dbd18264853eb0373413beaed3151",
+   "results_commit": "05186b5caeccaffc603361bc6698ae3c5e1b67ad",
    "retries": 0,
    "stage": "A",
-   "status": "pending"
+   "status": "arrived"
   }
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-22T20:03:18Z g00 e00-03: launched session_01V4G6svvU1rbA8q4ciWHjMr",
   "2026-10-22T20:12:21Z g00 e00-03: done on origin/claude/evo-task-e00-03-vpwxj8 at ccda13ad37",
   "2026-10-22T20:14:33Z g00 e00-00: done on origin/claude/evo-task-e00-00-3kq51g at 23238ed0fb",
   "2026-10-22T20:14:34Z g00 e00-01: done on origin/claude/evo-e00-01-kjcv96 at c1b5c1182d",
@@ -11950,10 +11951,11 @@
   "2026-10-23T22:10:49Z g05 e05-06: admitted (1ed048b6b09e)",
   "2026-10-23T22:10:53Z g05 e05-07: admitted (f58ae47d77ec)",
   "2026-10-23T22:11:00Z g05 phase EVAL_A_PENDING",
-  "2026-10-23T22:11:09Z g05 g05-A: pushed 31d21ff50f with 28 shards"
+  "2026-10-23T22:11:09Z g05 g05-A: pushed 31d21ff50f with 28 shards",
+  "2026-10-23T22:13:22Z g05 phase EVAL_A_DONE: results for g05-A"
  ],
  "paused": null,
- "phase": "EVAL_A_PENDING",
+ "phase": "EVAL_A_DONE",
  "sessions_launched": 35,
  "version": 1
 }
