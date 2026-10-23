@@ -2444,8 +2444,8 @@
     }
    ],
    "slot": 1,
-   "src_sha256": null,
-   "status": "done",
+   "src_sha256": "f28450b1d73c1b630e04d9453bf94a00ea06bf5bef8900f4494b1f863f06bc54",
+   "status": "admitted",
    "task_sha256": "b42b92f8822cd9c014727fe0d27acd549c8be8484163e4188c3b133ab33a44b8"
   },
   "e06-02": {
@@ -2522,8 +2522,8 @@
     }
    ],
    "slot": 2,
-   "src_sha256": null,
-   "status": "done",
+   "src_sha256": "847b858238f1905790478d7496b4b5e25dd3be691407b06bad12ffb758b5af1d",
+   "status": "admitted",
    "task_sha256": "85eea0ea519a3fa9db6232c75622c22a44b7302b54cfd9e9e9f194c7ad86c4f6"
   },
   "e06-03": {
@@ -2599,8 +2599,8 @@
     }
    ],
    "slot": 3,
-   "src_sha256": null,
-   "status": "done",
+   "src_sha256": "d6c83e06492337c921b0918e196ded352c3f7540137d48767df9a83781cb5a46",
+   "status": "admitted",
    "task_sha256": "9eb177c075359419841723bf287219219e028127604d88554305c5e0b3b389ab"
   },
   "e06-04": {
@@ -2677,8 +2677,8 @@
     }
    ],
    "slot": 4,
-   "src_sha256": null,
-   "status": "done",
+   "src_sha256": "10f6d934cfda90aadc976d4f1f538459d08e86ec118174740922a5c1cb0081c5",
+   "status": "admitted",
    "task_sha256": "ed609e4930dbb962625a90244b797b1f66ebc4505dafe16c1bc93f4a8ec9370e"
   },
   "e06-05": {
@@ -2754,8 +2754,8 @@
     }
    ],
    "slot": 5,
-   "src_sha256": null,
-   "status": "done",
+   "src_sha256": "24a06b4e553a288a5fdb22cd6aa06dec2ead35a30e494525f2d710abb1791e68",
+   "status": "admitted",
    "task_sha256": "13e6c6f912feb153b2d118efd3f2c7fad8a5d3527b060dfb21c6e80a61d21193"
   },
   "e06-06": {
@@ -2831,8 +2831,8 @@
     }
    ],
    "slot": 6,
-   "src_sha256": null,
-   "status": "done",
+   "src_sha256": "9f5be23d2ea0c6206936920ee324f2e9f572142d90ea69656e5de745500ecb1c",
+   "status": "admitted",
    "task_sha256": "957f5ff42875480c2bda12a3c17e5494b1a8adfa770760f501af4d6b5a97a55c"
   },
   "e06-07": {
@@ -2909,8 +2909,8 @@
     }
    ],
    "slot": 7,
-   "src_sha256": null,
-   "status": "done",
+   "src_sha256": "51d32e17b6b66e8d2d0ece8872df72b7e63d925bf360ead8646f661b9b9df24b",
+   "status": "admitted",
    "task_sha256": "7857698e08cb6715c18ffa9cd67dc28ba30be520b56b2ff0fdd9ee2ce9855452"
   }
  },
@@ -13915,6 +13915,16 @@
     "B": [],
     "C": []
    },
+   "members": [
+    "e05-05",
+    "e06-01",
+    "e06-02",
+    "e06-03",
+    "e06-04",
+    "e06-05",
+    "e06-06",
+    "e06-07"
+   ],
    "slots": [
     "e05-05",
     "e06-01",
@@ -14194,13 +14204,6 @@
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-22T21:01:55Z g01 e01-01: admitted (4aaba25b8aa3)",
-  "2026-10-22T21:01:58Z g01 e01-02: admitted (051a72130124)",
-  "2026-10-22T21:02:02Z g01 e01-03: admitted (857f8b84ca5b)",
-  "2026-10-22T21:02:08Z g01 phase EVAL_A_PENDING",
-  "2026-10-22T21:02:18Z g01 g01-A: pushed 1276975f56 with 9 shards",
-  "2026-10-22T21:04:28Z g01 phase EVAL_A_DONE: results for g01-A",
-  "2026-10-22T21:08:12Z g01 g01-A: verified, 288 rows, spot-check 6 OK",
   "2026-10-22T21:08:15Z g01 phase EVAL_B_PENDING: stage A ranked: e01-01, e00-01, e01-02, e01-03, starter",
   "2026-10-22T21:08:30Z g01 g01-B: pushed 5df4587736 with 12 shards",
   "2026-10-22T21:12:49Z g01 phase EVAL_B_DONE: results for g01-B",
@@ -14393,7 +14396,14 @@
   "2026-10-23T22:44:45Z g06 e06-06: done on origin/claude/evo-task-e06-06-18lgv2 at 3ffa712c25",
   "2026-10-23T22:48:29Z g06 e06-03: done on origin/claude/evolution-e06-03-3ljadv at 8271c37247",
   "2026-10-23T22:48:32Z g06 e06-05: done on origin/claude/evo-task-e06-05-kj5wbl at 6bcc212312",
-  "2026-10-23T22:48:32Z g06 phase ADMITTED"
+  "2026-10-23T22:48:32Z g06 phase ADMITTED",
+  "2026-10-23T22:48:41Z g06 e06-01: admitted (f28450b1d73c)",
+  "2026-10-23T22:48:45Z g06 e06-02: admitted (847b858238f1)",
+  "2026-10-23T22:48:49Z g06 e06-03: admitted (d6c83e064923)",
+  "2026-10-23T22:48:54Z g06 e06-04: admitted (10f6d934cfda)",
+  "2026-10-23T22:48:58Z g06 e06-05: admitted (24a06b4e553a)",
+  "2026-10-23T22:49:03Z g06 e06-06: admitted (9f5be23d2ea0)",
+  "2026-10-23T22:49:09Z g06 e06-07: admitted (51d32e17b6b6)"
  ],
  "paused": null,
  "phase": "ADMITTED",

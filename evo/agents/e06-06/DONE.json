@@ -1,0 +1,27 @@
+{
+ "agent": "e06-06",
+ "task_sha256": "957f5ff42875480c2bda12a3c17e5494b1a8adfa770760f501af4d6b5a97a55c",
+ "base_commit": "9ffef65633dacdf4d41c9f285b8b8fa844316750",
+ "session_id": "cse_01HagFmNtbMmzEWA3iUSRnJW",
+ "bot_dir": "bots/e06-06",
+ "self_eval": {
+  "vs": "e05-05",
+  "games": 16,
+  "wins": 8
+ },
+ "games_played": 293,
+ "summary": "Draft-time opening plan (safe home-side first camp, x3 until taken) + Vesper/Ryth/Marcella/Willow/Tavi draft: 8/16 vs e05-05 (parent 4/16), 11/16 vs e04-06",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "38e4c5d4fc20dba03dc91378a2fce8e7ec604c55b6ba78f464c77899cf09848d",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 18.41,
+  "remote": "true",
+  "session_id": "cse_01HagFmNtbMmzEWA3iUSRnJW",
+  "effort_level": "high",
+  "model": null
+ }
+}
