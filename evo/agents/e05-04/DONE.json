@@ -1,0 +1,27 @@
+{
+ "agent": "e05-04",
+ "task_sha256": "546bb64e4db23a37492408649f409d24a0781507e1752cdc1140286cefc7918a",
+ "base_commit": "1175a4d57c458a367f78c0f16b0deaf72b71fa02",
+ "session_id": "cse_01UucXdDNWkE4AY5sMjbRBjF",
+ "bot_dir": "bots/e05-04",
+ "self_eval": {
+  "vs": "e03-07",
+  "games": 20,
+  "wins": 15
+ },
+ "games_played": 168,
+ "summary": "Pathing rewrite: goal distance field with local champion blocking, exposure-aware steps, travel/escape dashes, spawn-biased retreat",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "6d722f39d2e916c57763c53f2dd1c0e7a418ff7aede6f454c09e1423c164fa77",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 21.53,
+  "remote": "true",
+  "session_id": "cse_01UucXdDNWkE4AY5sMjbRBjF",
+  "effort_level": "high",
+  "model": null
+ }
+}
