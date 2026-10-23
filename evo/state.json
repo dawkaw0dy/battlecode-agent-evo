@@ -2404,9 +2404,10 @@
   "2026-10-22T21:28:40Z g01 PAUSED: generation 01 selected; max_generations=2 reached",
   "2026-10-23T15:17:53Z g01 resumed (M5: owner chose n=8, one generation (gen 02), held-out pool ready); was paused: generation 01 selected; max_generations=2 reached",
   "2026-10-23T15:18:01Z g02 phase PLANNED: 8 slots",
-  "2026-10-23T15:18:08Z g02 phase TASKS_PUSHED: 7 task files"
+  "2026-10-23T15:18:08Z g02 phase TASKS_PUSHED: 7 task files",
+  "2026-10-23T15:18:25Z g02 PAUSED: waiting for approval: python -m evo approve 02"
  ],
- "paused": null,
+ "paused": "waiting for approval: python -m evo approve 02",
  "phase": "TASKS_PUSHED",
  "sessions_launched": 7,
  "version": 1
