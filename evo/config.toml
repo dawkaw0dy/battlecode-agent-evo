@@ -8,7 +8,7 @@ language = "cpp"           # only C++ is admitted (§8)
 [agents]
 max_parallel = 4           # cloud sessions running at once
 require_approval = true    # pause each generation until `python -m evo approve gGG` (§0.4)
-max_sessions_total = 15    # hard cap on cloud sessions for the whole run (M5: 7 used + 7 for gen 02 + 1 spare)
+max_sessions_total = 30    # hard cap on cloud sessions for the whole run (owner, 2026-10-23)
 deadline_minutes = 40      # no DONE marker by then -> slot is dead; gen 0 gets 1.5x (M4: owner)
 relaunch_dead = 0          # relaunch attempts per dead slot per generation (M4: owner)
 local_game_budget = 400    # games an agent may play while developing (D32: owner, 2026-10-22)
@@ -38,4 +38,4 @@ evidence_losses = 3
 immigrant_base = "starter"         # or "hall_of_fame" from generation 2 (§13.4)
 
 [run]
-max_generations = 3         # M5 runs generation 02 only: pause after it is selected
+max_generations = 5         # owner, 2026-10-23: run up to generation 04, then pause
