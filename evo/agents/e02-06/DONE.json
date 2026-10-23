@@ -1,0 +1,4 @@
+{"agent": "e02-06", "task_sha256": "43f2ec068a05b52eda0fc0689164698f27409c480ff27b928e1781a02fb2a7ba", "base_commit": "ed10a4f5619c629aa59057ebef74e83cc76f9453",
+ "session_id": "cse_01K1MYdbV6QJfzd7vrDX9FwB", "bot_dir": "bots/e02-06",
+ "self_eval": {"vs": "e01-01", "games": 84, "wins": 42}, "games_played": 270,
+ "summary": "Endgame rewrite: path-distance altar choice, use ally-locked/clear enemy-locked altars, time-to-limit banking, reactive altar-lock denial; plus guards for inherited engine errors 97/98"}
