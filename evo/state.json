@@ -1746,7 +1746,7 @@
    ],
    "slot": 6,
    "src_sha256": "6b321650e9c7d222c5e37bac34674e49a9951632f7f0dc9390402cafffdf657b",
-   "status": "admitted",
+   "status": "rated",
    "task_sha256": "8f053162d544c472ecfafbd766a3d36f878c8349f251bff61fd62d601af8a3fb"
   },
   "e04-07": {
@@ -1900,7 +1900,7 @@
    ],
    "slot": 1,
    "src_sha256": "5ca5b4d7bbbe7aeef17525fe69e5ecf644e5c12e0c25d8326296aa9734977a14",
-   "status": "admitted",
+   "status": "rated",
    "task_sha256": "a603242ef9d53394942331d0e71ba6280cb3cd64f4d7fa50b0215e6c697cb917"
   },
   "e05-02": {
@@ -1979,7 +1979,7 @@
    ],
    "slot": 2,
    "src_sha256": "fb676eab14817e884a4c87b42229b951a08b518ef3a4ca123605f358ab0528b8",
-   "status": "admitted",
+   "status": "rated",
    "task_sha256": "3fadf7c7b10a18ec218c3e840519ad7c6231eccb64cf481bdee3c53f8e779ba5"
   },
   "e05-03": {
@@ -2056,7 +2056,7 @@
    ],
    "slot": 3,
    "src_sha256": "50af3bb7283e4fb6ae7e1a10f3872c8cc258c02f88090e1fceb554a76b222f68",
-   "status": "admitted",
+   "status": "rated",
    "task_sha256": "33f3b308b89b66fe30f6b3d7ecfee29bfb6cb94a8dd148a375047cf993cd0239"
   },
   "e05-04": {
@@ -2135,7 +2135,7 @@
    ],
    "slot": 4,
    "src_sha256": "0b45d5b02506b4cfc4b1a4ed6500a7306278ccb2a4438366115e697700741764",
-   "status": "admitted",
+   "status": "rated",
    "task_sha256": "546bb64e4db23a37492408649f409d24a0781507e1752cdc1140286cefc7918a"
   },
   "e05-05": {
@@ -2290,7 +2290,7 @@
    ],
    "slot": 6,
    "src_sha256": "1ed048b6b09e54125eff9b2688a93ba64e2331db42f65dfd394b573c6a3c2a1e",
-   "status": "admitted",
+   "status": "rated",
    "task_sha256": "b3714864caffbbee358c99cf6636578f454c19161328b1f36459b3b3c79189eb"
   },
   "e05-07": {
@@ -2368,11 +2368,469 @@
    ],
    "slot": 7,
    "src_sha256": "f58ae47d77ece3add3d3b6042dc3cbed7006302e98185cfeffd02916b554d087",
-   "status": "admitted",
+   "status": "rated",
    "task_sha256": "b63f8cd6afb6d55671a3eb870f53fbad59d55ef432af5389750361f9313e4145"
+  },
+  "e06-01": {
+   "archetype": null,
+   "branch": null,
+   "commit": null,
+   "deadline_minutes": 40,
+   "evidence": [
+    {
+     "gems_opponent": 1024,
+     "gems_parent": 0,
+     "map": "00road-of-riches",
+     "opponent": "e03-07",
+     "rounds": 1298,
+     "side": "A"
+    },
+    {
+     "gems_opponent": 1037,
+     "gems_parent": 21,
+     "map": "01islands",
+     "opponent": "e05-01",
+     "rounds": 1419,
+     "side": "A"
+    },
+    {
+     "gems_opponent": 1001,
+     "gems_parent": 0,
+     "map": "01hooks",
+     "opponent": "e05-01",
+     "rounds": 1009,
+     "side": "B"
+    }
+   ],
+   "failed_ideas": [
+    "e04-06: Starter step selection `field.get(tile) < field.get(step)` picks blocked/unreached tiles (they read 0): \"Known occupied",
+    "e04-06: destination\". Fix: only step to tiles that are free and in `visited`.",
+    "e04-06: Iterating `vision::champions()/camps()` handles and calling health()/is_alive() throws \"No visible entity\" when the",
+    "e04-06: unit died this turn; scan `champion_tiles()/camp_tiles()` and use `champion_at/camp_at` instead.",
+    "e04-06: Attack-reset abilities throw \"An available attack cannot be reset\" in cases `can_attack()` does not reveal; resets disabled.",
+    "e04-06: After a move returns false (hidden unit), moving again the same turn throws: stop walking for the turn.",
+    "e04-06: Hard danger filter (skip groups) left champions idle on 01big-world/00lanes; softened to a x0.05 score factor (small gain).",
+    "e04-06: (e02-05) Reading champion_at(tile).health() right after our attack killed the unit throws engine error 97 even when",
+    "e04-06: has_champion(tile) is true: check the handle's is_visible() first and guard each combat block locally.",
+    "e04-06: (e03-05) Team-target bonus 4.0 (strict deathball): 7/14 vs e02-01 (too little parallel farming); 1.5: 10/16. Keep 2.5.",
+    "e04-06: (e03-05) Spending spells on camps while enemy champions are within 7: 12/16 (+252) vs 13/16 (+346) when saving them.",
+    "e04-06: (e03-05) Ryth-first spell draft without Vesper Vale: 11/15 vs e02-01; Vesper first is better (13/16).",
+    "e04-06: (e03-05) `bitboard::draw_chebyshev` near the map edge raises engine error 5 (00lanes, 30 tall): set tiles manually.",
+    "e04-06: (e04-06) Skipping enemy-locked altars (parent behaviour): 0 tributed gems vs altar-lock bots (e03-07). Break them.",
+    "e05-02: Starter step selection `field.get(tile) < field.get(step)` picks blocked/unreached tiles (they read 0): \"Known occupied"
+   ],
+   "focus": "fuel",
+   "generation": 6,
+   "id": "e06-01",
+   "kind": "child",
+   "nudged": [],
+   "operator": "subsystem",
+   "parents": [
+    "e05-05"
+   ],
+   "reason": null,
+   "rng_key": "20261022:6:1",
+   "sessions": [],
+   "slot": 1,
+   "src_sha256": null,
+   "status": "planned",
+   "task_sha256": null
+  },
+  "e06-02": {
+   "archetype": null,
+   "branch": null,
+   "commit": null,
+   "deadline_minutes": 40,
+   "evidence": [
+    {
+     "gems_opponent": 1024,
+     "gems_parent": 0,
+     "map": "00road-of-riches",
+     "opponent": "e03-07",
+     "rounds": 1298,
+     "side": "A"
+    },
+    {
+     "gems_opponent": 1037,
+     "gems_parent": 21,
+     "map": "01islands",
+     "opponent": "e05-01",
+     "rounds": 1419,
+     "side": "A"
+    },
+    {
+     "gems_opponent": 1001,
+     "gems_parent": 0,
+     "map": "01hooks",
+     "opponent": "e05-01",
+     "rounds": 1009,
+     "side": "B"
+    }
+   ],
+   "failed_ideas": [
+    "e04-06: Starter step selection `field.get(tile) < field.get(step)` picks blocked/unreached tiles (they read 0): \"Known occupied",
+    "e04-06: destination\". Fix: only step to tiles that are free and in `visited`.",
+    "e04-06: Iterating `vision::champions()/camps()` handles and calling health()/is_alive() throws \"No visible entity\" when the",
+    "e04-06: unit died this turn; scan `champion_tiles()/camp_tiles()` and use `champion_at/camp_at` instead.",
+    "e04-06: Attack-reset abilities throw \"An available attack cannot be reset\" in cases `can_attack()` does not reveal; resets disabled.",
+    "e04-06: After a move returns false (hidden unit), moving again the same turn throws: stop walking for the turn.",
+    "e04-06: Hard danger filter (skip groups) left champions idle on 01big-world/00lanes; softened to a x0.05 score factor (small gain).",
+    "e04-06: (e02-05) Reading champion_at(tile).health() right after our attack killed the unit throws engine error 97 even when",
+    "e04-06: has_champion(tile) is true: check the handle's is_visible() first and guard each combat block locally.",
+    "e04-06: (e03-05) Team-target bonus 4.0 (strict deathball): 7/14 vs e02-01 (too little parallel farming); 1.5: 10/16. Keep 2.5.",
+    "e04-06: (e03-05) Spending spells on camps while enemy champions are within 7: 12/16 (+252) vs 13/16 (+346) when saving them.",
+    "e04-06: (e03-05) Ryth-first spell draft without Vesper Vale: 11/15 vs e02-01; Vesper first is better (13/16).",
+    "e04-06: (e03-05) `bitboard::draw_chebyshev` near the map edge raises engine error 5 (00lanes, 30 tall): set tiles manually.",
+    "e04-06: (e04-06) Skipping enemy-locked altars (parent behaviour): 0 tributed gems vs altar-lock bots (e03-07). Break them.",
+    "e05-02: Starter step selection `field.get(tile) < field.get(step)` picks blocked/unreached tiles (they read 0): \"Known occupied"
+   ],
+   "focus": "spells",
+   "generation": 6,
+   "id": "e06-02",
+   "kind": "child",
+   "nudged": [],
+   "operator": "crossover",
+   "parents": [
+    "e05-05",
+    "e05-01"
+   ],
+   "reason": null,
+   "rng_key": "20261022:6:2",
+   "sessions": [],
+   "slot": 2,
+   "src_sha256": null,
+   "status": "planned",
+   "task_sha256": null
+  },
+  "e06-03": {
+   "archetype": null,
+   "branch": null,
+   "commit": null,
+   "deadline_minutes": 40,
+   "evidence": [
+    {
+     "gems_opponent": 1024,
+     "gems_parent": 0,
+     "map": "00road-of-riches",
+     "opponent": "e03-07",
+     "rounds": 1298,
+     "side": "A"
+    },
+    {
+     "gems_opponent": 1037,
+     "gems_parent": 21,
+     "map": "01islands",
+     "opponent": "e05-01",
+     "rounds": 1419,
+     "side": "A"
+    },
+    {
+     "gems_opponent": 1001,
+     "gems_parent": 0,
+     "map": "01hooks",
+     "opponent": "e05-01",
+     "rounds": 1009,
+     "side": "B"
+    }
+   ],
+   "failed_ideas": [
+    "e04-06: Starter step selection `field.get(tile) < field.get(step)` picks blocked/unreached tiles (they read 0): \"Known occupied",
+    "e04-06: destination\". Fix: only step to tiles that are free and in `visited`.",
+    "e04-06: Iterating `vision::champions()/camps()` handles and calling health()/is_alive() throws \"No visible entity\" when the",
+    "e04-06: unit died this turn; scan `champion_tiles()/camp_tiles()` and use `champion_at/camp_at` instead.",
+    "e04-06: Attack-reset abilities throw \"An available attack cannot be reset\" in cases `can_attack()` does not reveal; resets disabled.",
+    "e04-06: After a move returns false (hidden unit), moving again the same turn throws: stop walking for the turn.",
+    "e04-06: Hard danger filter (skip groups) left champions idle on 01big-world/00lanes; softened to a x0.05 score factor (small gain).",
+    "e04-06: (e02-05) Reading champion_at(tile).health() right after our attack killed the unit throws engine error 97 even when",
+    "e04-06: has_champion(tile) is true: check the handle's is_visible() first and guard each combat block locally.",
+    "e04-06: (e03-05) Team-target bonus 4.0 (strict deathball): 7/14 vs e02-01 (too little parallel farming); 1.5: 10/16. Keep 2.5.",
+    "e04-06: (e03-05) Spending spells on camps while enemy champions are within 7: 12/16 (+252) vs 13/16 (+346) when saving them.",
+    "e04-06: (e03-05) Ryth-first spell draft without Vesper Vale: 11/15 vs e02-01; Vesper first is better (13/16).",
+    "e04-06: (e03-05) `bitboard::draw_chebyshev` near the map edge raises engine error 5 (00lanes, 30 tall): set tiles manually.",
+    "e04-06: (e04-06) Skipping enemy-locked altars (parent behaviour): 0 tributed gems vs altar-lock bots (e03-07). Break them.",
+    "e05-02: Starter step selection `field.get(tile) < field.get(step)` picks blocked/unreached tiles (they read 0): \"Known occupied"
+   ],
+   "focus": "pathing",
+   "generation": 6,
+   "id": "e06-03",
+   "kind": "child",
+   "nudged": [],
+   "operator": "tweak",
+   "parents": [
+    "e05-05"
+   ],
+   "reason": null,
+   "rng_key": "20261022:6:3",
+   "sessions": [],
+   "slot": 3,
+   "src_sha256": null,
+   "status": "planned",
+   "task_sha256": null
+  },
+  "e06-04": {
+   "archetype": null,
+   "branch": null,
+   "commit": null,
+   "deadline_minutes": 40,
+   "evidence": [
+    {
+     "gems_opponent": 1024,
+     "gems_parent": 0,
+     "map": "00road-of-riches",
+     "opponent": "e03-07",
+     "rounds": 1298,
+     "side": "A"
+    },
+    {
+     "gems_opponent": 1037,
+     "gems_parent": 21,
+     "map": "01islands",
+     "opponent": "e05-01",
+     "rounds": 1419,
+     "side": "A"
+    },
+    {
+     "gems_opponent": 1001,
+     "gems_parent": 0,
+     "map": "01hooks",
+     "opponent": "e05-01",
+     "rounds": 1009,
+     "side": "B"
+    }
+   ],
+   "failed_ideas": [
+    "e04-06: Starter step selection `field.get(tile) < field.get(step)` picks blocked/unreached tiles (they read 0): \"Known occupied",
+    "e04-06: destination\". Fix: only step to tiles that are free and in `visited`.",
+    "e04-06: Iterating `vision::champions()/camps()` handles and calling health()/is_alive() throws \"No visible entity\" when the",
+    "e04-06: unit died this turn; scan `champion_tiles()/camp_tiles()` and use `champion_at/camp_at` instead.",
+    "e04-06: Attack-reset abilities throw \"An available attack cannot be reset\" in cases `can_attack()` does not reveal; resets disabled.",
+    "e04-06: After a move returns false (hidden unit), moving again the same turn throws: stop walking for the turn.",
+    "e04-06: Hard danger filter (skip groups) left champions idle on 01big-world/00lanes; softened to a x0.05 score factor (small gain).",
+    "e04-06: (e02-05) Reading champion_at(tile).health() right after our attack killed the unit throws engine error 97 even when",
+    "e04-06: has_champion(tile) is true: check the handle's is_visible() first and guard each combat block locally.",
+    "e04-06: (e03-05) Team-target bonus 4.0 (strict deathball): 7/14 vs e02-01 (too little parallel farming); 1.5: 10/16. Keep 2.5.",
+    "e04-06: (e03-05) Spending spells on camps while enemy champions are within 7: 12/16 (+252) vs 13/16 (+346) when saving them.",
+    "e04-06: (e03-05) Ryth-first spell draft without Vesper Vale: 11/15 vs e02-01; Vesper first is better (13/16).",
+    "e04-06: (e03-05) `bitboard::draw_chebyshev` near the map edge raises engine error 5 (00lanes, 30 tall): set tiles manually.",
+    "e04-06: (e04-06) Skipping enemy-locked altars (parent behaviour): 0 tributed gems vs altar-lock bots (e03-07). Break them.",
+    "e05-02: Starter step selection `field.get(tile) < field.get(step)` picks blocked/unreached tiles (they read 0): \"Known occupied"
+   ],
+   "focus": "defense",
+   "generation": 6,
+   "id": "e06-04",
+   "kind": "child",
+   "nudged": [],
+   "operator": "crossover",
+   "parents": [
+    "e05-05",
+    "e05-01"
+   ],
+   "reason": null,
+   "rng_key": "20261022:6:4",
+   "sessions": [],
+   "slot": 4,
+   "src_sha256": null,
+   "status": "planned",
+   "task_sha256": null
+  },
+  "e06-05": {
+   "archetype": null,
+   "branch": null,
+   "commit": null,
+   "deadline_minutes": 40,
+   "evidence": [
+    {
+     "gems_opponent": 1024,
+     "gems_parent": 0,
+     "map": "00road-of-riches",
+     "opponent": "e03-07",
+     "rounds": 1298,
+     "side": "A"
+    },
+    {
+     "gems_opponent": 1037,
+     "gems_parent": 21,
+     "map": "01islands",
+     "opponent": "e05-01",
+     "rounds": 1419,
+     "side": "A"
+    },
+    {
+     "gems_opponent": 1001,
+     "gems_parent": 0,
+     "map": "01hooks",
+     "opponent": "e05-01",
+     "rounds": 1009,
+     "side": "B"
+    }
+   ],
+   "failed_ideas": [
+    "e04-06: Starter step selection `field.get(tile) < field.get(step)` picks blocked/unreached tiles (they read 0): \"Known occupied",
+    "e04-06: destination\". Fix: only step to tiles that are free and in `visited`.",
+    "e04-06: Iterating `vision::champions()/camps()` handles and calling health()/is_alive() throws \"No visible entity\" when the",
+    "e04-06: unit died this turn; scan `champion_tiles()/camp_tiles()` and use `champion_at/camp_at` instead.",
+    "e04-06: Attack-reset abilities throw \"An available attack cannot be reset\" in cases `can_attack()` does not reveal; resets disabled.",
+    "e04-06: After a move returns false (hidden unit), moving again the same turn throws: stop walking for the turn.",
+    "e04-06: Hard danger filter (skip groups) left champions idle on 01big-world/00lanes; softened to a x0.05 score factor (small gain).",
+    "e04-06: (e02-05) Reading champion_at(tile).health() right after our attack killed the unit throws engine error 97 even when",
+    "e04-06: has_champion(tile) is true: check the handle's is_visible() first and guard each combat block locally.",
+    "e04-06: (e03-05) Team-target bonus 4.0 (strict deathball): 7/14 vs e02-01 (too little parallel farming); 1.5: 10/16. Keep 2.5.",
+    "e04-06: (e03-05) Spending spells on camps while enemy champions are within 7: 12/16 (+252) vs 13/16 (+346) when saving them.",
+    "e04-06: (e03-05) Ryth-first spell draft without Vesper Vale: 11/15 vs e02-01; Vesper first is better (13/16).",
+    "e04-06: (e03-05) `bitboard::draw_chebyshev` near the map edge raises engine error 5 (00lanes, 30 tall): set tiles manually.",
+    "e04-06: (e04-06) Skipping enemy-locked altars (parent behaviour): 0 tributed gems vs altar-lock bots (e03-07). Break them.",
+    "e05-02: Starter step selection `field.get(tile) < field.get(step)` picks blocked/unreached tiles (they read 0): \"Known occupied"
+   ],
+   "focus": "spells",
+   "generation": 6,
+   "id": "e06-05",
+   "kind": "child",
+   "nudged": [],
+   "operator": "subsystem",
+   "parents": [
+    "e05-05"
+   ],
+   "reason": null,
+   "rng_key": "20261022:6:5",
+   "sessions": [],
+   "slot": 5,
+   "src_sha256": null,
+   "status": "planned",
+   "task_sha256": null
+  },
+  "e06-06": {
+   "archetype": null,
+   "branch": null,
+   "commit": null,
+   "deadline_minutes": 40,
+   "evidence": [
+    {
+     "gems_opponent": 1020,
+     "gems_parent": 11,
+     "map": "00rushbait-v2",
+     "opponent": "e04-06",
+     "rounds": 1963,
+     "side": "A"
+    },
+    {
+     "gems_opponent": 1008,
+     "gems_parent": 0,
+     "map": "01elk-arena",
+     "opponent": "e05-05",
+     "rounds": 1103,
+     "side": "A"
+    },
+    {
+     "gems_opponent": 1012,
+     "gems_parent": 33,
+     "map": "01hooks",
+     "opponent": "e04-06",
+     "rounds": 1239,
+     "side": "B"
+    }
+   ],
+   "failed_ideas": [
+    "e04-06: Starter step selection `field.get(tile) < field.get(step)` picks blocked/unreached tiles (they read 0): \"Known occupied",
+    "e04-06: destination\". Fix: only step to tiles that are free and in `visited`.",
+    "e04-06: Iterating `vision::champions()/camps()` handles and calling health()/is_alive() throws \"No visible entity\" when the",
+    "e04-06: unit died this turn; scan `champion_tiles()/camp_tiles()` and use `champion_at/camp_at` instead.",
+    "e04-06: Attack-reset abilities throw \"An available attack cannot be reset\" in cases `can_attack()` does not reveal; resets disabled.",
+    "e04-06: After a move returns false (hidden unit), moving again the same turn throws: stop walking for the turn.",
+    "e04-06: Hard danger filter (skip groups) left champions idle on 01big-world/00lanes; softened to a x0.05 score factor (small gain).",
+    "e04-06: (e02-05) Reading champion_at(tile).health() right after our attack killed the unit throws engine error 97 even when",
+    "e04-06: has_champion(tile) is true: check the handle's is_visible() first and guard each combat block locally.",
+    "e04-06: (e03-05) Team-target bonus 4.0 (strict deathball): 7/14 vs e02-01 (too little parallel farming); 1.5: 10/16. Keep 2.5.",
+    "e04-06: (e03-05) Spending spells on camps while enemy champions are within 7: 12/16 (+252) vs 13/16 (+346) when saving them.",
+    "e04-06: (e03-05) Ryth-first spell draft without Vesper Vale: 11/15 vs e02-01; Vesper first is better (13/16).",
+    "e04-06: (e03-05) `bitboard::draw_chebyshev` near the map edge raises engine error 5 (00lanes, 30 tall): set tiles manually.",
+    "e04-06: (e04-06) Skipping enemy-locked altars (parent behaviour): 0 tributed gems vs altar-lock bots (e03-07). Break them.",
+    "e05-02: Starter step selection `field.get(tile) < field.get(step)` picks blocked/unreached tiles (they read 0): \"Known occupied"
+   ],
+   "focus": "opening",
+   "generation": 6,
+   "id": "e06-06",
+   "kind": "child",
+   "nudged": [],
+   "operator": "radical",
+   "parents": [
+    "e05-01"
+   ],
+   "reason": null,
+   "rng_key": "20261022:6:6",
+   "sessions": [],
+   "slot": 6,
+   "src_sha256": null,
+   "status": "planned",
+   "task_sha256": null
+  },
+  "e06-07": {
+   "archetype": null,
+   "branch": null,
+   "commit": null,
+   "deadline_minutes": 40,
+   "evidence": [
+    {
+     "gems_opponent": 1020,
+     "gems_parent": 11,
+     "map": "00rushbait-v2",
+     "opponent": "e04-06",
+     "rounds": 1963,
+     "side": "A"
+    },
+    {
+     "gems_opponent": 1008,
+     "gems_parent": 0,
+     "map": "01elk-arena",
+     "opponent": "e05-05",
+     "rounds": 1103,
+     "side": "A"
+    },
+    {
+     "gems_opponent": 1012,
+     "gems_parent": 33,
+     "map": "01hooks",
+     "opponent": "e04-06",
+     "rounds": 1239,
+     "side": "B"
+    }
+   ],
+   "failed_ideas": [
+    "e04-06: Starter step selection `field.get(tile) < field.get(step)` picks blocked/unreached tiles (they read 0): \"Known occupied",
+    "e04-06: destination\". Fix: only step to tiles that are free and in `visited`.",
+    "e04-06: Iterating `vision::champions()/camps()` handles and calling health()/is_alive() throws \"No visible entity\" when the",
+    "e04-06: unit died this turn; scan `champion_tiles()/camp_tiles()` and use `champion_at/camp_at` instead.",
+    "e04-06: Attack-reset abilities throw \"An available attack cannot be reset\" in cases `can_attack()` does not reveal; resets disabled.",
+    "e04-06: After a move returns false (hidden unit), moving again the same turn throws: stop walking for the turn.",
+    "e04-06: Hard danger filter (skip groups) left champions idle on 01big-world/00lanes; softened to a x0.05 score factor (small gain).",
+    "e04-06: (e02-05) Reading champion_at(tile).health() right after our attack killed the unit throws engine error 97 even when",
+    "e04-06: has_champion(tile) is true: check the handle's is_visible() first and guard each combat block locally.",
+    "e04-06: (e03-05) Team-target bonus 4.0 (strict deathball): 7/14 vs e02-01 (too little parallel farming); 1.5: 10/16. Keep 2.5.",
+    "e04-06: (e03-05) Spending spells on camps while enemy champions are within 7: 12/16 (+252) vs 13/16 (+346) when saving them.",
+    "e04-06: (e03-05) Ryth-first spell draft without Vesper Vale: 11/15 vs e02-01; Vesper first is better (13/16).",
+    "e04-06: (e03-05) `bitboard::draw_chebyshev` near the map edge raises engine error 5 (00lanes, 30 tall): set tiles manually.",
+    "e04-06: (e04-06) Skipping enemy-locked altars (parent behaviour): 0 tributed gems vs altar-lock bots (e03-07). Break them.",
+    "e05-02: Starter step selection `field.get(tile) < field.get(step)` picks blocked/unreached tiles (they read 0): \"Known occupied"
+   ],
+   "focus": "combat",
+   "generation": 6,
+   "id": "e06-07",
+   "kind": "child",
+   "nudged": [],
+   "operator": "crossover",
+   "parents": [
+    "e05-01",
+    "e05-05"
+   ],
+   "reason": null,
+   "rng_key": "20261022:6:7",
+   "sessions": [],
+   "slot": 7,
+   "src_sha256": null,
+   "status": "planned",
+   "task_sha256": null
   }
  },
- "generation": 5,
+ "generation": 6,
  "generations": {
   "0": {
    "approval": {
@@ -13335,6 +13793,8 @@
      "strength": -2.480560980285789
     }
    },
+   "selection_done": true,
+   "similar_skipped": [],
    "slots": [
     "e04-06",
     "e05-01",
@@ -13349,11 +13809,37 @@
     "e05-01",
     "e05-02"
    ],
+   "survivors": [
+    "e05-05",
+    "e05-01"
+   ],
    "top": [
     "e05-01",
     "e05-05",
     "e05-02",
     "e05-06"
+   ]
+  },
+  "6": {
+   "approval": null,
+   "elites": [
+    "e05-05"
+   ],
+   "env_failed": 0,
+   "jobs": {
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "slots": [
+    "e05-05",
+    "e06-01",
+    "e06-02",
+    "e06-03",
+    "e06-04",
+    "e06-05",
+    "e06-06",
+    "e06-07"
    ]
   }
  },
@@ -13362,7 +13848,8 @@
   "e01-01",
   "e02-01",
   "e03-07",
-  "e04-06"
+  "e04-06",
+  "e05-05"
  ],
  "halted": null,
  "jobs": {
@@ -13623,8 +14110,6 @@
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-22T20:25:53Z g00 phase EVAL_B_PENDING: stage A ranked: e00-01, e00-03, starter, e00-02, e00-00",
-  "2026-10-22T20:26:02Z g00 g00-B: pushed ad2f848028 with 3 shards",
   "2026-10-22T20:30:27Z g00 phase EVAL_B_DONE: results for g00-B",
   "2026-10-22T20:35:59Z g00 g00-B: verified, 144 rows, spot-check 4 OK",
   "2026-10-22T20:36:03Z g00 phase SELECTED: final: e00-01, e00-03, starter, e00-02, e00-00",
@@ -13822,10 +14307,12 @@
   "2026-10-23T22:25:34Z g05 phase EVAL_C_DONE: results for g05-C",
   "2026-10-23T22:25:43Z g05 g05-C-spot: pushed 72914358b4 (4 sampled games, 4 shards)",
   "2026-10-23T22:27:59Z g05 g05-C: verified, 144 rows, spot-check 4 OK",
-  "2026-10-23T22:28:09Z g05 phase SELECTED: final: e05-05, e05-01, e05-02, e05-06, e04-06, e05-04, e05-07, e05-03, e03-07, e02-01, starter"
+  "2026-10-23T22:28:09Z g05 phase SELECTED: final: e05-05, e05-01, e05-02, e05-06, e04-06, e05-04, e05-07, e05-03, e03-07, e02-01, starter",
+  "2026-10-23T22:28:18Z g05 survivors ['e05-05', 'e05-01'], hall of fame ['e00-01', 'e01-01', 'e02-01', 'e03-07', 'e04-06', 'e05-05']",
+  "2026-10-23T22:28:18Z g06 phase PLANNED: 8 slots"
  ],
  "paused": null,
- "phase": "SELECTED",
+ "phase": "PLANNED",
  "sessions_launched": 35,
  "version": 1
 }
