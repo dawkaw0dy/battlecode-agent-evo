@@ -658,8 +658,8 @@
   },
   "e02-06": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evo-task-e02-06-jsx32t",
+   "commit": "f425e96625c8589ba76c6eed9ed6291c146dfa01",
    "deadline_minutes": 40,
    "evidence": [
     {
@@ -722,7 +722,7 @@
    ],
    "slot": 6,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "43f2ec068a05b52eda0fc0689164698f27409c480ff27b928e1781a02fb2a7ba"
   },
   "e02-07": {
@@ -2490,10 +2490,12 @@
   "2026-10-23T15:36:32Z g02 e02-04: done on origin/claude/evo-task-e02-04-6a2a78 at a959a28897",
   "2026-10-23T15:36:51Z g02 e02-07: launched session_01M9L1D2zya1bu4rmtJFnsFU",
   "2026-10-23T15:41:31Z g02 e02-05: done on origin/claude/evolution-agent-e02-05-y14832 at 440ea02faa",
-  "2026-10-23T15:44:17Z g02 e02-07: done on origin/claude/evo-e02-07-task-2enk5t at eb2baf65ff"
+  "2026-10-23T15:44:17Z g02 e02-07: done on origin/claude/evo-e02-07-task-2enk5t at eb2baf65ff",
+  "2026-10-23T15:46:51Z g02 e02-06: done on origin/claude/evo-task-e02-06-jsx32t at f425e96625",
+  "2026-10-23T15:46:51Z g02 phase ADMITTED"
  ],
  "paused": null,
- "phase": "RUNNING",
+ "phase": "ADMITTED",
  "sessions_launched": 14,
  "version": 1
 }
