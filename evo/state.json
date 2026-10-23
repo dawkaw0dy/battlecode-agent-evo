@@ -589,8 +589,8 @@
   },
   "e02-05": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evolution-agent-e02-05-y14832",
+   "commit": "440ea02faab35e27e54c9ac713fb603e15f883e4",
    "deadline_minutes": 40,
    "evidence": [
     {
@@ -653,7 +653,7 @@
    ],
    "slot": 5,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "f74931cfb923b79f9607f60b54666cac4b569e5dbfa385f0a7b581656624451b"
   },
   "e02-06": {
@@ -2488,7 +2488,8 @@
   "2026-10-23T15:34:10Z g02 e02-06: launched session_01K1MYdbV6QJfzd7vrDX9FwB",
   "2026-10-23T15:36:30Z g02 e02-01: done on origin/claude/evo-e02-01-0bcmc8 at 7cbde6db6c",
   "2026-10-23T15:36:32Z g02 e02-04: done on origin/claude/evo-task-e02-04-6a2a78 at a959a28897",
-  "2026-10-23T15:36:51Z g02 e02-07: launched session_01M9L1D2zya1bu4rmtJFnsFU"
+  "2026-10-23T15:36:51Z g02 e02-07: launched session_01M9L1D2zya1bu4rmtJFnsFU",
+  "2026-10-23T15:41:31Z g02 e02-05: done on origin/claude/evolution-agent-e02-05-y14832 at 440ea02faa"
  ],
  "paused": null,
  "phase": "RUNNING",
