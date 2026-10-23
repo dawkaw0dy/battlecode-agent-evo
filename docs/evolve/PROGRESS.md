@@ -5,6 +5,8 @@
 
 **Since M5:** D35 spot-check on Actions; the app (`python -m evo run`) with dashboard, ETAs and approval prompts;
 repo cleanup (test branches, files and results removed); D36 effort `high` via the evo environment (H8 done).
+D37 (2026-10-23): 5-hour push, unattended (require_approval false, max_parallel 7, max_generations 8, cap 50,
+immigrants 0 from gen 04); `python -m evo best`; D38 emergency stop `evo-stop.cmd`.
 First thing to check in generation 03: the app's Agents list should show `effort high` (from the agents' fingerprints).
 
 **Since M4:** `local_game_budget` 120 → 400 (D32, owner).
