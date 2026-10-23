@@ -2202,9 +2202,11 @@
   },
   "e05-06": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evo-task-e05-06-2un8bc",
+   "commit": "12ce1be4d6d8dc785554c78326518b0a96f53618",
    "deadline_minutes": 40,
+   "done_at": 1792792617,
+   "effort_level": "high",
    "evidence": [
     {
      "gems_opponent": 1008,
@@ -2252,6 +2254,7 @@
    "generation": 5,
    "id": "e05-06",
    "kind": "child",
+   "model": null,
    "nudged": [],
    "operator": "subsystem",
    "parents": [
@@ -2271,7 +2274,7 @@
    ],
    "slot": 6,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "b3714864caffbbee358c99cf6636578f454c19161328b1f36459b3b3c79189eb"
   },
   "e05-07": {
@@ -11154,7 +11157,8 @@
   "2026-10-23T21:48:14Z g05 e05-05: launched session_01RY3mhEFKsnG9d1ajCtHwTA",
   "2026-10-23T21:48:27Z g05 e05-06: launched session_01T4wektGaWU5pXTsMKfxuL3",
   "2026-10-23T21:48:38Z g05 e05-07: launched session_01KgvLQoLt6Dvsm8LJNG2xh2",
-  "2026-10-23T21:55:38Z g05 e05-03: done on origin/claude/evo-task-e05-03-dy4d4f at c60a10b1b7"
+  "2026-10-23T21:55:38Z g05 e05-03: done on origin/claude/evo-task-e05-03-dy4d4f at c60a10b1b7",
+  "2026-10-23T21:56:57Z g05 e05-06: done on origin/claude/evo-task-e05-06-2un8bc at 12ce1be4d6"
  ],
  "paused": null,
  "phase": "RUNNING",
