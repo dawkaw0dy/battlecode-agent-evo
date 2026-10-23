@@ -1,0 +1,138 @@
+{
+ "env_manifest_sha256": "3c73f1895b22a05b348f5335b483965e0f71899e52614e48f4b27d7b4edd8a63",
+ "generation": 3,
+ "job_id": "g03-A-spot",
+ "map_sha256": {
+  "00collision": "6e3c67956080f8da5a0042e68ea481189cd6f61061a742a8be0354a9ea5c5620",
+  "00corners": "97906cc38f503e027c041b681a877465519b3fcb19a410c316cf6efc40c909ea",
+  "00fragment": "46512bf4fe1fc57d1651b15d44c283cac69cfce1914a5000d19fab979f5b8bbb",
+  "00gem-fields": "80af89f07723d23d822ddc858616a0156ae60f9d41ffd8bd9105f924379677b5",
+  "00monolith": "ba5674bf2ab26336eb99df0c9e97c16b27bd231deffc023de1d873a05a558313",
+  "00packs": "60ee7a86ee377a04a77d11008b78aaed9e2c1cfcfc4302055974195e078c675a",
+  "00pilgrimage": "7d7ddb9c37c77cd8b3721423e155400d936eaa76fa3c62fe24b308d0fd5eb673",
+  "00road-of-riches": "8365e18788720a079a906c0430e809317236acecccf888b517a1de409689b049",
+  "00rows": "6a4203ae1bfe86ad0f6b083f390cfd8e2f5e45f7e4102f6a2f27205d5333e701",
+  "00stampede": "49807e4756ec1b2030ed2ca7ebdd8a07f1a6ed7f2d2bd751e6941f5c0c877cdc",
+  "01boss-battle": "53086e249294aed6f427fe647d578303589a081e953c62a0ff8f20cade9993fa"
+ },
+ "runner_version": "cambc==3.0.5",
+ "runs_on": "ubuntu-22.04",
+ "shards": [
+  {
+   "a": "e03-01",
+   "b": "e01-01",
+   "maps": [
+    "00gem-fields"
+   ]
+  },
+  {
+   "a": "e03-02",
+   "b": "e01-01",
+   "maps": [
+    "00packs",
+    "00stampede"
+   ]
+  },
+  {
+   "a": "e03-02",
+   "b": "starter",
+   "maps": [
+    "00collision"
+   ]
+  },
+  {
+   "a": "e03-03",
+   "b": "e01-01",
+   "maps": [
+    "00collision"
+   ]
+  },
+  {
+   "a": "e03-03",
+   "b": "e02-01",
+   "maps": [
+    "00corners"
+   ]
+  },
+  {
+   "a": "e03-03",
+   "b": "starter",
+   "maps": [
+    "00fragment"
+   ]
+  },
+  {
+   "a": "e03-04",
+   "b": "e01-01",
+   "maps": [
+    "00pilgrimage"
+   ]
+  },
+  {
+   "a": "e03-04",
+   "b": "e02-01",
+   "maps": [
+    "00packs",
+    "01boss-battle"
+   ]
+  },
+  {
+   "a": "e03-05",
+   "b": "e00-01",
+   "maps": [
+    "00corners"
+   ]
+  },
+  {
+   "a": "e03-06",
+   "b": "e00-01",
+   "maps": [
+    "00road-of-riches"
+   ]
+  },
+  {
+   "a": "e03-06",
+   "b": "e01-01",
+   "maps": [
+    "00rows"
+   ]
+  },
+  {
+   "a": "e03-06",
+   "b": "starter",
+   "maps": [
+    "01boss-battle"
+   ]
+  },
+  {
+   "a": "e03-07",
+   "b": "e02-01",
+   "maps": [
+    "00road-of-riches",
+    "01boss-battle"
+   ]
+  },
+  {
+   "a": "e03-07",
+   "b": "starter",
+   "maps": [
+    "00monolith",
+    "00road-of-riches"
+   ]
+  }
+ ],
+ "src_sha256": {
+  "e00-01": "cbd4ba2fc21f3d089b6fec75fb22e9c7d01c1a88d45c80bafb950bcdc86ad132",
+  "e01-01": "4aaba25b8aa31d9086f29d08355d2eaf32f67e68dfe0f5991ef5f67dd75be75d",
+  "e02-01": "d5892401dd52138a051fc1374ae78de53e8b6a5b59c76ef4ab927c0532d7ebd2",
+  "e03-01": "1b5044609c8079c5b1ed6f1fe3ae807e9e574d6116bdfccbfc269e444520f3fd",
+  "e03-02": "88aa2b36c40fd4866d9fd49443d89cc812cdd59a42a6a62e354feec99906487a",
+  "e03-03": "aab8fb55a618680cc02eead202228a19f5f3ed5f771ba729fc81e6355a4bb89d",
+  "e03-04": "39d1c490a9282edd6281c1287bd43716518a0e35393726b6b32a13e9f74cd485",
+  "e03-05": "1f870f19e42ca87f21f3dac2822d158424b0bad3197db54e0d3b0d22d0da6cf9",
+  "e03-06": "7cc21d2c847c69d3c019949ddb72f439d4661fb9a88a5777b93c3e0d96f4b9be",
+  "e03-07": "f933e39944c9917bc49c0ff3a8ecb616c30c837f178f8fcffc7b4163ff47187d",
+  "starter": "9023e6a089796897d6ed661f26054d1b81b298e048a09a5df75d3b9cb5d3c6a9"
+ },
+ "stage": "spot"
+}
