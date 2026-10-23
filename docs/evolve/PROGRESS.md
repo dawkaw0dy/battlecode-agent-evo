@@ -1,13 +1,12 @@
 # Progress
 
-**Milestone:** M5 in progress. **Stop point:** generation 02 (7 sessions) waits for the owner's yes (`approve 02`).
+**Milestone:** M5 done (2026-10-23, docs/evolve/M5.md). All milestones M0–M5 are done.
+The real run (`evo/state.json`) is paused after generation 02: survivors e02-01, e02-05; hall of fame
+[e00-01, e01-01, e02-01]; 14 of 15 run sessions used (25 cloud sessions overall).
 
-**M5 so far**
-- H7 done; private repo `dawkaw0dy/battlecode-agent-evo-heldout` has the generator and 24 maps (`ac09548`), cloned at `heldout/`.
-- Free Actions test `m5-heldout`: 6/6 rows identical to the local run (2 held-out maps); held-out shard published no replays.
-- D33 (held-out, Stage C), D34 (n = 8, cap 15, gen 02 only, `resume`). Real run resumed; gen 02 planned:
-  elite e01-01; children e02-01..04 of e01-01, e02-05..06 of e00-01; immigrant e02-07 (big-game-hunter).
-  Observation: e02-01/e02-04 (tweak/combat) and e02-02/e02-03 (subsystem/opening) got identical briefs.
+**To continue:** raise `[run].max_generations` and `[agents].max_sessions_total`, then `python -m evo resume --reason …`
+and `python -m evo step` → the approval gate for generation 03 (7 sessions at n = 8).
+**Possible follow-ups:** a parallel local spot-check (33 games took about 48 min); re-draw duplicate briefs (the owner declined for gen 02).
 
 **Since M4:** `local_game_budget` 120 → 400 (D32, owner).
 
