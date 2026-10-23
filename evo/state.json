@@ -999,9 +999,11 @@
   },
   "e03-04": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evo-task-e03-04-me44i5",
+   "commit": "91e9174de225ef885603bb43e409c99ce6583eed",
    "deadline_minutes": 40,
+   "done_at": 1792788423,
+   "effort_level": "high",
    "evidence": [
     {
      "gems_opponent": 1044,
@@ -1049,6 +1051,7 @@
    "generation": 3,
    "id": "e03-04",
    "kind": "child",
+   "model": null,
    "nudged": [],
    "operator": "tweak",
    "parents": [
@@ -1068,14 +1071,16 @@
    ],
    "slot": 4,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "02352c7070c9e2b7bfe32ccf43d8d6154501d1f2921b9d98894b90f3cf9486d2"
   },
   "e03-05": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evo-task-e03-05-f45831",
+   "commit": "010dd1b7cc4300c37b64aa67eea176f07c1d4248",
    "deadline_minutes": 40,
+   "done_at": 1792788426,
+   "effort_level": "high",
    "evidence": [
     {
      "gems_opponent": 1645,
@@ -1123,6 +1128,7 @@
    "generation": 3,
    "id": "e03-05",
    "kind": "child",
+   "model": null,
    "nudged": [],
    "operator": "radical",
    "parents": [
@@ -1142,7 +1148,7 @@
    ],
    "slot": 5,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "926e35b11811a6012dd0957f21c9453e9c42801525bb75cb28aca53ae52f09aa"
   },
   "e03-06": {
@@ -4968,7 +4974,9 @@
   "2026-10-23T20:40:23Z g03 e03-02: done on origin/claude/evolution-agent-e03-02-dkml5r at 85095575c3",
   "2026-10-23T20:40:30Z g03 e03-07: done on origin/claude/evolution-agent-e03-07-wm8ys8 at d0abc7e481",
   "2026-10-23T20:42:51Z g03 e03-01: done on origin/claude/evo-e03-01-pzt7n9 at b140347206",
-  "2026-10-23T20:45:42Z g03 e03-06: done on origin/claude/evo-task-e03-06-ayvs5r at 086cc3c200"
+  "2026-10-23T20:45:42Z g03 e03-06: done on origin/claude/evo-task-e03-06-ayvs5r at 086cc3c200",
+  "2026-10-23T20:47:03Z g03 e03-04: done on origin/claude/evo-task-e03-04-me44i5 at 91e9174de2",
+  "2026-10-23T20:47:06Z g03 e03-05: done on origin/claude/evo-task-e03-05-f45831 at 010dd1b7cc"
  ],
  "paused": null,
  "phase": "RUNNING",
