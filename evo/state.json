@@ -5618,12 +5618,14 @@
    "status": "verified"
   },
   "g03-A": {
+   "arrived_at": 1792788835,
    "generation": 3,
    "pushed_at": 1792788698,
    "pushed_commit": "aa3dce6ac0275704824a4d53ed156d6920d42ab5",
+   "results_commit": "81535eb6af61d5cba2b91e4bfcd8a3951355bee3",
    "retries": 0,
    "stage": "A",
-   "status": "pending"
+   "status": "arrived"
   }
  },
  "launch_errors_in_a_row": 0,
@@ -5756,10 +5758,11 @@
   "2026-10-23T20:51:16Z g03 e03-06: admitted (7cc21d2c847c)",
   "2026-10-23T20:51:21Z g03 e03-07: admitted (f933e39944c9)",
   "2026-10-23T20:51:29Z g03 phase EVAL_A_PENDING",
-  "2026-10-23T20:51:38Z g03 g03-A: pushed aa3dce6ac0 with 28 shards"
+  "2026-10-23T20:51:38Z g03 g03-A: pushed aa3dce6ac0 with 28 shards",
+  "2026-10-23T20:53:55Z g03 phase EVAL_A_DONE: results for g03-A"
  ],
  "paused": null,
- "phase": "EVAL_A_PENDING",
+ "phase": "EVAL_A_DONE",
  "sessions_launched": 21,
  "version": 1
 }
