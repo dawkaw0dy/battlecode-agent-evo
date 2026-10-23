@@ -4876,9 +4876,10 @@
   "2026-10-23T17:00:07Z g02 PAUSED: generation 02 selected; max_generations=3 reached",
   "2026-10-23T18:34:54Z g02 resumed (max_generations is now 5 in evo/config.toml); was paused: generation 02 selected; max_generations=3 reached",
   "2026-10-23T18:34:59Z g03 phase PLANNED: 8 slots",
-  "2026-10-23T18:35:05Z g03 phase TASKS_PUSHED: 7 task files"
+  "2026-10-23T18:35:05Z g03 phase TASKS_PUSHED: 7 task files",
+  "2026-10-23T18:35:17Z g03 PAUSED: cannot launch: working tree is not clean"
  ],
- "paused": null,
+ "paused": "cannot launch: working tree is not clean",
  "phase": "TASKS_PUSHED",
  "sessions_launched": 14,
  "version": 1
