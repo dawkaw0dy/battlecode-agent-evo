@@ -6927,12 +6927,14 @@
    "status": "verified"
   },
   "g03-B": {
+   "arrived_at": 1792789276,
    "generation": 3,
    "pushed_at": 1792789004,
    "pushed_commit": "910c01ffae74a847d056ffef4afd98ccc0c94ed6",
+   "results_commit": "c6d343dfffe17e3c2cf565c8ef350e68dffaff3d",
    "retries": 0,
    "stage": "B",
-   "status": "pending"
+   "status": "arrived"
   }
  },
  "launch_errors_in_a_row": 0,
@@ -7070,10 +7072,11 @@
   "2026-10-23T20:54:05Z g03 g03-A-spot: pushed 6fc5beeeda (18 sampled games, 14 shards)",
   "2026-10-23T20:56:24Z g03 g03-A: verified, 896 rows, spot-check 18 OK",
   "2026-10-23T20:56:32Z g03 phase EVAL_B_PENDING: stage A ranked: e03-05, e03-07, e03-03, e03-04, e03-01, e03-06, e03-02, e02-01, e01-01, e00-01, starter",
-  "2026-10-23T20:56:44Z g03 g03-B: pushed 910c01ffae with 44 shards"
+  "2026-10-23T20:56:44Z g03 g03-B: pushed 910c01ffae with 44 shards",
+  "2026-10-23T21:01:16Z g03 phase EVAL_B_DONE: results for g03-B"
  ],
  "paused": null,
- "phase": "EVAL_B_PENDING",
+ "phase": "EVAL_B_DONE",
  "sessions_launched": 21,
  "version": 1
 }
