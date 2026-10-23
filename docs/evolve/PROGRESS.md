@@ -1,13 +1,13 @@
 # Progress
 
-**Milestone:** M5 in progress. **Waiting on owner: H7** (private held-out repo, 2 deploy keys, 1 secret; SETUP.md).
+**Milestone:** M5 in progress. **Stop point:** generation 02 (7 sessions) waits for the owner's yes (`approve 02`).
 
-**M5 so far** (owner: n = 8, deadline 40 min, 1 generation = gen 02, held-out pool now)
-- D33: held-out support in jobs/workflow/verification, Stage C phases; 60 tests pass (`8fb4058`).
-- Generator + 24 accepted maps ready in this session's scratchpad (`heldout-src/`: genmaps.mjs, make_pool.py, maps/).
-  Keys `~/.ssh/evo_heldout_pc` (write, PC) and `~/.ssh/evo_heldout_actions` (read, for the secret) generated.
-- After H7: push heldout-src to the private repo over SSH, clone to `heldout/`, set `heldout_pool`, free Actions test job,
-  then config n = 8, cap 15, `max_generations = 3`, step → gen 02 approval (7 sessions).
+**M5 so far**
+- H7 done; private repo `dawkaw0dy/battlecode-agent-evo-heldout` has the generator and 24 maps (`ac09548`), cloned at `heldout/`.
+- Free Actions test `m5-heldout`: 6/6 rows identical to the local run (2 held-out maps); held-out shard published no replays.
+- D33 (held-out, Stage C), D34 (n = 8, cap 15, gen 02 only, `resume`). Real run resumed; gen 02 planned:
+  elite e01-01; children e02-01..04 of e01-01, e02-05..06 of e00-01; immigrant e02-07 (big-game-hunter).
+  Observation: e02-01/e02-04 (tweak/combat) and e02-02/e02-03 (subsystem/opening) got identical briefs.
 
 **Since M4:** `local_game_budget` 120 → 400 (D32, owner).
 
