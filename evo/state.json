@@ -11747,13 +11747,19 @@
    "pushed_commit": "31d21ff50f6dbd18264853eb0373413beaed3151",
    "results_commit": "05186b5caeccaffc603361bc6698ae3c5e1b67ad",
    "retries": 0,
+   "spotcheck": {
+    "games": 18,
+    "job": "g05-A-spot",
+    "pushed_at": 1792793612,
+    "pushed_commit": "698f4c101ea8e077407f0cdb0154e109d961c14e",
+    "status": "pending"
+   },
    "stage": "A",
    "status": "arrived"
   }
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-22T20:12:21Z g00 e00-03: done on origin/claude/evo-task-e00-03-vpwxj8 at ccda13ad37",
   "2026-10-22T20:14:33Z g00 e00-00: done on origin/claude/evo-task-e00-00-3kq51g at 23238ed0fb",
   "2026-10-22T20:14:34Z g00 e00-01: done on origin/claude/evo-e00-01-kjcv96 at c1b5c1182d",
   "2026-10-22T20:16:50Z g00 e00-02: done on origin/claude/evolution-agent-e00-02-ph0msk at 1c1ef5d256",
@@ -11952,7 +11958,8 @@
   "2026-10-23T22:10:53Z g05 e05-07: admitted (f58ae47d77ec)",
   "2026-10-23T22:11:00Z g05 phase EVAL_A_PENDING",
   "2026-10-23T22:11:09Z g05 g05-A: pushed 31d21ff50f with 28 shards",
-  "2026-10-23T22:13:22Z g05 phase EVAL_A_DONE: results for g05-A"
+  "2026-10-23T22:13:22Z g05 phase EVAL_A_DONE: results for g05-A",
+  "2026-10-23T22:13:32Z g05 g05-A-spot: pushed 698f4c101e (18 sampled games, 14 shards)"
  ],
  "paused": null,
  "phase": "EVAL_A_DONE",
