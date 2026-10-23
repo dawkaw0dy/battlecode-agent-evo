@@ -1,0 +1,4 @@
+{"agent": "e02-02", "task_sha256": "7a7122fedcdf037572d14a48e2fab54a83338071e78c9661e7469a85736213a5", "base_commit": "91989db6a3bbafd8f6e0cec2c58081794d8452cc",
+ "session_id": "cse_01B5rfyHftDm6rKzHS9MAH8z", "bot_dir": "bots/e02-02",
+ "self_eval": {"vs": "e00-01", "games": 24, "wins": 13}, "games_played": 216,
+ "summary": "Rewrote the draft as map-aware champion ratings (Vendetta, Vesper, Willow, Marcella first; map shares adjust Ryth/Varg/C&I); vs parent 15/24, vs starter 15/16"}
