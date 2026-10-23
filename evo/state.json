@@ -8828,12 +8828,14 @@
    "status": "verified"
   },
   "g04-A": {
+   "arrived_at": 1792791440,
    "generation": 4,
    "pushed_at": 1792791303,
    "pushed_commit": "1a82eef52ad9e6bd8725aa33c67a8499a1a388eb",
+   "results_commit": "060400b1a8a0f62b82b16551e41f04d032e28764",
    "retries": 0,
    "stage": "A",
-   "status": "pending"
+   "status": "arrived"
   }
  },
  "launch_errors_in_a_row": 0,
@@ -9008,10 +9010,11 @@
   "2026-10-23T21:34:38Z g04 e04-06: admitted (6b321650e9c7)",
   "2026-10-23T21:34:44Z g04 e04-07: admitted (9d7e7099aa47)",
   "2026-10-23T21:34:52Z g04 phase EVAL_A_PENDING",
-  "2026-10-23T21:35:03Z g04 g04-A: pushed 1a82eef52a with 25 shards"
+  "2026-10-23T21:35:03Z g04 g04-A: pushed 1a82eef52a with 25 shards",
+  "2026-10-23T21:37:20Z g04 phase EVAL_A_DONE: results for g04-A"
  ],
  "paused": null,
- "phase": "EVAL_A_PENDING",
+ "phase": "EVAL_A_DONE",
  "sessions_launched": 28,
  "version": 1
 }
