@@ -1,0 +1,27 @@
+{
+ "agent": "e04-05",
+ "task_sha256": "48e6a7ddc008c87c0e0be5947a68b84bb3f60f6f0bc9161355d88e0259a77799",
+ "base_commit": "e87febd54670ff0a279c33e1e70b5f2e08166dbc",
+ "session_id": "cse_01QdHrpk74MR8gNhKCsCfXn4",
+ "bot_dir": "bots/e04-05",
+ "self_eval": {
+  "vs": "e02-01",
+  "games": 24,
+  "wins": 17
+ },
+ "games_played": 277,
+ "summary": "Parent e03-07 plus a strict chase rule (enemy within 3 tiles below 30% HP while we are above 60%); 4 other combat tweaks measured and reverted",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "3c73f1895b22a05b348f5335b483965e0f71899e52614e48f4b27d7b4edd8a63",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 20.97,
+  "remote": "true",
+  "session_id": "cse_01QdHrpk74MR8gNhKCsCfXn4",
+  "effort_level": "high",
+  "model": null
+ }
+}

@@ -1,0 +1,27 @@
+{
+ "agent": "e04-01",
+ "task_sha256": "874c453f4f6f486ed0d65f5298a7c3593bcdd8d1defa0f5ef40ef2a60328ce2f",
+ "base_commit": "e87febd54670ff0a279c33e1e70b5f2e08166dbc",
+ "session_id": "cse_018Z2bxbonNVFf4ZjcJu9xj4",
+ "bot_dir": "bots/e04-01",
+ "self_eval": {
+  "vs": "e03-07",
+  "games": 8,
+  "wins": 3
+ },
+ "games_played": 106,
+ "summary": "Parent e03-07 plus a map-adaptive draft-memory plan: bank threshold grows with spawn-to-altar distance (floor 20), relock interval 180 on big maps; no-warden on 3-champion maps tried and reverted.",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "3c73f1895b22a05b348f5335b483965e0f71899e52614e48f4b27d7b4edd8a63",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 19.85,
+  "remote": "true",
+  "session_id": "cse_018Z2bxbonNVFf4ZjcJu9xj4",
+  "effort_level": "high",
+  "model": null
+ }
+}

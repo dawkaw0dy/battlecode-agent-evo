@@ -1,0 +1,27 @@
+{
+ "agent": "e04-07",
+ "task_sha256": "945d1d46a2f6feb55eee90108ee98ac58b1b8e1efd43c1113f8146cef37e28b6",
+ "base_commit": "6abbf4232330148c974266e4d6570a830239b26f",
+ "session_id": "cse_01Q3m1GEnGFU2id45ELfA3Lz",
+ "bot_dir": "bots/e04-07",
+ "self_eval": {
+  "vs": "e03-07",
+  "games": 12,
+  "wins": 7
+ },
+ "games_played": 96,
+ "summary": "Altar control + draft-precomputed opening (map-aware picks, clearing route and lock order in draft memory); lock-aware banking fixes 0-gem losses to e03-07",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "3c73f1895b22a05b348f5335b483965e0f71899e52614e48f4b27d7b4edd8a63",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 21.31,
+  "remote": "true",
+  "session_id": "cse_01Q3m1GEnGFU2id45ELfA3Lz",
+  "effort_level": "high",
+  "model": null
+ }
+}

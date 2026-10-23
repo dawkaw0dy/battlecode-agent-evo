@@ -1,0 +1,27 @@
+{
+ "agent": "e04-06",
+ "task_sha256": "8f053162d544c472ecfafbd766a3d36f878c8349f251bff61fd62d601af8a3fb",
+ "base_commit": "e87febd54670ff0a279c33e1e70b5f2e08166dbc",
+ "session_id": "cse_01E8W975zPs2ne7iSkF4TwKX",
+ "bot_dir": "bots/e04-06",
+ "self_eval": {
+  "vs": "e03-07",
+  "games": 8,
+  "wins": 6
+ },
+ "games_played": 78,
+ "summary": "Defense rewrite: break enemy altar locks, carry/place our own locks, safe tribute timing and earlier banking; vs e03-07 1/8 -> 6/8",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "3c73f1895b22a05b348f5335b483965e0f71899e52614e48f4b27d7b4edd8a63",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 19.29,
+  "remote": "true",
+  "session_id": "cse_01E8W975zPs2ne7iSkF4TwKX",
+  "effort_level": "high",
+  "model": null
+ }
+}

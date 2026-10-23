@@ -1,0 +1,27 @@
+{
+ "agent": "e04-04",
+ "task_sha256": "e400947132c782771bdba31bd8fe5508dc241f22ba370ae1525c087d949d6852",
+ "base_commit": "e87febd54670ff0a279c33e1e70b5f2e08166dbc",
+ "session_id": "cse_018vKLHGHHhbEQDyVq8SYas2",
+ "bot_dir": "bots/e04-04",
+ "self_eval": {
+  "vs": "e03-07",
+  "games": 16,
+  "wins": 13
+ },
+ "games_played": 161,
+ "summary": "Camp subsystem rewrite: per-group HP/reward/respawn memory, reward-per-turn scoring with health-budget danger, wait beside (not on) respawning groups, fuel-safe group scan; 13/16 vs parent.",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "3c73f1895b22a05b348f5335b483965e0f71899e52614e48f4b27d7b4edd8a63",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 16.11,
+  "remote": "true",
+  "session_id": "cse_018vKLHGHHhbEQDyVq8SYas2",
+  "effort_level": "high",
+  "model": null
+ }
+}
