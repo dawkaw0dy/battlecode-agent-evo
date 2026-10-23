@@ -1,0 +1,27 @@
+{
+ "agent": "e03-03",
+ "task_sha256": "d76d960c4addd2c816fb1d19c7106fbd2fcda5dd777d7f1886f34a24a0dc05be",
+ "base_commit": "e923918136dbbcc41a8c75b12c6a785982701231",
+ "session_id": "cse_01Rpx6Rmz9aQKrcDhHgWQ18w",
+ "bot_dir": "bots/e03-03",
+ "self_eval": {
+  "vs": "e02-01",
+  "games": 16,
+  "wins": 10
+ },
+ "games_played": 236,
+ "summary": "Draft Willow 3rd (before Vendetta); cut choose_group fuel (cached group data, full re-score every 4 rounds) to stop mid-turn suspensions and engine error 5",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "a9eaccf0f58ec5cd8cb2e4d598c0ade507ad69916af70ec283b3e53031d612f6",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 8.34,
+  "remote": "true",
+  "session_id": "cse_01Rpx6Rmz9aQKrcDhHgWQ18w",
+  "effort_level": "high",
+  "model": null
+ }
+}
