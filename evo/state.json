@@ -4421,9 +4421,10 @@
   "2026-10-23T16:59:43Z g02 g02-B: verified, 1632 rows, spot-check 33 OK",
   "2026-10-23T16:59:56Z g02 phase SELECTED: final: e02-01, e02-05, e02-02, e02-06, e02-03, e01-01, e00-01, e02-04, e02-07, starter",
   "2026-10-23T17:00:07Z g02 survivors ['e02-01', 'e02-05'], hall of fame ['e00-01', 'e01-01', 'e02-01']",
-  "2026-10-23T17:00:07Z g02 PAUSED: generation 02 selected; max_generations=3 reached"
+  "2026-10-23T17:00:07Z g02 PAUSED: generation 02 selected; max_generations=3 reached",
+  "2026-10-23T18:34:54Z g02 resumed (max_generations is now 5 in evo/config.toml); was paused: generation 02 selected; max_generations=3 reached"
  ],
- "paused": "generation 02 selected; max_generations=3 reached",
+ "paused": null,
  "phase": "SELECTED",
  "sessions_launched": 14,
  "version": 1
