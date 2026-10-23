@@ -2434,7 +2434,7 @@
    "slot": 1,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "b42b92f8822cd9c014727fe0d27acd549c8be8484163e4188c3b133ab33a44b8"
   },
   "e06-02": {
    "archetype": null,
@@ -2500,7 +2500,7 @@
    "slot": 2,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "85eea0ea519a3fa9db6232c75622c22a44b7302b54cfd9e9e9f194c7ad86c4f6"
   },
   "e06-03": {
    "archetype": null,
@@ -2565,7 +2565,7 @@
    "slot": 3,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "9eb177c075359419841723bf287219219e028127604d88554305c5e0b3b389ab"
   },
   "e06-04": {
    "archetype": null,
@@ -2631,7 +2631,7 @@
    "slot": 4,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "ed609e4930dbb962625a90244b797b1f66ebc4505dafe16c1bc93f4a8ec9370e"
   },
   "e06-05": {
    "archetype": null,
@@ -2696,7 +2696,7 @@
    "slot": 5,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "13e6c6f912feb153b2d118efd3f2c7fad8a5d3527b060dfb21c6e80a61d21193"
   },
   "e06-06": {
    "archetype": null,
@@ -2761,7 +2761,7 @@
    "slot": 6,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "957f5ff42875480c2bda12a3c17e5494b1a8adfa770760f501af4d6b5a97a55c"
   },
   "e06-07": {
    "archetype": null,
@@ -2827,7 +2827,7 @@
    "slot": 7,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "7857698e08cb6715c18ffa9cd67dc28ba30be520b56b2ff0fdd9ee2ce9855452"
   }
  },
  "generation": 6,
@@ -14110,7 +14110,6 @@
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-22T20:30:27Z g00 phase EVAL_B_DONE: results for g00-B",
   "2026-10-22T20:35:59Z g00 g00-B: verified, 144 rows, spot-check 4 OK",
   "2026-10-22T20:36:03Z g00 phase SELECTED: final: e00-01, e00-03, starter, e00-02, e00-00",
   "2026-10-22T20:36:09Z g00 survivors ['e00-01', 'e00-03'], hall of fame ['e00-01']",
@@ -14309,10 +14308,11 @@
   "2026-10-23T22:27:59Z g05 g05-C: verified, 144 rows, spot-check 4 OK",
   "2026-10-23T22:28:09Z g05 phase SELECTED: final: e05-05, e05-01, e05-02, e05-06, e04-06, e05-04, e05-07, e05-03, e03-07, e02-01, starter",
   "2026-10-23T22:28:18Z g05 survivors ['e05-05', 'e05-01'], hall of fame ['e00-01', 'e01-01', 'e02-01', 'e03-07', 'e04-06', 'e05-05']",
-  "2026-10-23T22:28:18Z g06 phase PLANNED: 8 slots"
+  "2026-10-23T22:28:18Z g06 phase PLANNED: 8 slots",
+  "2026-10-23T22:28:22Z g06 phase TASKS_PUSHED: 7 task files"
  ],
  "paused": null,
- "phase": "PLANNED",
+ "phase": "TASKS_PUSHED",
  "sessions_launched": 35,
  "version": 1
 }
