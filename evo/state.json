@@ -377,7 +377,7 @@
    ],
    "slot": 1,
    "src_sha256": "d5892401dd52138a051fc1374ae78de53e8b6a5b59c76ef4ab927c0532d7ebd2",
-   "status": "rated",
+   "status": "admitted",
    "task_sha256": "ac66fa735705f32bd9892371507a291c59073d4698760626e421085801f905aa"
   },
   "e02-02": {
@@ -768,9 +768,439 @@
    "src_sha256": "c7ce11d12c15d2517f0a5f29fd07f49b093d634938aa243dd9ba734837725b71",
    "status": "rated",
    "task_sha256": "b300f581f6d251c24061cb94a7374c3f3e4cea5c7adc05be0d2d9985106377f6"
+  },
+  "e03-01": {
+   "archetype": null,
+   "branch": null,
+   "commit": null,
+   "deadline_minutes": 40,
+   "evidence": [
+    {
+     "gems_opponent": 1044,
+     "gems_parent": 36,
+     "map": "01elk-arena",
+     "opponent": "e02-05",
+     "rounds": 1443,
+     "side": "B"
+    },
+    {
+     "gems_opponent": 1001,
+     "gems_parent": 66,
+     "map": "01hooks",
+     "opponent": "e02-05",
+     "rounds": 1042,
+     "side": "B"
+    },
+    {
+     "gems_opponent": 1002,
+     "gems_parent": 98,
+     "map": "00quadrants",
+     "opponent": "e02-05",
+     "rounds": 843,
+     "side": "B"
+    }
+   ],
+   "failed_ideas": [
+    "e01-01: Starter step selection `field.get(tile) < field.get(step)` picks blocked/unreached tiles (they read 0): \"Known occupied",
+    "e01-01: destination\". Fix: only step to tiles that are free and in `visited`.",
+    "e01-01: Iterating `vision::champions()/camps()` handles and calling health()/is_alive() throws \"No visible entity\" when the",
+    "e01-01: unit died this turn; scan `champion_tiles()/camp_tiles()` and use `champion_at/camp_at` instead.",
+    "e01-01: Attack-reset abilities throw \"An available attack cannot be reset\" in cases `can_attack()` does not reveal; resets disabled.",
+    "e01-01: After a move returns false (hidden unit), moving again the same turn throws: stop walking for the turn.",
+    "e01-01: Hard danger filter (skip groups) left champions idle on 01big-world/00lanes; softened to a x0.05 score factor (small gain).",
+    "e01-01: e01-01: Tribute before fighting when next to an unlocked altar with >= 5 gems: +761 vs +1331 (lost 00lanes B). Reverted.",
+    "e01-01: e01-01: Recall at 45% HP: 7/12 but -347 total margin (less farming time). Reverted.",
+    "e01-01: e01-01: Recall at 28% HP: 6/12, +961, below the 35% baseline. Reverted.",
+    "e02-02: Starter step selection `field.get(tile) < field.get(step)` picks blocked/unreached tiles (they read 0): \"Known occupied",
+    "e02-02: destination\". Fix: only step to tiles that are free and in `visited`.",
+    "e02-02: Iterating `vision::champions()/camps()` handles and calling health()/is_alive() throws \"No visible entity\" when the",
+    "e02-02: unit died this turn; scan `champion_tiles()/camp_tiles()` and use `champion_at/camp_at` instead.",
+    "e02-02: Attack-reset abilities throw \"An available attack cannot be reset\" in cases `can_attack()` does not reveal; resets disabled."
+   ],
+   "focus": "camps",
+   "generation": 3,
+   "id": "e03-01",
+   "kind": "child",
+   "nudged": [],
+   "operator": "tweak",
+   "parents": [
+    "e02-01"
+   ],
+   "reason": null,
+   "rng_key": "20261022:3:1",
+   "sessions": [],
+   "slot": 1,
+   "src_sha256": null,
+   "status": "planned",
+   "task_sha256": null
+  },
+  "e03-02": {
+   "archetype": null,
+   "branch": null,
+   "commit": null,
+   "deadline_minutes": 40,
+   "evidence": [
+    {
+     "gems_opponent": 1044,
+     "gems_parent": 36,
+     "map": "01elk-arena",
+     "opponent": "e02-05",
+     "rounds": 1443,
+     "side": "B"
+    },
+    {
+     "gems_opponent": 1001,
+     "gems_parent": 66,
+     "map": "01hooks",
+     "opponent": "e02-05",
+     "rounds": 1042,
+     "side": "B"
+    },
+    {
+     "gems_opponent": 1002,
+     "gems_parent": 98,
+     "map": "00quadrants",
+     "opponent": "e02-05",
+     "rounds": 843,
+     "side": "B"
+    }
+   ],
+   "failed_ideas": [
+    "e01-01: Starter step selection `field.get(tile) < field.get(step)` picks blocked/unreached tiles (they read 0): \"Known occupied",
+    "e01-01: destination\". Fix: only step to tiles that are free and in `visited`.",
+    "e01-01: Iterating `vision::champions()/camps()` handles and calling health()/is_alive() throws \"No visible entity\" when the",
+    "e01-01: unit died this turn; scan `champion_tiles()/camp_tiles()` and use `champion_at/camp_at` instead.",
+    "e01-01: Attack-reset abilities throw \"An available attack cannot be reset\" in cases `can_attack()` does not reveal; resets disabled.",
+    "e01-01: After a move returns false (hidden unit), moving again the same turn throws: stop walking for the turn.",
+    "e01-01: Hard danger filter (skip groups) left champions idle on 01big-world/00lanes; softened to a x0.05 score factor (small gain).",
+    "e01-01: e01-01: Tribute before fighting when next to an unlocked altar with >= 5 gems: +761 vs +1331 (lost 00lanes B). Reverted.",
+    "e01-01: e01-01: Recall at 45% HP: 7/12 but -347 total margin (less farming time). Reverted.",
+    "e01-01: e01-01: Recall at 28% HP: 6/12, +961, below the 35% baseline. Reverted.",
+    "e02-02: Starter step selection `field.get(tile) < field.get(step)` picks blocked/unreached tiles (they read 0): \"Known occupied",
+    "e02-02: destination\". Fix: only step to tiles that are free and in `visited`.",
+    "e02-02: Iterating `vision::champions()/camps()` handles and calling health()/is_alive() throws \"No visible entity\" when the",
+    "e02-02: unit died this turn; scan `champion_tiles()/camp_tiles()` and use `champion_at/camp_at` instead.",
+    "e02-02: Attack-reset abilities throw \"An available attack cannot be reset\" in cases `can_attack()` does not reveal; resets disabled."
+   ],
+   "focus": "camps",
+   "generation": 3,
+   "id": "e03-02",
+   "kind": "child",
+   "nudged": [],
+   "operator": "radical",
+   "parents": [
+    "e02-01"
+   ],
+   "reason": null,
+   "rng_key": "20261022:3:2",
+   "sessions": [],
+   "slot": 2,
+   "src_sha256": null,
+   "status": "planned",
+   "task_sha256": null
+  },
+  "e03-03": {
+   "archetype": null,
+   "branch": null,
+   "commit": null,
+   "deadline_minutes": 40,
+   "evidence": [
+    {
+     "gems_opponent": 1044,
+     "gems_parent": 36,
+     "map": "01elk-arena",
+     "opponent": "e02-05",
+     "rounds": 1443,
+     "side": "B"
+    },
+    {
+     "gems_opponent": 1001,
+     "gems_parent": 66,
+     "map": "01hooks",
+     "opponent": "e02-05",
+     "rounds": 1042,
+     "side": "B"
+    },
+    {
+     "gems_opponent": 1002,
+     "gems_parent": 98,
+     "map": "00quadrants",
+     "opponent": "e02-05",
+     "rounds": 843,
+     "side": "B"
+    }
+   ],
+   "failed_ideas": [
+    "e01-01: Starter step selection `field.get(tile) < field.get(step)` picks blocked/unreached tiles (they read 0): \"Known occupied",
+    "e01-01: destination\". Fix: only step to tiles that are free and in `visited`.",
+    "e01-01: Iterating `vision::champions()/camps()` handles and calling health()/is_alive() throws \"No visible entity\" when the",
+    "e01-01: unit died this turn; scan `champion_tiles()/camp_tiles()` and use `champion_at/camp_at` instead.",
+    "e01-01: Attack-reset abilities throw \"An available attack cannot be reset\" in cases `can_attack()` does not reveal; resets disabled.",
+    "e01-01: After a move returns false (hidden unit), moving again the same turn throws: stop walking for the turn.",
+    "e01-01: Hard danger filter (skip groups) left champions idle on 01big-world/00lanes; softened to a x0.05 score factor (small gain).",
+    "e01-01: e01-01: Tribute before fighting when next to an unlocked altar with >= 5 gems: +761 vs +1331 (lost 00lanes B). Reverted.",
+    "e01-01: e01-01: Recall at 45% HP: 7/12 but -347 total margin (less farming time). Reverted.",
+    "e01-01: e01-01: Recall at 28% HP: 6/12, +961, below the 35% baseline. Reverted.",
+    "e02-02: Starter step selection `field.get(tile) < field.get(step)` picks blocked/unreached tiles (they read 0): \"Known occupied",
+    "e02-02: destination\". Fix: only step to tiles that are free and in `visited`.",
+    "e02-02: Iterating `vision::champions()/camps()` handles and calling health()/is_alive() throws \"No visible entity\" when the",
+    "e02-02: unit died this turn; scan `champion_tiles()/camp_tiles()` and use `champion_at/camp_at` instead.",
+    "e02-02: Attack-reset abilities throw \"An available attack cannot be reset\" in cases `can_attack()` does not reveal; resets disabled."
+   ],
+   "focus": "opening",
+   "generation": 3,
+   "id": "e03-03",
+   "kind": "child",
+   "nudged": [],
+   "operator": "tweak",
+   "parents": [
+    "e02-01"
+   ],
+   "reason": null,
+   "rng_key": "20261022:3:3",
+   "sessions": [],
+   "slot": 3,
+   "src_sha256": null,
+   "status": "planned",
+   "task_sha256": null
+  },
+  "e03-04": {
+   "archetype": null,
+   "branch": null,
+   "commit": null,
+   "deadline_minutes": 40,
+   "evidence": [
+    {
+     "gems_opponent": 1044,
+     "gems_parent": 36,
+     "map": "01elk-arena",
+     "opponent": "e02-05",
+     "rounds": 1443,
+     "side": "B"
+    },
+    {
+     "gems_opponent": 1001,
+     "gems_parent": 66,
+     "map": "01hooks",
+     "opponent": "e02-05",
+     "rounds": 1042,
+     "side": "B"
+    },
+    {
+     "gems_opponent": 1002,
+     "gems_parent": 98,
+     "map": "00quadrants",
+     "opponent": "e02-05",
+     "rounds": 843,
+     "side": "B"
+    }
+   ],
+   "failed_ideas": [
+    "e01-01: Starter step selection `field.get(tile) < field.get(step)` picks blocked/unreached tiles (they read 0): \"Known occupied",
+    "e01-01: destination\". Fix: only step to tiles that are free and in `visited`.",
+    "e01-01: Iterating `vision::champions()/camps()` handles and calling health()/is_alive() throws \"No visible entity\" when the",
+    "e01-01: unit died this turn; scan `champion_tiles()/camp_tiles()` and use `champion_at/camp_at` instead.",
+    "e01-01: Attack-reset abilities throw \"An available attack cannot be reset\" in cases `can_attack()` does not reveal; resets disabled.",
+    "e01-01: After a move returns false (hidden unit), moving again the same turn throws: stop walking for the turn.",
+    "e01-01: Hard danger filter (skip groups) left champions idle on 01big-world/00lanes; softened to a x0.05 score factor (small gain).",
+    "e01-01: e01-01: Tribute before fighting when next to an unlocked altar with >= 5 gems: +761 vs +1331 (lost 00lanes B). Reverted.",
+    "e01-01: e01-01: Recall at 45% HP: 7/12 but -347 total margin (less farming time). Reverted.",
+    "e01-01: e01-01: Recall at 28% HP: 6/12, +961, below the 35% baseline. Reverted.",
+    "e02-02: Starter step selection `field.get(tile) < field.get(step)` picks blocked/unreached tiles (they read 0): \"Known occupied",
+    "e02-02: destination\". Fix: only step to tiles that are free and in `visited`.",
+    "e02-02: Iterating `vision::champions()/camps()` handles and calling health()/is_alive() throws \"No visible entity\" when the",
+    "e02-02: unit died this turn; scan `champion_tiles()/camp_tiles()` and use `champion_at/camp_at` instead.",
+    "e02-02: Attack-reset abilities throw \"An available attack cannot be reset\" in cases `can_attack()` does not reveal; resets disabled."
+   ],
+   "focus": "opening",
+   "generation": 3,
+   "id": "e03-04",
+   "kind": "child",
+   "nudged": [],
+   "operator": "tweak",
+   "parents": [
+    "e02-01"
+   ],
+   "reason": null,
+   "rng_key": "20261022:3:4",
+   "sessions": [],
+   "slot": 4,
+   "src_sha256": null,
+   "status": "planned",
+   "task_sha256": null
+  },
+  "e03-05": {
+   "archetype": null,
+   "branch": null,
+   "commit": null,
+   "deadline_minutes": 40,
+   "evidence": [
+    {
+     "gems_opponent": 1645,
+     "gems_parent": 229,
+     "map": "00eight",
+     "opponent": "e02-06",
+     "rounds": 1716,
+     "side": "A"
+    },
+    {
+     "gems_opponent": 1020,
+     "gems_parent": 0,
+     "map": "00road-of-riches",
+     "opponent": "e00-01",
+     "rounds": 1449,
+     "side": "A"
+    },
+    {
+     "gems_opponent": 1002,
+     "gems_parent": 8,
+     "map": "01broken-curve",
+     "opponent": "e02-01",
+     "rounds": 1771,
+     "side": "B"
+    }
+   ],
+   "failed_ideas": [
+    "e01-01: Starter step selection `field.get(tile) < field.get(step)` picks blocked/unreached tiles (they read 0): \"Known occupied",
+    "e01-01: destination\". Fix: only step to tiles that are free and in `visited`.",
+    "e01-01: Iterating `vision::champions()/camps()` handles and calling health()/is_alive() throws \"No visible entity\" when the",
+    "e01-01: unit died this turn; scan `champion_tiles()/camp_tiles()` and use `champion_at/camp_at` instead.",
+    "e01-01: Attack-reset abilities throw \"An available attack cannot be reset\" in cases `can_attack()` does not reveal; resets disabled.",
+    "e01-01: After a move returns false (hidden unit), moving again the same turn throws: stop walking for the turn.",
+    "e01-01: Hard danger filter (skip groups) left champions idle on 01big-world/00lanes; softened to a x0.05 score factor (small gain).",
+    "e01-01: e01-01: Tribute before fighting when next to an unlocked altar with >= 5 gems: +761 vs +1331 (lost 00lanes B). Reverted.",
+    "e01-01: e01-01: Recall at 45% HP: 7/12 but -347 total margin (less farming time). Reverted.",
+    "e01-01: e01-01: Recall at 28% HP: 6/12, +961, below the 35% baseline. Reverted.",
+    "e02-02: Starter step selection `field.get(tile) < field.get(step)` picks blocked/unreached tiles (they read 0): \"Known occupied",
+    "e02-02: destination\". Fix: only step to tiles that are free and in `visited`.",
+    "e02-02: Iterating `vision::champions()/camps()` handles and calling health()/is_alive() throws \"No visible entity\" when the",
+    "e02-02: unit died this turn; scan `champion_tiles()/camp_tiles()` and use `champion_at/camp_at` instead.",
+    "e02-02: Attack-reset abilities throw \"An available attack cannot be reset\" in cases `can_attack()` does not reveal; resets disabled."
+   ],
+   "focus": "spells",
+   "generation": 3,
+   "id": "e03-05",
+   "kind": "child",
+   "nudged": [],
+   "operator": "radical",
+   "parents": [
+    "e02-05"
+   ],
+   "reason": null,
+   "rng_key": "20261022:3:5",
+   "sessions": [],
+   "slot": 5,
+   "src_sha256": null,
+   "status": "planned",
+   "task_sha256": null
+  },
+  "e03-06": {
+   "archetype": null,
+   "branch": null,
+   "commit": null,
+   "deadline_minutes": 40,
+   "evidence": [
+    {
+     "gems_opponent": 1645,
+     "gems_parent": 229,
+     "map": "00eight",
+     "opponent": "e02-06",
+     "rounds": 1716,
+     "side": "A"
+    },
+    {
+     "gems_opponent": 1020,
+     "gems_parent": 0,
+     "map": "00road-of-riches",
+     "opponent": "e00-01",
+     "rounds": 1449,
+     "side": "A"
+    },
+    {
+     "gems_opponent": 1002,
+     "gems_parent": 8,
+     "map": "01broken-curve",
+     "opponent": "e02-01",
+     "rounds": 1771,
+     "side": "B"
+    }
+   ],
+   "failed_ideas": [
+    "e01-01: Starter step selection `field.get(tile) < field.get(step)` picks blocked/unreached tiles (they read 0): \"Known occupied",
+    "e01-01: destination\". Fix: only step to tiles that are free and in `visited`.",
+    "e01-01: Iterating `vision::champions()/camps()` handles and calling health()/is_alive() throws \"No visible entity\" when the",
+    "e01-01: unit died this turn; scan `champion_tiles()/camp_tiles()` and use `champion_at/camp_at` instead.",
+    "e01-01: Attack-reset abilities throw \"An available attack cannot be reset\" in cases `can_attack()` does not reveal; resets disabled.",
+    "e01-01: After a move returns false (hidden unit), moving again the same turn throws: stop walking for the turn.",
+    "e01-01: Hard danger filter (skip groups) left champions idle on 01big-world/00lanes; softened to a x0.05 score factor (small gain).",
+    "e01-01: e01-01: Tribute before fighting when next to an unlocked altar with >= 5 gems: +761 vs +1331 (lost 00lanes B). Reverted.",
+    "e01-01: e01-01: Recall at 45% HP: 7/12 but -347 total margin (less farming time). Reverted.",
+    "e01-01: e01-01: Recall at 28% HP: 6/12, +961, below the 35% baseline. Reverted.",
+    "e02-02: Starter step selection `field.get(tile) < field.get(step)` picks blocked/unreached tiles (they read 0): \"Known occupied",
+    "e02-02: destination\". Fix: only step to tiles that are free and in `visited`.",
+    "e02-02: Iterating `vision::champions()/camps()` handles and calling health()/is_alive() throws \"No visible entity\" when the",
+    "e02-02: unit died this turn; scan `champion_tiles()/camp_tiles()` and use `champion_at/camp_at` instead.",
+    "e02-02: Attack-reset abilities throw \"An available attack cannot be reset\" in cases `can_attack()` does not reveal; resets disabled."
+   ],
+   "focus": "camps",
+   "generation": 3,
+   "id": "e03-06",
+   "kind": "child",
+   "nudged": [],
+   "operator": "subsystem",
+   "parents": [
+    "e02-05"
+   ],
+   "reason": null,
+   "rng_key": "20261022:3:6",
+   "sessions": [],
+   "slot": 6,
+   "src_sha256": null,
+   "status": "planned",
+   "task_sha256": null
+  },
+  "e03-07": {
+   "archetype": "altar-control",
+   "branch": null,
+   "commit": null,
+   "deadline_minutes": 40,
+   "evidence": [],
+   "failed_ideas": [
+    "e01-01: Starter step selection `field.get(tile) < field.get(step)` picks blocked/unreached tiles (they read 0): \"Known occupied",
+    "e01-01: destination\". Fix: only step to tiles that are free and in `visited`.",
+    "e01-01: Iterating `vision::champions()/camps()` handles and calling health()/is_alive() throws \"No visible entity\" when the",
+    "e01-01: unit died this turn; scan `champion_tiles()/camp_tiles()` and use `champion_at/camp_at` instead.",
+    "e01-01: Attack-reset abilities throw \"An available attack cannot be reset\" in cases `can_attack()` does not reveal; resets disabled.",
+    "e01-01: After a move returns false (hidden unit), moving again the same turn throws: stop walking for the turn.",
+    "e01-01: Hard danger filter (skip groups) left champions idle on 01big-world/00lanes; softened to a x0.05 score factor (small gain).",
+    "e01-01: e01-01: Tribute before fighting when next to an unlocked altar with >= 5 gems: +761 vs +1331 (lost 00lanes B). Reverted.",
+    "e01-01: e01-01: Recall at 45% HP: 7/12 but -347 total margin (less farming time). Reverted.",
+    "e01-01: e01-01: Recall at 28% HP: 6/12, +961, below the 35% baseline. Reverted.",
+    "e02-02: Starter step selection `field.get(tile) < field.get(step)` picks blocked/unreached tiles (they read 0): \"Known occupied",
+    "e02-02: destination\". Fix: only step to tiles that are free and in `visited`.",
+    "e02-02: Iterating `vision::champions()/camps()` handles and calling health()/is_alive() throws \"No visible entity\" when the",
+    "e02-02: unit died this turn; scan `champion_tiles()/camp_tiles()` and use `champion_at/camp_at` instead.",
+    "e02-02: Attack-reset abilities throw \"An available attack cannot be reset\" in cases `can_attack()` does not reveal; resets disabled."
+   ],
+   "focus": null,
+   "generation": 3,
+   "id": "e03-07",
+   "kind": "immigrant",
+   "nudged": [],
+   "operator": null,
+   "parents": [
+    "starter"
+   ],
+   "reason": null,
+   "rng_key": "20261022:3:7",
+   "sessions": [],
+   "slot": 7,
+   "src_sha256": null,
+   "status": "planned",
+   "task_sha256": null
   }
  },
- "generation": 2,
+ "generation": 3,
  "generations": {
   "0": {
    "approval": {
@@ -4236,6 +4666,28 @@
     "e02-02",
     "e02-06"
    ]
+  },
+  "3": {
+   "approval": null,
+   "elites": [
+    "e02-01"
+   ],
+   "env_failed": 0,
+   "jobs": {
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "slots": [
+    "e02-01",
+    "e03-01",
+    "e03-02",
+    "e03-03",
+    "e03-04",
+    "e03-05",
+    "e03-06",
+    "e03-07"
+   ]
   }
  },
  "hall_of_fame": [
@@ -4422,10 +4874,11 @@
   "2026-10-23T16:59:56Z g02 phase SELECTED: final: e02-01, e02-05, e02-02, e02-06, e02-03, e01-01, e00-01, e02-04, e02-07, starter",
   "2026-10-23T17:00:07Z g02 survivors ['e02-01', 'e02-05'], hall of fame ['e00-01', 'e01-01', 'e02-01']",
   "2026-10-23T17:00:07Z g02 PAUSED: generation 02 selected; max_generations=3 reached",
-  "2026-10-23T18:34:54Z g02 resumed (max_generations is now 5 in evo/config.toml); was paused: generation 02 selected; max_generations=3 reached"
+  "2026-10-23T18:34:54Z g02 resumed (max_generations is now 5 in evo/config.toml); was paused: generation 02 selected; max_generations=3 reached",
+  "2026-10-23T18:34:59Z g03 phase PLANNED: 8 slots"
  ],
  "paused": null,
- "phase": "SELECTED",
+ "phase": "PLANNED",
  "sessions_launched": 14,
  "version": 1
 }
