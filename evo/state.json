@@ -1285,9 +1285,11 @@
   },
   "e04-01": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evolution-task-e04-01-h8z3xt",
+   "commit": "9e5c6ee13762c7b6370c927d61768c39599cd91d",
    "deadline_minutes": 40,
+   "done_at": 1792790312,
+   "effort_level": "high",
    "evidence": [
     {
      "gems_opponent": 1008,
@@ -1335,6 +1337,7 @@
    "generation": 4,
    "id": "e04-01",
    "kind": "child",
+   "model": null,
    "nudged": [],
    "operator": "tweak",
    "parents": [
@@ -1354,7 +1357,7 @@
    ],
    "slot": 1,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "874c453f4f6f486ed0d65f5298a7c3593bcdd8d1defa0f5ef40ef2a60328ce2f"
   },
   "e04-02": {
@@ -8200,7 +8203,8 @@
   "2026-10-23T21:10:59Z g04 e04-04: launched session_018vKLHGHHhbEQDyVq8SYas2",
   "2026-10-23T21:11:11Z g04 e04-05: launched session_01QdHrpk74MR8gNhKCsCfXn4",
   "2026-10-23T21:11:26Z g04 e04-06: launched session_01E8W975zPs2ne7iSkF4TwKX",
-  "2026-10-23T21:11:38Z g04 e04-07: launched session_01Q3m1GEnGFU2id45ELfA3Lz"
+  "2026-10-23T21:11:38Z g04 e04-07: launched session_01Q3m1GEnGFU2id45ELfA3Lz",
+  "2026-10-23T21:18:32Z g04 e04-01: done on origin/claude/evolution-task-e04-01-h8z3xt at 9e5c6ee137"
  ],
  "paused": null,
  "phase": "RUNNING",
