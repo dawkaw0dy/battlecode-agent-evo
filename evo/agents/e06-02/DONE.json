@@ -1,0 +1,27 @@
+{
+ "agent": "e06-02",
+ "task_sha256": "85eea0ea519a3fa9db6232c75622c22a44b7302b54cfd9e9e9f194c7ad86c4f6",
+ "base_commit": "9ffef65633dacdf4d41c9f285b8b8fa844316750",
+ "session_id": "cse_01Y8Aaak9yCshrrBNLwA54Ch",
+ "bot_dir": "bots/e06-02",
+ "self_eval": {
+  "vs": "e05-05",
+  "games": 16,
+  "wins": 10
+ },
+ "games_played": 56,
+ "summary": "e05-05 + spell rework (stun enemy tributes, hit recalls, open target-group camps from spell range, dash escapes); B's spell code was identical to A's",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "38e4c5d4fc20dba03dc91378a2fce8e7ec604c55b6ba78f464c77899cf09848d",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 18.28,
+  "remote": "true",
+  "session_id": "cse_01Y8Aaak9yCshrrBNLwA54Ch",
+  "effort_level": "high",
+  "model": null
+ }
+}
