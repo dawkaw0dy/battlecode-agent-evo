@@ -233,3 +233,38 @@ Changing the network rebuilds the environment's snapshot. The next cloud session
 its own approval) will show whether setup still passes. I will not start one just to test this.
 
 **Reply with:** `H5: done` (and whether a "default list" option existed and what you chose).
+
+## H7 — M5: the private held-out map repository (DECISIONS D33)
+
+Why: §9.4 keeps a pool of generated maps that agents never see. Agents can read everything in
+`battlecode-agent-evo`, so these maps live in a separate **private** repository. The Claude GitHub App is
+**not** installed on it, so cloud sessions cannot reach it. I generated two key pairs on this PC
+(2026-10-23); only their public halves appear below.
+
+### 1. Create the private repository
+
+1. <https://github.com/new>. Owner **dawkaw0dy**, name **battlecode-agent-evo-heldout**.
+2. **Private**. Do **not** add a README, .gitignore or license (it must start empty). **Create repository**.
+3. Do **not** install the Claude GitHub App on it. If the app is set to "All repositories", switch it to
+   "Only select repositories" with just `battlecode-agent-evo` (that is how H2 set it up).
+
+### 2. Two deploy keys on the **private** repo
+
+**battlecode-agent-evo-heldout** → **Settings** → **Deploy keys** → **Add deploy key**, twice:
+
+| Title | Key | Allow write access |
+|---|---|---|
+| `evo-heldout-pc` | `ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKtTn4hCxBtoOffQ43ixlSdYmOciRUNtKT8QL4woOUIR evo-heldout-pc (battlecode-agent-evo-heldout, PC, write)` | **ticked** (this PC pushes the maps) |
+| `evo-heldout-actions` | `ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH4qxfCX1q9cCux2zX/WXWxdQBgG7VO/TEDG0OodPNCq evo-heldout-actions (battlecode-agent-evo-heldout, Actions secret, read-only)` | **not** ticked (Actions only reads) |
+
+### 3. One secret on the **public** repo
+
+1. In PowerShell run `notepad $env:USERPROFILE\.ssh\evo_heldout_actions`. This is the private half of the
+   read-only key. Copy the whole file, including the BEGIN/END lines.
+2. **battlecode-agent-evo** (the public repo) → **Settings** → **Secrets and variables** → **Actions** →
+   **New repository secret**. Name `HELDOUT_DEPLOY_KEY`, paste, **Add secret**.
+3. Paste it nowhere else. Once it is saved I delete the local copy of `evo_heldout_actions`.
+
+**Reply with:** `H7: done`. I then push the generator and the 24 maps to the private repo over SSH,
+clone it to `heldout/` here, set `[eval].heldout_pool`, and run a free Actions test job on 2 held-out maps
+(like M1) before generation 02 uses them.

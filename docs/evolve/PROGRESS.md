@@ -1,10 +1,15 @@
 # Progress
 
-**Milestone:** M4 done (2026-10-22, docs/evolve/M4.md). M5 not started: waiting for the owner's go.
-Cloud sessions used overall: 11 (M0 2, M3 2, M4 7). The real run (`evo/state.json`) is paused after generation 01
-(`max_generations = 2`): hall of fame [e00-01, e01-01], survivors e01-01 and e00-01.
+**Milestone:** M5 in progress. **Waiting on owner: H7** (private held-out repo, 2 deploy keys, 1 secret; SETUP.md).
 
-**Since M4:** `local_game_budget` 120 → 400 (D32, owner). Takes effect when generation 02's tasks are rendered.
+**M5 so far** (owner: n = 8, deadline 40 min, 1 generation = gen 02, held-out pool now)
+- D33: held-out support in jobs/workflow/verification, Stage C phases; 60 tests pass (`8fb4058`).
+- Generator + 24 accepted maps ready in this session's scratchpad (`heldout-src/`: genmaps.mjs, make_pool.py, maps/).
+  Keys `~/.ssh/evo_heldout_pc` (write, PC) and `~/.ssh/evo_heldout_actions` (read, for the secret) generated.
+- After H7: push heldout-src to the private repo over SSH, clone to `heldout/`, set `heldout_pool`, free Actions test job,
+  then config n = 8, cap 15, `max_generations = 3`, step → gen 02 approval (7 sessions).
+
+**Since M4:** `local_game_budget` 120 → 400 (D32, owner).
 
 **Done in M4**
 - Generations 00 and 01 at n = 4; D28–D31; fix `dca675e` for duplicate Stage B games (halt cleared with the owner's OK).
