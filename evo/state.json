@@ -845,9 +845,11 @@
   },
   "e03-02": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evolution-agent-e03-02-dkml5r",
+   "commit": "85095575c3e58318410774c25be7a610abaaef93",
    "deadline_minutes": 40,
+   "done_at": 1792788023,
+   "effort_level": "high",
    "evidence": [
     {
      "gems_opponent": 1044,
@@ -895,6 +897,7 @@
    "generation": 3,
    "id": "e03-02",
    "kind": "child",
+   "model": null,
    "nudged": [],
    "operator": "radical",
    "parents": [
@@ -914,7 +917,7 @@
    ],
    "slot": 2,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "348d6bdd3a5be23a1b313f8834cac24ede659f261fa8f5c1893f9a49121af804"
   },
   "e03-03": {
@@ -1215,9 +1218,11 @@
   },
   "e03-07": {
    "archetype": "altar-control",
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evolution-agent-e03-07-wm8ys8",
+   "commit": "d0abc7e4816c6572d1fb5bf189c1352fb0f26a2a",
    "deadline_minutes": 40,
+   "done_at": 1792788030,
+   "effort_level": "high",
    "evidence": [],
    "failed_ideas": [
     "e01-01: Starter step selection `field.get(tile) < field.get(step)` picks blocked/unreached tiles (they read 0): \"Known occupied",
@@ -1240,6 +1245,7 @@
    "generation": 3,
    "id": "e03-07",
    "kind": "immigrant",
+   "model": null,
    "nudged": [],
    "operator": null,
    "parents": [
@@ -1259,7 +1265,7 @@
    ],
    "slot": 7,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "bc52498ccb55aec89671849f7d346755d1cee6864e444e91855c405a3d8ffcef"
   }
  },
@@ -4952,7 +4958,9 @@
   "2026-10-23T20:32:53Z g03 e03-04: launched session_01FLaZNS7WhSJAH4udq2LDEC",
   "2026-10-23T20:33:08Z g03 e03-05: launched session_01CfKgTjFdLus1mTCnrZ9uD9",
   "2026-10-23T20:33:21Z g03 e03-06: launched session_013enpTqmhrrGs5hD6BniumB",
-  "2026-10-23T20:33:34Z g03 e03-07: launched session_011jBehWvpC4NM5xQi6kWN2i"
+  "2026-10-23T20:33:34Z g03 e03-07: launched session_011jBehWvpC4NM5xQi6kWN2i",
+  "2026-10-23T20:40:23Z g03 e03-02: done on origin/claude/evolution-agent-e03-02-dkml5r at 85095575c3",
+  "2026-10-23T20:40:30Z g03 e03-07: done on origin/claude/evolution-agent-e03-07-wm8ys8 at d0abc7e481"
  ],
  "paused": null,
  "phase": "RUNNING",
