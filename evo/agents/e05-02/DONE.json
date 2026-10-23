@@ -1,0 +1,27 @@
+{
+ "agent": "e05-02",
+ "task_sha256": "3fadf7c7b10a18ec218c3e840519ad7c6231eccb64cf481bdee3c53f8e779ba5",
+ "base_commit": "1175a4d57c458a367f78c0f16b0deaf72b71fa02",
+ "session_id": "cse_01QTdLkRkP558E7CJ1KcL2r2",
+ "bot_dir": "bots/e05-02",
+ "self_eval": {
+  "vs": "e04-06",
+  "games": 24,
+  "wins": 21
+ },
+ "games_played": 216,
+ "summary": "Camp subsystem rewrite: live group health, uncaptured rewards first, chase remaining group monsters, cached spawn lists to stay under fuel; 21/24 vs parent",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "6d722f39d2e916c57763c53f2dd1c0e7a418ff7aede6f454c09e1423c164fa77",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 23.17,
+  "remote": "true",
+  "session_id": "cse_01QTdLkRkP558E7CJ1KcL2r2",
+  "effort_level": "high",
+  "model": null
+ }
+}

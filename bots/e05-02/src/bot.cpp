@@ -912,43 +912,30 @@ bool Bot::bank_gems() {
 }
 
 // ---- Camps: which group to farm, in what order, with how many champions -------------------------
-// Patch 100 made single monsters poor (wolf 4 gems, elk 15) and put most of the value in 120 HP clusters
-// that never fight back. So groups are split in two kinds:
-// - harmless groups (clusters only): one champion clears them in a few hits; a second champion only
-//   splits the same reward, so a champion counts the allies already closer to the group and divides the
-//   value by them, and never calls the team onto them;
-// - fighting groups (wolf, elk, golem): damage taken is weighed against the champions that will share it;
-//   the team target pulls allies onto them (stuns chain, damage is spread, the capture is shared anyway).
-// Reward per turn uses the live health of visible camps (a half-cleared group is cheaper), counts a group
-// whose monsters are dead but uncaptured as pure profit, and lets us walk to a respawning group whose
-// timer runs out before we arrive. Enemies standing on a group make it contested (capture resets).
-// Spare allies leave a cleared group that one ally already stands on.
+// Every reachable group is scored by reward per turn: (3 x gems + gold) over (path length + turns to
+// clear + capture). Clear turns and damage taken come from the live health of the group's visible camps
+// (a half-cleared group is cheap, one whose visible monsters are all dead costs nothing to clear), and a
+// group whose monsters are dead but whose reward is still uncaptured clears in zero turns. The damage a
+// champion would absorb is shared with the allies near us; groups that would cost 75% of our health
+// stay possible only as a last resort. Respawning groups are skipped (an occupied spawn tile delays the
+// whole group's respawn). The team target pulls allies together (stuns chain, the capture is shared).
+// A champion standing on a spawn tile of its group while monsters of that group still stand out of
+// reach walks over to them instead of waiting on a capture that cannot start.
+// Spawn-tile lists are cached: the parent's version of this code was close to the per-turn fuel limit.
 
 namespace {
 
 constexpr int kCapturePhases = 5;
-constexpr bool kContest = false;
-constexpr bool kRewardReady = true;
-constexpr bool kChaseLiving = true;
-constexpr bool kGoldDecay = false;
-constexpr bool kPackWorkers = false;
-constexpr bool kLiveHealth = true;
-constexpr bool kLeaveCleared = false;
-constexpr bool kSoloClusters = false; // harmless groups farmed alone (lost 2/12 to the parent)
 
 struct GroupLive {
-    float health = 0;       // remaining health of the group's monsters we know of
-    float strength = 0;     // their combined strength
-    bool known = false;     // some spawn tile of the group is in vision
+    float health = 0;   // remaining health of the group's monsters we know of
+    float strength = 0; // their combined strength
 };
 
-// Live view of one group: visible camps on its spawn tiles, else the table values.
+// Live view of a group with at least one spawn tile in vision: visible camps on its spawn tiles,
+// plus the table share for spawn tiles out of sight.
 GroupLive group_live(const GroupInfo& info, const cambc::bitboard& visible) {
-    GroupLive live{info.health, info.strength, false};
-    if ((info.spawns & visible).is_empty()) return live;
-    live.known = true;
-    live.health = 0;
-    live.strength = 0;
+    GroupLive live;
     for (auto tile : (cambc::vision::camp_tiles() & info.spawns).positions()) {
         if (!cambc::vision::has_camp(tile)) continue;
         const auto camp = cambc::vision::camp_at(tile);
@@ -958,7 +945,6 @@ GroupLive group_live(const GroupInfo& info, const cambc::bitboard& visible) {
         live.health += health;
         live.strength += camp_cost(camp.kind()).strength;
     }
-    // Spawn tiles out of sight may still hold monsters: keep the table share for those.
     const auto hidden = info.spawns & ~visible;
     if (!hidden.is_empty()) {
         const float share = static_cast<float>(hidden.count()) / std::max(1.0f, static_cast<float>(info.spawns.count()));
@@ -981,18 +967,16 @@ int Bot::choose_group() {
     cambc::bitboard visited;
     field.compute(terrain_blocked(), tiles_around(here, 0), visited);
 
+    // Allies close enough to share the fight.
     int helpers = 1;
     for (auto tile : cambc::vision::champion_tiles(team::ally).positions())
         if (tile != here && distance(tile, here) <= 8) ++helpers;
-    const auto enemies = cambc::vision::champion_tiles(team::enemy).positions();
     const auto visible_now = cambc::vision::visible_tiles();
 
     const float my_dps = std::max(10.0f, me.strength() + me.focus() * 0.2f);
     const bool jungle = me.item_count()[is_spell_caster(me.champion_name())
         ? cambc::item_type::jungle_emblem_of_focus : cambc::item_type::jungle_emblem_of_health] > 0;
     const int team_target = read_team_target();
-    const float gold_weight = (!kGoldDecay || round < 1200) ? 1.0f : 0.5f;
-    const float gem_weight = 3.0f;
 
     int best = -1;
     float best_score = 0;
@@ -1001,54 +985,36 @@ int Bot::choose_group() {
         if (info.has_monolith) continue;
         const bool visible = !(info.spawns & visible_now).is_empty();
 
+        // Remember respawn timers so the goal does not flicker when the group leaves vision.
         bool reward_ready = false;
         if (visible) {
             const auto state = info.group.state();
             if (const auto* respawning = std::get_if<cambc::map::camp_group_respawning>(&state))
                 skip_until[i] = round + std::max(respawning->timer, 1);
-            else {
+            else
                 reward_ready = std::holds_alternative<cambc::map::camp_group_reward_available>(state);
-            }
         }
+        if (skip_until[i] > round) continue;
 
         int dist = std::numeric_limits<int>::max();
         for (auto tile : info.tiles)
             if (visited.is_set(tile)) dist = std::min<int>(dist, field.get(tile));
         if (dist == std::numeric_limits<int>::max()) continue;
 
-        // Respawning: worth walking only if it is back by the time we arrive.
-        const int wait = skip_until[i] - round;
-        // Never wait on its spawn tiles: an occupied spawn tile delays the whole group's respawn.
-        if (wait > 0) continue;
-        const float idle = static_cast<float>(std::max(0, wait - dist));
-
-        const GroupLive live = (kLiveHealth && visible) ? group_live(info, visible_now) : GroupLive{info.health, info.strength, false};
-        const bool harmless = live.strength <= 0.0f;
-
-        float workers = static_cast<float>(helpers);
-        if (kPackWorkers && static_cast<int>(i) == team_target) workers = std::max(workers, 2.0f);
-        const float clear_turns = (kRewardReady && reward_ready) ? 0.0f : live.health / (my_dps * workers);
+        const GroupLive live = visible ? group_live(info, visible_now) : GroupLive{info.health, info.strength};
+        const float workers = static_cast<float>(helpers);
+        const float clear_turns = reward_ready ? 0.0f : live.health / (my_dps * workers);
 
         // Damage each worker absorbs while clearing (monsters hit the nearest champion).
         float damage = live.strength * clear_turns / workers;
         if (jungle) damage *= 0.7f;
 
-        float value = info.group.gem_value() * gem_weight + info.group.gold_value() * gold_weight;
-
-        float score = value / (static_cast<float>(dist) + clear_turns + idle + kCapturePhases + 3.0f);
+        const float value = info.group.gem_value() * 3.0f + info.group.gold_value();
+        float score = value / (static_cast<float>(dist) + clear_turns + kCapturePhases + 3.0f);
+        // Dangerous groups stay possible, but only as a last resort over idling.
         if (damage > me.health() * 0.75f) score *= 0.05f;
-
-        // Contested: enemy champions on or next to the group reset our capture.
-        if (kContest && !enemies.empty()) {
-            int contest = 0;
-            for (auto tile : enemies)
-                for (auto s : info.tiles)
-                    if (distance(tile, s) <= 3) { ++contest; break; }
-            if (contest > 0) score /= static_cast<float>(1 + contest);
-        }
-
         if (static_cast<int>(i) == target_group) score *= 1.3f;
-        if ((!kSoloClusters || !harmless) && static_cast<int>(i) == team_target) score *= 2.5f; // pack up on fights
+        if (static_cast<int>(i) == team_target) score *= 2.5f; // pack up: stuns chain only together
         if (best < 0 || score > best_score) { best = static_cast<int>(i); best_score = score; }
     }
     return best;
@@ -1073,12 +1039,12 @@ void Bot::farm_camps() {
     const auto& info = groups()[group];
     const auto& spawns = info.spawns;
     const auto living = cambc::vision::camp_tiles() & spawns;
-    if (!kSoloClusters || info.strength > 0) write_team_target(group);
+    write_team_target(group);
 
     if (spawns.is_set(here)) {
         stuck_turns = 0;
         // Monsters of the group still standing out of reach: go hit them, the capture waits for them anyway.
-        if (kChaseLiving && !living.is_empty()) {
+        if (!living.is_empty()) {
             cambc::bitboard goals;
             goals.clear();
             const int reach = std::max(1, static_cast<int>(me.attack_range()));
@@ -1086,15 +1052,6 @@ void Bot::farm_camps() {
             if (move_towards_closest(goals)) fight_best_target();
         }
         return; // capturing
-    }
-
-    // A cleared group one ally already stands on needs nobody else: leave it to them.
-    if (kLeaveCleared && living.is_empty() && !(spawns & cambc::vision::visible_tiles()).is_empty()) {
-        for (auto tile : (cambc::vision::champion_tiles(team::ally) & spawns).positions()) {
-            if (tile == here) continue;
-            skip_until[group] = cambc::round_number() + 8;
-            return;
-        }
     }
 
     int dist = std::numeric_limits<int>::max();
