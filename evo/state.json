@@ -727,8 +727,8 @@
   },
   "e02-07": {
    "archetype": "big-game-hunter",
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evo-e02-07-task-2enk5t",
+   "commit": "eb2baf65ff4d4085e155a629e882fdeb8f2c17b5",
    "deadline_minutes": 40,
    "evidence": [],
    "failed_ideas": [
@@ -766,7 +766,7 @@
    ],
    "slot": 7,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "b300f581f6d251c24061cb94a7374c3f3e4cea5c7adc05be0d2d9985106377f6"
   }
  },
@@ -2489,7 +2489,8 @@
   "2026-10-23T15:36:30Z g02 e02-01: done on origin/claude/evo-e02-01-0bcmc8 at 7cbde6db6c",
   "2026-10-23T15:36:32Z g02 e02-04: done on origin/claude/evo-task-e02-04-6a2a78 at a959a28897",
   "2026-10-23T15:36:51Z g02 e02-07: launched session_01M9L1D2zya1bu4rmtJFnsFU",
-  "2026-10-23T15:41:31Z g02 e02-05: done on origin/claude/evolution-agent-e02-05-y14832 at 440ea02faa"
+  "2026-10-23T15:41:31Z g02 e02-05: done on origin/claude/evolution-agent-e02-05-y14832 at 440ea02faa",
+  "2026-10-23T15:44:17Z g02 e02-07: done on origin/claude/evo-e02-07-task-2enk5t at eb2baf65ff"
  ],
  "paused": null,
  "phase": "RUNNING",
