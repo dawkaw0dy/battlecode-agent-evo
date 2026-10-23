@@ -8129,10 +8129,11 @@
   "2026-10-23T21:09:25Z g03 phase SELECTED: final: e03-07, e03-05, e03-03, e03-04, e03-01, e03-06, e03-02, e02-01, e01-01, e00-01, starter",
   "2026-10-23T21:09:34Z g03 survivors ['e03-07', 'e03-05'], hall of fame ['e00-01', 'e01-01', 'e02-01', 'e03-07']",
   "2026-10-23T21:09:34Z g04 phase PLANNED: 8 slots",
-  "2026-10-23T21:09:41Z g04 phase TASKS_PUSHED: 7 task files"
+  "2026-10-23T21:09:41Z g04 phase TASKS_PUSHED: 7 task files",
+  "2026-10-23T21:09:54Z g04 phase RUNNING"
  ],
  "paused": null,
- "phase": "TASKS_PUSHED",
+ "phase": "RUNNING",
  "sessions_launched": 21,
  "version": 1
 }
