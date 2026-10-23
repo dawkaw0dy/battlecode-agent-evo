@@ -1,0 +1,27 @@
+{
+ "agent": "e06-03",
+ "task_sha256": "9eb177c075359419841723bf287219219e028127604d88554305c5e0b3b389ab",
+ "base_commit": "9ffef65633dacdf4d41c9f285b8b8fa844316750",
+ "session_id": "cse_01HjWLFzD9VsXyuzQ3HpHAsm",
+ "bot_dir": "bots/e06-03",
+ "self_eval": {
+  "vs": "e03-07",
+  "games": 12,
+  "wins": 10
+ },
+ "games_played": 242,
+ "summary": "Pathing fixes: distant champions don't block the step field; unreachable goals (01islands hole-ringed groups) are skipped and never re-returned by the low-fuel scan; target re-choice no longer starves the step field of fuel",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "38e4c5d4fc20dba03dc91378a2fce8e7ec604c55b6ba78f464c77899cf09848d",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 16.69,
+  "remote": "true",
+  "session_id": "cse_01HjWLFzD9VsXyuzQ3HpHAsm",
+  "effort_level": "high",
+  "model": null
+ }
+}
