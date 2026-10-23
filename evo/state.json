@@ -14956,13 +14956,19 @@
    "pushed_commit": "ca4e7f58a67754a53de24a75c5280b1340639259",
    "results_commit": "3b170e05dfb113569714a155afd4a67292eab870",
    "retries": 0,
+   "spotcheck": {
+    "games": 18,
+    "job": "g06-A-spot",
+    "pushed_at": 1792795974,
+    "pushed_commit": "a362b327682310084c379e2297dd079bb755bfd2",
+    "status": "pending"
+   },
    "stage": "A",
    "status": "arrived"
   }
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-22T21:12:54Z g01 HALTED: g01-B: results failed verification: duplicate game ('e01-01', 'e00-01', '00collision', 'A'); duplicate game ('e01-01', 'e00-01', '00collision', 'B'); duplicate game ('e01-01', 'e00-01', '00contest', 'A'); duplicate game ('e01-01', 'e00-01', '00contest', 'B'); duplicate game ('e01-01', 'e00-01', '00corners', 'A')",
   "2026-10-22T21:21:25Z g01 halt cleared (owner reviewed: g01-B duplicates came from the stage_b_pairs bug fixed in dca675e; all duplicates identical); was: g01-B: results failed verification: duplicate game ('e01-01', 'e00-01', '00collision', 'A'); duplicate game ('e01-01', 'e00-01', '00collision', 'B'); duplicate game ('e01-01', 'e00-01', '00contest', 'A'); duplicate game ('e01-01', 'e00-01', '00contest', 'B'); duplicate game ('e01-01', 'e00-01', '00c",
   "2026-10-22T21:28:31Z g01 g01-B: verified, 576 rows, spot-check 12 OK",
   "2026-10-22T21:28:34Z g01 phase SELECTED: final: e01-01, e00-01, e01-02, e01-03, starter",
@@ -15161,7 +15167,8 @@
   "2026-10-23T22:49:09Z g06 e06-07: admitted (51d32e17b6b6)",
   "2026-10-23T22:49:16Z g06 phase EVAL_A_PENDING",
   "2026-10-23T22:49:26Z g06 g06-A: pushed ca4e7f58a6 with 28 shards",
-  "2026-10-23T22:52:44Z g06 phase EVAL_A_DONE: results for g06-A"
+  "2026-10-23T22:52:44Z g06 phase EVAL_A_DONE: results for g06-A",
+  "2026-10-23T22:52:54Z g06 g06-A-spot: pushed a362b32768 (18 sampled games, 13 shards)"
  ],
  "paused": null,
  "phase": "EVAL_A_DONE",
