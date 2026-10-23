@@ -14110,7 +14110,6 @@
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-22T20:35:59Z g00 g00-B: verified, 144 rows, spot-check 4 OK",
   "2026-10-22T20:36:03Z g00 phase SELECTED: final: e00-01, e00-03, starter, e00-02, e00-00",
   "2026-10-22T20:36:09Z g00 survivors ['e00-01', 'e00-03'], hall of fame ['e00-01']",
   "2026-10-22T20:36:09Z g01 phase PLANNED: 4 slots",
@@ -14309,10 +14308,11 @@
   "2026-10-23T22:28:09Z g05 phase SELECTED: final: e05-05, e05-01, e05-02, e05-06, e04-06, e05-04, e05-07, e05-03, e03-07, e02-01, starter",
   "2026-10-23T22:28:18Z g05 survivors ['e05-05', 'e05-01'], hall of fame ['e00-01', 'e01-01', 'e02-01', 'e03-07', 'e04-06', 'e05-05']",
   "2026-10-23T22:28:18Z g06 phase PLANNED: 8 slots",
-  "2026-10-23T22:28:22Z g06 phase TASKS_PUSHED: 7 task files"
+  "2026-10-23T22:28:22Z g06 phase TASKS_PUSHED: 7 task files",
+  "2026-10-23T22:28:33Z g06 phase RUNNING"
  ],
  "paused": null,
- "phase": "TASKS_PUSHED",
+ "phase": "RUNNING",
  "sessions_launched": 35,
  "version": 1
 }
