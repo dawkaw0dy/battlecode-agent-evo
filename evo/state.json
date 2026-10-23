@@ -1439,9 +1439,11 @@
   },
   "e04-03": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evo-task-e04-03-36zxwx",
+   "commit": "8a0e5cec41d01e29609e537b2e9cf24c69aa8f8c",
    "deadline_minutes": 40,
+   "done_at": 1792791234,
+   "effort_level": "high",
    "evidence": [
     {
      "gems_opponent": 1008,
@@ -1489,6 +1491,7 @@
    "generation": 4,
    "id": "e04-03",
    "kind": "child",
+   "model": null,
    "nudged": [
     "session_01R1qNSjdnvpy73DFcJFAzmc"
    ],
@@ -1510,7 +1513,7 @@
    ],
    "slot": 3,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "5d47416623dee58cc2eecd80127fb71b37f02827dbaa6730fdfa60a851cbde86"
   },
   "e04-04": {
@@ -1669,9 +1672,11 @@
   },
   "e04-06": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evo-task-e04-06-lwvbph",
+   "commit": "1400ffeb2d77354a34deadd786fe1ff7afc1e7b9",
    "deadline_minutes": 40,
+   "done_at": 1792791238,
+   "effort_level": "high",
    "evidence": [
     {
      "gems_opponent": 1401,
@@ -1719,6 +1724,7 @@
    "generation": 4,
    "id": "e04-06",
    "kind": "child",
+   "model": null,
    "nudged": [
     "session_01E8W975zPs2ne7iSkF4TwKX"
    ],
@@ -1740,7 +1746,7 @@
    ],
    "slot": 6,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "8f053162d544c472ecfafbd766a3d36f878c8349f251bff61fd62d601af8a3fb"
   },
   "e04-07": {
@@ -8224,10 +8230,13 @@
   "2026-10-23T21:19:49Z g04 e04-02: done on origin/claude/evo-task-e04-02-9pan5c at 23eda00904",
   "2026-10-23T21:21:11Z g04 e04-07: done on origin/claude/evolution-agent-e04-07-v5hp2c at e9aa653dd3",
   "2026-10-23T21:29:38Z g04 e04-05: done on origin/claude/evo-task-e04-05-8t044s at 873f329adf",
-  "2026-10-23T21:31:10Z g04 e04-04: done on origin/claude/evo-e04-04-tdy0dk at eec0e48569"
+  "2026-10-23T21:31:10Z g04 e04-04: done on origin/claude/evo-e04-04-tdy0dk at eec0e48569",
+  "2026-10-23T21:33:54Z g04 e04-03: done on origin/claude/evo-task-e04-03-36zxwx at 8a0e5cec41",
+  "2026-10-23T21:33:58Z g04 e04-06: done on origin/claude/evo-task-e04-06-lwvbph at 1400ffeb2d",
+  "2026-10-23T21:33:58Z g04 phase ADMITTED"
  ],
  "paused": null,
- "phase": "RUNNING",
+ "phase": "ADMITTED",
  "sessions_launched": 28,
  "version": 1
 }
