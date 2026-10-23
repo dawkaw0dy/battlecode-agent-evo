@@ -1,0 +1,27 @@
+{
+ "agent": "e05-06",
+ "task_sha256": "b3714864caffbbee358c99cf6636578f454c19161328b1f36459b3b3c79189eb",
+ "base_commit": "1175a4d57c458a367f78c0f16b0deaf72b71fa02",
+ "session_id": "cse_01T4wektGaWU5pXTsMKfxuL3",
+ "bot_dir": "bots/e05-06",
+ "self_eval": {
+  "vs": "e04-04",
+  "games": 12,
+  "wins": 6
+ },
+ "games_played": 64,
+ "summary": "Endgame rewrite: altar lock memory, risk/time-based banking, cost-based altar choice, tribute denial locks",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "6d722f39d2e916c57763c53f2dd1c0e7a418ff7aede6f454c09e1423c164fa77",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 18.36,
+  "remote": "true",
+  "session_id": "cse_01T4wektGaWU5pXTsMKfxuL3",
+  "effort_level": "high",
+  "model": null
+ }
+}
