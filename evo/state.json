@@ -1719,7 +1719,9 @@
    "generation": 4,
    "id": "e04-06",
    "kind": "child",
-   "nudged": [],
+   "nudged": [
+    "session_01E8W975zPs2ne7iSkF4TwKX"
+   ],
    "operator": "subsystem",
    "parents": [
     "e03-05"
