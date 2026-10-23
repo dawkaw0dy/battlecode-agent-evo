@@ -1,0 +1,27 @@
+{
+ "agent": "e06-07",
+ "task_sha256": "7857698e08cb6715c18ffa9cd67dc28ba30be520b56b2ff0fdd9ee2ce9855452",
+ "base_commit": "9ffef65633dacdf4d41c9f285b8b8fa844316750",
+ "session_id": "cse_016UGD5U7wmgMmwDt514ydfo",
+ "bot_dir": "bots/e06-07",
+ "self_eval": {
+  "vs": "e05-05",
+  "games": 8,
+  "wins": 5
+ },
+ "games_played": 70,
+ "summary": "A (e05-01) with cautious combat retreat (B's combat identical to A's): vs e05-05 5/8 +207, vs e04-06 4/6 +301, 0 faults",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "38e4c5d4fc20dba03dc91378a2fce8e7ec604c55b6ba78f464c77899cf09848d",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 15.36,
+  "remote": "true",
+  "session_id": "cse_016UGD5U7wmgMmwDt514ydfo",
+  "effort_level": "high",
+  "model": null
+ }
+}
