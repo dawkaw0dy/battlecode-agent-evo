@@ -16259,17 +16259,18 @@
    "status": "verified"
   },
   "g06-B": {
+   "arrived_at": 1792796397,
    "generation": 6,
    "pushed_at": 1792796132,
    "pushed_commit": "3efe802ccc85bfb6d81f08858ced6ab73a00dbe1",
+   "results_commit": "3d3e20885b50a17d529137b43c1459a537f2d575",
    "retries": 0,
    "stage": "B",
-   "status": "pending"
+   "status": "arrived"
   }
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-22T21:28:40Z g01 survivors ['e01-01', 'e00-01'], hall of fame ['e00-01', 'e01-01']",
   "2026-10-22T21:28:40Z g01 PAUSED: generation 01 selected; max_generations=2 reached",
   "2026-10-23T15:17:53Z g01 resumed (M5: owner chose n=8, one generation (gen 02), held-out pool ready); was paused: generation 01 selected; max_generations=2 reached",
   "2026-10-23T15:18:01Z g02 phase PLANNED: 8 slots",
@@ -16468,10 +16469,11 @@
   "2026-10-23T22:52:54Z g06 g06-A-spot: pushed a362b32768 (18 sampled games, 13 shards)",
   "2026-10-23T22:55:11Z g06 g06-A: verified, 896 rows, spot-check 18 OK",
   "2026-10-23T22:55:19Z g06 phase EVAL_B_PENDING: stage A ranked: e06-04, e06-05, e06-03, e06-02, e06-06, e05-05, e06-07, e06-01, e04-06, e03-07, starter",
-  "2026-10-23T22:55:32Z g06 g06-B: pushed 3efe802ccc with 44 shards"
+  "2026-10-23T22:55:32Z g06 g06-B: pushed 3efe802ccc with 44 shards",
+  "2026-10-23T22:59:57Z g06 phase EVAL_B_DONE: results for g06-B"
  ],
  "paused": null,
- "phase": "EVAL_B_PENDING",
+ "phase": "EVAL_B_DONE",
  "sessions_launched": 42,
  "version": 1
 }
