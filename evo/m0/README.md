@@ -1,5 +1,5 @@
-# M0 probe helpers
+# evo/m0
 
-Scripts used only by `.github/workflows/evo-m0-probe.yml` and `evo-env-test.yml` during milestone M0
-(docs/evolve/M0.md). A push that changes this folder re-runs the probe workflow, which also
-checks that the `evo-actions` deploy key can push `evo-results` (DECISIONS D20).
+`annotate.py` prints stdin as one GitHub Actions annotation. `evo-env-test.yml` uses it to publish its setup log,
+because job logs need a token to download and annotations do not. The M0 probe scripts that used to live here were
+removed after M5; they are in git history and described in `docs/evolve/M0.md`.

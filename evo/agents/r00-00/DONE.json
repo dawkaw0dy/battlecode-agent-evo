@@ -1,3 +1,0 @@
-{"agent": "r00-00", "task_sha256": "3628142faa8935c1325767e9bb1219290d41f04ea9c89284b874be88c6b06f66", "base_commit": "d8a0dfd48bfac1dcdeb9a18c1a5c713f71c5cfec",
- "session_id": "cse_016tne4vkCTvXFJcxv11SnFr", "bot_dir": "bots/r00-00",
- "self_eval": {"vs": "starter", "games": 8, "wins": 3}, "games_played": 49, "summary": "map-reader: draft picks farm/big_camp/aggro plan into draft memory; champions score camp groups by value/time with a danger filter"}

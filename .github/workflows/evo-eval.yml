@@ -31,6 +31,10 @@ jobs:
         run: |
           added=$(git diff --name-only --diff-filter=A "$BEFORE" "$GITHUB_SHA" -- 'evo/jobs/*.json')
           count=$(printf '%s\n' "$added" | grep -c . || true)
+          if [ "$count" -eq 0 ]; then
+            echo "No new job file in this push (only changes or deletions); nothing to play."
+            echo "job=" >> "$GITHUB_OUTPUT"; echo "shards=[]" >> "$GITHUB_OUTPUT"; exit 0
+          fi
           if [ "$count" -ne 1 ]; then
             echo "::error::expected exactly one new job file in this push, found $count: $added"; exit 1
           fi
@@ -45,6 +49,7 @@ jobs:
 
   shard:
     needs: plan
+    if: needs.plan.outputs.job != ''
     runs-on: ${{ needs.plan.outputs.runs_on }}   # ubuntu-latest, or ubuntu-22.04 for spot-check jobs (D35)
     timeout-minutes: 340
     strategy:
@@ -108,7 +113,7 @@ jobs:
 
   aggregate:
     needs: [plan, shard]
-    if: always() && needs.plan.result == 'success'
+    if: always() && needs.plan.result == 'success' && needs.plan.outputs.job != ''
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env: { JOB: '${{ needs.plan.outputs.job }}' }
