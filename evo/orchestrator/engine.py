@@ -196,7 +196,9 @@ class Engine:
                         st.pause(self.state, 'two env_failed markers this generation: the environment is broken')
                     self.retire(a, 'env_failed')
                 else:
-                    a.update(status='done', branch=branch, commit=commit, done_at=st.now())
+                    fp = marker.get('env_fingerprint') if isinstance(marker.get('env_fingerprint'), dict) else {}
+                    a.update(status='done', branch=branch, commit=commit, done_at=st.now(),
+                             effort_level=fp.get('effort_level'), model=fp.get('model'))
                     st.log(self.state, f'{aid}: done on {branch} at {commit[:10]}')
                 changed = True
             elif now > session['launched_at'] + a['deadline_minutes'] * 60:

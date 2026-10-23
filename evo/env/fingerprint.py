@@ -34,6 +34,9 @@ def main():
         'smoke_seconds': summary and summary['elapsed_seconds'],
         'remote': os.environ.get('CLAUDE_CODE_REMOTE'),
         'session_id': os.environ.get('CLAUDE_CODE_REMOTE_SESSION_ID'),
+        # D36: set as environment variables on the evo cloud environment; null means the default.
+        'effort_level': os.environ.get('CLAUDE_CODE_EFFORT_LEVEL'),
+        'model': os.environ.get('ANTHROPIC_MODEL'),
     }, indent=1))
 
 

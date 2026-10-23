@@ -832,7 +832,7 @@
    "slot": 1,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": "3ece6375e13a4d2dbcfccff55993fd289df846a319d57b63be708bc95a6dbae5"
+   "task_sha256": "69c8db7c34f1cdd45242120f64043108e17e17158f199f00622b5b77b2c21705"
   },
   "e03-02": {
    "archetype": null,
@@ -897,7 +897,7 @@
    "slot": 2,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": "a9b88ee2244435fe3ef21770d037c0bec99c3811dedeadf68c8a374b1a1eb349"
+   "task_sha256": "348d6bdd3a5be23a1b313f8834cac24ede659f261fa8f5c1893f9a49121af804"
   },
   "e03-03": {
    "archetype": null,
@@ -962,7 +962,7 @@
    "slot": 3,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": "17d3aa200481dbc92fb7aa76629b27cee36acfb16f5a13e0f2562e5d2c51ab80"
+   "task_sha256": "d76d960c4addd2c816fb1d19c7106fbd2fcda5dd777d7f1886f34a24a0dc05be"
   },
   "e03-04": {
    "archetype": null,
@@ -1027,7 +1027,7 @@
    "slot": 4,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": "018706a19214196a4b7d00ba7d0f730d9c2fbb018e2a3d69ee57f9000e8795a1"
+   "task_sha256": "02352c7070c9e2b7bfe32ccf43d8d6154501d1f2921b9d98894b90f3cf9486d2"
   },
   "e03-05": {
    "archetype": null,
@@ -1092,7 +1092,7 @@
    "slot": 5,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": "b51561f008256fa1d099f391786fcbf2ff3e38f408b0e621d812265aa34c72b4"
+   "task_sha256": "926e35b11811a6012dd0957f21c9453e9c42801525bb75cb28aca53ae52f09aa"
   },
   "e03-06": {
    "archetype": null,
@@ -1157,7 +1157,7 @@
    "slot": 6,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": "9712b71b885249f2a1f7e4566df8ebd5c59a5e820c2a8a2e31d756efb4fe90ef"
+   "task_sha256": "9208c6a8cbfbae75cdf37303c0a4341f5c60ccbfde0cfc44478f2756800d7e91"
   },
   "e03-07": {
    "archetype": "altar-control",
@@ -1197,7 +1197,7 @@
    "slot": 7,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": "d0b4f947fe48fd0f92109a37ee2ddaf2cc44f9cda1cdf80c97a50713f8c6860c"
+   "task_sha256": "bc52498ccb55aec89671849f7d346755d1cee6864e444e91855c405a3d8ffcef"
   }
  },
  "generation": 3,
@@ -4879,7 +4879,8 @@
   "2026-10-23T18:35:05Z g03 phase TASKS_PUSHED: 7 task files",
   "2026-10-23T18:35:17Z g03 PAUSED: cannot launch: working tree is not clean",
   "2026-10-23T18:51:11Z g03 resumed (the unclean tree was the app's own uncommitted code; committed); was paused: cannot launch: working tree is not clean",
-  "2026-10-23T18:51:31Z g03 PAUSED: waiting for approval: python -m evo approve 03"
+  "2026-10-23T18:51:31Z g03 PAUSED: waiting for approval: python -m evo approve 03",
+  "2026-10-23T19:21:21Z g03 generation 03 tasks re-rendered after D36 (env_fingerprint in DONE.json; manifest)"
  ],
  "paused": "waiting for approval: python -m evo approve 03",
  "phase": "TASKS_PUSHED",

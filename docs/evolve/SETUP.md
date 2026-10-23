@@ -234,7 +234,7 @@ its own approval) will show whether setup still passes. I will not start one jus
 
 **Reply with:** `H5: done` (and whether a "default list" option existed and what you chose).
 
-## H7 — M5: the private held-out map repository (DECISIONS D33)
+## H7 — M5: the private held-out map repository (DECISIONS D33)  ✅ done 2026-10-23
 
 Why: §9.4 keeps a pool of generated maps that agents never see. Agents can read everything in
 `battlecode-agent-evo`, so these maps live in a separate **private** repository. The Claude GitHub App is
@@ -268,3 +268,19 @@ Why: §9.4 keeps a pool of generated maps that agents never see. Agents can read
 **Reply with:** `H7: done`. I then push the generator and the 24 maps to the private repo over SSH,
 clone it to `heldout/` here, set `[eval].heldout_pool`, and run a free Actions test job on 2 held-out maps
 (like M1) before generation 02 uses them.
+
+## H8 — effort level of the evo agents (DECISIONS D36)
+
+1. <https://claude.ai/code> → environment selector → hover **evo** → settings icon.
+2. **Environment variables**: add the line
+
+   ```
+   CLAUDE_CODE_EFFORT_LEVEL=high
+   ```
+
+   (keep the existing `CAMBC_NO_UPDATE_CHECK=1`, `CAMBC_OFFLINE=1`, `BASH_DEFAULT_TIMEOUT_MS=600000`).
+   Optional: `ANTHROPIC_MODEL=opus` to pin the model too.
+3. Save. The environment's snapshot is rebuilt; nothing else changes.
+
+Check: after the next generation's agents finish, the app's Agents list shows `(effort high, …)` for each one,
+taken from the agents' own environment fingerprint. `effort default` means the variable did not reach them.

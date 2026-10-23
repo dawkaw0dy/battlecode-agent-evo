@@ -46,7 +46,8 @@ The sha256 of this file (`sha256sum evo/tasks/{{id}}.md`) goes into DONE.json as
 3. evo/agents/{{id}}/DONE.json last, then commit and push your branch:
    {"agent": "{{id}}", "task_sha256": "<sha256 of this file>", "base_commit": "<git rev-parse HEAD at start>",
     "session_id": "<value of $CLAUDE_CODE_REMOTE_SESSION_ID>", "bot_dir": "bots/{{id}}",
-    "self_eval": {"vs": "<opponent>", "games": <n>, "wins": <n>}, "games_played": <n>, "summary": "one line"}
+    "self_eval": {"vs": "<opponent>", "games": <n>, "wins": <n>}, "games_played": <n>, "summary": "one line",
+    "env_fingerprint": <the JSON object in /tmp/evo-env.json, written by the SessionStart check>}
 
 ## NOTES.md format
 ## Strategy (≤10 lines)

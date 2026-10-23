@@ -118,7 +118,9 @@ def render(eng, actions=None, now=None):
             else:
                 if a['status'] == 'planned':
                     waiting += 1
-                lines.append(f"  {aid}  {a['status']}")
+                seen = (f"  (effort {a.get('effort_level') or 'default'}, model {a.get('model') or 'default'})"
+                        if 'effort_level' in a else '')
+                lines.append(f"  {aid}  {a['status']}{seen}")
         if s['phase'] == 'RUNNING':
             k = max(1, cfg['agents']['max_parallel'])
             sessions_end = max(ends, default=now) + math.ceil(waiting / k) * session_s
