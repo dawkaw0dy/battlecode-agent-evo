@@ -1,0 +1,27 @@
+{
+ "agent": "e07-04",
+ "task_sha256": "a49771229571fb4076047bfa0ab2c3dca0092009e8a26eb41b2dd00948cb2be0",
+ "base_commit": "b83728388b241c6d74d2935d8053e46af9671b11",
+ "session_id": "cse_018xrAZZoLsUWcx1VXpEcYrE",
+ "bot_dir": "bots/e07-04",
+ "self_eval": {
+  "vs": "e06-05",
+  "games": 16,
+  "wins": 11
+ },
+ "games_played": 116,
+ "summary": "A (e06-05) + B's failed-step memory and camp-group reachability: fixes 01islands/00road-of-riches stalls; vs A 11/16 +328, vs B 9/16 +57, vs e03-07 14/16",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "89a7727348afbe32876c3d3e57b28ddf80cbacda9931cc51d61cb70397ea9bc0",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 15.4,
+  "remote": "true",
+  "session_id": "cse_018xrAZZoLsUWcx1VXpEcYrE",
+  "effort_level": "high",
+  "model": null
+ }
+}
