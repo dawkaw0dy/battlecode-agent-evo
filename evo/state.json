@@ -14204,7 +14204,6 @@
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-22T21:08:15Z g01 phase EVAL_B_PENDING: stage A ranked: e01-01, e00-01, e01-02, e01-03, starter",
   "2026-10-22T21:08:30Z g01 g01-B: pushed 5df4587736 with 12 shards",
   "2026-10-22T21:12:49Z g01 phase EVAL_B_DONE: results for g01-B",
   "2026-10-22T21:12:54Z g01 HALTED: g01-B: results failed verification: duplicate game ('e01-01', 'e00-01', '00collision', 'A'); duplicate game ('e01-01', 'e00-01', '00collision', 'B'); duplicate game ('e01-01', 'e00-01', '00contest', 'A'); duplicate game ('e01-01', 'e00-01', '00contest', 'B'); duplicate game ('e01-01', 'e00-01', '00corners', 'A')",
@@ -14403,10 +14402,11 @@
   "2026-10-23T22:48:54Z g06 e06-04: admitted (10f6d934cfda)",
   "2026-10-23T22:48:58Z g06 e06-05: admitted (24a06b4e553a)",
   "2026-10-23T22:49:03Z g06 e06-06: admitted (9f5be23d2ea0)",
-  "2026-10-23T22:49:09Z g06 e06-07: admitted (51d32e17b6b6)"
+  "2026-10-23T22:49:09Z g06 e06-07: admitted (51d32e17b6b6)",
+  "2026-10-23T22:49:16Z g06 phase EVAL_A_PENDING"
  ],
  "paused": null,
- "phase": "ADMITTED",
+ "phase": "EVAL_A_PENDING",
  "sessions_launched": 42,
  "version": 1
 }
