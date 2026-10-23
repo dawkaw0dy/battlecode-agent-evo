@@ -114,7 +114,10 @@ def main(argv=None):
     ap.add_argument('--stage', default='M1')
     args = ap.parse_args(argv)
     pairs = [tuple(p.split(':', 1)) for p in args.pair]
-    job = build(args.job_id, pairs, args.maps, stage=args.stage)
+    heldout_repo = None
+    if any(is_heldout(m) for m in args.maps):
+        heldout_repo = tomllib.loads((ROOT / 'evo/config.toml').read_text(encoding='utf-8'))['eval'].get('heldout_pool')
+    job = build_units(args.job_id, [(a, b, args.maps) for a, b in pairs], stage=args.stage, heldout_repo=heldout_repo)
     target = ROOT / 'evo/jobs' / f'{args.job_id}.json'
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_bytes(dumps(job))

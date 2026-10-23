@@ -16,7 +16,8 @@ local_game_budget = 400    # games an agent may play while developing (D32: owne
 [eval]
 runner_version = "cambc==3.0.5"    # pinned in M0 (M0.md item 1); keep equal to VER in evo/env/setup.sh
 map_pool = "maps"                  # the M maps `cambc init` downloaded (§1.1)
-heldout_pool = ""                  # optional private repo path (§9.4)
+heldout_pool = "dawkaw0dy/battlecode-agent-evo-heldout"   # private repo, cloned at heldout/ (§9.4, D33)
+heldout_stage_b = 16               # held-out maps per generation in Stage B; the rest are kept for Stage C (D33)
 panel = ["starter"]                # fixed opponents; plus hall of fame below
 hall_of_fame_in_panel = 3          # until 2 exist, Stage A is a round robin (§11)
 stage_a_maps = 16                  # rotating subset, chosen by generation seed
