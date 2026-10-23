@@ -1,0 +1,3 @@
+{"agent": "e02-04", "task_sha256": "998d2fc0f00ccd761dde3e84cbeaff85a90054cd157b1f7f3589b81a5528175d", "base_commit": "91989db6a3bbafd8f6e0cec2c58081794d8452cc",
+ "session_id": "cse_01358FCACFSasN1r2Sd7T2dQ", "bot_dir": "bots/e02-04",
+ "self_eval": {"vs": "e00-01", "games": 12, "wins": 7}, "games_played": 128, "summary": "e01-01 + combat tweaks: chase nearly dead enemy champions, target finishable/gem-carrying enemies first; retreat and early-recall rules reverted"}
