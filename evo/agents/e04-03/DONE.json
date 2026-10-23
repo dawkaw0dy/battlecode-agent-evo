@@ -1,0 +1,27 @@
+{
+ "agent": "e04-03",
+ "task_sha256": "5d47416623dee58cc2eecd80127fb71b37f02827dbaa6730fdfa60a851cbde86",
+ "base_commit": "e87febd54670ff0a279c33e1e70b5f2e08166dbc",
+ "session_id": "cse_01R1qNSjdnvpy73DFcJFAzmc",
+ "bot_dir": "bots/e04-03",
+ "self_eval": {
+  "vs": "e02-01",
+  "games": 15,
+  "wins": 10
+ },
+ "games_played": 309,
+ "summary": "Spell pack: shared camp group, scored spell engine (kill shots, interrupt stuns, heals, AoE placement, shields, travel dashes), no altar locks",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "3c73f1895b22a05b348f5335b483965e0f71899e52614e48f4b27d7b4edd8a63",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 21.62,
+  "remote": "true",
+  "session_id": "cse_01R1qNSjdnvpy73DFcJFAzmc",
+  "effort_level": "high",
+  "model": null
+ }
+}
