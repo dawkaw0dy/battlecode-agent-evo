@@ -50,7 +50,7 @@ def world(tmp_path):
     # Pin everything the assertions depend on, independent of the real run's evo/config.toml.
     cfg.update(population=8, keep_fraction=0.25, elites=1, immigrants=1)
     cfg['eval'].update(stage_a_maps=2, stage_b_top=2, spotcheck_min=2, max_fault_rate=0.10, exceptions_disqualify=False,
-                       heldout_pool='')
+                       heldout_pool='', spotcheck_where='local')
     cfg['agents'].update(max_parallel=8, require_approval=True, max_sessions_total=40, relaunch_dead=1,
                          deadline_minutes=180)
     return work, origin, cfg
@@ -107,11 +107,12 @@ def run_actions(work, origin, job_id):
 
 
 def fake_replay_from(rows_seen):
-    def replay(a, b, m, root):
+    def replay(a, b, maps, root):
         out = {}
-        for side in ('A', 'B'):
-            r = simulate(a, b, m, side)
-            out[side] = (r['outcome'], r.get('gems'), r.get('rounds'))
+        for m in maps:
+            for side in ('A', 'B'):
+                r = simulate(a, b, m, side)
+                out[(m, side)] = (r['outcome'], r.get('gems'), r.get('rounds'))
         return out
     return replay
 
@@ -165,8 +166,8 @@ def test_one_generation_end_to_end(world):
 def test_spotcheck_mismatch_is_reported():
     row = {'a': 'x', 'b': 'y', 'map': 'm', 'side': 'A', 'outcome': 'teamA', 'gems': {'teamA': 1, 'teamB': 0},
            'rounds': 10}
-    same = verify.spotcheck([row], replay=lambda a, b, m, root: {'A': ('teamA', {'teamA': 1, 'teamB': 0}, 10)})
-    other = verify.spotcheck([row], replay=lambda a, b, m, root: {'A': ('teamB', {'teamA': 0, 'teamB': 1}, 10)})
+    same = verify.spotcheck([row], replay=lambda a, b, ms, root: {('m', 'A'): ('teamA', {'teamA': 1, 'teamB': 0}, 10)})
+    other = verify.spotcheck([row], replay=lambda a, b, ms, root: {('m', 'A'): ('teamB', {'teamA': 0, 'teamB': 1}, 10)})
     assert same == [] and len(other) == 1
 
 
@@ -233,3 +234,48 @@ def test_resume_after_max_generations_plans_without_redoing_selection(world):
     assert eng.state['generation'] == 1 and 'approve 01' in eng.state['paused']
     assert (work / 'evo/m2/lineage.jsonl').read_text().splitlines() == rows
     assert eng.state['hall_of_fame'] == ['t00-01']
+
+
+def test_spotcheck_runs_as_an_actions_job(world):
+    """D35: the sample becomes job <jid>-spot on ubuntu-22.04; matching replays continue, a mismatch halts."""
+    work, origin, cfg = world
+    cfg['eval']['spotcheck_where'] = 'actions'
+    cfg['run']['max_generations'] = 1
+    eng = engine.Engine(cfg, root=work, launcher=launch.FakeLauncher(), out=lambda *_: None)
+    eng.init()
+    eng.step()
+    eng.approve(0)
+    eng.step()
+    for a in [a for a in eng.state['agents'].values() if a['status'] == 'running']:
+        fake_agents.plant(work, a)
+    eng.step()
+    jid = eng.state['generations']['0']['jobs']['A'][-1]
+    run_actions(work, origin, jid)
+    eng.step()                                            # results arrive -> spot job pushed, waiting
+    spot = eng.state['jobs'][jid]['spotcheck']
+    assert spot['job'] == f'{jid}-spot' and spot['status'] == 'pending'
+    sjob = json.loads(gitops.show(spot['pushed_commit'], f'evo/jobs/{jid}-spot.json', work))
+    assert sjob['runs_on'] == 'ubuntu-22.04' and len(jobfile.requested_games(sjob)) >= spot['games']
+    assert eng.step() == 'waiting' and eng.state['phase'] == 'EVAL_A_DONE'   # nothing yet
+    run_actions(work, origin, f'{jid}-spot')
+    eng.step()
+    assert eng.state['jobs'][jid]['spotcheck']['status'] == 'done' and eng.state['phase'] in ('EVAL_B_PENDING',)
+    jid_b = eng.state['generations']['0']['jobs']['B'][-1]
+    run_actions(work, origin, jid_b)
+    eng.step()
+    # a forged replay: the spot-check job reports a different outcome for one sampled game
+    global simulate
+    real = simulate
+
+    def flipped(a, b, m, side):
+        r = real(a, b, m, side)
+        if r['outcome'] in ('teamA', 'teamB'):
+            r = dict(r, outcome='teamB' if r['outcome'] == 'teamA' else 'teamA')
+        return r
+    simulate = flipped
+    try:
+        run_actions(work, origin, f'{jid_b}-spot')
+    finally:
+        simulate = real
+    eng.step()
+    assert eng.state['halted'] and 'spot-check mismatch' in eng.state['halted']

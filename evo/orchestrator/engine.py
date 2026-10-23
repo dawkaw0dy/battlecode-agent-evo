@@ -387,9 +387,14 @@ class Engine:
                 st.halt(self.state, f'{jid}: results failed verification: ' + '; '.join(problems[:5]))
                 return self.save(f'evo: HALTED on {jid}')
             sample = verify.spotcheck_sample(results['rows'], self.cfg, g, jid)
-            self.out(f'{jid}: spot-checking {len(sample)} games locally…')
-            mismatches = verify.spotcheck(sample, self.root, self.replay)
-            rec['spotcheck'] = {'games': len(sample), 'mismatches': mismatches}
+            if self.cfg['eval'].get('spotcheck_where', 'actions') == 'actions':
+                mismatches = self.spotcheck_on_actions(jid, rec, job, sample)
+                if mismatches is None:
+                    return  # the spot-check job is pushed or still running
+            else:
+                self.out(f'{jid}: spot-checking {len(sample)} games locally…')
+                mismatches = verify.spotcheck(sample, self.root, self.replay)
+                rec['spotcheck'] = {'games': len(sample), 'mismatches': mismatches}
             if mismatches:
                 st.halt(self.state, f'{jid}: spot-check mismatch: ' + '; '.join(mismatches[:3]))
                 return self.save(f'evo: HALTED on {jid} spot-check')
@@ -425,6 +430,53 @@ class Engine:
             else:
                 st.set_phase(self.state, 'SELECTED', 'final: ' + ', '.join(order))
         self.save(f'evo: generation {g:02d} stage {stage} rated', [self.rel(path_in(self.root, self.cfg, 'cache'))])
+
+    def spotcheck_on_actions(self, jid, rec, job, sample):
+        """D35: replay the seeded sample as job <jid>-spot on another runner image.
+
+        Returns None while the spot job is being pushed or played, else the list of mismatches.
+        """
+        spot = rec.get('spotcheck') or {}
+        sid = f'{jid}-spot'
+        if 'job' not in spot:
+            cells = {}
+            for row in sample:
+                cells.setdefault((row['a'], row['b']), set()).add(row['map'])
+            units = [(a, b, sorted(ms)) for (a, b), ms in sorted(cells.items())]
+            rel, sjob = jobs.write_job(self.cfg, sid, units, self.state['generation'], 'spot', self.root,
+                                       runs_on=self.cfg['eval'].get('spotcheck_runs_on', 'ubuntu-22.04'))
+            changed = [b for b, h in sjob['src_sha256'].items() if job['src_sha256'].get(b) != h]
+            if changed:
+                return [f'bot sources changed since {jid} was played: {changed}']
+            sha = gitops.commit([rel], f'evo: spot-check job {sid} ({len(sample)} sampled games)', self.root)
+            if self.push_enabled:
+                gitops.push_main(self.root)
+            rec['spotcheck'] = {'job': sid, 'games': len(sample), 'pushed_commit': sha, 'pushed_at': st.now(),
+                                'status': 'pending'}
+            st.log(self.state, f'{sid}: pushed {sha[:10]} ({len(sample)} sampled games, {len(sjob["shards"])} shards)')
+            self.save(f'evo: spot-check {sid} pushed')
+            return None
+        if self.push_enabled:
+            gitops.fetch(self.root)
+        commit, results = jobs.fetch_results(sid, self.root)
+        if not results or results.get('trigger_sha') != spot['pushed_commit']:
+            if st.now() - spot['pushed_at'] > self.cfg['run']['results_timeout_hours'] * 3600:
+                st.pause(self.state, f'no spot-check results for {sid}')
+                self.save(f'evo: {sid} timed out')
+            return None
+        sjob = json.loads(gitops.show(spot['pushed_commit'], f'evo/jobs/{sid}.json', self.root))
+        problems, missing = verify.check_results(sjob, spot['pushed_commit'], results, self.root)
+        replayed = {(r['a'], r['b'], r['map'], r['side']): (r['outcome'], r.get('gems'), r.get('rounds'))
+                    for r in results['rows']}
+        mismatches = [f'{sid}: {p}' for p in problems]
+        for row in sample:
+            key = (row['a'], row['b'], row['map'], row['side'])
+            want, got = (row['outcome'], row['gems'], row['rounds']), replayed.get(key)
+            if got != want:
+                mismatches.append(f'{key}: shard {want}, spot-check {got}')
+        spot.update(status='done', results_commit=commit, mismatches=mismatches,
+                    runner=sjob.get('runs_on'), missing=len(missing))
+        return mismatches
 
     def stage_c_boundary(self, ratings, order, games):
         """§11 Stage C: the last survivor and the first non-survivor, if their intervals overlap and

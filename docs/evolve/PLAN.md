@@ -796,7 +796,8 @@ Nothing Claude-related runs in the repo or in Actions.
    spotcheck_fraction × games)` games and replay each locally with
    `benchmark.py <a> <b> --maps <m>`. `outcome`, `gems` and `rounds` must match
    exactly. Any mismatch stops the run (`phase: HALTED`) for a human to look at.
-   This is the only local compute: about 4–30 games per generation.
+   D35: the replays run on Actions on a different runner image (`ubuntu-22.04`), as a job
+   file `<job>-spot.json` holding only the sampled games; the PC plays no games.
 
 ## 11. Scoring
 

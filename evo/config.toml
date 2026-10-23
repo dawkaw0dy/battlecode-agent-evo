@@ -26,6 +26,8 @@ shard_games = 200                  # games per matrix job (D21)
 jobs_per_runner = 0                # 0 = nproc
 spotcheck_fraction = 0.02
 spotcheck_min = 4
+spotcheck_where = "actions"         # D35: replay the sample on Actions; "local" replays on this PC
+spotcheck_runs_on = "ubuntu-22.04"  # D35: a different image from the shards' ubuntu-latest
 max_fault_rate = 0.10              # above this a bot is disqualified
 exceptions_disqualify = false      # D29: caught exceptions are losses but do not count towards max_fault_rate
 

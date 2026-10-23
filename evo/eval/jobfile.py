@@ -41,7 +41,8 @@ def build(job_id, pairs, maps, *, generation=None, stage='M1', shard_games=200, 
                        shard_games=shard_games, root=root)
 
 
-def build_units(job_id, units, *, generation=None, stage='M1', shard_games=200, root=ROOT, heldout_repo=None):
+def build_units(job_id, units, *, generation=None, stage='M1', shard_games=200, root=ROOT, heldout_repo=None,
+                runs_on=None):
     """A job dict from (a, b, maps) units; each unit is split into shards of at most shard_games games.
 
     Held-out maps go into shards of their own (`heldout: true`), so only those shards need the
@@ -75,6 +76,8 @@ def build_units(job_id, units, *, generation=None, stage='M1', shard_games=200, 
     }
     if heldout_repo:
         job['heldout_repo'] = heldout_repo
+    if runs_on:  # spot-check jobs replay on a different runner image (D35)
+        job['runs_on'] = runs_on
     return job
 
 

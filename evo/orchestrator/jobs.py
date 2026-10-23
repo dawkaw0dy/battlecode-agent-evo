@@ -150,10 +150,12 @@ def dedupe_pairs(pairs):
     return out
 
 
-def write_job(cfg, job_id, units, generation, stage, root=ROOT):
+def write_job(cfg, job_id, units, generation, stage, root=ROOT, runs_on=None):
     job = jobfile.build_units(job_id, units, generation=generation, stage=stage,
                               shard_games=cfg['eval']['shard_games'], root=root,
-                              heldout_repo=cfg['eval'].get('heldout_pool') or None)
+                              heldout_repo=(cfg['eval'].get('heldout_pool') or None)
+                              if any(jobfile.is_heldout(m) for _, _, ms in units for m in ms) else None,
+                              runs_on=runs_on)
     if len(job['shards']) > 256:
         raise ValueError(f'{job_id}: {len(job["shards"])} shards exceed the 256-entry matrix limit')
     rel = f'evo/jobs/{job_id}.json'

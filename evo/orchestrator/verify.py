@@ -65,40 +65,67 @@ def runner_path(root=ROOT):
     return Path(root) / '.venv' / ('Scripts/cambc.exe' if os.name == 'nt' else 'bin/cambc')
 
 
-def replay_locally(a, b, map_name, root=ROOT):
-    """Play a vs b on one map, both sides, with tools/benchmark.py; {side: (outcome, gems, rounds)}."""
+def replay_locally(a, b, maps, root=ROOT, jobs=None):
+    """Play a vs b on `maps` (all public or all held-out), both sides, in one tools/benchmark.py run.
+
+    Returns {(map, side): (outcome, gems, rounds)}; on total failure {'error': text}. One run builds
+    each bot once and plays the games on all cores.
+    """
+    maps = list(maps)
+    jobs = jobs or max(1, os.cpu_count() or 1)
     with tempfile.TemporaryDirectory(prefix='evo-spot-') as tmp:
         out = Path(tmp) / 'out'
         env = dict(os.environ, PYTHONUTF8='1', CAMBC_NO_UPDATE_CHECK='1')
-        proc = subprocess.run([sys.executable, str(Path(root) / 'tools/benchmark.py'), a, b, '--maps', map_name,
-                               '--map-dir', str(jobfile.map_dir(root, map_name)),
-                               '--jobs', '2', '--timeout', '300', '--output', str(out), '--runner', str(runner_path(root)),
-                               '--json', '--no-progress', '--color', 'never'],
+        proc = subprocess.run([sys.executable, str(Path(root) / 'tools/benchmark.py'), a, b, '--maps', *maps,
+                               '--map-dir', str(jobfile.map_dir(root, maps[0])),
+                               '--jobs', str(min(jobs, 2 * len(maps))), '--timeout', '300', '--output', str(out),
+                               '--runner', str(runner_path(root)), '--json', '--no-progress', '--color', 'never'],
                               cwd=root, env=env, capture_output=True, text=True, encoding='utf-8', errors='replace')
         found = {}
-        for side in ('A', 'B'):
-            stats = out / f'{map_name}-{side}.json'
-            if stats.is_file():
-                d = json.loads(stats.read_text(encoding='utf-8'))
-                outcome = d['match']['outcome']
-                found[side] = (outcome if outcome in ('teamA', 'teamB') else 'unfinished',
-                               {t['team']: int(t['submittedGems']) for t in d['teams']}, d['match']['roundsStarted'])
+        for m in maps:
+            for side in ('A', 'B'):
+                stats = out / f'{m}-{side}.json'
+                if stats.is_file():
+                    d = json.loads(stats.read_text(encoding='utf-8'))
+                    outcome = d['match']['outcome']
+                    found[(m, side)] = (outcome if outcome in ('teamA', 'teamB') else 'unfinished',
+                                        {t['team']: int(t['submittedGems']) for t in d['teams']},
+                                        d['match']['roundsStarted'])
         if not found:
             found['error'] = proc.stdout[-500:] + proc.stderr[-500:]
         return found
 
 
-def spotcheck(sample, root=ROOT, replay=replay_locally):
-    """Mismatch descriptions; empty = every sampled game replayed identically."""
-    mismatches = []
-    by_cell = {}
+def spotcheck(sample, root=ROOT, replay=replay_locally, parallel=2):
+    """Mismatch descriptions; empty = every sampled game replayed identically.
+
+    Games are grouped per (a, b, public/held-out) so each pair is built once; `parallel` groups run at the
+    same time so one group's build overlaps another's games.
+    """
+    from concurrent.futures import ThreadPoolExecutor
+    groups = {}
     for row in sample:
-        by_cell.setdefault((row['a'], row['b'], row['map']), []).append(row)
-    for (a, b, m), rows in sorted(by_cell.items()):
-        local = replay(a, b, m, root)
-        for row in rows:
+        groups.setdefault((row['a'], row['b'], jobfile.is_heldout(row['map'])), []).append(row)
+    keys = sorted(groups)
+    cpu = max(1, os.cpu_count() or 1)
+
+    def run(key):
+        a, b, _ = key
+        maps = sorted({r['map'] for r in groups[key]})
+        if replay is replay_locally:
+            return replay(a, b, maps, root, jobs=max(1, cpu // max(1, min(parallel, len(keys)))))
+        return replay(a, b, maps, root)
+
+    with ThreadPoolExecutor(max_workers=max(1, min(parallel, len(keys)))) as pool:
+        results = dict(zip(keys, pool.map(run, keys)))
+    mismatches = []
+    for key in keys:
+        a, b, _ = key
+        local = results[key]
+        for row in groups[key]:
             want = (row['outcome'], row['gems'], row['rounds'])
-            got = local.get(row['side'])
+            got = local.get((row['map'], row['side']))
             if got is None or tuple(got) != want:
-                mismatches.append(f'{a} vs {b} on {m} side {row["side"]}: Actions {want}, local {got or local.get("error")}')
+                mismatches.append(f"{a} vs {b} on {row['map']} side {row['side']}: Actions {want}, "
+                                  f"local {got or local.get('error')}")
     return mismatches

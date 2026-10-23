@@ -19,6 +19,7 @@ jobs:
       job: ${{ steps.find.outputs.job }}
       shards: ${{ steps.find.outputs.shards }}
       heldout_repo: ${{ steps.find.outputs.heldout_repo }}
+      runs_on: ${{ steps.find.outputs.runs_on }}
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
@@ -36,11 +37,15 @@ jobs:
           echo "job=$added" >> "$GITHUB_OUTPUT"
           echo "shards=$(python evo/eval/check_job.py "$added" --matrix)" >> "$GITHUB_OUTPUT"
           echo "heldout_repo=$(python -c "import json,sys; print(json.load(open(sys.argv[1])).get('heldout_repo', ''))" "$added")" >> "$GITHUB_OUTPUT"
+          # Spot-check jobs (D35) name a different runner image; only these two are accepted.
+          runs_on=$(python -c "import json,sys; print(json.load(open(sys.argv[1])).get('runs_on', 'ubuntu-latest'))" "$added")
+          case "$runs_on" in ubuntu-latest|ubuntu-22.04) ;; *) echo "::error::unsupported runs_on $runs_on"; exit 1;; esac
+          echo "runs_on=$runs_on" >> "$GITHUB_OUTPUT"
           echo "job file: $added"
 
   shard:
     needs: plan
-    runs-on: ubuntu-latest
+    runs-on: ${{ needs.plan.outputs.runs_on }}   # ubuntu-latest, or ubuntu-22.04 for spot-check jobs (D35)
     timeout-minutes: 340
     strategy:
       fail-fast: false
