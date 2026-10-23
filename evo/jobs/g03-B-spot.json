@@ -1,0 +1,244 @@
+{
+ "env_manifest_sha256": "3c73f1895b22a05b348f5335b483965e0f71899e52614e48f4b27d7b4edd8a63",
+ "generation": 3,
+ "heldout_repo": "dawkaw0dy/battlecode-agent-evo-heldout",
+ "job_id": "g03-B-spot",
+ "map_sha256": {
+  "00ambush": "81ac8b6689f275d24e57d586f2451a160484c15144f86afd0c4450e02c39e579",
+  "00collision": "6e3c67956080f8da5a0042e68ea481189cd6f61061a742a8be0354a9ea5c5620",
+  "00eight": "76b5ce0895130f5f423f3ac6a630c5cf8e1202d4150e6ad4e287c75d21794765",
+  "00elkring": "4621e92590befe6b0438b7ecdd8fde5aa85945b27535f4968e701cf86934746e",
+  "00expanse": "af4236f408f8450f7da871731f08ef80295f07fac86b541f6547639a78dc2205",
+  "00gemfight": "1dfe5669ebcdf39e7769b5abf933c707804ee4a216881f89178e75e3dbc27239",
+  "00lanes": "8ca26ed2ea65c7d80ceb9604a7431ca1dc056922912b4e2f46cad06051e4886a",
+  "00quadrants": "261fe6c133f076653bda84e88965dc35c5a59a70e7730082b4c6df9ca892df92",
+  "00reverse-spiral": "f57669ffc98b76a5c2e4eccba41690dc193efc29f067ee960605617b2cfb48e5",
+  "00split": "1db691b7def9cb585314c7c4139ef1b79df87fcdbfab9d86ef31666c4709a4c4",
+  "00stampede": "49807e4756ec1b2030ed2ca7ebdd8a07f1a6ed7f2d2bd751e6941f5c0c877cdc",
+  "00swirl": "e6f860670947b1326f34c86515db8ef6893c565eaa69e3f9a6464ec5744e1c93",
+  "01big-world": "f1ecb726472858efb1d75d00b0d7668be18d83a010b2abf9a1f8c38aab456aa5",
+  "01broken-curve": "1763423b171f3b61128b2a913a10f46ba550e7a2e79ae27dd89e915c952b5117",
+  "01concentrated-wealth": "dc09c386d5e9dec3cec8bc4575c19d43233e08790e138ccd02be4644f2808c65",
+  "01fracture": "f82a1b99a7a70f8ab21f275dc8e22fbad6a71030f09fdd224d61977fe55dd914",
+  "01gold-rush": "6e564fdf09fdf67a4182a909d6985737b488742e64f2c3e164204e78bc64c898",
+  "01hooks": "23e58fe8f41ff66761ade251d3d10a9c3eead864f9ad74f12ad9e34f4bece378",
+  "01shortcut": "f77db387292e66a8aad7e912c179787db0c41b6632ee841a21593dfc279ecb3a",
+  "01starfish": "1edf115a0a788c010107148f975570961acc8e9fba4a013ad60f5ca2389cbb83",
+  "01starvation": "0b8e85603a85ca5778f92d2975c56da0e4b8df59264c42eef23108f8bbceec2a",
+  "01yellow-brick-road": "130453395278cdabb1ff80564357a99ca8394afaef006fdede8beb88924a8fa0",
+  "h-1b59": "b283e684b10c7a8d7c5bd4d6cd4533db04fbb6588748ef53ce73f7504cf0ba55",
+  "h-1b5b": "9a6c2084d609d27cf7b9eb183eb5e46f16a442caa7b187646540329a951b3502",
+  "h-1b5c": "d99b1540b5d9197f41f1a8d85618df73e0bdfb95784a6db1d583aa0851d962cd",
+  "h-1b5e": "069c2161c732cf3bb2cafe3a317a0c8a7fbf917afe02f931853015cdcc8fe9cf",
+  "h-1ce8": "7e8f4ef4618e4c4566567cf39f8b7933761210c6a844a24f6dacb6327511a71b",
+  "h-1cef": "1024c41f6d1d2d491d883e9acbc7d48ec73beedfc45fa7e31bdd076d407dbd42",
+  "h-1e78": "759985b04766d669cdee5f6ca49283c945be4044bcefa20ceaeba0f73baaa199",
+  "h-1e7f": "dace9c8d9aa07a19ac1406edabe52a4e52bb17875afc453584e057a9a3bcc798"
+ },
+ "runner_version": "cambc==3.0.5",
+ "runs_on": "ubuntu-22.04",
+ "shards": [
+  {
+   "a": "e03-03",
+   "b": "e00-01",
+   "maps": [
+    "00reverse-spiral",
+    "01big-world"
+   ]
+  },
+  {
+   "a": "e03-03",
+   "b": "e00-01",
+   "heldout": true,
+   "maps": [
+    "h-1ce8"
+   ]
+  },
+  {
+   "a": "e03-03",
+   "b": "e01-01",
+   "maps": [
+    "01concentrated-wealth",
+    "01yellow-brick-road"
+   ]
+  },
+  {
+   "a": "e03-03",
+   "b": "e02-01",
+   "maps": [
+    "00lanes",
+    "00reverse-spiral",
+    "01shortcut"
+   ]
+  },
+  {
+   "a": "e03-03",
+   "b": "e03-04",
+   "maps": [
+    "00collision",
+    "00lanes",
+    "00stampede",
+    "01fracture"
+   ]
+  },
+  {
+   "a": "e03-03",
+   "b": "starter",
+   "maps": [
+    "00split"
+   ]
+  },
+  {
+   "a": "e03-03",
+   "b": "starter",
+   "heldout": true,
+   "maps": [
+    "h-1e78",
+    "h-1e7f"
+   ]
+  },
+  {
+   "a": "e03-04",
+   "b": "e00-01",
+   "maps": [
+    "00gemfight"
+   ]
+  },
+  {
+   "a": "e03-04",
+   "b": "e01-01",
+   "maps": [
+    "00eight",
+    "00elkring",
+    "00split",
+    "01hooks"
+   ]
+  },
+  {
+   "a": "e03-04",
+   "b": "e02-01",
+   "maps": [
+    "00elkring"
+   ]
+  },
+  {
+   "a": "e03-04",
+   "b": "starter",
+   "heldout": true,
+   "maps": [
+    "h-1b5b"
+   ]
+  },
+  {
+   "a": "e03-05",
+   "b": "e00-01",
+   "maps": [
+    "01starvation"
+   ]
+  },
+  {
+   "a": "e03-05",
+   "b": "e01-01",
+   "maps": [
+    "00split",
+    "00swirl",
+    "01yellow-brick-road"
+   ]
+  },
+  {
+   "a": "e03-05",
+   "b": "e02-01",
+   "maps": [
+    "00ambush",
+    "01gold-rush"
+   ]
+  },
+  {
+   "a": "e03-05",
+   "b": "e03-03",
+   "maps": [
+    "01starfish"
+   ]
+  },
+  {
+   "a": "e03-05",
+   "b": "e03-07",
+   "maps": [
+    "00quadrants",
+    "01broken-curve"
+   ]
+  },
+  {
+   "a": "e03-07",
+   "b": "e00-01",
+   "heldout": true,
+   "maps": [
+    "h-1cef"
+   ]
+  },
+  {
+   "a": "e03-07",
+   "b": "e02-01",
+   "maps": [
+    "00expanse"
+   ]
+  },
+  {
+   "a": "e03-07",
+   "b": "e02-01",
+   "heldout": true,
+   "maps": [
+    "h-1b5c"
+   ]
+  },
+  {
+   "a": "e03-07",
+   "b": "e03-03",
+   "heldout": true,
+   "maps": [
+    "h-1cef"
+   ]
+  },
+  {
+   "a": "e03-07",
+   "b": "e03-04",
+   "maps": [
+    "00lanes"
+   ]
+  },
+  {
+   "a": "e03-07",
+   "b": "e03-04",
+   "heldout": true,
+   "maps": [
+    "h-1b5e"
+   ]
+  },
+  {
+   "a": "e03-07",
+   "b": "starter",
+   "maps": [
+    "00expanse"
+   ]
+  },
+  {
+   "a": "e03-07",
+   "b": "starter",
+   "heldout": true,
+   "maps": [
+    "h-1b59"
+   ]
+  }
+ ],
+ "src_sha256": {
+  "e00-01": "cbd4ba2fc21f3d089b6fec75fb22e9c7d01c1a88d45c80bafb950bcdc86ad132",
+  "e01-01": "4aaba25b8aa31d9086f29d08355d2eaf32f67e68dfe0f5991ef5f67dd75be75d",
+  "e02-01": "d5892401dd52138a051fc1374ae78de53e8b6a5b59c76ef4ab927c0532d7ebd2",
+  "e03-03": "aab8fb55a618680cc02eead202228a19f5f3ed5f771ba729fc81e6355a4bb89d",
+  "e03-04": "39d1c490a9282edd6281c1287bd43716518a0e35393726b6b32a13e9f74cd485",
+  "e03-05": "1f870f19e42ca87f21f3dac2822d158424b0bad3197db54e0d3b0d22d0da6cf9",
+  "e03-07": "f933e39944c9917bc49c0ff3a8ecb616c30c837f178f8fcffc7b4163ff47187d",
+  "starter": "9023e6a089796897d6ed661f26054d1b81b298e048a09a5df75d3b9cb5d3c6a9"
+ },
+ "stage": "spot"
+}
