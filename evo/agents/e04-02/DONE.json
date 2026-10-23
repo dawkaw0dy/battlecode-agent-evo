@@ -1,0 +1,27 @@
+{
+ "agent": "e04-02",
+ "task_sha256": "6328dcae47a9f6ec3f3db5a157db4d07008e03f2783aee973f34670f467c8041",
+ "base_commit": "e87febd54670ff0a279c33e1e70b5f2e08166dbc",
+ "session_id": "cse_01Tx8gFaBCHTr3Do5MwtKYa2",
+ "bot_dir": "bots/e04-02",
+ "self_eval": {
+  "vs": "e02-01",
+  "games": 12,
+  "wins": 7
+ },
+ "games_played": 84,
+ "summary": "Parent e03-07 unchanged: target stickiness 2.0 and ally-passable pathing tested on camp-stall maps, neither helped; 01the-farm stall diagnosed",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "3c73f1895b22a05b348f5335b483965e0f71899e52614e48f4b27d7b4edd8a63",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 21.88,
+  "remote": "true",
+  "session_id": "cse_01Tx8gFaBCHTr3Do5MwtKYa2",
+  "effort_level": "high",
+  "model": null
+ }
+}
