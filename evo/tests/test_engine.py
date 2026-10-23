@@ -49,7 +49,8 @@ def world(tmp_path):
                       archetypes_dir='evo/m2/archetypes', bootstrap_replicates=20)
     # Pin everything the assertions depend on, independent of the real run's evo/config.toml.
     cfg.update(population=8, keep_fraction=0.25, elites=1, immigrants=1)
-    cfg['eval'].update(stage_a_maps=2, stage_b_top=2, spotcheck_min=2, max_fault_rate=0.10, exceptions_disqualify=False)
+    cfg['eval'].update(stage_a_maps=2, stage_b_top=2, spotcheck_min=2, max_fault_rate=0.10, exceptions_disqualify=False,
+                       heldout_pool='')
     cfg['agents'].update(max_parallel=8, require_approval=True, max_sessions_total=40, relaunch_dead=1,
                          deadline_minutes=180)
     return work, origin, cfg
@@ -203,3 +204,32 @@ def test_stage_c_boundary(tmp_path):
     cfg['eval']['heldout_pool'] = ''
     ratings['c'] = r(0.0, 0.5)
     assert eng.stage_c_boundary(ratings, ['a', 'b', 'c', 'd'], []) is None            # no held-out pool
+
+
+def test_resume_after_max_generations_plans_without_redoing_selection(world):
+    """End of the e2e flow with max_generations=1: resume must plan gen 1 once, without new lineage rows."""
+    work, origin, cfg = world
+    cfg['run']['max_generations'] = 1
+    eng = engine.Engine(cfg, root=work, launcher=launch.FakeLauncher(), replay=fake_replay_from([]), out=lambda *_: None)
+    eng.init()
+    eng.step()
+    eng.approve(0)
+    eng.step()
+    for a in [a for a in eng.state['agents'].values() if a['status'] == 'running']:
+        fake_agents.plant(work, a)
+    eng.step()
+    for stage in ('A', 'B'):
+        run_actions(work, origin, eng.state['generations']['0']['jobs'][stage][-1])
+        eng.step()
+    assert 'max_generations' in eng.state['paused'] and eng.state['generation'] == 0
+    rows = (work / 'evo/m2/lineage.jsonl').read_text().splitlines()
+    with pytest.raises(SystemExit):
+        eng.state['paused'] = 'waiting for approval: python -m evo approve 00'
+        eng.resume('x')
+    eng.state['paused'] = 'generation 00 selected; max_generations=1 reached'
+    cfg['run']['max_generations'] = 2
+    eng.resume('test')
+    eng.step()
+    assert eng.state['generation'] == 1 and 'approve 01' in eng.state['paused']
+    assert (work / 'evo/m2/lineage.jsonl').read_text().splitlines() == rows
+    assert eng.state['hall_of_fame'] == ['t00-01']

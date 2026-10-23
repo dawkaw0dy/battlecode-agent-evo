@@ -6,6 +6,7 @@
   init        create the state with generation 0 (§12.4)
   approve GG  approve generation GG's sessions (§0.4); prints the maximum it approves
   unhalt --reason TEXT  clear a HALT after a human looked at it (§10.4)
+  resume --reason TEXT  clear a pause such as max_generations (not approvals)
   step        advance the current generation as far as it can, then exit (§5)
   run         call step every [run].step_interval_seconds until paused or halted
   status      print the phase, agents and jobs
@@ -34,6 +35,7 @@ def main(argv=None):
         sub.add_parser(name)
     sub.add_parser('approve').add_argument('generation', help='GG or gGG')
     sub.add_parser('unhalt', help='clear a HALT after a human review').add_argument('--reason', required=True)
+    sub.add_parser('resume', help='clear a pause such as max_generations').add_argument('--reason', required=True)
     sub.add_parser('verify').add_argument('job')
     sub.add_parser('spotcheck').add_argument('job')
     args = parser.parse_args(argv)
@@ -56,6 +58,9 @@ def main(argv=None):
         return 0
     if args.command == 'approve':
         eng.approve(int(args.generation.lstrip('gG')))
+        return 0
+    if args.command == 'resume':
+        eng.resume(args.reason)
         return 0
     if args.command == 'unhalt':
         eng.unhalt(args.reason)

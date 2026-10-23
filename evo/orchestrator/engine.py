@@ -463,12 +463,17 @@ class Engine:
     def phase_selected(self):
         g = self.state['generation']
         gen = st.gen(self.state)
+        games = self.games(['A', 'B', 'C'] if 'plan_C' in gen else ['A', 'B'])
+        members = gen['members']
+        if gen.get('selection_done'):  # resumed after a max_generations pause: only plan the next generation
+            if self.max_generations_reached(g):
+                return self.save(f'evo: generation {g:02d} selected (run complete)')
+            self.plan_next(gen['survivors'], games, members)
+            return self.save(f'evo: generation {g + 1:02d} planned')
         ratings = {b: dict(r, interval=tuple(r['interval'])) for b, r in gen['ratings'].items()}
         for b in ratings:
             if ratings[b]['strength'] is None:
                 ratings[b]['strength'] = -math.inf
-        games = self.games(['A', 'B', 'C'] if 'plan_C' in gen else ['A', 'B'])
-        members = gen['members']
         order = [b for b in gen['ranking'] if b in members]
         s = select.survivor_count(self.cfg['population'], self.cfg['keep_fraction'])
         survivors, skipped = select.survivors(order, ratings, games, s)
@@ -499,12 +504,32 @@ class Engine:
             for row in lineage:
                 f.write(json.dumps(row, sort_keys=True) + '\n')
         st.log(self.state, f'survivors {survivors}, hall of fame {self.state["hall_of_fame"]}')
-        maxg = self.cfg['run']['max_generations']
-        if maxg and g + 1 >= maxg:
-            st.pause(self.state, f'generation {g:02d} selected; max_generations={maxg} reached')
+        gen['selection_done'] = True
+        if self.max_generations_reached(g):
             return self.save(f'evo: generation {g:02d} selected (run complete)', [self.rel(lin)])
         self.plan_next(survivors, games, members)
         self.save(f'evo: generation {g:02d} selected, generation {g + 1:02d} planned', [self.rel(lin)])
+
+    def max_generations_reached(self, g):
+        maxg = self.cfg['run']['max_generations']
+        if maxg and g + 1 >= maxg:
+            st.pause(self.state, f'generation {g:02d} selected; max_generations={maxg} reached')
+            return True
+        return False
+
+    def resume(self, reason):
+        """Clear a pause (for example max_generations, after raising it). Approval pauses use `approve`."""
+        if not self.state or not self.state['paused']:
+            self.out('not paused')
+            return
+        if 'approve' in self.state['paused']:
+            raise SystemExit(f"paused for approval: use `python -m evo approve` ({self.state['paused']})")
+        gen = st.gen(self.state)
+        if self.state['phase'] == 'SELECTED' and gen.get('survivors') is not None:
+            gen['selection_done'] = True  # generations selected before this flag existed
+        st.log(self.state, f"resumed ({reason}); was paused: {self.state['paused']}")
+        self.state['paused'] = None
+        self.save(f'evo: resumed: {reason[:60]}')
 
     def plan_next(self, survivors, games, members):
         g = self.state['generation'] + 1
