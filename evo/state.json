@@ -2061,9 +2061,11 @@
   },
   "e05-04": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evo-task-e05-04-n4lebe",
+   "commit": "47d4cff177b0a5980746c06e72d74c0316fabb01",
    "deadline_minutes": 40,
+   "done_at": 1792793420,
+   "effort_level": "high",
    "evidence": [
     {
      "gems_opponent": 1010,
@@ -2111,6 +2113,7 @@
    "generation": 5,
    "id": "e05-04",
    "kind": "child",
+   "model": null,
    "nudged": [
     "session_01UucXdDNWkE4AY5sMjbRBjF"
    ],
@@ -2132,7 +2135,7 @@
    ],
    "slot": 4,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "546bb64e4db23a37492408649f409d24a0781507e1752cdc1140286cefc7918a"
   },
   "e05-05": {
@@ -11178,10 +11181,12 @@
   "2026-10-23T22:05:19Z g05 e05-07: done on origin/claude/evo-e05-07-l03p68 at 97150f5109",
   "2026-10-23T22:06:30Z g05 e05-01: done on origin/claude/evolution-agent-e05-01-8t82a4 at 5352915489",
   "2026-10-23T22:07:51Z g05 e05-05: done on origin/claude/evo-task-e05-05-cfowt7 at ba68d0cb62",
-  "2026-10-23T22:09:04Z g05 e05-02: done on origin/claude/evo-task-e05-02-ofr3vh at 1c02fe4f00"
+  "2026-10-23T22:09:04Z g05 e05-02: done on origin/claude/evo-task-e05-02-ofr3vh at 1c02fe4f00",
+  "2026-10-23T22:10:20Z g05 e05-04: done on origin/claude/evo-task-e05-04-n4lebe at 47d4cff177",
+  "2026-10-23T22:10:20Z g05 phase ADMITTED"
  ],
  "paused": null,
- "phase": "RUNNING",
+ "phase": "ADMITTED",
  "sessions_launched": 35,
  "version": 1
 }
