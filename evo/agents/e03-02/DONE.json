@@ -1,0 +1,18 @@
+{"agent": "e03-02", "task_sha256": "348d6bdd3a5be23a1b313f8834cac24ede659f261fa8f5c1893f9a49121af804",
+ "base_commit": "e923918136dbbcc41a8c75b12c6a785982701231",
+ "session_id": "cse_01AwHJK32CKYV3d8S83VreCT", "bot_dir": "bots/e03-02",
+ "self_eval": {"vs": "e02-01", "games": 12, "wins": 5}, "games_played": 60,
+ "summary": "Squad camp-farming strategy lost to the parent (best 6/11); submitted parent fallback with golem woken only by a gathered squad",
+ "env_fingerprint": {
+ "cli": "cambc 3.0.5",
+ "manifest_sha256": "a9eaccf0f58ec5cd8cb2e4d598c0ade507ad69916af70ec283b3e53031d612f6",
+ "nproc": 4,
+ "python": "3.13.17",
+ "node": "v22.22.0",
+ "smoke_finished": true,
+ "smoke_seconds": 10.97,
+ "remote": "true",
+ "session_id": "cse_01AwHJK32CKYV3d8S83VreCT",
+ "effort_level": "high",
+ "model": null
+}}
