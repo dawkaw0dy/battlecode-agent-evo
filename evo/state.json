@@ -313,8 +313,8 @@
   },
   "e02-01": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evo-e02-01-0bcmc8",
+   "commit": "7cbde6db6c667f87c6515267b5d16b7f57a41f25",
    "deadline_minutes": 40,
    "evidence": [
     {
@@ -377,7 +377,7 @@
    ],
    "slot": 1,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "ac66fa735705f32bd9892371507a291c59073d4698760626e421085801f905aa"
   },
   "e02-02": {
@@ -520,8 +520,8 @@
   },
   "e02-04": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evo-task-e02-04-6a2a78",
+   "commit": "a959a288976b6a489bbedf39efc4be01ae032c89",
    "deadline_minutes": 40,
    "evidence": [
     {
@@ -584,7 +584,7 @@
    ],
    "slot": 4,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "998d2fc0f00ccd761dde3e84cbeaff85a90054cd157b1f7f3589b81a5528175d"
   },
   "e02-05": {
@@ -754,10 +754,19 @@
    ],
    "reason": null,
    "rng_key": "20261022:2:7",
-   "sessions": [],
+   "sessions": [
+    {
+     "attempt": 1,
+     "base_commit": "8ab61b18ff44b8183c3b437ae37587dfc954e240",
+     "id": "session_01M9L1D2zya1bu4rmtJFnsFU",
+     "launch_output": "Created cloud session: Evolution agent e02-07 task\nView: https://claude.ai/code/session_01M9L1D2zya1bu4rmtJFnsFU?from=cli&m=0\nResume with: claude --teleport session_01M9L1D2zya1bu4rmtJFnsFU",
+     "launched_at": 1792769810,
+     "url": "https://claude.ai/code/session_01M9L1D2zya1bu4rmtJFnsFU"
+    }
+   ],
    "slot": 7,
    "src_sha256": null,
-   "status": "planned",
+   "status": "running",
    "task_sha256": "b300f581f6d251c24061cb94a7374c3f3e4cea5c7adc05be0d2d9985106377f6"
   }
  },
@@ -2476,10 +2485,13 @@
   "2026-10-23T15:33:22Z g02 e02-02: done on origin/claude/evo-e02-02-aoe39b at d57bc01c9d",
   "2026-10-23T15:33:26Z g02 e02-03: done on origin/claude/evolution-agent-e02-03-87ksgs at e57c76878a",
   "2026-10-23T15:33:48Z g02 e02-05: launched session_01RaE3tv9ucwMzJMttkycy49",
-  "2026-10-23T15:34:10Z g02 e02-06: launched session_01K1MYdbV6QJfzd7vrDX9FwB"
+  "2026-10-23T15:34:10Z g02 e02-06: launched session_01K1MYdbV6QJfzd7vrDX9FwB",
+  "2026-10-23T15:36:30Z g02 e02-01: done on origin/claude/evo-e02-01-0bcmc8 at 7cbde6db6c",
+  "2026-10-23T15:36:32Z g02 e02-04: done on origin/claude/evo-task-e02-04-6a2a78 at a959a28897",
+  "2026-10-23T15:36:51Z g02 e02-07: launched session_01M9L1D2zya1bu4rmtJFnsFU"
  ],
  "paused": null,
  "phase": "RUNNING",
- "sessions_launched": 13,
+ "sessions_launched": 14,
  "version": 1
 }
