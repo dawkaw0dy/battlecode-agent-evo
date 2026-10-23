@@ -1,0 +1,265 @@
+{
+ "env_manifest_sha256": "38e4c5d4fc20dba03dc91378a2fce8e7ec604c55b6ba78f464c77899cf09848d",
+ "generation": 5,
+ "heldout_repo": "dawkaw0dy/battlecode-agent-evo-heldout",
+ "job_id": "g05-B-spot",
+ "map_sha256": {
+  "00ambush": "81ac8b6689f275d24e57d586f2451a160484c15144f86afd0c4450e02c39e579",
+  "00collision": "6e3c67956080f8da5a0042e68ea481189cd6f61061a742a8be0354a9ea5c5620",
+  "00contest": "554240a5a793f8c1ac9c518cb6edbacab0129ec4dfd94b199331aaebd0bf418a",
+  "00corners": "97906cc38f503e027c041b681a877465519b3fcb19a410c316cf6efc40c909ea",
+  "00lanes": "8ca26ed2ea65c7d80ceb9604a7431ca1dc056922912b4e2f46cad06051e4886a",
+  "00lost-world": "566697c98eace1c84152f571e9e1fa0b54ec64e038e4695305c874bd3dc2bc6e",
+  "00monolith": "ba5674bf2ab26336eb99df0c9e97c16b27bd231deffc023de1d873a05a558313",
+  "00packs": "60ee7a86ee377a04a77d11008b78aaed9e2c1cfcfc4302055974195e078c675a",
+  "00reverse-spiral": "f57669ffc98b76a5c2e4eccba41690dc193efc29f067ee960605617b2cfb48e5",
+  "00split": "1db691b7def9cb585314c7c4139ef1b79df87fcdbfab9d86ef31666c4709a4c4",
+  "00stampede": "49807e4756ec1b2030ed2ca7ebdd8a07f1a6ed7f2d2bd751e6941f5c0c877cdc",
+  "01boss-battle": "53086e249294aed6f427fe647d578303589a081e953c62a0ff8f20cade9993fa",
+  "01corridors": "794132d979b297de5a534da393af8932cd2d5cc9d831e79d2cefdb4617d4d5e8",
+  "01elk-arena": "72b8e03bc4378d5f988f9c1c07609848bfb42fd8a883cce01820d96212f21c0a",
+  "01hooks": "23e58fe8f41ff66761ade251d3d10a9c3eead864f9ad74f12ad9e34f4bece378",
+  "01shortcut": "f77db387292e66a8aad7e912c179787db0c41b6632ee841a21593dfc279ecb3a",
+  "01starfish": "1edf115a0a788c010107148f975570961acc8e9fba4a013ad60f5ca2389cbb83",
+  "01yellow-brick-road": "130453395278cdabb1ff80564357a99ca8394afaef006fdede8beb88924a8fa0",
+  "h-1b58": "87693b47f19c186e0a2f9605d90c89032b8877ff5216b9f18829095fe198cba6",
+  "h-1b59": "b283e684b10c7a8d7c5bd4d6cd4533db04fbb6588748ef53ce73f7504cf0ba55",
+  "h-1b5a": "369bde5de45171d62f7a4628a93a88bee18bf1b410fb41dfa2f5121b3a938678",
+  "h-1b5b": "9a6c2084d609d27cf7b9eb183eb5e46f16a442caa7b187646540329a951b3502",
+  "h-1b5f": "8cbf98310de6c013efa1dfc4a8b8221606ff5a9ad65cd6975e1fc0c0abe0ca32",
+  "h-1ce8": "7e8f4ef4618e4c4566567cf39f8b7933761210c6a844a24f6dacb6327511a71b",
+  "h-1cec": "cd7bbee79257e81d33e3eda06ab17a960aa94e8d922a453b42739bc6dae8c261",
+  "h-1cee": "2d11b8799b0f5e8a5ad84efa95b71e982c6c47ce93d108877996d77e4f27d57c",
+  "h-1cef": "1024c41f6d1d2d491d883e9acbc7d48ec73beedfc45fa7e31bdd076d407dbd42",
+  "h-1e7d": "30de071943beda86486c5b987fbd8a7fd88544429fe64ee5927da08a6d9143fd",
+  "h-1e7f": "dace9c8d9aa07a19ac1406edabe52a4e52bb17875afc453584e057a9a3bcc798"
+ },
+ "runner_version": "cambc==3.0.5",
+ "runs_on": "ubuntu-22.04",
+ "shards": [
+  {
+   "a": "e05-01",
+   "b": "e02-01",
+   "maps": [
+    "00monolith"
+   ]
+  },
+  {
+   "a": "e05-01",
+   "b": "e02-01",
+   "heldout": true,
+   "maps": [
+    "h-1b5a",
+    "h-1cec"
+   ]
+  },
+  {
+   "a": "e05-01",
+   "b": "e03-07",
+   "heldout": true,
+   "maps": [
+    "h-1b59"
+   ]
+  },
+  {
+   "a": "e05-01",
+   "b": "e04-06",
+   "maps": [
+    "01corridors"
+   ]
+  },
+  {
+   "a": "e05-01",
+   "b": "e04-06",
+   "heldout": true,
+   "maps": [
+    "h-1cee"
+   ]
+  },
+  {
+   "a": "e05-01",
+   "b": "e05-02",
+   "maps": [
+    "00contest",
+    "00stampede",
+    "01elk-arena",
+    "01hooks",
+    "01shortcut"
+   ]
+  },
+  {
+   "a": "e05-01",
+   "b": "e05-05",
+   "maps": [
+    "00monolith"
+   ]
+  },
+  {
+   "a": "e05-01",
+   "b": "e05-05",
+   "heldout": true,
+   "maps": [
+    "h-1b5b"
+   ]
+  },
+  {
+   "a": "e05-01",
+   "b": "e05-06",
+   "heldout": true,
+   "maps": [
+    "h-1b58",
+    "h-1e7d"
+   ]
+  },
+  {
+   "a": "e05-01",
+   "b": "starter",
+   "maps": [
+    "01yellow-brick-road"
+   ]
+  },
+  {
+   "a": "e05-02",
+   "b": "e02-01",
+   "maps": [
+    "00contest"
+   ]
+  },
+  {
+   "a": "e05-02",
+   "b": "e04-06",
+   "maps": [
+    "00corners",
+    "01starfish"
+   ]
+  },
+  {
+   "a": "e05-02",
+   "b": "e05-06",
+   "maps": [
+    "00packs"
+   ]
+  },
+  {
+   "a": "e05-02",
+   "b": "starter",
+   "heldout": true,
+   "maps": [
+    "h-1cee",
+    "h-1cef"
+   ]
+  },
+  {
+   "a": "e05-05",
+   "b": "e02-01",
+   "maps": [
+    "00split"
+   ]
+  },
+  {
+   "a": "e05-05",
+   "b": "e03-07",
+   "maps": [
+    "01boss-battle",
+    "01corridors"
+   ]
+  },
+  {
+   "a": "e05-05",
+   "b": "e04-06",
+   "maps": [
+    "01yellow-brick-road"
+   ]
+  },
+  {
+   "a": "e05-05",
+   "b": "e04-06",
+   "heldout": true,
+   "maps": [
+    "h-1b5b",
+    "h-1e7f"
+   ]
+  },
+  {
+   "a": "e05-05",
+   "b": "e05-02",
+   "heldout": true,
+   "maps": [
+    "h-1ce8"
+   ]
+  },
+  {
+   "a": "e05-05",
+   "b": "e05-06",
+   "maps": [
+    "00collision",
+    "00contest"
+   ]
+  },
+  {
+   "a": "e05-05",
+   "b": "e05-06",
+   "heldout": true,
+   "maps": [
+    "h-1b5f"
+   ]
+  },
+  {
+   "a": "e05-05",
+   "b": "starter",
+   "maps": [
+    "00corners"
+   ]
+  },
+  {
+   "a": "e05-06",
+   "b": "e02-01",
+   "maps": [
+    "00lanes",
+    "00reverse-spiral"
+   ]
+  },
+  {
+   "a": "e05-06",
+   "b": "e02-01",
+   "heldout": true,
+   "maps": [
+    "h-1e7d"
+   ]
+  },
+  {
+   "a": "e05-06",
+   "b": "e03-07",
+   "maps": [
+    "00contest",
+    "00lost-world"
+   ]
+  },
+  {
+   "a": "e05-06",
+   "b": "e03-07",
+   "heldout": true,
+   "maps": [
+    "h-1b58"
+   ]
+  },
+  {
+   "a": "e05-06",
+   "b": "starter",
+   "maps": [
+    "00ambush"
+   ]
+  }
+ ],
+ "src_sha256": {
+  "e02-01": "d5892401dd52138a051fc1374ae78de53e8b6a5b59c76ef4ab927c0532d7ebd2",
+  "e03-07": "f933e39944c9917bc49c0ff3a8ecb616c30c837f178f8fcffc7b4163ff47187d",
+  "e04-06": "6b321650e9c7d222c5e37bac34674e49a9951632f7f0dc9390402cafffdf657b",
+  "e05-01": "5ca5b4d7bbbe7aeef17525fe69e5ecf644e5c12e0c25d8326296aa9734977a14",
+  "e05-02": "fb676eab14817e884a4c87b42229b951a08b518ef3a4ca123605f358ab0528b8",
+  "e05-05": "3ce2a5119a2f7799aa27e6b6c28bcf5b76bbe5e92c22d2a0c4686df83e3cb754",
+  "e05-06": "1ed048b6b09e54125eff9b2688a93ba64e2331db42f65dfd394b573c6a3c2a1e",
+  "starter": "9023e6a089796897d6ed661f26054d1b81b298e048a09a5df75d3b9cb5d3c6a9"
+ },
+ "stage": "spot"
+}
