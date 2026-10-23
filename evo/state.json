@@ -16683,17 +16683,18 @@
    "status": "verified"
   },
   "g06-C": {
+   "arrived_at": 1792796704,
    "generation": 6,
    "pushed_at": 1792796570,
    "pushed_commit": "ac843dcca85e7a51e7ccba4cce6a865da0534874",
+   "results_commit": "3d081b778e818a1aab60d4215c63d158e71fefbe",
    "retries": 0,
    "stage": "C",
-   "status": "pending"
+   "status": "arrived"
   }
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-23T15:18:25Z g02 PAUSED: waiting for approval: python -m evo approve 02",
   "2026-10-23T15:21:44Z g02 approved generation 02: {'sessions': 7, 'relaunches_per_slot': 0, 'nudges_per_session': 1, 'deadline_minutes': 40, 'max_sessions_total': 15, 'approved_at': 1792768904}",
   "2026-10-23T15:22:06Z g02 phase RUNNING",
   "2026-10-23T15:22:43Z g02 e02-01: launched session_01MPESt4bNKTkhPjdoyfjZoj",
@@ -16892,10 +16893,11 @@
   "2026-10-23T23:00:08Z g06 g06-B-spot: pushed 4b93e40419 (40 sampled games, 24 shards)",
   "2026-10-23T23:02:27Z g06 g06-B: verified, 1952 rows, spot-check 40 OK",
   "2026-10-23T23:02:36Z g06 phase EVAL_C_PENDING: stage C for e06-04 vs e06-02",
-  "2026-10-23T23:02:50Z g06 g06-C: pushed ac843dcca8 with 9 shards"
+  "2026-10-23T23:02:50Z g06 g06-C: pushed ac843dcca8 with 9 shards",
+  "2026-10-23T23:05:04Z g06 phase EVAL_C_DONE: results for g06-C"
  ],
  "paused": null,
- "phase": "EVAL_C_PENDING",
+ "phase": "EVAL_C_DONE",
  "sessions_launched": 42,
  "version": 1
 }
