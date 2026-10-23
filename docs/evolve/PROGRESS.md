@@ -6,7 +6,8 @@ The real run (`evo/state.json`) is paused after generation 02: survivors e02-01,
 
 **To continue:** raise `[run].max_generations` and `[agents].max_sessions_total`, then `python -m evo resume --reason …`
 and `python -m evo step` → the approval gate for generation 03 (7 sessions at n = 8).
-**Possible follow-ups:** a parallel local spot-check (33 games took about 48 min); re-draw duplicate briefs (the owner declined for gen 02).
+**Since M5:** spot-check runs on Actions (D35, `ubuntu-22.04`); the PC plays no games. Test `m5-spot`: 33/33 identical.
+**Possible follow-up:** re-draw duplicate briefs (the owner declined for gen 02).
 
 **Since M4:** `local_game_budget` 120 → 400 (D32, owner).
 
