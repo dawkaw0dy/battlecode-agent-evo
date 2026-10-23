@@ -1,0 +1,221 @@
+{
+ "env_manifest_sha256": "cfc03551893c711a928e87dfcad39ee4ecc920d9f7950d034b814f39beb35cce",
+ "generation": 2,
+ "heldout_repo": "dawkaw0dy/battlecode-agent-evo-heldout",
+ "job_id": "m5-spot",
+ "map_sha256": {
+  "00elkring": "4621e92590befe6b0438b7ecdd8fde5aa85945b27535f4968e701cf86934746e",
+  "00gemfight": "1dfe5669ebcdf39e7769b5abf933c707804ee4a216881f89178e75e3dbc27239",
+  "00great-wall": "1b22e5c068175913889a1ff497d310de303a9b1ddf78672f26c0777fda9f5bf2",
+  "00interlock": "140e5bc3ac11c7f74dfc4ed99cc53739a34be8d3f71a7f4d0520dc4a3c197e19",
+  "00pilgrimage": "7d7ddb9c37c77cd8b3721423e155400d936eaa76fa3c62fe24b308d0fd5eb673",
+  "00reverse-spiral": "f57669ffc98b76a5c2e4eccba41690dc193efc29f067ee960605617b2cfb48e5",
+  "00road-of-riches": "8365e18788720a079a906c0430e809317236acecccf888b517a1de409689b049",
+  "00split": "1db691b7def9cb585314c7c4139ef1b79df87fcdbfab9d86ef31666c4709a4c4",
+  "00stampede": "49807e4756ec1b2030ed2ca7ebdd8a07f1a6ed7f2d2bd751e6941f5c0c877cdc",
+  "01boss-battle": "53086e249294aed6f427fe647d578303589a081e953c62a0ff8f20cade9993fa",
+  "01islands": "d97cf04b738393812fb51024582e2a6cfba8a850b19ce031f2c1ad3d7b916acb",
+  "01shortcut": "f77db387292e66a8aad7e912c179787db0c41b6632ee841a21593dfc279ecb3a",
+  "01starvation": "0b8e85603a85ca5778f92d2975c56da0e4b8df59264c42eef23108f8bbceec2a",
+  "h-1b58": "87693b47f19c186e0a2f9605d90c89032b8877ff5216b9f18829095fe198cba6",
+  "h-1b5c": "d99b1540b5d9197f41f1a8d85618df73e0bdfb95784a6db1d583aa0851d962cd",
+  "h-1b5f": "8cbf98310de6c013efa1dfc4a8b8221606ff5a9ad65cd6975e1fc0c0abe0ca32",
+  "h-1ceb": "d2fbfff4f56275b736f8869045ec1d2f753e9b6bb761d27a6a8ba549f857a59f",
+  "h-1cee": "2d11b8799b0f5e8a5ad84efa95b71e982c6c47ce93d108877996d77e4f27d57c",
+  "h-1cef": "1024c41f6d1d2d491d883e9acbc7d48ec73beedfc45fa7e31bdd076d407dbd42",
+  "h-1e78": "759985b04766d669cdee5f6ca49283c945be4044bcefa20ceaeba0f73baaa199",
+  "h-1e7a": "770ec046edcf0c02690086c001ca3e681601d290f83f4f18a10dd4128116eecb",
+  "h-1e7c": "5a8764a6c8f267bec4b87592787432d68497b1d40901398ee506ba2547f2c64b",
+  "h-1e7d": "30de071943beda86486c5b987fbd8a7fd88544429fe64ee5927da08a6d9143fd"
+ },
+ "runner_version": "cambc==3.0.5",
+ "runs_on": "ubuntu-22.04",
+ "shards": [
+  {
+   "a": "e02-01",
+   "b": "e00-01",
+   "maps": [
+    "01shortcut"
+   ]
+  },
+  {
+   "a": "e02-01",
+   "b": "e00-01",
+   "heldout": true,
+   "maps": [
+    "h-1ceb",
+    "h-1e7d"
+   ]
+  },
+  {
+   "a": "e02-01",
+   "b": "e01-01",
+   "heldout": true,
+   "maps": [
+    "h-1cee"
+   ]
+  },
+  {
+   "a": "e02-01",
+   "b": "e02-02",
+   "maps": [
+    "00great-wall"
+   ]
+  },
+  {
+   "a": "e02-01",
+   "b": "e02-05",
+   "maps": [
+    "00split",
+    "01islands"
+   ]
+  },
+  {
+   "a": "e02-01",
+   "b": "e02-05",
+   "heldout": true,
+   "maps": [
+    "h-1e7a"
+   ]
+  },
+  {
+   "a": "e02-01",
+   "b": "e02-06",
+   "maps": [
+    "00gemfight",
+    "00reverse-spiral",
+    "01boss-battle"
+   ]
+  },
+  {
+   "a": "e02-01",
+   "b": "starter",
+   "heldout": true,
+   "maps": [
+    "h-1b58",
+    "h-1b5f"
+   ]
+  },
+  {
+   "a": "e02-02",
+   "b": "e02-06",
+   "maps": [
+    "00gemfight",
+    "00interlock",
+    "00stampede"
+   ]
+  },
+  {
+   "a": "e02-02",
+   "b": "e02-06",
+   "heldout": true,
+   "maps": [
+    "h-1b58"
+   ]
+  },
+  {
+   "a": "e02-02",
+   "b": "starter",
+   "maps": [
+    "00great-wall"
+   ]
+  },
+  {
+   "a": "e02-02",
+   "b": "starter",
+   "heldout": true,
+   "maps": [
+    "h-1b5f",
+    "h-1cee"
+   ]
+  },
+  {
+   "a": "e02-05",
+   "b": "e01-01",
+   "maps": [
+    "01shortcut"
+   ]
+  },
+  {
+   "a": "e02-05",
+   "b": "e01-01",
+   "heldout": true,
+   "maps": [
+    "h-1e7c"
+   ]
+  },
+  {
+   "a": "e02-05",
+   "b": "e02-02",
+   "heldout": true,
+   "maps": [
+    "h-1e78"
+   ]
+  },
+  {
+   "a": "e02-05",
+   "b": "e02-06",
+   "maps": [
+    "00elkring",
+    "00road-of-riches",
+    "01starvation"
+   ]
+  },
+  {
+   "a": "e02-05",
+   "b": "e02-06",
+   "heldout": true,
+   "maps": [
+    "h-1ceb"
+   ]
+  },
+  {
+   "a": "e02-05",
+   "b": "starter",
+   "maps": [
+    "00split"
+   ]
+  },
+  {
+   "a": "e02-06",
+   "b": "e00-01",
+   "maps": [
+    "00road-of-riches"
+   ]
+  },
+  {
+   "a": "e02-06",
+   "b": "e00-01",
+   "heldout": true,
+   "maps": [
+    "h-1b5c"
+   ]
+  },
+  {
+   "a": "e02-06",
+   "b": "e01-01",
+   "maps": [
+    "00gemfight",
+    "00pilgrimage"
+   ]
+  },
+  {
+   "a": "e02-06",
+   "b": "starter",
+   "heldout": true,
+   "maps": [
+    "h-1cef"
+   ]
+  }
+ ],
+ "src_sha256": {
+  "e00-01": "cbd4ba2fc21f3d089b6fec75fb22e9c7d01c1a88d45c80bafb950bcdc86ad132",
+  "e01-01": "4aaba25b8aa31d9086f29d08355d2eaf32f67e68dfe0f5991ef5f67dd75be75d",
+  "e02-01": "d5892401dd52138a051fc1374ae78de53e8b6a5b59c76ef4ab927c0532d7ebd2",
+  "e02-02": "23aedee9fb4664661cfb551300c28007abcebc7eea18e6573629c831a190a719",
+  "e02-05": "314f03a9434dce32740d6763132ec23a89b05b634fbb47bb5e46a39c1397a912",
+  "e02-06": "6e2787b21384209284efcb5a2b730cc7042623621ea8af041db44b6a5fc8c49d",
+  "starter": "9023e6a089796897d6ed661f26054d1b81b298e048a09a5df75d3b9cb5d3c6a9"
+ },
+ "stage": "spot"
+}
