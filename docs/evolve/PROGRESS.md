@@ -1,13 +1,11 @@
 # Progress
 
-**Milestone:** M5 done (2026-10-23, docs/evolve/M5.md). All milestones M0–M5 are done.
-The real run (`evo/state.json`) is paused after generation 02: survivors e02-01, e02-05; hall of fame
-[e00-01, e01-01, e02-01]; 14 of 15 run sessions used (25 cloud sessions overall).
+**State (2026-10-23):** all milestones M0–M5 done. The owner now runs the system with `evo-run.cmd`
+(docs/evolve/RUNNING.md). The real run waits at generation 03's approval (7 sessions; run cap 30, `max_generations = 5`).
 
-**To continue:** raise `[run].max_generations` and `[agents].max_sessions_total`, then `python -m evo resume --reason …`
-and `python -m evo step` → the approval gate for generation 03 (7 sessions at n = 8).
-**Since M5:** spot-check runs on Actions (D35, `ubuntu-22.04`); the PC plays no games. Test `m5-spot`: 33/33 identical.
-**Possible follow-up:** re-draw duplicate briefs (the owner declined for gen 02).
+**Since M5:** D35 spot-check on Actions; the app (`python -m evo run`) with dashboard, ETAs and approval prompts;
+repo cleanup (test branches, files and results removed); D36 effort `high` via the evo environment (H8 done).
+First thing to check in generation 03: the app's Agents list should show `effort high` (from the agents' fingerprints).
 
 **Since M4:** `local_game_budget` 120 → 400 (D32, owner).
 

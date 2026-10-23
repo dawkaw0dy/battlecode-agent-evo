@@ -269,7 +269,7 @@ Why: §9.4 keeps a pool of generated maps that agents never see. Agents can read
 clone it to `heldout/` here, set `[eval].heldout_pool`, and run a free Actions test job on 2 held-out maps
 (like M1) before generation 02 uses them.
 
-## H8 — effort level of the evo agents (DECISIONS D36)
+## H8 — effort level of the evo agents (DECISIONS D36)  ✅ done 2026-10-23 (`CLAUDE_CODE_EFFORT_LEVEL=high`)
 
 1. <https://claude.ai/code> → environment selector → hover **evo** → settings icon.
 2. **Environment variables**: add the line
