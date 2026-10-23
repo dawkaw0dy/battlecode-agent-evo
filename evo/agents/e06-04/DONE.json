@@ -1,0 +1,27 @@
+{
+ "agent": "e06-04",
+ "task_sha256": "ed609e4930dbb962625a90244b797b1f66ebc4505dafe16c1bc93f4a8ec9370e",
+ "base_commit": "9ffef65633dacdf4d41c9f285b8b8fa844316750",
+ "session_id": "cse_01KMMxWbFFzDpMhVxe3ngJxt",
+ "bot_dir": "bots/e06-04",
+ "self_eval": {
+  "vs": "e05-01",
+  "games": 6,
+  "wins": 3
+ },
+ "games_played": 28,
+ "summary": "Crossover e05-05 x e05-01 (defense): failed-step memory unfreezes champions holding gems on respawning spawn tiles; walk-reachability stops idling on island maps",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "38e4c5d4fc20dba03dc91378a2fce8e7ec604c55b6ba78f464c77899cf09848d",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 16.09,
+  "remote": "true",
+  "session_id": "cse_01KMMxWbFFzDpMhVxe3ngJxt",
+  "effort_level": "high",
+  "model": null
+ }
+}
