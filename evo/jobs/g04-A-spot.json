@@ -1,0 +1,130 @@
+{
+ "env_manifest_sha256": "6d722f39d2e916c57763c53f2dd1c0e7a418ff7aede6f454c09e1423c164fa77",
+ "generation": 4,
+ "job_id": "g04-A-spot",
+ "map_sha256": {
+  "00gem-fields": "80af89f07723d23d822ddc858616a0156ae60f9d41ffd8bd9105f924379677b5",
+  "00monolith": "ba5674bf2ab26336eb99df0c9e97c16b27bd231deffc023de1d873a05a558313",
+  "00road-of-riches": "8365e18788720a079a906c0430e809317236acecccf888b517a1de409689b049",
+  "00rushbait-v2": "f4dcc30269aa7d0983e7d244f72c3d2a9a6d7ce918cd00495d465b78b2609157",
+  "00split": "1db691b7def9cb585314c7c4139ef1b79df87fcdbfab9d86ef31666c4709a4c4",
+  "01concentrated-wealth": "dc09c386d5e9dec3cec8bc4575c19d43233e08790e138ccd02be4644f2808c65",
+  "01corridors": "794132d979b297de5a534da393af8932cd2d5cc9d831e79d2cefdb4617d4d5e8",
+  "01elk-arena": "72b8e03bc4378d5f988f9c1c07609848bfb42fd8a883cce01820d96212f21c0a",
+  "01fracture": "f82a1b99a7a70f8ab21f275dc8e22fbad6a71030f09fdd224d61977fe55dd914",
+  "01gold-rush": "6e564fdf09fdf67a4182a909d6985737b488742e64f2c3e164204e78bc64c898",
+  "01hooks": "23e58fe8f41ff66761ade251d3d10a9c3eead864f9ad74f12ad9e34f4bece378",
+  "01yellow-brick-road": "130453395278cdabb1ff80564357a99ca8394afaef006fdede8beb88924a8fa0"
+ },
+ "runner_version": "cambc==3.0.5",
+ "runs_on": "ubuntu-22.04",
+ "shards": [
+  {
+   "a": "e04-01",
+   "b": "e01-01",
+   "maps": [
+    "01yellow-brick-road"
+   ]
+  },
+  {
+   "a": "e04-01",
+   "b": "e02-01",
+   "maps": [
+    "00gem-fields"
+   ]
+  },
+  {
+   "a": "e04-01",
+   "b": "e03-07",
+   "maps": [
+    "00monolith"
+   ]
+  },
+  {
+   "a": "e04-01",
+   "b": "starter",
+   "maps": [
+    "01elk-arena"
+   ]
+  },
+  {
+   "a": "e04-03",
+   "b": "e01-01",
+   "maps": [
+    "00road-of-riches",
+    "00rushbait-v2"
+   ]
+  },
+  {
+   "a": "e04-03",
+   "b": "e03-07",
+   "maps": [
+    "01corridors"
+   ]
+  },
+  {
+   "a": "e04-04",
+   "b": "e02-01",
+   "maps": [
+    "01elk-arena"
+   ]
+  },
+  {
+   "a": "e04-05",
+   "b": "e01-01",
+   "maps": [
+    "01hooks"
+   ]
+  },
+  {
+   "a": "e04-05",
+   "b": "e02-01",
+   "maps": [
+    "00split"
+   ]
+  },
+  {
+   "a": "e04-05",
+   "b": "e03-07",
+   "maps": [
+    "00road-of-riches",
+    "00rushbait-v2"
+   ]
+  },
+  {
+   "a": "e04-06",
+   "b": "e01-01",
+   "maps": [
+    "01fracture"
+   ]
+  },
+  {
+   "a": "e04-06",
+   "b": "starter",
+   "maps": [
+    "01concentrated-wealth",
+    "01gold-rush"
+   ]
+  },
+  {
+   "a": "e04-07",
+   "b": "starter",
+   "maps": [
+    "01concentrated-wealth"
+   ]
+  }
+ ],
+ "src_sha256": {
+  "e01-01": "4aaba25b8aa31d9086f29d08355d2eaf32f67e68dfe0f5991ef5f67dd75be75d",
+  "e02-01": "d5892401dd52138a051fc1374ae78de53e8b6a5b59c76ef4ab927c0532d7ebd2",
+  "e03-07": "f933e39944c9917bc49c0ff3a8ecb616c30c837f178f8fcffc7b4163ff47187d",
+  "e04-01": "6fb19c657ef95a54d17683dfacd654420ca100080e3d3b0a3838c6bea2e8a63f",
+  "e04-03": "2c9144da5c4cadc23ebe493849838a61f86e86e243e239ea7c1d27a728b11ed7",
+  "e04-04": "303bd28c7ca48fb48127edf6af90baf1b602b00d971fc49965275d08565415be",
+  "e04-05": "2cf081de26eb99326a775dbbc09997ce8cd9c448fbab05058d72d976dd571486",
+  "e04-06": "6b321650e9c7d222c5e37bac34674e49a9951632f7f0dc9390402cafffdf657b",
+  "e04-07": "9d7e7099aa474a8648968f865656175d076ace28a8814f072d5a9292978f6157",
+  "starter": "9023e6a089796897d6ed661f26054d1b81b298e048a09a5df75d3b9cb5d3c6a9"
+ },
+ "stage": "spot"
+}
