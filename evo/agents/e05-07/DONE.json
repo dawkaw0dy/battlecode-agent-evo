@@ -1,0 +1,27 @@
+{
+ "agent": "e05-07",
+ "task_sha256": "b63f8cd6afb6d55671a3eb870f53fbad59d55ef432af5389750361f9313e4145",
+ "base_commit": "1175a4d57c458a367f78c0f16b0deaf72b71fa02",
+ "session_id": "cse_01KgvLQoLt6Dvsm8LJNG2xh2",
+ "bot_dir": "bots/e05-07",
+ "self_eval": {
+  "vs": "e04-06",
+  "games": 20,
+  "wins": 15
+ },
+ "games_played": 322,
+ "summary": "Crossover opening: team-size draft (A's picks for 3-4, B's 5-pick pack), warden named in draft memory, B's ally heal ported",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "6d722f39d2e916c57763c53f2dd1c0e7a418ff7aede6f454c09e1423c164fa77",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 21.42,
+  "remote": "true",
+  "session_id": "cse_01KgvLQoLt6Dvsm8LJNG2xh2",
+  "effort_level": "high",
+  "model": null
+ }
+}
