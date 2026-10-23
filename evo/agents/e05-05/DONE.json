@@ -1,0 +1,27 @@
+{
+ "agent": "e05-05",
+ "task_sha256": "3f30278c899af1f6258052cdaa79b5104b6afc2bf488158f76d5c40dced014e5",
+ "base_commit": "1175a4d57c458a367f78c0f16b0deaf72b71fa02",
+ "session_id": "cse_01RY3mhEFKsnG9d1ajCtHwTA",
+ "bot_dir": "bots/e05-05",
+ "self_eval": {
+  "vs": "e04-04",
+  "games": 8,
+  "wins": 4
+ },
+ "games_played": 274,
+ "summary": "e04-06 x e04-04 crossover: draft-time map plan in draft memory (draft, packing, bank thresholds), B's respawn-aware camp choice, fuel-aware path fields fixing idle champions on large maps",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "6d722f39d2e916c57763c53f2dd1c0e7a418ff7aede6f454c09e1423c164fa77",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 20.62,
+  "remote": "true",
+  "session_id": "cse_01RY3mhEFKsnG9d1ajCtHwTA",
+  "effort_level": "high",
+  "model": null
+ }
+}

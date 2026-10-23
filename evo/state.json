@@ -1899,8 +1899,8 @@
     }
    ],
    "slot": 1,
-   "src_sha256": null,
-   "status": "done",
+   "src_sha256": "5ca5b4d7bbbe7aeef17525fe69e5ecf644e5c12e0c25d8326296aa9734977a14",
+   "status": "admitted",
    "task_sha256": "a603242ef9d53394942331d0e71ba6280cb3cd64f4d7fa50b0215e6c697cb917"
   },
   "e05-02": {
@@ -1978,8 +1978,8 @@
     }
    ],
    "slot": 2,
-   "src_sha256": null,
-   "status": "done",
+   "src_sha256": "fb676eab14817e884a4c87b42229b951a08b518ef3a4ca123605f358ab0528b8",
+   "status": "admitted",
    "task_sha256": "3fadf7c7b10a18ec218c3e840519ad7c6231eccb64cf481bdee3c53f8e779ba5"
   },
   "e05-03": {
@@ -2055,8 +2055,8 @@
     }
    ],
    "slot": 3,
-   "src_sha256": null,
-   "status": "done",
+   "src_sha256": "50af3bb7283e4fb6ae7e1a10f3872c8cc258c02f88090e1fceb554a76b222f68",
+   "status": "admitted",
    "task_sha256": "33f3b308b89b66fe30f6b3d7ecfee29bfb6cb94a8dd148a375047cf993cd0239"
   },
   "e05-04": {
@@ -2134,8 +2134,8 @@
     }
    ],
    "slot": 4,
-   "src_sha256": null,
-   "status": "done",
+   "src_sha256": "0b45d5b02506b4cfc4b1a4ed6500a7306278ccb2a4438366115e697700741764",
+   "status": "admitted",
    "task_sha256": "546bb64e4db23a37492408649f409d24a0781507e1752cdc1140286cefc7918a"
   },
   "e05-05": {
@@ -2212,8 +2212,8 @@
     }
    ],
    "slot": 5,
-   "src_sha256": null,
-   "status": "done",
+   "src_sha256": "3ce2a5119a2f7799aa27e6b6c28bcf5b76bbe5e92c22d2a0c4686df83e3cb754",
+   "status": "admitted",
    "task_sha256": "3f30278c899af1f6258052cdaa79b5104b6afc2bf488158f76d5c40dced014e5"
   },
   "e05-06": {
@@ -2289,8 +2289,8 @@
     }
    ],
    "slot": 6,
-   "src_sha256": null,
-   "status": "done",
+   "src_sha256": "1ed048b6b09e54125eff9b2688a93ba64e2331db42f65dfd394b573c6a3c2a1e",
+   "status": "admitted",
    "task_sha256": "b3714864caffbbee358c99cf6636578f454c19161328b1f36459b3b3c79189eb"
   },
   "e05-07": {
@@ -2367,8 +2367,8 @@
     }
    ],
    "slot": 7,
-   "src_sha256": null,
-   "status": "done",
+   "src_sha256": "f58ae47d77ece3add3d3b6042dc3cbed7006302e98185cfeffd02916b554d087",
+   "status": "admitted",
    "task_sha256": "b63f8cd6afb6d55671a3eb870f53fbad59d55ef432af5389750361f9313e4145"
   }
  },
@@ -10773,6 +10773,16 @@
     "B": [],
     "C": []
    },
+   "members": [
+    "e04-06",
+    "e05-01",
+    "e05-02",
+    "e05-03",
+    "e05-04",
+    "e05-05",
+    "e05-06",
+    "e05-07"
+   ],
    "slots": [
     "e04-06",
     "e05-01",
@@ -10985,12 +10995,6 @@
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-22T19:59:38Z g00 initialised generation 0 with 4 immigrants",
-  "2026-10-22T19:59:44Z g00 phase TASKS_PUSHED: 4 task files",
-  "2026-10-22T19:59:55Z g00 PAUSED: waiting for approval: python -m evo approve 00",
-  "2026-10-22T20:02:02Z g00 approved generation 00: {'sessions': 4, 'relaunches_per_slot': 0, 'nudges_per_session': 1, 'deadline_minutes': 60, 'max_sessions_total': 8, 'approved_at': 1792699322}",
-  "2026-10-22T20:02:14Z g00 phase RUNNING",
-  "2026-10-22T20:02:36Z g00 e00-00: launched session_01KgvAkboBqUPGYt5Z9aq8da",
   "2026-10-22T20:02:54Z g00 e00-01: launched session_01Wuu9kNfNWzAZVZPMh2Ezs5",
   "2026-10-22T20:03:05Z g00 e00-02: launched session_01CMuwLaPgknby2uMQ9q3Ua1",
   "2026-10-22T20:03:18Z g00 e00-03: launched session_01V4G6svvU1rbA8q4ciWHjMr",
@@ -11183,7 +11187,14 @@
   "2026-10-23T22:07:51Z g05 e05-05: done on origin/claude/evo-task-e05-05-cfowt7 at ba68d0cb62",
   "2026-10-23T22:09:04Z g05 e05-02: done on origin/claude/evo-task-e05-02-ofr3vh at 1c02fe4f00",
   "2026-10-23T22:10:20Z g05 e05-04: done on origin/claude/evo-task-e05-04-n4lebe at 47d4cff177",
-  "2026-10-23T22:10:20Z g05 phase ADMITTED"
+  "2026-10-23T22:10:20Z g05 phase ADMITTED",
+  "2026-10-23T22:10:29Z g05 e05-01: admitted (5ca5b4d7bbbe)",
+  "2026-10-23T22:10:33Z g05 e05-02: admitted (fb676eab1481)",
+  "2026-10-23T22:10:37Z g05 e05-03: admitted (50af3bb7283e)",
+  "2026-10-23T22:10:41Z g05 e05-04: admitted (0b45d5b02506)",
+  "2026-10-23T22:10:45Z g05 e05-05: admitted (3ce2a5119a2f)",
+  "2026-10-23T22:10:49Z g05 e05-06: admitted (1ed048b6b09e)",
+  "2026-10-23T22:10:53Z g05 e05-07: admitted (f58ae47d77ec)"
  ],
  "paused": null,
  "phase": "ADMITTED",

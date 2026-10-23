@@ -1,0 +1,27 @@
+{
+ "agent": "e05-03",
+ "task_sha256": "33f3b308b89b66fe30f6b3d7ecfee29bfb6cb94a8dd148a375047cf993cd0239",
+ "base_commit": "1175a4d57c458a367f78c0f16b0deaf72b71fa02",
+ "session_id": "cse_01ThXsa44x2krYQStmkDWfDe",
+ "bot_dir": "bots/e05-03",
+ "self_eval": {
+  "vs": "e04-06",
+  "games": 12,
+  "wins": 8
+ },
+ "games_played": 54,
+ "summary": "Camp subsystem rewrite: patch-100 group stats, respawn-aware scoring, uncaptured-reward stealing, per-champion claims; keeps the 2.5 pack bonus",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "6d722f39d2e916c57763c53f2dd1c0e7a418ff7aede6f454c09e1423c164fa77",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 16.8,
+  "remote": "true",
+  "session_id": "cse_01ThXsa44x2krYQStmkDWfDe",
+  "effort_level": "high",
+  "model": null
+ }
+}
