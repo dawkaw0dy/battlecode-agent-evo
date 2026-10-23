@@ -29,3 +29,6 @@ bots/v16tr/
 
 # local only: pins the evo cloud environment (PLAN §6.1)
 .claude/settings.local.json
+
+# held-out maps: a checkout of the private repository (PLAN §9.4); never committed here
+/heldout/

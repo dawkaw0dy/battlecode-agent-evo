@@ -181,3 +181,25 @@ def test_marker_from_another_session_is_ignored(world):
     fake_agents.plant(work, stale)
     eng.step()
     assert eng.state['agents']['t00-00']['status'] == 'running'     # wrong session_id: not done
+
+
+def test_stage_c_boundary(tmp_path):
+    """§11 Stage C: only when the last survivor and the first non-survivor overlap and held-out maps remain."""
+    from evo.orchestrator import state as st
+    (tmp_path / 'heldout' / 'maps').mkdir(parents=True)
+    for i in range(4):
+        (tmp_path / 'heldout' / 'maps' / f'h-{i}.map26a').write_bytes(b'x')
+    cfg = copy.deepcopy(config.load(REPO / 'evo/config.toml'))
+    cfg.update(population=4, keep_fraction=0.25)
+    cfg['eval'].update(heldout_pool='o/p', heldout_stage_b=2)
+    eng = engine.Engine(cfg, root=tmp_path, launcher=launch.FakeLauncher(), out=lambda *_: None)
+    eng.state = st.empty()
+    st.gen(eng.state)['members'] = ['a', 'b', 'c', 'd']
+    r = lambda lo, hi: {'disqualified': False, 'interval': (lo, hi)}
+    ratings = {'a': r(1.0, 2.0), 'b': r(0.4, 0.9), 'c': r(0.0, 0.5), 'd': r(-1, -0.5)}
+    assert eng.stage_c_boundary(ratings, ['a', 'b', 'c', 'd'], []) == ['b', 'c']      # 0.4–0.9 overlaps 0.0–0.5
+    ratings['c'] = r(-0.5, 0.3)
+    assert eng.stage_c_boundary(ratings, ['a', 'b', 'c', 'd'], []) is None            # clear gap
+    cfg['eval']['heldout_pool'] = ''
+    ratings['c'] = r(0.0, 0.5)
+    assert eng.stage_c_boundary(ratings, ['a', 'b', 'c', 'd'], []) is None            # no held-out pool

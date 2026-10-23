@@ -18,6 +18,7 @@ jobs:
     outputs:
       job: ${{ steps.find.outputs.job }}
       shards: ${{ steps.find.outputs.shards }}
+      heldout_repo: ${{ steps.find.outputs.heldout_repo }}
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
@@ -34,6 +35,7 @@ jobs:
           fi
           echo "job=$added" >> "$GITHUB_OUTPUT"
           echo "shards=$(python evo/eval/check_job.py "$added" --matrix)" >> "$GITHUB_OUTPUT"
+          echo "heldout_repo=$(python -c "import json,sys; print(json.load(open(sys.argv[1])).get('heldout_repo', ''))" "$added")" >> "$GITHUB_OUTPUT"
           echo "job file: $added"
 
   shard:
@@ -56,6 +58,14 @@ jobs:
           python -m venv .venv && .venv/bin/pip install --quiet "$version"
       - uses: actions/cache@v4
         with: { path: ~/.cache/cambc, key: 'cambc-${{ env.RUNNER_VERSION }}-${{ runner.os }}' }
+      - name: Held-out maps (private repository, §9.4)
+        if: matrix.heldout
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ needs.plan.outputs.heldout_repo }}
+          ssh-key: ${{ secrets.HELDOUT_DEPLOY_KEY }}
+          path: heldout
+          persist-credentials: false
       - id: check
         name: Check the job file against the checkout
         run: python evo/eval/check_job.py "$JOB" --shard "$SHARD" --github-output "$GITHUB_OUTPUT"
@@ -72,10 +82,11 @@ jobs:
           echo "failed=$failed" >> "$GITHUB_OUTPUT"
       - name: Play
         if: steps.build.outputs.failed == ''
-        env: { A: '${{ steps.check.outputs.a }}', B: '${{ steps.check.outputs.b }}', MAPS: '${{ steps.check.outputs.maps }}' }
+        env: { A: '${{ steps.check.outputs.a }}', B: '${{ steps.check.outputs.b }}', MAPS: '${{ steps.check.outputs.maps }}',
+               MAP_DIR: '${{ steps.check.outputs.map_dir }}' }
         run: |
           # A non-zero exit is expected when games fault; extract.py reads what was produced.
-          python tools/benchmark.py "$A" "$B" --maps $MAPS --jobs "$(nproc)" --timeout 300 \
+          python tools/benchmark.py "$A" "$B" --maps $MAPS --map-dir "$MAP_DIR" --jobs "$(nproc)" --timeout 300 \
             --output out --runner .venv/bin/cambc --json --no-progress --color never > bench.jsonl || true
           tail -1 bench.jsonl || true
       - name: Extract rows
@@ -87,7 +98,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with: { name: 'rows-${{ matrix.shard }}', path: part/ }
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: always() && !matrix.heldout   # a replay contains its map: never publish held-out ones
         with: { name: 'replays-${{ matrix.shard }}', path: 'out/*.repl26a', retention-days: 7, if-no-files-found: ignore }
 
   aggregate:

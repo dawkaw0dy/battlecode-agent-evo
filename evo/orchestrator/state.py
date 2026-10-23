@@ -5,7 +5,7 @@ import time
 from pathlib import Path
 
 PHASES = ['PLANNED', 'TASKS_PUSHED', 'RUNNING', 'ADMITTED', 'EVAL_A_PENDING', 'EVAL_A_DONE',
-          'EVAL_B_PENDING', 'EVAL_B_DONE', 'SELECTED']
+          'EVAL_B_PENDING', 'EVAL_B_DONE', 'EVAL_C_PENDING', 'EVAL_C_DONE', 'SELECTED']
 STATUSES = ['planned', 'running', 'done', 'rejected', 'dead', 'admitted', 'disqualified', 'rated']
 
 
@@ -32,7 +32,7 @@ def save(state, path):
 
 def gen(state, g=None):
     g = state['generation'] if g is None else g
-    return state['generations'].setdefault(str(g), {'slots': [], 'approval': None, 'jobs': {'A': [], 'B': []},
+    return state['generations'].setdefault(str(g), {'slots': [], 'approval': None, 'jobs': {'A': [], 'B': [], 'C': []},
                                                     'env_failed': 0})
 
 

@@ -417,6 +417,7 @@ every 5 minutes. Every phase change commits `evo/state.json`.
 | `EVAL_A_DONE` | verify (§10), merge rows into cache, Stage A ranking | verify passed |
 | `EVAL_B_PENDING` | push `gGG-B.json` | results file appears |
 | `EVAL_B_DONE` | verify, rate (§11) | verify passed |
+| `EVAL_C_PENDING` / `EVAL_C_DONE` | only when §11 Stage C applies (D33): push `gGG-C.json`, verify, rate over A+B+C | verify passed |
 | `SELECTED` | survivors, hall of fame, write `lineage.jsonl`, plan gen+1 | → `PLANNED` of gen+1 |
 
 Elites skip `TASKS_PUSHED` to `ADMITTED`; they keep their id and files.
@@ -753,7 +754,9 @@ To keep agents from tuning to the M maps they can see, put a frozen pool of
 generated maps (`tools/mapgen.mjs`) in a separate private repo that cloud
 environments do not have access to. The workflow checks it out with a deploy
 key secret and passes `--map-dir`. Held-out maps are used only in Stage B and
-Stage C. Their hashes go in the job file as usual.
+Stage C. Their hashes go in the job file as usual. D33: the maps are named `h-<id>`, a seeded 16 of
+the 24 join Stage B each generation and the rest are kept for Stage C; held-out shards never
+upload replays, because a replay contains the map.
 
 ### 9.5 Repository settings
 

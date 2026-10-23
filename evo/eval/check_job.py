@@ -44,7 +44,7 @@ def shard_problems(job, index, root=ROOT):
             problems.append(f'{bot}: src_sha256 {found} != job {job["src_sha256"][bot]}')
         problems += [f'{bot}: {p}' for p in allowlist.check_bot(root / 'bots' / bot)]
     for m in shard['maps']:
-        path = root / 'maps' / f'{m}.map26a'
+        path = jobfile.map_dir(root, m) / f'{m}.map26a'
         if not path.is_file():
             problems.append(f'map {m} missing')
         elif jobfile.map_sha256(root, m) != job['map_sha256'][m]:
@@ -62,8 +62,8 @@ def main(argv=None):
     args = ap.parse_args(argv)
     job = jobfile.load(args.job)
     if args.matrix:
-        print(json.dumps([{'shard': i, 'a': s['a'], 'b': s['b'], 'games': 2 * len(s['maps'])}
-                          for i, s in enumerate(job['shards'])]))
+        print(json.dumps([{'shard': i, 'a': s['a'], 'b': s['b'], 'games': 2 * len(s['maps']),
+                           'heldout': bool(s.get('heldout'))} for i, s in enumerate(job['shards'])]))
         return 0
     problems = job_problems(job) + shard_problems(job, args.shard)
     for p in problems:
@@ -73,7 +73,8 @@ def main(argv=None):
     shard = job['shards'][args.shard]
     if args.github_output:
         with open(args.github_output, 'a', encoding='utf-8') as out:
-            out.write(f"a={shard['a']}\nb={shard['b']}\nmaps={' '.join(shard['maps'])}\n")
+            map_dir = jobfile.HELDOUT_DIR if shard.get('heldout') else 'maps'
+            out.write(f"a={shard['a']}\nb={shard['b']}\nmaps={' '.join(shard['maps'])}\nmap_dir={map_dir}\n")
     print(f"check_job: {job['job_id']} shard {args.shard} OK ({shard['a']} vs {shard['b']}, {len(shard['maps'])} maps)")
     return 0
 

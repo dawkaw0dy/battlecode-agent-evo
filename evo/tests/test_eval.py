@@ -180,3 +180,37 @@ def test_verification_accepts_identical_repeats_of_requested_duplicates(tmp_path
     rows[2] = dict(row, outcome='teamB')
     problems, _ = verify.check_results(job, 'c', {'job_id': 'j1', 'trigger_sha': 'c', 'rows': rows}, tmp_path)
     assert any('different results' in p for p in problems)
+
+
+def test_heldout_maps_get_their_own_shards(tmp_path):
+    root = make_repo(tmp_path)
+    (root / 'heldout' / 'maps').mkdir(parents=True)
+    shutil.copy(REPO / 'maps/00eight.map26a', root / 'heldout/maps/h-1.map26a')
+    with pytest.raises(ValueError, match='heldout_pool'):
+        jobfile.build_units('j', [('probe-random', 'starter', ['00rows', 'h-1'])], root=root)
+    job = jobfile.build_units('j', [('probe-random', 'starter', ['00rows', 'h-1'])], root=root,
+                              heldout_repo='owner/private')
+    assert [(s['maps'], s.get('heldout', False)) for s in job['shards']] == [(['00rows'], False), (['h-1'], True)]
+    assert job['heldout_repo'] == 'owner/private'
+    assert job['map_sha256']['h-1'] == hashlib.sha256((REPO / 'maps/00eight.map26a').read_bytes()).hexdigest()
+    path = root / 'evo/jobs/j.json'
+    path.parent.mkdir(parents=True)
+    path.write_bytes(jobfile.dumps(job))
+    loaded = jobfile.load(path)
+    assert check_job.shard_problems(loaded, 1, root) == []
+    loaded['shards'][1]['heldout'] = False
+    path.write_text(json.dumps(loaded))
+    with pytest.raises(ValueError, match='heldout flag'):
+        jobfile.load(path)
+
+
+def test_heldout_split_is_seeded_and_disjoint(tmp_path):
+    from evo.orchestrator import jobs
+    (tmp_path / 'heldout' / 'maps').mkdir(parents=True)
+    for i in range(10):
+        (tmp_path / 'heldout' / 'maps' / f'h-{i}.map26a').write_bytes(b'x')
+    cfg = {'seed': 1, 'eval': {'heldout_pool': 'o/p', 'heldout_stage_b': 6}}
+    b, c = jobs.heldout_split(cfg, 3, tmp_path)
+    assert len(b) == 6 and len(c) == 4 and not set(b) & set(c)
+    assert (b, c) == jobs.heldout_split(cfg, 3, tmp_path) and b != jobs.heldout_split(cfg, 4, tmp_path)[0]
+    assert jobs.heldout_split({'seed': 1, 'eval': {'heldout_pool': ''}}, 3, tmp_path) == ([], [])

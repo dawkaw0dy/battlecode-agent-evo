@@ -282,13 +282,18 @@ class Engine:
         panel = jobs.panel(self.cfg, self.state['hall_of_fame'])
         round_robin = len(self.state['hall_of_fame']) < 2
         maps_a = jobs.stage_a_maps(self.cfg, g, self.root)
+        heldout_b, heldout_c = jobs.heldout_split(self.cfg, g, self.root)
         if stage == 'A':
             pairs = jobs.stage_a_pairs(members, panel, maps_a, round_robin)
-        else:
+        elif stage == 'B':
             order = [b for b in gen['ranking_A'] if b in members and not gen['ratings_A'][b]['disqualified']]
             top = order[:self.cfg['eval']['stage_b_top']]
             gen['top'] = top
-            pairs = jobs.stage_b_pairs(top, panel, jobs.all_maps(self.root), maps_a)
+            pairs = jobs.stage_b_pairs(top, panel, jobs.all_maps(self.root) + heldout_b, maps_a)
+        else:  # C: the two bots at the survivor boundary, on held-out maps not used yet (§11)
+            x, y = gen['stage_c_bots']
+            pairs = jobs.dedupe_pairs([((x, y), heldout_c)] + [((b, p), heldout_c) for b in (x, y)
+                                                               for p in panel if p not in (x, y)])
         gen[key] = [[list(p), m] for p, m in pairs]
         return gen[key]
 
@@ -307,7 +312,7 @@ class Engine:
     def eval_pending(self, stage):
         g = self.state['generation']
         gen = st.gen(self.state)
-        pending = [j for j in gen['jobs'][stage] if self.state['jobs'][j]['status'] == 'pending']
+        pending = [j for j in gen['jobs'].setdefault(stage, []) if self.state['jobs'][j]['status'] == 'pending']
         if not pending:
             pairs = self.pairs(stage)
             srcs = jobs.srcs_for(self.bots_of(pairs), self.root)
@@ -352,7 +357,7 @@ class Engine:
             gitops.push_main(self.root)
         self.state['jobs'][jid] = {'generation': g, 'stage': stage, 'pushed_commit': sha, 'pushed_at': st.now(),
                                    'status': 'pending', 'retries': st.gen(self.state).get(f'retries_{stage}', 0)}
-        st.gen(self.state)['jobs'][stage].append(jid)
+        st.gen(self.state)['jobs'].setdefault(stage, []).append(jid)
         st.log(self.state, f'{jid}: pushed {sha[:10]} with {len(job["shards"])} shards')
         self.save(f'evo: job {jid} pushed')
 
@@ -362,10 +367,16 @@ class Engine:
     def phase_eval_b_done(self):
         self.eval_done('B')
 
+    def phase_eval_c_pending(self):
+        self.eval_pending('C')
+
+    def phase_eval_c_done(self):
+        self.eval_done('C')
+
     def eval_done(self, stage):
         g = self.state['generation']
         gen = st.gen(self.state)
-        for jid in gen['jobs'][stage]:
+        for jid in gen['jobs'].setdefault(stage, []):
             rec = self.state['jobs'][jid]
             if rec['status'] != 'arrived':
                 continue
@@ -395,7 +406,7 @@ class Engine:
                 st.set_phase(self.state, f'EVAL_{stage}_PENDING', 'missing games')
                 return self.save(f'evo: {jid} verified, games missing', [self.rel(path_in(self.root, self.cfg, 'cache'))])
             st.log(self.state, f'{jid}: verified, {len(results["rows"])} rows, spot-check {len(sample)} OK')
-        games = self.games(['A'] if stage == 'A' else ['A', 'B'])
+        games = self.games({'A': ['A'], 'B': ['A', 'B'], 'C': ['A', 'B', 'C']}[stage])
         bots = gen['members'] + [p for p in jobs.panel(self.cfg, self.state['hall_of_fame']) if p not in gen['members']]
         ratings, order = rating.rate(games, bots, max_fault_rate=self.cfg['eval']['max_fault_rate'],
                                      seed=f"{self.cfg['seed']}:{g}:{stage}",
@@ -406,9 +417,32 @@ class Engine:
         if stage == 'A':
             st.set_phase(self.state, 'EVAL_B_PENDING', 'stage A ranked: ' + ', '.join(order))
         else:
-            gen['ratings'], gen['ranking'] = gen['ratings_B'], order
-            st.set_phase(self.state, 'SELECTED', 'final: ' + ', '.join(order))
+            gen['ratings'], gen['ranking'] = gen[f'ratings_{stage}'], order
+            boundary = self.stage_c_boundary(ratings, order, games) if stage == 'B' else None
+            if boundary:
+                gen['stage_c_bots'] = boundary
+                st.set_phase(self.state, 'EVAL_C_PENDING', f'stage C for {boundary[0]} vs {boundary[1]}')
+            else:
+                st.set_phase(self.state, 'SELECTED', 'final: ' + ', '.join(order))
         self.save(f'evo: generation {g:02d} stage {stage} rated', [self.rel(path_in(self.root, self.cfg, 'cache'))])
+
+    def stage_c_boundary(self, ratings, order, games):
+        """§11 Stage C: the last survivor and the first non-survivor, if their intervals overlap and
+        unused held-out maps exist; else None."""
+        g = self.state['generation']
+        _, heldout_c = jobs.heldout_split(self.cfg, g, self.root)
+        if not heldout_c:
+            return None
+        members = st.gen(self.state)['members']
+        ranked = [b for b in order if b in members and not ratings[b]['disqualified']]
+        s = select.survivor_count(self.cfg['population'], self.cfg['keep_fraction'])
+        chosen, _ = select.survivors(ranked, ratings, games, s)
+        rest = [b for b in ranked if b not in chosen]
+        if len(chosen) < s or not rest:
+            return None
+        last, first_out = chosen[-1], rest[0]
+        (lo1, hi1), (lo2, hi2) = ratings[last]['interval'], ratings[first_out]['interval']
+        return [last, first_out] if lo1 <= hi2 and lo2 <= hi1 else None
 
     def cache(self):
         return jobs.Cache(path_in(self.root, self.cfg, 'cache'))
@@ -433,7 +467,7 @@ class Engine:
         for b in ratings:
             if ratings[b]['strength'] is None:
                 ratings[b]['strength'] = -math.inf
-        games = self.games(['A', 'B'])
+        games = self.games(['A', 'B', 'C'] if 'plan_C' in gen else ['A', 'B'])
         members = gen['members']
         order = [b for b in gen['ranking'] if b in members]
         s = select.survivor_count(self.cfg['population'], self.cfg['keep_fraction'])

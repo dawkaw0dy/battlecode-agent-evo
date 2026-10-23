@@ -19,8 +19,20 @@ def runner_version(root=ROOT):
     return tomllib.loads((root / 'evo/config.toml').read_text(encoding='utf-8'))['eval']['runner_version']
 
 
+HELDOUT_PREFIX = 'h-'          # held-out maps (§9.4) are named h-<id>
+HELDOUT_DIR = 'heldout/maps'   # a checkout of the private held-out repository; never committed here
+
+
+def is_heldout(name):
+    return name.startswith(HELDOUT_PREFIX)
+
+
+def map_dir(root, name):
+    return Path(root) / (HELDOUT_DIR if is_heldout(name) else 'maps')
+
+
 def map_sha256(root, name):
-    return hashlib.sha256((Path(root) / 'maps' / f'{name}.map26a').read_bytes()).hexdigest()
+    return hashlib.sha256((map_dir(root, name) / f'{name}.map26a').read_bytes()).hexdigest()
 
 
 def build(job_id, pairs, maps, *, generation=None, stage='M1', shard_games=200, root=ROOT):
@@ -29,8 +41,12 @@ def build(job_id, pairs, maps, *, generation=None, stage='M1', shard_games=200, 
                        shard_games=shard_games, root=root)
 
 
-def build_units(job_id, units, *, generation=None, stage='M1', shard_games=200, root=ROOT):
-    """A job dict from (a, b, maps) units; each unit is split into shards of at most shard_games games."""
+def build_units(job_id, units, *, generation=None, stage='M1', shard_games=200, root=ROOT, heldout_repo=None):
+    """A job dict from (a, b, maps) units; each unit is split into shards of at most shard_games games.
+
+    Held-out maps go into shards of their own (`heldout: true`), so only those shards need the
+    private repository, and they never publish replays (a replay contains the map).
+    """
     if not job_id or set(job_id) - JOB_ID_CHARS:
         raise ValueError(f'bad job id {job_id!r}')
     root = Path(root)
@@ -39,11 +55,17 @@ def build_units(job_id, units, *, generation=None, stage='M1', shard_games=200, 
     per_shard = max(1, shard_games // 2)
     shards = []
     for a, b, unit_maps in units:
-        unit_maps = list(unit_maps)
-        for i in range(0, len(unit_maps), per_shard):
-            shards.append({'a': a, 'b': b, 'maps': unit_maps[i:i + per_shard]})
+        for heldout in (False, True):
+            part = [m for m in unit_maps if is_heldout(m) == heldout]
+            for i in range(0, len(part), per_shard):
+                shard = {'a': a, 'b': b, 'maps': part[i:i + per_shard]}
+                if heldout:
+                    shard['heldout'] = True
+                shards.append(shard)
+    if any(s.get('heldout') for s in shards) and not heldout_repo:
+        raise ValueError('held-out maps requested but no [eval].heldout_pool repository is configured')
     manifest = (root / 'evo/env/manifest.json').read_bytes()
-    return {
+    job = {
         'job_id': job_id, 'generation': generation, 'stage': stage,
         'runner_version': runner_version(root),
         'env_manifest_sha256': hashlib.sha256(manifest).hexdigest(),
@@ -51,6 +73,9 @@ def build_units(job_id, units, *, generation=None, stage='M1', shard_games=200, 
         'map_sha256': {m: map_sha256(root, m) for m in maps},
         'shards': shards,
     }
+    if heldout_repo:
+        job['heldout_repo'] = heldout_repo
+    return job
 
 
 def dumps(job):
@@ -71,6 +96,8 @@ def load(path):
         for m in shard['maps']:
             if m not in job['map_sha256'] or Path(m).name != m:
                 raise ValueError(f'shard {i}: bad map {m!r}')
+            if is_heldout(m) != bool(shard.get('heldout')):
+                raise ValueError(f'shard {i}: map {m!r} does not match the shard\'s heldout flag')
     return job
 
 

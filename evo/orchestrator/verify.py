@@ -71,6 +71,7 @@ def replay_locally(a, b, map_name, root=ROOT):
         out = Path(tmp) / 'out'
         env = dict(os.environ, PYTHONUTF8='1', CAMBC_NO_UPDATE_CHECK='1')
         proc = subprocess.run([sys.executable, str(Path(root) / 'tools/benchmark.py'), a, b, '--maps', map_name,
+                               '--map-dir', str(jobfile.map_dir(root, map_name)),
                                '--jobs', '2', '--timeout', '300', '--output', str(out), '--runner', str(runner_path(root)),
                                '--json', '--no-progress', '--color', 'never'],
                               cwd=root, env=env, capture_output=True, text=True, encoding='utf-8', errors='replace')

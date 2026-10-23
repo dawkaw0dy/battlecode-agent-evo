@@ -152,7 +152,8 @@ def dedupe_pairs(pairs):
 
 def write_job(cfg, job_id, units, generation, stage, root=ROOT):
     job = jobfile.build_units(job_id, units, generation=generation, stage=stage,
-                              shard_games=cfg['eval']['shard_games'], root=root)
+                              shard_games=cfg['eval']['shard_games'], root=root,
+                              heldout_repo=cfg['eval'].get('heldout_pool') or None)
     if len(job['shards']) > 256:
         raise ValueError(f'{job_id}: {len(job["shards"])} shards exceed the 256-entry matrix limit')
     rel = f'evo/jobs/{job_id}.json'
@@ -181,3 +182,24 @@ def map_shas(maps, root=ROOT):
 
 def cache_for(cfg):
     return Cache(path(cfg, 'cache'))
+
+
+def heldout_maps(cfg, root=ROOT):
+    """Names of the held-out maps (§9.4) in the local checkout, or [] when no pool is configured."""
+    if not cfg['eval'].get('heldout_pool'):
+        return []
+    folder = Path(root) / jobfile.HELDOUT_DIR
+    if not folder.is_dir():
+        raise RuntimeError(f'[eval].heldout_pool is set but {jobfile.HELDOUT_DIR}/ is missing; clone the private repo there')
+    return sorted(p.stem for p in folder.glob(f'{jobfile.HELDOUT_PREFIX}*.map26a'))
+
+
+def heldout_split(cfg, generation, root=ROOT):
+    """(Stage B maps, Stage C maps): a seeded rotating subset for B; Stage C uses the rest (§11)."""
+    maps = heldout_maps(cfg, root)
+    if not maps:
+        return [], []
+    rng = random.Random(int(hashlib.sha256(f"{cfg['seed']}:{generation}:heldout".encode()).hexdigest(), 16))
+    k = min(cfg['eval'].get('heldout_stage_b', 16), len(maps))
+    stage_b = sorted(rng.sample(maps, k))
+    return stage_b, [m for m in maps if m not in set(stage_b)]
