@@ -13474,17 +13474,18 @@
    "status": "verified"
   },
   "g05-C": {
+   "arrived_at": 1792794334,
    "generation": 5,
    "pushed_at": 1792794201,
    "pushed_commit": "21dfe80231db4cc5b768df38530f8763a6e62aa6",
+   "results_commit": "4a00f69fa90a525957e91e46e3d05fe6529bc5d6",
    "retries": 0,
    "stage": "C",
-   "status": "pending"
+   "status": "arrived"
   }
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-22T20:17:25Z g00 phase EVAL_A_PENDING",
   "2026-10-22T20:17:35Z g00 g00-A: pushed 136db30bee with 10 shards",
   "2026-10-22T20:19:49Z g00 phase EVAL_A_DONE: results for g00-A",
   "2026-10-22T20:25:49Z g00 g00-A: verified, 320 rows, spot-check 7 OK",
@@ -13683,10 +13684,11 @@
   "2026-10-23T22:20:40Z g05 g05-B-spot: pushed 3e4cc3c1ef (40 sampled games, 27 shards)",
   "2026-10-23T22:23:00Z g05 g05-B: verified, 1952 rows, spot-check 40 OK",
   "2026-10-23T22:23:09Z g05 phase EVAL_C_PENDING: stage C for e05-01 vs e05-02",
-  "2026-10-23T22:23:21Z g05 g05-C: pushed 21dfe80231 with 9 shards"
+  "2026-10-23T22:23:21Z g05 g05-C: pushed 21dfe80231 with 9 shards",
+  "2026-10-23T22:25:34Z g05 phase EVAL_C_DONE: results for g05-C"
  ],
  "paused": null,
- "phase": "EVAL_C_PENDING",
+ "phase": "EVAL_C_DONE",
  "sessions_launched": 35,
  "version": 1
 }
