@@ -112,3 +112,16 @@ def test_run_app_resumes_when_max_generations_was_raised(monkeypatch):
     code, eng = run_app(monkeypatch, [('generation 03 selected; max_generations=4 reached', None),
                                       ('generation 04 selected; max_generations=5 reached', None)], [])
     assert len(eng.resumed) == 1  # g=3 < 5-1: resumed once; the scripted second pause is then reported
+
+
+def test_best_copies_the_winner(tmp_path, capsys):
+    import evo.__main__ as app
+
+    class E:
+        state = {'hall_of_fame': ['e02-01'], 'generations': {
+            '2': {'survivors': ['e02-01'], 'ranking': ['e02-01', 'starter'],
+                  'ratings': {'e02-01': {'strength': 1.0, 'interval': [0.5, 1.5]},
+                              'starter': {'strength': None, 'interval': [-2, -1]}}},
+            '3': {'slots': []}}}
+    assert app.best(E(), target_root=tmp_path) == 0
+    assert (tmp_path / 'e02-01' / 'src').is_dir() and 'Best bot: e02-01' in capsys.readouterr().out

@@ -29,6 +29,19 @@ The dashboard shows:
 Ctrl+C or closing the window is always safe: everything is in `evo/state.json` and on GitHub, and starting it
 again continues where it was.
 
+## Emergency stop
+
+Double-click **`evo-stop.cmd`** (or `python -m evo stop`). Immediately:
+- the run is marked **STOPPED by owner**: no new sessions, no nudges; a running app window stops at its next check;
+- every running agent's slot is retired, so nothing it pushes later is admitted;
+- one message is queued into each running session ("stop now, push nothing"). A queued message is read when the
+  agent finishes its current step, usually within minutes, not instantly;
+- each running session's page opens in your browser. **Stopping it there is the only immediate stop**: Claude Code
+  has no documented command that stops a cloud session.
+
+Sessions that you do not stop end by themselves at the latest at their deadline (`deadline_minutes`).
+To continue later: `python -m evo resume --reason "…"`, then start `evo-run.cmd` again.
+
 ## Changing settings (and why GitHub Desktop cannot push)
 
 `main` only accepts pushes made with this PC's deploy key (DECISIONS D20), so agents, which push as you, cannot
@@ -42,6 +55,17 @@ git push
 
 Common settings in `evo/config.toml`: `population`, `[agents].deadline_minutes`, `max_sessions_total`,
 `local_game_budget`, and `[run].max_generations`.
+
+## The result
+
+`python -m evo best` prints the latest selected generation's ranking and copies the #1 bot (`src/` and NOTES.md)
+to `best-bot/<id>/`. The same code is always on `main` in `bots/<id>/`. Submitting to the ladder is up to you
+(evo never touches the platform account).
+
+## Unattended runs
+
+With `[agents].require_approval = false` (D37), generations follow each other without the `y` prompt; the run
+stops at `max_generations` or when `max_sessions_total` sessions have been used.
 
 ## Other commands
 

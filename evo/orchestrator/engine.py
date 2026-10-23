@@ -99,6 +99,37 @@ class Engine:
         st.log(self.state, f'approved generation {g:02d}: {approval}')
         self.save(f'evo: approve generation {g:02d}')
 
+    STOP_MESSAGE = ('STOP: the owner has ended this evolution run. Stop all work now: do not push anything else, '
+                    'do not write DONE.json, and end your session.')
+
+    def stop(self, reason, message=True):
+        """Emergency stop: pause the run, retire every running slot, and ask each running session to stop.
+
+        A cloud session cannot be stopped from the CLI (docs: `claude stop` is for local background
+        sessions only), and a queued message is read only when the agent's current turn ends. Returns the
+        running sessions as [(agent, session id, url, message queued?)] so the caller can open them in the
+        browser, where they can be stopped at once.
+        """
+        self.state = st.load(self.state_path) or self.state
+        stopped = []
+        for aid in st.gen(self.state).get('slots', []):
+            a = self.state['agents'][aid]
+            if a['status'] != 'running' or not a['sessions']:
+                continue
+            session = a['sessions'][-1]
+            sent = False
+            if message:
+                try:
+                    sent = bool(self.launcher.nudge(session['id'], self.STOP_MESSAGE))
+                except Exception:
+                    sent = False
+            a.update(status='dead', reason=f'stopped by owner ({reason})')
+            stopped.append((aid, session['id'], session.get('url') or f"https://claude.ai/code/{session['id']}", sent))
+        st.pause(self.state, f'STOPPED by owner: {reason}')
+        st.log(self.state, f'emergency stop: {len(stopped)} running sessions retired: {[s[0] for s in stopped]}')
+        self.save(f'evo: STOPPED by owner ({len(stopped)} running sessions retired)')
+        return stopped
+
     def unhalt(self, reason):
         """Clear a HALT after a human looked at it (§10.4); the next step redoes the halted phase's checks."""
         if not self.state or not self.state['halted']:
@@ -110,8 +141,16 @@ class Engine:
 
     # ---------------------------------------------------------------- step
     def step(self, max_transitions=20):
+        # Re-read the state: another process (`python -m evo stop`, approve, resume) may have changed it.
+        self.state = st.load(self.state_path) or self.state
         if self.state is None:
             raise SystemExit('no state; run `python -m evo init` first')
+        paused = self.state['paused'] or ''
+        if paused.startswith('waiting for approval') and not self.cfg['agents']['require_approval']:
+            # D37: the owner turned approvals off (unattended run); max_sessions_total stays the hard stop.
+            st.log(self.state, f'approval pause cleared: require_approval = false (was: {paused})')
+            self.state['paused'] = None
+            self.save('evo: approval not required (unattended run)')
         for _ in range(max_transitions):
             if self.state['halted']:
                 self.out(f"HALTED: {self.state['halted']}")

@@ -32,3 +32,6 @@ bots/v16tr/
 
 # held-out maps: a checkout of the private repository (PLAN §9.4); never committed here
 /heldout/
+
+# python -m evo best copies the winner here
+/best-bot/

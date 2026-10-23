@@ -148,6 +148,7 @@ def test_one_generation_end_to_end(world):
     assert gen['survivors'] == ['t00-01', 't00-00'] and eng.state['hall_of_fame'] == ['t00-01']
     # generation 1 was planned and its tasks pushed; it now waits for approval
     assert eng.state['generation'] == 1 and eng.state['phase'] == 'TASKS_PUSHED' and 'approve 01' in eng.state['paused']
+    agents = eng.state['agents']  # step() re-reads the state file, so take a fresh reference
     g1 = eng.state['generations']['1']
     assert g1['elites'] == ['t00-01'] and len(g1['slots']) == 8
     kids = [agents[x] for x in g1['slots'] if x.startswith('t01-')]
@@ -279,3 +280,29 @@ def test_spotcheck_runs_as_an_actions_job(world):
         simulate = real
     eng.step()
     assert eng.state['halted'] and 'spot-check mismatch' in eng.state['halted']
+
+
+def test_emergency_stop_retires_running_sessions(world):
+    work, origin, cfg = world
+    sent = []
+
+    class Recorder(launch.FakeLauncher):
+        def nudge(self, session_id, message):
+            sent.append((session_id, message))
+            return True
+
+    eng = engine.Engine(cfg, root=work, launcher=Recorder(), replay=fake_replay_from([]), out=lambda *_: None)
+    eng.init()
+    eng.step()
+    eng.approve(0)
+    eng.step()                                       # 8 sessions running
+    other = engine.Engine(cfg, root=work, launcher=Recorder(), out=lambda *_: None)   # e.g. evo-stop.cmd
+    stopped = other.stop('test')
+    assert len(stopped) == 8 and len(sent) == 8 and all('STOP' in m for _, m in sent)
+    for a in [a for a in eng.state['agents'].values() if a['sessions']]:
+        fake_agents.plant(work, a)                    # agents that push anyway
+    assert eng.step() == 'paused' and eng.state['paused'].startswith('STOPPED by owner')   # step re-read the state
+    assert all(a['status'] == 'dead' for a in eng.state['agents'].values())
+    eng.resume('test over')
+    eng.step()                                       # every slot is dead: nothing is admitted, the run waits
+    assert not [a for a in eng.state['agents'].values() if a['status'] == 'admitted']

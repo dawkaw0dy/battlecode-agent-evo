@@ -6,6 +6,8 @@
   init        create the state with generation 0 (§12.4)
   approve GG  approve generation GG's sessions (§0.4); prints the maximum it approves
   unhalt --reason TEXT  clear a HALT after a human looked at it (§10.4)
+  stop        emergency stop: no new sessions, retire the running ones and open them in the browser
+  best        show the best bot so far and copy it to best-bot/<id>/
   resume --reason TEXT  clear a pause such as max_generations (not approvals)
   step        advance the current generation as far as it can, then exit (§5)
   run         call step every [run].step_interval_seconds until paused or halted
@@ -14,6 +16,7 @@
   spotcheck JOB  replay JOB's spot-check sample locally
 """
 import argparse
+from pathlib import Path
 import json
 import os
 import sys
@@ -36,6 +39,11 @@ def main(argv=None):
     sub.add_parser('approve').add_argument('generation', help='GG or gGG')
     sub.add_parser('unhalt', help='clear a HALT after a human review').add_argument('--reason', required=True)
     sub.add_parser('resume', help='clear a pause such as max_generations').add_argument('--reason', required=True)
+    sub.add_parser('best', help='show the best bot so far and copy it to best-bot/<id>/')
+    stop = sub.add_parser('stop', help='emergency stop: no new sessions, retire running ones, open them to stop')
+    stop.add_argument('--reason', default='emergency stop')
+    stop.add_argument('--no-message', action='store_true', help='do not queue a stop message into the sessions')
+    stop.add_argument('--no-open', action='store_true', help='do not open the running sessions in the browser')
     sub.add_parser('verify').add_argument('job')
     sub.add_parser('spotcheck').add_argument('job')
     args = parser.parse_args(argv)
@@ -72,6 +80,10 @@ def main(argv=None):
         return run(eng, cfg)
     if args.command == 'status':
         return status(eng)
+    if args.command == 'best':
+        return best(eng)
+    if args.command == 'stop':
+        return emergency_stop(eng, args)
     rec = eng.state['jobs'].get(args.job) if eng.state else None
     if not rec:
         print(f'unknown job {args.job}', file=sys.stderr)
@@ -154,6 +166,57 @@ def run(eng, cfg, redraw_seconds=10):
     except KeyboardInterrupt:
         print('\nStopped by you. Start it again to continue; nothing is lost.')
         return 0
+
+
+def emergency_stop(eng, args):
+    """`python -m evo stop`: see Engine.stop. The browser is the only immediate way to stop a cloud session."""
+    import webbrowser
+    if eng.state is None:
+        print('No run.')
+        return 1
+    stopped = eng.stop(args.reason, message=not args.no_message)
+    print('The run is STOPPED: no new sessions, no nudges. `python -m evo resume --reason "..."` continues it.')
+    if not stopped:
+        print('No cloud session was running.')
+        return 0
+    print(f'{len(stopped)} running session(s) retired (their work will not be admitted):')
+    for aid, sid, url, sent in stopped:
+        print(f"  {aid}  {url}  stop message {'queued' if sent else 'NOT queued'}")
+    print('A queued message is read when the agent finishes its current step, so it can take a few minutes.')
+    print('To stop a session at once, use the stop control on its page at claude.ai/code (opening them now).')
+    if not args.no_open:
+        for _, _, url, _ in stopped:
+            webbrowser.open(url)
+    return 0
+
+
+def best(eng, target_root=None):
+    """The #1 of the latest selected generation (final ranking, §11), copied to best-bot/<id>/."""
+    import shutil
+    from evo.orchestrator.config import ROOT
+    s = eng.state
+    gens = sorted((int(g), gen) for g, gen in (s or {}).get('generations', {}).items() if gen.get('survivors'))
+    if not gens:
+        print('No generation has been selected yet.')
+        return 1
+    g, gen = gens[-1]
+    winner = gen['ranking'][0]
+    print(f'Best bot: {winner}  (generation {g:02d}, final ranking #1; hall of fame {", ".join(s["hall_of_fame"])})')
+    for i, b in enumerate(gen['ranking'][:5], 1):
+        r = gen['ratings'][b]
+        strength = 'DQ' if r['strength'] is None else f"{r['strength']:+.2f}"
+        print(f"  {i}. {b:<8} {strength:>6}  90% [{r['interval'][0]:+.2f}, {r['interval'][1]:+.2f}]")
+    src = ROOT / 'bots' / winner
+    out = Path(target_root or ROOT / 'best-bot') / winner
+    if out.exists():
+        shutil.rmtree(out)
+    shutil.copytree(src / 'src', out / 'src')
+    if (src / 'NOTES.md').is_file():
+        shutil.copy(src / 'NOTES.md', out / 'NOTES.md')
+    print(f'Copied to {out} (src/ and NOTES.md). The same code is on main in bots/{winner}/.')
+    print(f'To put it on the ladder, submit bots/{winner} yourself with cambc (see `cambc submit --help`); '
+          'evo never touches the platform account.')
+    return 0
 
 
 def status(eng):
