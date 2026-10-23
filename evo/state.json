@@ -832,7 +832,7 @@
    "slot": 1,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "3ece6375e13a4d2dbcfccff55993fd289df846a319d57b63be708bc95a6dbae5"
   },
   "e03-02": {
    "archetype": null,
@@ -897,7 +897,7 @@
    "slot": 2,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "a9b88ee2244435fe3ef21770d037c0bec99c3811dedeadf68c8a374b1a1eb349"
   },
   "e03-03": {
    "archetype": null,
@@ -962,7 +962,7 @@
    "slot": 3,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "17d3aa200481dbc92fb7aa76629b27cee36acfb16f5a13e0f2562e5d2c51ab80"
   },
   "e03-04": {
    "archetype": null,
@@ -1027,7 +1027,7 @@
    "slot": 4,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "018706a19214196a4b7d00ba7d0f730d9c2fbb018e2a3d69ee57f9000e8795a1"
   },
   "e03-05": {
    "archetype": null,
@@ -1092,7 +1092,7 @@
    "slot": 5,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "b51561f008256fa1d099f391786fcbf2ff3e38f408b0e621d812265aa34c72b4"
   },
   "e03-06": {
    "archetype": null,
@@ -1157,7 +1157,7 @@
    "slot": 6,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "9712b71b885249f2a1f7e4566df8ebd5c59a5e820c2a8a2e31d756efb4fe90ef"
   },
   "e03-07": {
    "archetype": "altar-control",
@@ -1197,7 +1197,7 @@
    "slot": 7,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "d0b4f947fe48fd0f92109a37ee2ddaf2cc44f9cda1cdf80c97a50713f8c6860c"
   }
  },
  "generation": 3,
@@ -4875,10 +4875,11 @@
   "2026-10-23T17:00:07Z g02 survivors ['e02-01', 'e02-05'], hall of fame ['e00-01', 'e01-01', 'e02-01']",
   "2026-10-23T17:00:07Z g02 PAUSED: generation 02 selected; max_generations=3 reached",
   "2026-10-23T18:34:54Z g02 resumed (max_generations is now 5 in evo/config.toml); was paused: generation 02 selected; max_generations=3 reached",
-  "2026-10-23T18:34:59Z g03 phase PLANNED: 8 slots"
+  "2026-10-23T18:34:59Z g03 phase PLANNED: 8 slots",
+  "2026-10-23T18:35:05Z g03 phase TASKS_PUSHED: 7 task files"
  ],
  "paused": null,
- "phase": "PLANNED",
+ "phase": "TASKS_PUSHED",
  "sessions_launched": 14,
  "version": 1
 }
