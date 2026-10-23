@@ -4880,9 +4880,10 @@
   "2026-10-23T18:35:17Z g03 PAUSED: cannot launch: working tree is not clean",
   "2026-10-23T18:51:11Z g03 resumed (the unclean tree was the app's own uncommitted code; committed); was paused: cannot launch: working tree is not clean",
   "2026-10-23T18:51:31Z g03 PAUSED: waiting for approval: python -m evo approve 03",
-  "2026-10-23T19:21:21Z g03 generation 03 tasks re-rendered after D36 (env_fingerprint in DONE.json; manifest)"
+  "2026-10-23T19:21:21Z g03 generation 03 tasks re-rendered after D36 (env_fingerprint in DONE.json; manifest)",
+  "2026-10-23T20:31:42Z g03 approval pause cleared: require_approval = false (was: waiting for approval: python -m evo approve 03)"
  ],
- "paused": "waiting for approval: python -m evo approve 03",
+ "paused": null,
  "phase": "TASKS_PUSHED",
  "sessions_launched": 14,
  "version": 1
