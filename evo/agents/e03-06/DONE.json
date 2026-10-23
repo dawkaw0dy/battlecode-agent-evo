@@ -1,0 +1,27 @@
+{
+ "agent": "e03-06",
+ "task_sha256": "9208c6a8cbfbae75cdf37303c0a4341f5c60ccbfde0cfc44478f2756800d7e91",
+ "base_commit": "e923918136dbbcc41a8c75b12c6a785982701231",
+ "session_id": "cse_013enpTqmhrrGs5hD6BniumB",
+ "bot_dir": "bots/e03-06",
+ "self_eval": {
+  "vs": "e00-01",
+  "games": 16,
+  "wins": 14
+ },
+ "games_played": 83,
+ "summary": "Camp subsystem rewrite: per-champion reward share per round with focus-fire exposure, shared-memory claims, capture handoff, respawn waiting off-tile",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "a9eaccf0f58ec5cd8cb2e4d598c0ade507ad69916af70ec283b3e53031d612f6",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 11.93,
+  "remote": "true",
+  "session_id": "cse_013enpTqmhrrGs5hD6BniumB",
+  "effort_level": "high",
+  "model": null
+ }
+}
