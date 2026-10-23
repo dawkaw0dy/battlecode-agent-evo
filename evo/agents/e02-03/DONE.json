@@ -1,0 +1,4 @@
+{"agent": "e02-03", "task_sha256": "31a549fa61ea77253a478e8f73e3f9a140cbd80245e35d7197a1d9c11ba49fed", "base_commit": "91989db6a3bbafd8f6e0cec2c58081794d8452cc",
+ "session_id": "cse_01UCXbmGUT5kTApg2RoaSGKa", "bot_dir": "bots/e02-03",
+ "self_eval": {"vs": "e00-01", "games": 30, "wins": 17}, "games_played": 262,
+ "summary": "Map-aware draft scoring plus draft-memory opening plan (per-group spawn distances) biasing early camp choice away from contested groups; draw_chebyshev edge fix"}
