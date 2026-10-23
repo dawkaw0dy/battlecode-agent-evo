@@ -1,0 +1,27 @@
+{
+ "agent": "e06-01",
+ "task_sha256": "b42b92f8822cd9c014727fe0d27acd549c8be8484163e4188c3b133ab33a44b8",
+ "base_commit": "9ffef65633dacdf4d41c9f285b8b8fa844316750",
+ "session_id": "cse_01Ki7hkpLrUkJUhzJ8rtAh3T",
+ "bot_dir": "bots/e06-01",
+ "self_eval": {
+  "vs": "e05-05",
+  "games": 4,
+  "wins": 0
+ },
+ "games_played": 40,
+ "summary": "Fuel subsystem rewritten as cached per-goal terrain distance fields with measured cost and turn-end warmup; currently loses to parent e05-05 (0/4 final build, 3/10 previous build)",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "38e4c5d4fc20dba03dc91378a2fce8e7ec604c55b6ba78f464c77899cf09848d",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 17.06,
+  "remote": "true",
+  "session_id": "cse_01Ki7hkpLrUkJUhzJ8rtAh3T",
+  "effort_level": "high",
+  "model": null
+ }
+}
