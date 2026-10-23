@@ -2413,10 +2413,11 @@
   "2026-10-23T15:18:01Z g02 phase PLANNED: 8 slots",
   "2026-10-23T15:18:08Z g02 phase TASKS_PUSHED: 7 task files",
   "2026-10-23T15:18:25Z g02 PAUSED: waiting for approval: python -m evo approve 02",
-  "2026-10-23T15:21:44Z g02 approved generation 02: {'sessions': 7, 'relaunches_per_slot': 0, 'nudges_per_session': 1, 'deadline_minutes': 40, 'max_sessions_total': 15, 'approved_at': 1792768904}"
+  "2026-10-23T15:21:44Z g02 approved generation 02: {'sessions': 7, 'relaunches_per_slot': 0, 'nudges_per_session': 1, 'deadline_minutes': 40, 'max_sessions_total': 15, 'approved_at': 1792768904}",
+  "2026-10-23T15:22:06Z g02 phase RUNNING"
  ],
  "paused": null,
- "phase": "TASKS_PUSHED",
+ "phase": "RUNNING",
  "sessions_launched": 7,
  "version": 1
 }
