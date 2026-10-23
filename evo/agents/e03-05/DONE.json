@@ -1,0 +1,27 @@
+{
+ "agent": "e03-05",
+ "task_sha256": "926e35b11811a6012dd0957f21c9453e9c42801525bb75cb28aca53ae52f09aa",
+ "base_commit": "e923918136dbbcc41a8c75b12c6a785982701231",
+ "session_id": "cse_01CfKgTjFdLus1mTCnrZ9uD9",
+ "bot_dir": "bots/e03-05",
+ "self_eval": {
+  "vs": "e02-01",
+  "games": 16,
+  "wins": 13
+ },
+ "games_played": 204,
+ "summary": "Spell-first pack: planner scores every ready slot vs every target in cast range, saves stuns for champions, shared focus target, Vesper + stun core draft",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "a9eaccf0f58ec5cd8cb2e4d598c0ade507ad69916af70ec283b3e53031d612f6",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 9.18,
+  "remote": "true",
+  "session_id": "cse_01CfKgTjFdLus1mTCnrZ9uD9",
+  "effort_level": "high",
+  "model": null
+ }
+}

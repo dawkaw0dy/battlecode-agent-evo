@@ -1,0 +1,27 @@
+{
+ "agent": "e03-04",
+ "task_sha256": "02352c7070c9e2b7bfe32ccf43d8d6154501d1f2921b9d98894b90f3cf9486d2",
+ "base_commit": "e923918136dbbcc41a8c75b12c6a785982701231",
+ "session_id": "cse_01FLaZNS7WhSJAH4udq2LDEC",
+ "bot_dir": "bots/e03-04",
+ "self_eval": {
+  "vs": "e01-01",
+  "games": 16,
+  "wins": 14
+ },
+ "games_played": 184,
+ "summary": "Draft tweak: Willow replaces Ryth/Varg as 4th pick (healer on 4- and 5-pick maps); Vendetta stays 3rd.",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "a9eaccf0f58ec5cd8cb2e4d598c0ade507ad69916af70ec283b3e53031d612f6",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 10.46,
+  "remote": "true",
+  "session_id": "cse_01FLaZNS7WhSJAH4udq2LDEC",
+  "effort_level": "high",
+  "model": null
+ }
+}

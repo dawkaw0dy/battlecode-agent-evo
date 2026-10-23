@@ -1,0 +1,5 @@
+{"agent": "e03-07", "task_sha256": "bc52498ccb55aec89671849f7d346755d1cee6864e444e91855c405a3d8ffcef", "base_commit": "e923918136dbbcc41a8c75b12c6a785982701231",
+ "session_id": "cse_011jBehWvpC4NM5xQi6kWN2i", "bot_dir": "bots/e03-07",
+ "self_eval": {"vs": "e02-01", "games": 12, "wins": 7}, "games_played": 36,
+ "summary": "Altar-control immigrant: every champion locks altars it passes, a warden re-locks cleared altars, others farm and bank at our locks; 7/12 vs e02-01, 21/24 vs starter/e00-01/e01-01, 0 faults",
+ "env_fingerprint": {"cli": "cambc 3.0.5", "manifest_sha256": "a9eaccf0f58ec5cd8cb2e4d598c0ade507ad69916af70ec283b3e53031d612f6", "nproc": 4, "python": "3.13.17", "node": "v22.22.0", "smoke_finished": true, "smoke_seconds": 21.56, "remote": "true", "session_id": "cse_011jBehWvpC4NM5xQi6kWN2i", "effort_level": "high", "model": null}}

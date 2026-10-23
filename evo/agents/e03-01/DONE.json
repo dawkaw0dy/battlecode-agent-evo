@@ -1,0 +1,27 @@
+{
+ "agent": "e03-01",
+ "task_sha256": "69c8db7c34f1cdd45242120f64043108e17e17158f199f00622b5b77b2c21705",
+ "base_commit": "e923918136dbbcc41a8c75b12c6a785982701231",
+ "session_id": "cse_01Rja24x4HX8Ee1ZyNAucibm",
+ "bot_dir": "bots/e03-01",
+ "self_eval": {
+  "vs": "e02-01",
+  "games": 12,
+  "wins": 10
+ },
+ "games_played": 264,
+ "summary": "Camp group score: gem weight x3 -> x8 and danger threshold 0.75 -> 1.0 HP; 10/12 vs parent on its loss maps",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "a9eaccf0f58ec5cd8cb2e4d598c0ade507ad69916af70ec283b3e53031d612f6",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 8.32,
+  "remote": "true",
+  "session_id": "cse_01Rja24x4HX8Ee1ZyNAucibm",
+  "effort_level": "high",
+  "model": null
+ }
+}
