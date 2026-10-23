@@ -1,0 +1,4 @@
+{"agent": "e02-05", "task_sha256": "f74931cfb923b79f9607f60b54666cac4b569e5dbfa385f0a7b581656624451b", "base_commit": "ed10a4f5619c629aa59057ebef74e83cc76f9453",
+ "session_id": "cse_01RaE3tv9ucwMzJMttkycy49", "bot_dir": "bots/e02-05",
+ "self_eval": {"vs": "e01-01", "games": 16, "wins": 8}, "games_played": 80,
+ "summary": "Combat rewrite: HPxDPS fight balance with gem-aware engage bar, kill-first targeting, stun-first casts, attack resets after basic attack, bounded chases and retreats"}
