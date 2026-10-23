@@ -1,0 +1,4 @@
+{"agent": "e02-07", "task_sha256": "b300f581f6d251c24061cb94a7374c3f3e4cea5c7adc05be0d2d9985106377f6", "base_commit": "8ab61b18ff44b8183c3b437ae37587dfc954e240",
+ "session_id": "cse_01M9L1D2zya1bu4rmtJFnsFU", "bot_dir": "bots/e02-07",
+ "self_eval": {"vs": "e01-01", "games": 16, "wins": 4}, "games_played": 88,
+ "summary": "Big-game hunter: team gathers 7 tiles from golem/monolith, banks gems, then engages together; Jungle+Monster emblems; 4/16 vs e01-01, 12/12 vs starter"}
