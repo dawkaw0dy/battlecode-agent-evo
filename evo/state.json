@@ -10995,7 +10995,6 @@
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-22T20:02:54Z g00 e00-01: launched session_01Wuu9kNfNWzAZVZPMh2Ezs5",
   "2026-10-22T20:03:05Z g00 e00-02: launched session_01CMuwLaPgknby2uMQ9q3Ua1",
   "2026-10-22T20:03:18Z g00 e00-03: launched session_01V4G6svvU1rbA8q4ciWHjMr",
   "2026-10-22T20:12:21Z g00 e00-03: done on origin/claude/evo-task-e00-03-vpwxj8 at ccda13ad37",
@@ -11194,10 +11193,11 @@
   "2026-10-23T22:10:41Z g05 e05-04: admitted (0b45d5b02506)",
   "2026-10-23T22:10:45Z g05 e05-05: admitted (3ce2a5119a2f)",
   "2026-10-23T22:10:49Z g05 e05-06: admitted (1ed048b6b09e)",
-  "2026-10-23T22:10:53Z g05 e05-07: admitted (f58ae47d77ec)"
+  "2026-10-23T22:10:53Z g05 e05-07: admitted (f58ae47d77ec)",
+  "2026-10-23T22:11:00Z g05 phase EVAL_A_PENDING"
  ],
  "paused": null,
- "phase": "ADMITTED",
+ "phase": "EVAL_A_PENDING",
  "sessions_launched": 35,
  "version": 1
 }
