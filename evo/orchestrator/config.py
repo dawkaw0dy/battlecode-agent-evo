@@ -17,7 +17,7 @@ RUN_DEFAULTS = {
     'id_prefix': 'e', 'job_prefix': 'g',
     'state': 'evo/state.json', 'lineage': 'evo/lineage.jsonl', 'cache': 'evo/cache.jsonl',
     'maptags': 'evo/prompts/map_tags.json', 'archetypes_dir': 'evo/prompts/archetypes',
-    'launcher': 'cloud', 'max_generations': 0, 'step_interval_seconds': 300,
+    'launcher': 'cloud', 'max_generations': 0, 'step_interval_seconds': 60,
     'bootstrap_replicates': 200, 'results_timeout_hours': 8,
 }
 FOCUS_TAGS = {  # D26: which map tags make a focus area more likely after losses there

@@ -23,6 +23,7 @@ class Engine:
         self.replay = replay or verify.replay_locally
         self.state_path = self.root / cfg['run']['state']
         self.state = st.load(self.state_path)
+        self.blocked = None  # why the current phase cannot proceed right now (not saved; re-checked each step)
 
     # ---------------------------------------------------------------- persistence
     def rel(self, p):
@@ -73,19 +74,25 @@ class Engine:
         gen = st.gen(self.state, g)
         return [a for a in gen['slots'] if a not in gen.get('elites', [])]
 
-    def approve(self, g):
-        if self.state is None:
-            raise SystemExit('no state; run `python -m evo init` first')
-        gen = st.gen(self.state, g)
+    def approval_terms(self, g):
+        """(approval dict, one-line text) for generation g, without recording anything."""
         agents = [self.state['agents'][a] for a in self.new_agents(g)]
         r = self.cfg['agents']['relaunch_dead']
         deadline = max((a['deadline_minutes'] for a in agents), default=0)
         approval = {'sessions': len(agents), 'relaunches_per_slot': r, 'nudges_per_session': 1,
                     'deadline_minutes': deadline, 'max_sessions_total': self.cfg['agents']['max_sessions_total'],
                     'approved_at': st.now()}
-        self.out(f'Approving generation {g:02d}: at most {len(agents)} sessions, up to {r} relaunch(es) per slot '
-                 f'(max {len(agents) * r} more), 1 nudge per session, deadline {deadline} min each. '
-                 f'Run total so far {self.state["sessions_launched"]} of {approval["max_sessions_total"]}.')
+        text = (f'generation {g:02d}: at most {len(agents)} sessions, up to {r} relaunch(es) per slot '
+                f'(max {len(agents) * r} more), 1 nudge per session, deadline {deadline} min each. '
+                f'Run total so far {self.state["sessions_launched"]} of {approval["max_sessions_total"]}.')
+        return approval, text
+
+    def approve(self, g):
+        if self.state is None:
+            raise SystemExit('no state; run `python -m evo init` first')
+        gen = st.gen(self.state, g)
+        approval, text = self.approval_terms(g)
+        self.out('Approving ' + text)
         gen['approval'] = approval
         if self.state['paused'] and 'approve' in self.state['paused']:
             self.state['paused'] = None
@@ -143,8 +150,11 @@ class Engine:
         g = self.state['generation']
         problems = self.launch_preconditions()
         if problems:
-            st.pause(self.state, 'cannot launch: ' + '; '.join(problems))
-            return self.save(f'evo: paused generation {g:02d}')
+            # Not a pause: an uncommitted file or an unpushed commit is fixed by a human and then simply
+            # re-checked on the next step (the app shows the reason meanwhile).
+            self.blocked = 'cannot launch yet: ' + '; '.join(problems)
+            return None
+        self.blocked = None
         if self.cfg['agents']['require_approval'] and not st.gen(self.state)['approval']:
             st.pause(self.state, f'waiting for approval: python -m evo approve {g:02d}')
             return self.save(f'evo: generation {g:02d} waits for approval')
@@ -186,7 +196,7 @@ class Engine:
                         st.pause(self.state, 'two env_failed markers this generation: the environment is broken')
                     self.retire(a, 'env_failed')
                 else:
-                    a.update(status='done', branch=branch, commit=commit)
+                    a.update(status='done', branch=branch, commit=commit, done_at=st.now())
                     st.log(self.state, f'{aid}: done on {branch} at {commit[:10]}')
                 changed = True
             elif now > session['launched_at'] + a['deadline_minutes'] * 60:
@@ -335,7 +345,7 @@ class Engine:
             gitops.fetch(self.root)
         commit, results = jobs.fetch_results(jid, self.root)
         if results and results.get('trigger_sha') == rec['pushed_commit']:
-            rec.update(status='arrived', results_commit=commit)
+            rec.update(status='arrived', results_commit=commit, arrived_at=st.now())
             st.set_phase(self.state, f'EVAL_{stage}_DONE', f'results for {jid}')
             return self.save(f'evo: results {jid} arrived')
         if st.now() - rec['pushed_at'] > self.cfg['run']['results_timeout_hours'] * 3600:
@@ -474,7 +484,7 @@ class Engine:
             want, got = (row['outcome'], row['gems'], row['rounds']), replayed.get(key)
             if got != want:
                 mismatches.append(f'{key}: shard {want}, spot-check {got}')
-        spot.update(status='done', results_commit=commit, mismatches=mismatches,
+        spot.update(status='done', results_commit=commit, mismatches=mismatches, arrived_at=st.now(),
                     runner=sjob.get('runs_on'), missing=len(missing))
         return mismatches
 

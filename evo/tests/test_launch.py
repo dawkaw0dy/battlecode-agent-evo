@@ -57,3 +57,58 @@ def test_cloud_launcher_through_conpty_with_a_fake_cli(tmp_path):
 def test_cloud_launcher_requires_pinned_environment(tmp_path):
     with pytest.raises(launch.LaunchError, match='settings.local.json'):
         launch.CloudLauncher(root=Path(tmp_path), claude='claude').launch('e00-00', 1, 'x')
+
+
+class FakeEngine:
+    """Just enough of Engine for the `run` app loop."""
+
+    def __init__(self, script):
+        self.script, self.approved, self.resumed = list(script), [], []
+        self.state = {'generation': 3, 'phase': 'TASKS_PUSHED', 'paused': None, 'halted': None, 'sessions_launched': 0,
+                      'hall_of_fame': [], 'generations': {}, 'agents': {}, 'jobs': {}, 'log': []}
+        self.cfg = {'agents': {'max_sessions_total': 30, 'max_parallel': 4}, 'run': {'max_generations': 5,
+                                                                                    'step_interval_seconds': 0}}
+
+    def step(self):
+        paused, halted = self.script.pop(0)
+        self.state.update(paused=paused, halted=halted)
+        return 'paused' if paused else 'halted' if halted else 'waiting'
+
+    def approval_terms(self, g):
+        return {}, f'generation {g:02d}: at most 7 sessions'
+
+    def approve(self, g):
+        self.approved.append(g)
+
+    def resume(self, reason):
+        self.resumed.append(reason)
+        self.state['generation'] += 1  # the real engine then plans and runs the next generation
+
+    def new_agents(self, g=None):
+        return []
+
+
+def run_app(monkeypatch, script, answers):
+    import builtins
+    import evo.__main__ as app
+    eng = FakeEngine(script)
+    feed = list(answers)
+    monkeypatch.setattr(builtins, 'input', lambda prompt='': feed.pop(0) if feed else (_ for _ in ()).throw(EOFError()))
+    monkeypatch.setattr(app.time, 'sleep', lambda s: None)
+    monkeypatch.setattr(app.os, 'system', lambda c: 0)
+    return app.run(eng, eng.cfg, redraw_seconds=0), eng
+
+
+def test_run_app_asks_before_launching(monkeypatch, capsys):
+    code, eng = run_app(monkeypatch, [('waiting for approval: python -m evo approve 03', None)], ['n'])
+    assert code == 0 and eng.approved == [] and 'APPROVAL NEEDED' in capsys.readouterr().out
+    code, eng = run_app(monkeypatch, [('waiting for approval: python -m evo approve 03', None)], [])  # no keyboard
+    assert eng.approved == []
+    code, eng = run_app(monkeypatch, [('waiting for approval: python -m evo approve 03', None), (None, 'boom')], ['y'])
+    assert eng.approved == [3] and code == 1
+
+
+def test_run_app_resumes_when_max_generations_was_raised(monkeypatch):
+    code, eng = run_app(monkeypatch, [('generation 03 selected; max_generations=4 reached', None),
+                                      ('generation 04 selected; max_generations=5 reached', None)], [])
+    assert len(eng.resumed) == 1  # g=3 < 5-1: resumed once; the scripted second pause is then reported

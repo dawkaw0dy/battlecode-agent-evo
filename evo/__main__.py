@@ -69,12 +69,7 @@ def main(argv=None):
         print(eng.step())
         return 0
     if args.command == 'run':
-        while True:
-            result = eng.step()
-            print(time.strftime('%H:%M:%S'), result, eng.state['phase'], flush=True)
-            if result in ('paused', 'halted'):
-                return 0
-            time.sleep(cfg['run']['step_interval_seconds'])
+        return run(eng, cfg)
     if args.command == 'status':
         return status(eng)
     rec = eng.state['jobs'].get(args.job) if eng.state else None
@@ -93,6 +88,72 @@ def main(argv=None):
         sample = verify.spotcheck_sample(results['rows'], cfg, rec['generation'], args.job)
         print(json.dumps({'games': len(sample), 'mismatches': verify.spotcheck(sample)}, indent=1))
     return 1 if problems else 0
+
+
+def run(eng, cfg, redraw_seconds=10):
+    """The interactive app: step, show progress, ask at approval gates, stop on a halt or at the end.
+
+    Nothing is launched without a typed `y` at an approval prompt (§0.4). Ctrl+C stops it; starting it
+    again resumes from evo/state.json.
+    """
+    from evo.orchestrator import progress
+    os.system('')  # enable ANSI escapes in the Windows console
+    actions = progress.Actions()
+    log = []
+
+    def draw(note=''):
+        out = progress.render(eng, actions)
+        if log:
+            out += ['', 'This session:'] + ['  ' + x for x in log[-6:]]
+        if note:
+            out += ['', note]
+        sys.stdout.write('\x1b[H\x1b[2J' + '\n'.join(out) + '\n')
+        sys.stdout.flush()
+
+    if eng.state is None:
+        print('No run yet. `python -m evo init` creates generation 00 (no session is started).')
+        return 1
+    try:
+        while True:
+            draw('working…')
+            result = eng.step()
+            log.append(f"{time.strftime('%H:%M:%S')} step: {result} ({eng.state['phase']})")
+            state = eng.state
+            if state['halted']:
+                draw('The run is HALTED. Nothing more will happen until a human looks at it.')
+                return 1
+            if state['paused']:
+                g = state['generation']
+                maxg = cfg['run']['max_generations']
+                if 'max_generations' in state['paused'] and (not maxg or g + 1 < maxg):
+                    eng.resume(f'max_generations is now {maxg or "unlimited"} in evo/config.toml')
+                    log.append(f'resumed: max_generations is now {maxg or "unlimited"}')
+                    continue
+                if 'approve' in state['paused']:
+                    _, terms = eng.approval_terms(g)
+                    draw(f'APPROVAL NEEDED (uses your Claude subscription):\n  {terms}\n'
+                         f'  Tasks: evo/tasks/e{g:02d}-*.md')
+                    try:
+                        answer = input(f'Approve generation {g:02d}? Type y to launch, anything else to stop: ')
+                    except EOFError:  # no keyboard (e.g. started by another program): never approve
+                        answer = ''
+                    answer = answer.strip().lower()
+                    if answer == 'y':
+                        eng.approve(g)
+                        log.append(f'approved generation {g:02d}')
+                        continue
+                    draw('Not approved. Nothing was launched; run it again when you want to continue.')
+                    return 0
+                draw(f"Stopped: {state['paused']}")
+                return 0
+            interval = cfg['run']['step_interval_seconds']
+            deadline = time.time() + interval
+            while time.time() < deadline:
+                draw(f'next check in {int(deadline - time.time())} s  |  Ctrl+C stops (the run resumes when started again)')
+                time.sleep(min(redraw_seconds, max(1, deadline - time.time())))
+    except KeyboardInterrupt:
+        print('\nStopped by you. Start it again to continue; nothing is lost.')
+        return 0
 
 
 def status(eng):
