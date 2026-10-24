@@ -488,7 +488,7 @@ bool cast_at_enemy(const Seen& t) {
 bool cast_at_camp(vec2 p) {
     g_phase = "cast_at_camp";
     bool used = false;
-    if (!V::has_camp(p)) return false;
+    if (!live_camps().is_set(p)) return false;
     for_ability([&](const cambc::ability& ab) {
         if (used || !can_use(ab)) return;
         if (!(ab.is_damage() || ab.is_aoe_damage())) return;
@@ -847,7 +847,8 @@ bool attack_camp_in_range(const Group* G) {
     }
     if (best.x < 0) return false;
     if (g_enemies.empty() && !g_cast) cast_at_camp(best);
-    if (!me.can_attack() || !V::has_camp(best)) return true;
+    // Our spell may have killed it: dead camps still occupy their tile, but camp_at() then throws.
+    if (!me.can_attack() || !live_camps().is_set(best)) return true;
     auto c = V::camp_at(best);
     if (!c.is_visible() || c.health() <= 0) return true;
     me.attack(c);
