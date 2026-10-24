@@ -18,6 +18,7 @@ using cambc::team;
 namespace {
 
 // ---- tunables ----
+constexpr int kSecondWardenTeam = 99; // a second warden with this many champions
 constexpr int kWardenMinTeam = 3;     // warden only with at least this many champions
 constexpr float kRecallHp = 0.45f;
 constexpr float kHealTo = 0.9f;
@@ -520,6 +521,11 @@ void Bot::init() {
     }
     const int warden_index = vendetta >= 0 ? vendetta : world.team_size - 1;
     warden = world.team_size >= kWardenMinTeam && my_index == warden_index;
+    const int second = warden_index == world.team_size - 1 ? world.team_size - 2 : world.team_size - 1;
+    if (world.team_size >= kSecondWardenTeam && my_index == second) {
+        warden = true;
+        warden_rank = 1;
+    }
     last_health = me.health();
     {
         cambc::distance_field f;
@@ -802,6 +808,15 @@ bool Bot::warden_turn() {
     int post = 0;
     for (int i = 1; i < int(world.altars.size()); ++i)
         if (world.enemy_dist[i] - world.ally_dist[i] < world.enemy_dist[post] - world.ally_dist[post]) post = i;
+    if (warden_rank == 1) {
+        // Second warden: the next enemy-favoured altar away from the first post.
+        int alt = -1;
+        for (int i = 0; i < int(world.altars.size()); ++i) {
+            if (distance(world.altars[i], world.altars[post]) <= 4) continue;
+            if (alt < 0 || world.enemy_dist[i] - world.ally_dist[i] < world.enemy_dist[alt] - world.ally_dist[alt]) alt = i;
+        }
+        if (alt >= 0) post = alt;
+    }
     const vec2 altar = world.altars[post];
 
     const auto enemies = visible_enemies();

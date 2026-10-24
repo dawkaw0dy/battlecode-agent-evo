@@ -7,6 +7,7 @@ class Bot {
     bool initialised = false;
     int my_index = 0;        // index among allied champions (draft order)
     bool warden = false;     // the champion that holds enemy altars
+    int warden_rank = 0;
     int target_group = -1;   // camp group we are farming
     int retarget_round = -1000;
     float last_health = 0;
