@@ -5610,10 +5610,11 @@
   "2026-10-24T18:52:11Z g01 phase SELECTED: final: f01-07, f01-03, f01-01, f01-02, f00-03, f01-04, f01-06, f01-05, starter",
   "2026-10-24T19:32:39Z g01 survivors ['f01-07', 'f01-03'], hall of fame ['f00-03', 'f01-07']",
   "2026-10-24T19:32:39Z g02 phase PLANNED: 8 slots",
-  "2026-10-24T19:32:45Z g02 phase TASKS_PUSHED: 7 task files"
+  "2026-10-24T19:32:45Z g02 phase TASKS_PUSHED: 7 task files",
+  "2026-10-24T19:33:00Z g02 phase RUNNING"
  ],
  "paused": null,
- "phase": "TASKS_PUSHED",
+ "phase": "RUNNING",
  "sessions_launched": 15,
  "version": 1
 }
