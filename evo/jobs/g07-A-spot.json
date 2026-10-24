@@ -1,0 +1,115 @@
+{
+ "env_manifest_sha256": "8225c1d38b5a90c91456d4d0b6d77f40901d162fdd30888c6a2d6aba7c249335",
+ "generation": 7,
+ "job_id": "g07-A-spot",
+ "map_sha256": {
+  "00corners": "97906cc38f503e027c041b681a877465519b3fcb19a410c316cf6efc40c909ea",
+  "00lanes": "8ca26ed2ea65c7d80ceb9604a7431ca1dc056922912b4e2f46cad06051e4886a",
+  "00monolith": "ba5674bf2ab26336eb99df0c9e97c16b27bd231deffc023de1d873a05a558313",
+  "00pilgrimage": "7d7ddb9c37c77cd8b3721423e155400d936eaa76fa3c62fe24b308d0fd5eb673",
+  "00reverse-spiral": "f57669ffc98b76a5c2e4eccba41690dc193efc29f067ee960605617b2cfb48e5",
+  "00stampede": "49807e4756ec1b2030ed2ca7ebdd8a07f1a6ed7f2d2bd751e6941f5c0c877cdc",
+  "01broken-curve": "1763423b171f3b61128b2a913a10f46ba550e7a2e79ae27dd89e915c952b5117",
+  "01fracture": "f82a1b99a7a70f8ab21f275dc8e22fbad6a71030f09fdd224d61977fe55dd914",
+  "01the-farm": "5cca9ed6eaaf6ef15a170a4ea78488237fda7b256e182a2e3360a14b485e09c3",
+  "01yellow-brick-road": "130453395278cdabb1ff80564357a99ca8394afaef006fdede8beb88924a8fa0"
+ },
+ "runner_version": "cambc==3.0.5",
+ "runs_on": "ubuntu-22.04",
+ "shards": [
+  {
+   "a": "e07-01",
+   "b": "e04-06",
+   "maps": [
+    "01fracture"
+   ]
+  },
+  {
+   "a": "e07-01",
+   "b": "e05-05",
+   "maps": [
+    "00monolith"
+   ]
+  },
+  {
+   "a": "e07-01",
+   "b": "starter",
+   "maps": [
+    "00pilgrimage",
+    "01broken-curve"
+   ]
+  },
+  {
+   "a": "e07-04",
+   "b": "e04-06",
+   "maps": [
+    "01fracture"
+   ]
+  },
+  {
+   "a": "e07-05",
+   "b": "e04-06",
+   "maps": [
+    "00reverse-spiral"
+   ]
+  },
+  {
+   "a": "e07-06",
+   "b": "e04-06",
+   "maps": [
+    "00lanes",
+    "00pilgrimage"
+   ]
+  },
+  {
+   "a": "e07-06",
+   "b": "e06-05",
+   "maps": [
+    "00corners"
+   ]
+  },
+  {
+   "a": "e07-07",
+   "b": "e04-06",
+   "maps": [
+    "00reverse-spiral",
+    "01yellow-brick-road"
+   ]
+  },
+  {
+   "a": "e07-07",
+   "b": "e05-05",
+   "maps": [
+    "01the-farm",
+    "01yellow-brick-road"
+   ]
+  },
+  {
+   "a": "e07-07",
+   "b": "e06-05",
+   "maps": [
+    "00corners",
+    "00stampede"
+   ]
+  },
+  {
+   "a": "e07-07",
+   "b": "starter",
+   "maps": [
+    "01yellow-brick-road"
+   ]
+  }
+ ],
+ "src_sha256": {
+  "e04-06": "6b321650e9c7d222c5e37bac34674e49a9951632f7f0dc9390402cafffdf657b",
+  "e05-05": "3ce2a5119a2f7799aa27e6b6c28bcf5b76bbe5e92c22d2a0c4686df83e3cb754",
+  "e06-05": "24a06b4e553a288a5fdb22cd6aa06dec2ead35a30e494525f2d710abb1791e68",
+  "e07-01": "b9799c010d67cf4913ea6f147516790b80abb72638d7caceaf8e3f71657cd680",
+  "e07-04": "161e372b73650ebc95143efbc17a72e5d7a7627a2516386ee504b333e1d4f70a",
+  "e07-05": "d5fd7e1c3654d6e145c2ee46cbf1a94b278bc4fcf38c8995d7d8f2e0ca292392",
+  "e07-06": "f9c9af0d81d447f7035b7ee73f789a824833feff2fe5c4d11e4bbe475f330a7b",
+  "e07-07": "db4af9d46182e7c8c5d81d4dbd20f135cae28400acc08c60c29a8e3c3a03653f",
+  "starter": "9023e6a089796897d6ed661f26054d1b81b298e048a09a5df75d3b9cb5d3c6a9"
+ },
+ "stage": "spot"
+}
