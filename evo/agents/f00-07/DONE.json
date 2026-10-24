@@ -1,0 +1,27 @@
+{
+ "agent": "f00-07",
+ "task_sha256": "3c44aec145f16f27649f692ba87df819ce54273b566c25bf6f724303ad134f3f",
+ "base_commit": "97d2ba52d4b2f008fed2c01bff6560ab42fc8b8e",
+ "session_id": "cse_01JezuLUfbCXZ6xG6xtgPh4u",
+ "bot_dir": "bots/f00-07",
+ "self_eval": {
+  "vs": "starter",
+  "games": 40,
+  "wins": 40
+ },
+ "games_played": 880,
+ "summary": "Vision-ambush immigrant: shared-memory sightings and focus calls, altar-tribute ambushes, field-based camp farming with stall bans; 40/40 vs starter (final), 27/80 vs e07-07.",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "8225c1d38b5a90c91456d4d0b6d77f40901d162fdd30888c6a2d6aba7c249335",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 15.97,
+  "remote": "true",
+  "session_id": "cse_01JezuLUfbCXZ6xG6xtgPh4u",
+  "effort_level": "high",
+  "model": null
+ }
+}
