@@ -12,6 +12,7 @@
 #include <iostream>
 #include <memory>
 #include <span>
+#include <string>
 #include <variant>
 #include <vector>
 
@@ -220,6 +221,8 @@ int g_last_choice = -100;
 vec2 g_still_pos{-1, -1};
 int g_still_rounds = 0;
 int g_bank_stuck = 0;
+int g_dyn_until = -1;
+int g_bank_block = -1;
 
 void collect(Ctx& c) {
     auto& w = *world;
@@ -756,8 +759,9 @@ void leader_plan(Ctx& c) {
         const CampView* near = nullptr;
         for (const auto& cv : c.camps)
             if (!hazard(cv, -1) && cv.group >= 0 && (!near || dist(cv.pos, c.pos) < dist(near->pos, c.pos))) near = &cv;
-        if (near) {
-            target = near->group;
+        if (near || g_bank_block >= 0) {
+            target = g_bank_block >= 0 ? g_bank_block : near->group;
+            g_bank_block = -1;
             mode = kFight;
             g_bank_stuck = 0;
         }
@@ -895,11 +899,22 @@ void bank(Ctx& c) {
             return;
         }
     }
-    if (w.altar_ready && step_field(c, w.altar_field, w.altar_reach, 0)) {
+    if (c.round >= g_dyn_until && w.altar_ready && step_field(c, w.altar_field, w.altar_reach, 0)) {
         g_bank_stuck = 0;
         return;
     }
     if (c.moved) return;
+    // A living camp group sits on the way down the field: clear it rather than detour.
+    if (w.altar_ready && w.altar_reach.is_set(c.pos)) {
+        const int cur = w.altar_field.get(c.pos);
+        for (const auto& cv : c.camps)
+            if (dist(cv.pos, c.pos) == 1 && w.altar_reach.is_set(cv.pos) && w.altar_field.get(cv.pos) < cur
+                && cv.group >= 0 && !hazard(cv, -1)) {
+                g_bank_block = cv.group;
+                g_bank_stuck = 3;
+                return;
+            }
+    }
     // Units in the way: route around them.
     cambc::bitboard goals;
     goals.clear();
@@ -911,6 +926,8 @@ void bank(Ctx& c) {
         }
     }
     if (step_dynamic(c, goals)) {
+        // Keep the detour for a few turns, or the static field walks us straight back.
+        if (c.round >= g_dyn_until) g_dyn_until = c.round + 6;
         g_bank_stuck = 0;
         return;
     }
@@ -954,10 +971,11 @@ void travel_along(Ctx& c, int target, vec2 anchor, int base_stop) {
         // Stay level with the leader or a few steps ahead, so nobody blocks its path from behind.
         stop = std::max(base_stop, static_cast<int>(g.field.get(anchor)) - kLeadAhead);
     }
-    if (g.ready && step_field(c, g.field, g.reach, stop)) return;
+    if (c.round >= g_dyn_until && g.ready && step_field(c, g.field, g.reach, stop)) return;
     if (c.moved) return;
     if (c.leader) {
-        if (group_distance(g, c.pos) > stop) walk_to(c, g.center, std::max(stop, 1));
+        if (group_distance(g, c.pos) > stop && walk_to(c, g.center, std::max(stop, 1)) && c.round >= g_dyn_until)
+            g_dyn_until = c.round + 6;
     } else if (dist(anchor, c.pos) > kFollowDist) {
         walk_to(c, anchor, kFollowDist);
     }
@@ -1150,7 +1168,7 @@ void Bot::play_turn() {
             std::cout << "L r" << c.round << " id" << c.my_id << " pos " << c.pos.x << "," << c.pos.y << " mode "
                       << c.sm.mode() << " tgt " << c.sm.target() << " gems " << me.gem_count() << " gold "
                       << me.gold_count() << " hp " << me.health() << " allies " << c.allies.size() << " camps "
-                      << c.camps.size() << " fuel " << cambc::fuel_remaining() << " ch" << channeling << " rec" << me.is_recalling() << " still" << g_still_rounds << " en" << c.enemies.size() << std::endl;
+                      << c.camps.size() << " fuel " << cambc::fuel_remaining() << " ch" << channeling << " rec" << me.is_recalling() << " still" << g_still_rounds << " bs" << g_bank_stuck << " dyn" << g_dyn_until << " en" << c.enemies.size() << std::endl;
         c.sm.b[0] = static_cast<std::uint8_t>(c.my_id);
         c.sm.b[1] = static_cast<std::uint8_t>(c.pos.x);
         c.sm.b[2] = static_cast<std::uint8_t>(c.pos.y);
