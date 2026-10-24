@@ -116,13 +116,8 @@ void Bot::init() {
     ready = true;
     if (trace)
         std::cout << "init slot " << slot << "/" << bodies << " mode " << int(plan.mode) << " groups " << groups.size()
-                  << " fuel " << cambc::fuel_remaining();
-    if (trace && cambc::round_number() % 25 == 0 && target >= 0) {
-        const auto& g = groups[static_cast<std::size_t>(target)];
-        std::cout << " | g reward" << g.reward << " respawn" << g.respawn_at << " gems" << g.facts.gems << " tiles";
-        for (auto t : g.facts.tiles) std::cout << cambc::to_string(t);
-    }
-    if (trace && (cambc::round_number() % 25 == 0 || (!enemies.empty() && cambc::round_number() < 500))) std::cout << '\n';
+                  << " fuel " << cambc::fuel_remaining() << " heal " << cambc::constants::spawn_healing << " passive "
+                  << cambc::constants::passive_gold << '\n';
 }
 
 const Field& Bot::group_field(int index) {
@@ -573,10 +568,11 @@ bool Bot::shopping_trip(Fight fight) {
 
 bool Bot::farm() {
     auto& me = cambc::self();
+    constexpr int retarget_period = 40;
     const int round = static_cast<int>(cambc::round_number());
     const auto pos = me.position();
 
-    bool retarget = target < 0 || round - chosen_round >= 12;
+    bool retarget = target < 0 || round - chosen_round >= retarget_period;
     if (target >= 0) {
         const auto& g = groups[static_cast<std::size_t>(target)];
         if (g.respawn_at > round + 6) retarget = true;
