@@ -460,7 +460,7 @@ bool Bot::handle_enemies() {
     const float need = 1.6f + me.gem_count() / 60.0f;
     flee_until = static_cast<int>(turn_round) + 3;
 
-    if (ratio >= need) return fight(near);
+    if (ratio >= need && me.health() > me.max_health() * 0.4f) return fight(near);
     int dclose = 99;
     for (int i : near) dclose = std::min(dclose, cheb(foes[i].pos, pos) - foes[i].range);
     if (ratio >= 1.1f && me.health() > me.max_health() * 0.5f && (dclose > 1 || me.gem_count() < 20)) {
@@ -631,6 +631,17 @@ bool Bot::maybe_recall() {
     bool want = hp < mx * 0.25f;
     // Gold to spend and nothing engaged: go shopping.
     if (!want && me.gold_count() >= 150 && inc == 0 && hd(pos) > 6 && hd(pos) < 40 && me.gem_count() == 0) want = true;
+    // Hurt and not in the middle of a camp: heal before the next target.
+    if (!want && inc == 0 && hp < mx * 0.5f) {
+        bool engaged = false;
+        if (target >= 0) {
+            const auto& g = groups[target];
+            if (g.state == 2) engaged = true;
+            for (std::size_t i = 0; i < g.tiles.size(); ++i)
+                if (g.state == 0 && g.hp[i] > 0 && g.hp[i] < g.maxhp[i] && g.hp[i] < hp * 2 && cheb(pos, g.tiles[i]) <= 6) engaged = true;
+        }
+        if (!engaged) want = true;
+    }
     // Too weak to start the planned target again.
     if (!want && target >= 0 && inc == 0) {
         const auto& g = groups[target];
@@ -641,6 +652,10 @@ bool Bot::maybe_recall() {
     if (!want) return false;
     if (inc > 0) {
         step_away_from_camps();
+        return true;
+    }
+    if (hd(pos) <= 5) {
+        step_towards(cambc::map::spawn_region(team::ally));
         return true;
     }
     try {
@@ -888,6 +903,12 @@ void Bot::play_turn() {
     pos = me.position();
     if (pos.x < 0) return;
     observe();
+    if (false) {
+        std::cout << "LOW r" << turn_round << " #" << my_index << " hp " << me.health() << " inc " << incoming_at(pos)
+            << " foes " << foes.size() << " gems " << me.gem_count() << " tgt " << target << " pos " << pos.x << "," << pos.y;
+        for (const auto& f : foes) std::cout << " foe@" << cheb(f.pos, pos);
+        std::cout << "\n";
+    }
     walls = static_block | cambc::vision::champion_tiles() | cambc::vision::camp_tiles()
         | cambc::vision::teleport_tiles();
     walls.set(pos, false);
