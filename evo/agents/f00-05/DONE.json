@@ -1,0 +1,27 @@
+{
+ "agent": "f00-05",
+ "task_sha256": "c97c0dd12b53028c0948a16e4f0263df4f424d2138cff9458c282fb08917f6b4",
+ "base_commit": "cacbd3f5f84121b4ea87abe77ce09a17deed0df3",
+ "session_id": "cse_01Pbae7zDNdBYNjteJNfVcaE",
+ "bot_dir": "bots/f00-05",
+ "self_eval": {
+  "vs": "starter",
+  "games": 24,
+  "wins": 18
+ },
+ "games_played": 39,
+ "summary": "Early-aggression pack bot: shared camp target, power-ratio engage/flee, stun/reset/dash micro; 18/24 vs starter",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "8225c1d38b5a90c91456d4d0b6d77f40901d162fdd30888c6a2d6aba7c249335",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 20.89,
+  "remote": "true",
+  "session_id": "cse_01Pbae7zDNdBYNjteJNfVcaE",
+  "effort_level": "high",
+  "model": null
+ }
+}
