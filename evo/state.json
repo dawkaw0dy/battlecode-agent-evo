@@ -17054,7 +17054,9 @@
     "B": [
      "g07-B"
     ],
-    "C": []
+    "C": [
+     "g07-C"
+    ]
    },
    "members": [
     "e06-05",
@@ -18677,6 +18679,152 @@
      ]
     ]
    ],
+   "plan_C": [
+    [
+     [
+      "e07-04",
+      "e07-01"
+     ],
+     [
+      "h-1b5a",
+      "h-1cea",
+      "h-1ceb",
+      "h-1cec",
+      "h-1e78",
+      "h-1e7b",
+      "h-1e7d",
+      "h-1e7f"
+     ]
+    ],
+    [
+     [
+      "e07-04",
+      "starter"
+     ],
+     [
+      "h-1b5a",
+      "h-1cea",
+      "h-1ceb",
+      "h-1cec",
+      "h-1e78",
+      "h-1e7b",
+      "h-1e7d",
+      "h-1e7f"
+     ]
+    ],
+    [
+     [
+      "e07-04",
+      "e04-06"
+     ],
+     [
+      "h-1b5a",
+      "h-1cea",
+      "h-1ceb",
+      "h-1cec",
+      "h-1e78",
+      "h-1e7b",
+      "h-1e7d",
+      "h-1e7f"
+     ]
+    ],
+    [
+     [
+      "e07-04",
+      "e05-05"
+     ],
+     [
+      "h-1b5a",
+      "h-1cea",
+      "h-1ceb",
+      "h-1cec",
+      "h-1e78",
+      "h-1e7b",
+      "h-1e7d",
+      "h-1e7f"
+     ]
+    ],
+    [
+     [
+      "e07-04",
+      "e06-05"
+     ],
+     [
+      "h-1b5a",
+      "h-1cea",
+      "h-1ceb",
+      "h-1cec",
+      "h-1e78",
+      "h-1e7b",
+      "h-1e7d",
+      "h-1e7f"
+     ]
+    ],
+    [
+     [
+      "e07-01",
+      "starter"
+     ],
+     [
+      "h-1b5a",
+      "h-1cea",
+      "h-1ceb",
+      "h-1cec",
+      "h-1e78",
+      "h-1e7b",
+      "h-1e7d",
+      "h-1e7f"
+     ]
+    ],
+    [
+     [
+      "e07-01",
+      "e04-06"
+     ],
+     [
+      "h-1b5a",
+      "h-1cea",
+      "h-1ceb",
+      "h-1cec",
+      "h-1e78",
+      "h-1e7b",
+      "h-1e7d",
+      "h-1e7f"
+     ]
+    ],
+    [
+     [
+      "e07-01",
+      "e05-05"
+     ],
+     [
+      "h-1b5a",
+      "h-1cea",
+      "h-1ceb",
+      "h-1cec",
+      "h-1e78",
+      "h-1e7b",
+      "h-1e7d",
+      "h-1e7f"
+     ]
+    ],
+    [
+     [
+      "e07-01",
+      "e06-05"
+     ],
+     [
+      "h-1b5a",
+      "h-1cea",
+      "h-1ceb",
+      "h-1cec",
+      "h-1e78",
+      "h-1e7b",
+      "h-1e7d",
+      "h-1e7f"
+     ]
+    ]
+   ],
    "ranking": [
     "e07-05",
     "e07-04",
@@ -19415,11 +19563,18 @@
    },
    "stage": "B",
    "status": "verified"
+  },
+  "g07-C": {
+   "generation": 7,
+   "pushed_at": 1792833606,
+   "pushed_commit": "758567f785e140c750eaf205c326cd5e30dd021e",
+   "retries": 0,
+   "stage": "C",
+   "status": "pending"
   }
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-23T18:51:11Z g03 resumed (the unclean tree was the app's own uncommitted code; committed); was paused: cannot launch: working tree is not clean",
   "2026-10-23T18:51:31Z g03 PAUSED: waiting for approval: python -m evo approve 03",
   "2026-10-23T19:21:21Z g03 generation 03 tasks re-rendered after D36 (env_fingerprint in DONE.json; manifest)",
   "2026-10-23T20:31:42Z g03 approval pause cleared: require_approval = false (was: waiting for approval: python -m evo approve 03)",
@@ -19618,7 +19773,8 @@
   "2026-10-24T09:16:51Z g07 phase EVAL_B_DONE: results for g07-B",
   "2026-10-24T09:17:13Z g07 g07-B-spot: pushed b663a53929 (27 sampled games, 19 shards)",
   "2026-10-24T09:19:39Z g07 g07-B: verified, 1326 rows, spot-check 27 OK",
-  "2026-10-24T09:19:49Z g07 phase EVAL_C_PENDING: stage C for e07-04 vs e07-01"
+  "2026-10-24T09:19:49Z g07 phase EVAL_C_PENDING: stage C for e07-04 vs e07-01",
+  "2026-10-24T09:20:06Z g07 g07-C: pushed 758567f785 with 9 shards"
  ],
  "paused": null,
  "phase": "EVAL_C_PENDING",
