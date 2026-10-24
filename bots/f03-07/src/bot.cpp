@@ -383,6 +383,18 @@ bool Bot::step_towards(const bitboard& goals_in, bool enter_goals) {
 }
 
 bool Bot::step_inner(const bitboard& goals_in) {
+    bitboard saved;
+    const bool avoid = any_danger && !danger.is_set(pos);
+    if (avoid) {
+        saved = walls;
+        walls |= danger & ~goals_in;
+    }
+    const bool r = step_core(goals_in);
+    if (avoid) walls = std::move(saved);
+    return r;
+}
+
+bool Bot::step_core(const bitboard& goals_in) {
     auto& me = cambc::self();
     bitboard goals = goals_in & ~walls;
     if (goals.is_empty() || goals.is_set(pos)) return false;
@@ -762,6 +774,11 @@ bool Bot::attack_camps(int gi) {
         const auto& g = groups[g2];
         if (g.state != 0) continue;
         const bool mine = static_cast<int>(g2) == gi;
+        if (!mine && gi == -2) {
+            float gs = 0;
+            for (std::size_t i = 0; i < g.tiles.size(); ++i) if (g.hp[i] > 0) gs += g.str[i];
+            if (gs > 60) continue;
+        }
         for (std::size_t i = 0; i < g.tiles.size(); ++i) {
             if (g.hp[i] <= 0) continue;
             const int d = cheb(g.tiles[i], pos);
@@ -927,6 +944,10 @@ void Bot::play_turn() {
     walls = static_block | cambc::vision::champion_tiles() | cambc::vision::camp_tiles()
         | cambc::vision::teleport_tiles();
     walls.set(pos, false);
+    danger.clear();
+    any_danger = false;
+    for (const auto& t : threats)
+        if (t.str >= 100) { box(danger, t.pos, t.range); any_danger = true; }
 
     const bool at_spawn = cambc::map::spawn_region(team::ally).is_set(pos);
     if (at_spawn) buy_items();

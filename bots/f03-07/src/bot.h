@@ -66,7 +66,8 @@ private:
     std::vector<Threat> threats;
     std::vector<cambc::vec2> ally_pos;
     std::vector<float> ally_hp, ally_dps;
-    cambc::bitboard visible, walls;
+    cambc::bitboard visible, walls, danger;
+    bool any_danger = false;
 
     // Plans.
     int target = -1;
@@ -97,6 +98,7 @@ private:
     bool attack_camps(int g);
     bool step_towards(const cambc::bitboard& goals, bool enter_goals = false);
     bool step_inner(const cambc::bitboard& goals);
+    bool step_core(const cambc::bitboard& goals);
     bool step_away_from_camps();
     bool cast_on_camp(const cambc::camp& c);
     bool cast_on_champion(const cambc::champion& c, bool kill_only);
