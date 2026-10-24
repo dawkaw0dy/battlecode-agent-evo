@@ -534,7 +534,9 @@ int Bot::choose_target(float keep_bonus) {
 
     const float dps = std::max(20.0f, my_dps());
     // Gold matters early (shards) and decides gem-less maps on the tiebreak.
-    const float gold_weight = plan.gemless ? 1.0f : (round < 500 ? 0.15f : 0.08f);
+    // Gold buys shards; it is worth less once we are well equipped or the game is late.
+    const float gold_weight = plan.gemless ? 1.0f
+        : (purchases < 10 && round < 900) ? 0.15f : (purchases < 20 && round < 1400) ? 0.08f : 0.03f;
     const bool support = me.champion_name() == cambc::champion_type::willow;
     const int follow = slot != 0 ? static_cast<int>(read_shared(0)) - 1 : static_cast<int>(read_shared(1)) - 1;
     const float hp_now = me.health();
@@ -740,15 +742,22 @@ void Bot::play_turn() {
         for (const auto& e : enemies) add_square(avoid, e.pos, 3);
     }
     bool chased = false;
+    const int now = static_cast<int>(cambc::round_number());
     if (fight == Fight::engage && weakest && me.can_move() && !cast_exclusive && !walked_fail
-        && cheb(weakest->pos, pos) > me.attack_range()) {
+        && cheb(weakest->pos, pos) > me.attack_range() && now >= no_chase_until) {
         try {
             chased = me.move_towards(weakest->pos);
         } catch (const std::exception& error) {
-            if (trace) std::cout << "warn chase r" << cambc::round_number() << ": " << error.what() << '\n';
+            if (trace) std::cout << "warn chase r" << now << ": " << error.what() << '\n';
+            walked_fail = true;
         }
-        if (!chased) walked_fail = true;
+        // A long chase that never lands a hit is wasted farming time.
+        if (chased && ++chase_streak > 12) {
+            no_chase_until = now + 30;
+            chase_streak = 0;
+        }
     }
+    if (attacked && enemy_in_range) chase_streak = 0;
     if (!chased && !try_bank() && !shopping_trip(fight)) farm();
 
     // Strike after moving if the allowance remains.

@@ -47,6 +47,7 @@ class Bot {
     bool walked_fail = false, cast_exclusive = false, attacked = false, avoid_active = false;
     cambc::bitboard avoid;
     int purchases = 0;
+    int chase_streak = 0, no_chase_until = 0;
 
     std::vector<Seen> enemies, allies;
 
