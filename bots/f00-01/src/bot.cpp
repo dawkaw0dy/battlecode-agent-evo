@@ -23,6 +23,7 @@ constexpr float kHealTo = 0.9f;
 constexpr unsigned kBankGems = 40;
 constexpr unsigned kRecallGold = 180;
 constexpr int kChaseRadius = 3;
+constexpr bool kLockAll = true;      // lock every free altar we pass
 
 int distance(vec2 a, vec2 b) { return static_cast<int>(a.chebyshev_distance(b)); }
 
@@ -429,6 +430,45 @@ void read_claims(std::array<std::uint8_t, 8>& claims) {
     }
 }
 
+// Step away from awake camps that can hit us; true if we are (still) in their reach.
+bool retreat_from_camps() {
+    auto& me = cambc::self();
+    const vec2 pos = me.position();
+    std::vector<std::pair<vec2, int>> threats;
+    for (auto p : (cambc::vision::camp_tiles() & ring(pos, 7)).positions()) {
+        try {
+            auto c = cambc::vision::camp_at(p);
+            if (c.is_visible() && c.is_alive() && c.is_awake()) threats.push_back({p, c.attack_range()});
+        } catch (...) {
+        }
+    }
+    auto margin = [&](vec2 t) {
+        int m = 99;
+        for (auto& [cp, r] : threats) m = std::min(m, distance(t, cp) - r);
+        return m;
+    };
+    if (threats.empty() || margin(pos) > 0) return false;
+    if (moved || move_blocked || !me.can_move()) return true;
+    const auto blocked = blocked_tiles();
+    vec2 best = pos;
+    int best_m = margin(pos);
+    for (int dx = -1; dx <= 1; ++dx)
+        for (int dy = -1; dy <= 1; ++dy) {
+            vec2 n{pos.x + dx, pos.y + dy};
+            if ((!dx && !dy) || n.x < 0 || n.y < 0 || n.x >= world.w || n.y >= world.h || blocked.is_set(n)) continue;
+            const int m = margin(n);
+            if (m > best_m) { best_m = m; best = n; }
+        }
+    if (best == pos) return false;   // cornered: recall anyway
+    try {
+        if (me.move_absolute(best)) moved = true;
+        else move_blocked = true;
+    } catch (...) {
+        move_blocked = true;
+    }
+    return true;
+}
+
 }  // namespace
 
 void Bot::init() {
@@ -604,8 +644,7 @@ bool Bot::bank_gems() {
             return true;
         }
         // Guard our channel: our own lock stops theirs from cancelling it.
-        if (!cambc::vision::has_altar_lock(altar) && !visible_enemies().empty()) place_lock(altar);
-        if (me.restrictions().contains(cambc::buff_restrictions::move) && false) return true;
+        if (!cambc::vision::has_altar_lock(altar) && (kLockAll || !visible_enemies().empty())) place_lock(altar);
         try {
             me.submit_gems(altar);
         } catch (...) {
@@ -874,6 +913,8 @@ void Bot::turn() {
             cast_at(enemies, nullptr);
             if (attack_enemy(enemies)) try_reset(&enemies);
         }
+        // Damage cancels a recall: first walk out of reach of awake camps.
+        if (retreat_from_camps()) return;
         try {
             me.recall();
         } catch (...) {
@@ -892,6 +933,16 @@ void Bot::turn() {
         std::cout << "dbg fuel " << cambc::fuel_remaining() << " r" << cambc::round_number() << " i" << my_index << " w" << warden << " pos " << me.position().x
                   << "," << me.position().y << " tg " << target_group << " gems " << me.gem_count() << " gold "
                   << me.gold_count() << '\n';
+    // Lock any free altar in reach: our team still tributes there, theirs must break it.
+    if (kLockAll && has_lock_item()) {
+        int best = -1;
+        for (int i = 0; i < int(world.altars.size()); ++i) {
+            const vec2 a = world.altars[i];
+            if (distance(me.position(), a) > 2 || cambc::vision::has_altar_lock(a)) continue;
+            if (best < 0 || world.enemy_dist[i] < world.enemy_dist[best]) best = i;
+        }
+        if (best >= 0) place_lock(world.altars[best]);
+    }
     stage = "warden";
     if (warden && warden_turn()) return;
     stage = "fight";
