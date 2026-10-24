@@ -5741,10 +5741,11 @@
   "2026-10-24T21:20:53Z g02 f02-04: admitted (6578f915e5af)",
   "2026-10-24T21:20:58Z g02 f02-05: admitted (15c1d268c43f)",
   "2026-10-24T21:21:05Z g02 f02-06: admitted (894a7360f8e9)",
-  "2026-10-24T21:21:11Z g02 f02-07: admitted (f94259e88fbf)"
+  "2026-10-24T21:21:11Z g02 f02-07: admitted (f94259e88fbf)",
+  "2026-10-24T21:21:20Z g02 phase EVAL_A_PENDING"
  ],
  "paused": null,
- "phase": "ADMITTED",
+ "phase": "EVAL_A_PENDING",
  "sessions_launched": 22,
  "version": 1
 }
