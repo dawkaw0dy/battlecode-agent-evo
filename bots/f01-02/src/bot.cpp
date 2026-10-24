@@ -133,7 +133,7 @@ void refresh_occupied() {
             remember_occupied(p, now);
             g_allies.push_back(p);
         }
-    } catch (const cambc::error&) {}
+    } catch (const std::exception&) {}
     for (auto p : cambc::vision::champion_tiles(team::enemy).positions())
         if (p != me) {
             remember_occupied(p, now + 1);
@@ -499,7 +499,7 @@ void Bot::note_trail(vec2 p) {
     if (n <= 2) {
         dynamic_until_ = now + 15;
         trail_n_ = 0;
-        DBG(slot_, "stuck at " << p.x << "," << p.y << " -> dynamic");
+        if (kDebug) std::cout << "STUCK r" << now << " s" << slot_ << " at " << p.x << "," << p.y << std::endl;
     }
 }
 
@@ -512,7 +512,7 @@ bool Bot::take_step(const std::array<vec2, 8>& cands, int n) {
         const vec2 t = cands[static_cast<size_t>(i)];
         if (blocked_at(t)) continue;
         bool ok = false, threw = false;
-        try { ok = me.move_absolute(t); } catch (const cambc::error&) { threw = true; }
+        try { ok = me.move_absolute(t); } catch (const std::exception&) { threw = true; }
         invalidate_view();
         DBG(slot_, "step " << me.position().x << "," << me.position().y << " try " << t.x << "," << t.y << " ok " << ok << (threw ? " threw" : ""));
         if (ok) {
@@ -636,9 +636,7 @@ int Bot::detour_steps(const Grid16& field, vec2 from, std::array<vec2, 8>& out) 
     start.set(from);
     cambc::distance_field local;
     cambc::bitboard reached;
-    fuel_mark("ring_done");
     local.compute_to(blocked, ring, start, reached, static_cast<std::uint16_t>(here - aim + detour_slack));
-    fuel_mark("compute_done");
     if (!reached.is_set(from)) return 0;
     return field_steps(local, reached, from, &field, out);
 }
@@ -671,20 +669,16 @@ bool Bot::walk_field(const Grid16& field, bool allow_dash) {
     if (static_cast<int>(cambc::round_number()) < dynamic_until_) return false;
     const int here = field.at(me.position());
     if (here >= unreached || here == 0) return false;
-    fuel_mark("wf_start");
     if (allow_dash && here >= 4 && try_dash(&field, nullptr, nullptr)) {
         moved_ = true;
         if (move_failed_ || !me.can_move() || field.at(me.position()) == 0) return true;
     }
-    fuel_mark("wf_dashed");
     const vec2 from = me.position();
     const int h = field.at(from);
     std::array<vec2, 8> cands{};
     int n = 0;
-    fuel_mark("pre_units");
     vec2 blocker{-1, -1};
     const bool crowded = !way_clear(field, from, detour_radius, blocker);
-    fuel_mark("units_near");
     if (!crowded) {
         // Nothing in the way: the static field is exact.
         std::array<std::pair<int, vec2>, 8> c;
@@ -698,7 +692,6 @@ bool Bot::walk_field(const Grid16& field, bool allow_dash) {
     } else {
         n = detour_steps(field, from, cands);
     }
-    fuel_mark("wf_planned");
     if (n == 0) {
         if (moved_) return true;
         // The way on is a hole only a dash can cross: dash now or wait here for it.
@@ -720,7 +713,7 @@ bool Bot::walk_field(const Grid16& field, bool allow_dash) {
             }
             return false;
         }
-        if (in_bounds(blocker) && view().lchamps.at(blocker) && ally_at(blocker) && threats_.empty()) {
+        if (in_bounds(blocker) && ally_at(blocker) && threats_.empty() && g_enemies.empty()) {
             // An ally in the way: wait a little for it to move on, then take the long way for a while.
             if (now != gap_last_ + 1) gap_start_ = now;
             gap_last_ = now;
@@ -730,9 +723,7 @@ bool Bot::walk_field(const Grid16& field, bool allow_dash) {
         note_trail(from);
         return false;
     }
-    const bool stepped = take_step(cands, n);
-    fuel_mark("wf_stepped");
-    return stepped || moved_;
+    return take_step(cands, n) || moved_;
 }
 
 // Shortest walk to any free goal tile around the units we know of.
@@ -749,10 +740,8 @@ bool Bot::step_to(const cambc::bitboard& goals_in, bool allow_dash) {
     cambc::bitboard reached;
     auto here = empty_board();
     here.set(pos);
-    fuel_mark("st_start");
     field.compute_to(blocked, goals, here, reached);
     const int dyn = reached.is_set(pos) ? field.get(pos) : unreached;
-    fuel_mark("st_dyn");
     if (dyn >= 6 && now >= dynamic_until_) {
         // Compare with the way ignoring units: a long detour means units plug a gap.
         cambc::distance_field plain;
@@ -772,8 +761,8 @@ bool Bot::step_to(const cambc::bitboard& goals_in, bool allow_dash) {
                     }
                     return false;
                 }
-                if (view().lchamps.at(t) || remembered_at(t)) {
-                    // A champion in the gap: wait a little for it to move, then go round.
+                if (ally_at(t) && threats_.empty() && g_enemies.empty()) {
+                    // An ally in the gap: wait a little for it to move on, then go round.
                     if (now != gap_last_ + 1) gap_start_ = now;
                     gap_last_ = now;
                     if (now - gap_start_ < 5) return true;
@@ -781,8 +770,12 @@ bool Bot::step_to(const cambc::bitboard& goals_in, bool allow_dash) {
                 }
             }
         }
+        if (dyn >= unreached && plain_reached.is_set(pos)) {
+            // Units close the way completely: walk up to them and wait there.
+            field = plain;
+            reached = plain_reached;
+        }
     }
-    fuel_mark("st_plain");
     if (!reached.is_set(pos)) { note_trail(pos); return false; }
     if (allow_dash && dyn >= 4 && try_dash(nullptr, &field, &reached)) {
         moved_ = true;
@@ -1298,9 +1291,7 @@ void Bot::farm(int group) {
         return;
     }
 
-    fuel_mark("farm_pre-cast");
     cast_spells(group);
-    fuel_mark("farm_post-cast");
     if (attack_group(group)) {
         reset_and_hit(group);
         return;
@@ -1350,9 +1341,7 @@ void Bot::play_turn() {
         return;
     }
     (void)view();
-    fuel_mark("view");
     update_knowledge();
-    fuel_mark("knowledge");
     const bool at_spawn = cambc::map::spawn_region(team::ally).is_set(me.position());
     if (at_spawn || me.champion_name() == cambc::champion_type::tavi) buy_items();
     if (me.is_recalling() || me.is_submitting_gems() || me.is_teleporting()) {
@@ -1363,7 +1352,6 @@ void Bot::play_turn() {
     incoming_ = 0;
     exit_steps_ = 0;
     threats_.clear();
-    fuel_mark("occupied");
     for (auto p : view().camps.positions()) {
         const int d = dist(p, me.position());
         if (d > 6) continue;
@@ -1393,7 +1381,6 @@ void Bot::play_turn() {
         if (counts[cambc::item_type::monster_emblem_of_strength] + counts[cambc::item_type::monster_emblem_of_health]
             + counts[cambc::item_type::monster_emblem_of_focus] > 0) dps_ *= 1.1f;
     }
-    fuel_mark("threats");
     if (handle_enemies()) { DBG(slot_, "enemies " << me.position().x << "," << me.position().y); return; }
     if (!fuel_ok(30000)) { return; }
 
@@ -1421,7 +1408,6 @@ void Bot::play_turn() {
         last_choice_ = now;
     }
     const int target = target_;
-    fuel_mark("chosen");
     const int wait = target_wait_;
 
     if (blocker_group_ >= 0) {
