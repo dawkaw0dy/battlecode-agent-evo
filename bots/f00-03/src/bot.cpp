@@ -158,6 +158,20 @@ std::vector<Sighting> visible_champions(team side) {
     return out;
 }
 
+// The latest invader report an ally wrote to shared memory.
+struct Report { int round = -1000; vec2 where{}; int count = 0; int slot = 0; };
+Report read_report() {
+    std::array<std::uint8_t, 6> buf{};
+    cambc::shared_memory.read(0, std::span<std::uint8_t>{buf.data(), buf.size()});
+    Report r;
+    if (!buf[5]) return r;
+    r.round = buf[0] | (buf[1] << 8);
+    r.where = vec2{buf[2], buf[3]};
+    r.count = buf[4];
+    r.slot = buf[5] - 1;
+    return r;
+}
+
 // Shard plan: emblem families to complete in order (a repeated emblem means another copy).
 struct Step { cambc::item_type shard, emblem; };
 
@@ -791,7 +805,17 @@ bool Bot::handle_enemies() {
     const bool stronger = ours >= their * 1.15f;
     const bool home = cambc::map::spawn_region(team::ally).is_set(pos);
     if (!stronger && !home && (me.health() < me.max_health() * 0.9f || near >= 2 || ours < their * 0.8f)) {
-        // Run home; recall once out of reach.
+        // Run home, hitting back first if a melee swing is free; recall once out of reach.
+        if (me.attack_range() <= 1 && me.can_attack() && live())
+            for (const auto& e : enemies)
+                if (dist(e.pos, pos) <= 1 && view().vis.at(e.pos)) {
+                    try {
+                        me.attack(cambc::vision::champion_at(e.pos));
+                        attacked_ = true;
+                        invalidate_view();
+                    } catch (const cambc::error&) {}
+                    break;
+                }
         if (dmin >= 6 && !moved_ && incoming_ == 0 && me.gem_count() > 0) {
             if (live()) me.recall();
             return true;
@@ -873,10 +897,14 @@ int Bot::choose_target(int& wait_out) {
     int best = -1;
     float best_score = 0;
     wait_out = 0;
+    // Steer clear of where allies recently saw a pack of enemies.
+    const Report report = read_report();
+    const bool pack = report.count >= 2 && now - report.round <= 25 && in_bounds(report.where);
     for (int i = 0; i < static_cast<int>(groups_.size()); ++i) {
         const auto& g = groups_[i];
         const auto& k = known_[i];
-        const float value = g.gems + 0.35f * g.gold;
+        float value = g.gems + 0.35f * g.gold;
+        if (pack && dist(g.center, report.where) <= 8) value *= 0.3f;
         if (value <= 0) continue;
         if (k.blocked_until > now) continue;
         const int e = eta(i);
@@ -928,11 +956,27 @@ bool Bot::handle_tribute(int next_target, int next_wait) {
             return true;
         }
     }
+    // Beside an enemy-locked altar: break the lock with basic attacks.
+    if (!enemy_locks.is_empty() && me.can_attack() && live())
+        for (auto a : enemy_locks.positions())
+            if (dist(a, pos) <= std::min(cambc::constants::submit_gems_range, me.attack_range())) {
+                try {
+                    me.attack(cambc::vision::altar_lock_at(a));
+                    attacked_ = true;
+                    return true;
+                } catch (const cambc::error&) {
+                }
+                break;
+            }
     const int d_altar = altar_.at(pos);
     if (d_altar >= unreached) return false;
     const int late = static_cast<int>(cambc::constants::max_rounds) - static_cast<int>(cambc::round_number());
+    // Bank sooner when enemies are about: carried gems go to whoever kills us.
+    const Report report = read_report();
+    const bool danger = static_cast<int>(cambc::round_number()) - report.round <= 30 && in_bounds(report.where)
+        && dist(report.where, pos) <= 16;
     const bool go = gems >= 40 || next_target < 0 || next_wait > d_altar || d_altar <= 4
-        || (gems >= 15 && d_altar <= 10) || late < d_altar + 30;
+        || (gems >= 15 && d_altar <= 10) || (danger && gems >= 10) || late < d_altar + 30;
     if (!go) return false;
     const bool dbg = slot_ == 0 && cambc::round_number() >= 400 && cambc::round_number() < 408;
     if (dbg) { std::cout << "TR r" << cambc::round_number() << " fuel " << cambc::fuel_remaining() << " pos " << cambc::to_string(pos) << " d " << d_altar << " dyn " << dynamic_until_ << " nb"; for (auto d : dirs) { vec2 t{pos.x + d.x, pos.y + d.y}; std::cout << " " << altar_.at(t) << (blocked_at(t) ? "b" : ""); } std::cout << "\n"; }
