@@ -838,6 +838,12 @@ struct FuelReport {
         bool found = false;
         for (auto& [k, v] : counts) if (k == key) { ++v; found = true; }
         if (!found) counts.push_back({key, 1});
+        if (g_round >= 200 && g_round < 300 && cambc::self().champion_name() == cambc::champion_type::vendetta) {
+            const vec2 q = cambc::self().position();
+            std::cout << "tr r" << g_round << ' ' << q.x << ',' << q.y << ' ' << key << " tgt " << target
+                      << (target >= 0 ? " st " + std::to_string(G[static_cast<size_t>(target)].state) + " d " + std::to_string(G[static_cast<size_t>(target)].min_dist(q)) + " hpL " + std::to_string(static_cast<int>(G[static_cast<size_t>(target)].hp_left())) : std::string())
+                      << " hp " << static_cast<int>(cambc::self().health()) << '\n';
+        }
         if (g_round == 1000 || g_round == 1999) {
             std::cout << "act r" << g_round << ' ' << cambc::to_string(cambc::self().champion_name());
             for (auto& [k, v] : counts) std::cout << ' ' << k << '=' << v;
@@ -936,8 +942,19 @@ void play_turn_inner() {
         for (size_t i = 0; i < x.tiles.size(); ++i) if (x.tiles[i] == t) incoming += x.str[i];
     }
     incoming *= mult;
-    const float low = std::max({maxhp * 0.35f, static_cast<float>(hp_drop) * 3.0f, incoming * 4.0f});
-    if (!at_spawn && (hp < low || (retreating && hp < maxhp * 0.6f))) {
+    float low = std::max({maxhp * 0.35f, static_cast<float>(hp_drop) * 3.0f, incoming * 4.0f});
+    // Finish a group we can kill before it kills us: walking out costs hits too.
+    bool finishing = false;
+    if (foes.empty() && !threats.empty() && target >= 0 && incoming > 0) {
+        const Group& tg0 = G[static_cast<size_t>(target)];
+        if (tg0.state == 0) {
+            const float kill_turns = tg0.hp_left() / std::max(10.0f, dps);
+            const float survive = hp / incoming;
+            if (kill_turns + 1.5f < survive && hp > maxhp * 0.12f) finishing = true;
+        }
+    }
+    if (finishing) low = 0;
+    if (!at_spawn && (hp < low || (!finishing && retreating && hp < maxhp * 0.6f))) {
         retreating = true;
         g_branch = "retreat";
         if (threats.empty() && foes.empty()) {
@@ -1083,6 +1100,11 @@ void play_turn_inner() {
     }
     if (tg.state == 2) {
         g_branch = "respawnwait";
+        // Heal at home while the group respawns.
+        if (hp < maxhp * 0.7f && tg.respawn_at - static_cast<int>(g_round) > 8 && threats.empty()) {
+            safe_recall();
+            return;
+        }
         // Wait near the group for its respawn, never on its spawn tiles (that delays it).
         const int md = tg.min_dist(pos);
         if (md >= 1 && md <= 2) return;
