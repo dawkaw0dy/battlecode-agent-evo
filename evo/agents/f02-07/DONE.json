@@ -1,0 +1,27 @@
+{
+ "agent": "f02-07",
+ "task_sha256": "4bdbfd31b8a7c2ec010648c898959044787d839280b2f1e600716c2dc39f8fea",
+ "base_commit": "e64ed4997ace0131444bfcb3d1ecab238ef7b94a",
+ "session_id": "cse_014eLzVvrS56XeWP3C5bNsmt",
+ "bot_dir": "bots/f02-07",
+ "self_eval": {
+  "vs": "f01-07",
+  "games": 32,
+  "wins": 15
+ },
+ "games_played": 851,
+ "summary": "Altar-control immigrant: value-scored farming with claims, altar locks on enemy tributes, tribute stuns, Tavi altar guard, square-law fights at ratio 1.3 with farm-on/recall-to-flee.",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "54eb070b451545432474025de1d9caf3a5088efc5c73bd5cae48adeb56c738fa",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 16.51,
+  "remote": "true",
+  "session_id": "cse_014eLzVvrS56XeWP3C5bNsmt",
+  "effort_level": "high",
+  "model": null
+ }
+}

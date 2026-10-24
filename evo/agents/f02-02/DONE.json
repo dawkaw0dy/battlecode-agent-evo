@@ -1,0 +1,27 @@
+{
+ "agent": "f02-02",
+ "task_sha256": "4ac03586af185919b3ca7a3f1c4806f33dca8614fb27fe565c0f8ec789c48e59",
+ "base_commit": "e64ed4997ace0131444bfcb3d1ecab238ef7b94a",
+ "session_id": "cse_01YKp1nZ54113g9Dxx8rnJ6F",
+ "bot_dir": "bots/f02-02",
+ "self_eval": {
+  "vs": "f01-07",
+  "games": 80,
+  "wins": 53
+ },
+ "games_played": 900,
+ "summary": "Camp subsystem rewrite: damage-model group scoring, gathered boss raids with join bonus, nearest-claimer capture, safe approach spots, bank-distance cost, cached-field walking, memory of bush-hidden awake camps",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "54eb070b451545432474025de1d9caf3a5088efc5c73bd5cae48adeb56c738fa",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 18.18,
+  "remote": "true",
+  "session_id": "cse_01YKp1nZ54113g9Dxx8rnJ6F",
+  "effort_level": "high",
+  "model": null
+ }
+}
