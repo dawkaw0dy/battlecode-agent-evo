@@ -15,6 +15,15 @@ namespace {
 
 using it = cambc::item_type;
 constexpr bool kLog = true;
+constexpr int kLogFrom = 60, kLogTo = 100;
+constexpr float kFightRatio = 1.0f;
+constexpr float kHuntRatio = 1.6f;
+constexpr float kStuckBonus = 1.3f;
+constexpr bool kHelp = false;
+constexpr int kHelpRange = 14;
+constexpr int kThreat = 4;
+constexpr int kGuardFrom = 250;
+constexpr float kSightPenalty = 0.35f;
 
 // A turn that ran out of fuel resumes next round on stale data: act only in the round we started.
 std::uint32_t g_round = 0;
@@ -147,18 +156,23 @@ bool has_lock() {
     catch (const cambc::error&) { return false; }
 }
 
-// Shared memory: bytes 0-4 each slot's target group + 1; byte 5 altar under enemy pressure + 1,
-// byte 6 the round/4 of that report.
-void report_altar(int a) {
-    std::array<std::uint8_t, 2> b{static_cast<std::uint8_t>(a + 1), static_cast<std::uint8_t>((cambc::round_number() >> 2) & 0xff)};
-    cambc::shared_memory.write(5, std::span<const std::uint8_t>{b.data(), b.size()});
-}
-int read_altar_alert(int& age) {
-    std::array<std::uint8_t, 2> b{};
+// Shared memory: bytes 0-4 each slot's target group + 1; bytes 5-7 the latest enemy sighting
+// (x + 1, y, round / 4).
+struct Sighting { bool ok = false; vec2 where{}; int age = 999; };
+Sighting read_sighting() {
+    std::array<std::uint8_t, 3> b{};
     cambc::shared_memory.read(5, std::span<std::uint8_t>{b.data(), b.size()});
-    if (b[0] == 0) return -1;
-    age = ((static_cast<int>(cambc::round_number() >> 2) - b[1]) & 0xff) * 4;
-    return b[0] - 1;
+    Sighting s;
+    if (b[0] == 0) return s;
+    s.where = {b[0] - 1, b[1]};
+    s.age = ((static_cast<int>(cambc::round_number() >> 2) - b[2]) & 0xff) * 4;
+    s.ok = inside(s.where);
+    return s;
+}
+void write_sighting(vec2 p) {
+    std::array<std::uint8_t, 3> b{static_cast<std::uint8_t>(p.x + 1), static_cast<std::uint8_t>(p.y),
+        static_cast<std::uint8_t>((cambc::round_number() >> 2) & 0xff)};
+    cambc::shared_memory.write(5, std::span<const std::uint8_t>{b.data(), b.size()});
 }
 
 }  // namespace
@@ -259,8 +273,8 @@ void Bot::initialise() {
     for (size_t a = 0; a < altars_.size(); ++a) {
         const auto& al = altars_[a];
         if (al.d_ally >= kFar || al.d_enemy >= kFar) continue;
-        if (al.d_ally > al.d_enemy + 25) continue;
-        const int score = al.d_enemy * 2 + al.d_ally;
+        if (al.d_ally > al.d_enemy) continue;
+        const int score = al.d_enemy;
         if (score < best) { best = score; guard_altar_ = static_cast<int>(a); }
     }
     if (guard_altar_ < 0) guard_ = false;
@@ -567,7 +581,7 @@ bool Bot::go(const cambc::bitboard& goals_in, bool dash) {
 bool Bot::go_home_or_recall(int walk_limit) {
     auto& me = cambc::self();
     if (cambc::map::spawn_region(team::ally).is_set(pos_)) return false;
-    if (home_.at(pos_) <= walk_limit || incoming_ > 0) {
+    if (home_.at(pos_) <= walk_limit || incoming_ > 0 || now() - hit_at_ <= 2) {
         go(cambc::map::spawn_region(team::ally), true);
         return true;
     }
@@ -603,7 +617,6 @@ bool Bot::use_lock() {
                 ++locks_placed_;
                 if (channel) ++locks_cancel_;
                 lock_gems_ += worth;
-                report_altar(static_cast<int>(a));
                 if (kLog) std::cout << "lock r" << now() << " altar " << ap.x << ',' << ap.y << " channel=" << channel
                                     << " gems=" << worth << '\n';
                 return true;
@@ -618,118 +631,128 @@ bool Bot::use_lock() {
 bool Bot::enemies() {
     auto& me = cambc::self();
     auto fs = foes();
-    if (fs.empty()) return false;
     const auto& enemy_spawn = cambc::map::spawn_region(team::enemy);
     std::vector<Foe> near;
-    for (auto& f : fs) {
-        if (enemy_spawn.is_set(f.pos)) continue;
-        if (cheb(f.pos, pos_) > 9) continue;
-        near.push_back(f);
-    }
+    for (auto& f : fs)
+        if (!enemy_spawn.is_set(f.pos) && cheb(f.pos, pos_) <= 9) near.push_back(f);
     if (near.empty()) return false;
     last_enemy_seen_ = now();
-    // Report enemies with gems near an altar so the guard comes.
-    for (const auto& f : near)
-        if (f.gems >= 10)
-            for (size_t a = 0; a < altars_.size(); ++a)
-                if (cheb(f.pos, altars_[a].pos) <= 3) report_altar(static_cast<int>(a));
+    write_sighting(near[0].pos);
+    int dmin = 99;
+    for (const auto& f : near) dmin = std::min(dmin, cheb(f.pos, pos_));
 
-    // Square law: (sum hp)·(sum power) on each side within 7 tiles.
-    float our_hp = me.health(), our_pow = me.strength() + 0.25f * me.focus();
+    // Square law: (sum hp)·(sum power) on each side.
+    float our_hp = me.health(), our_pow = 1.1f * me.strength() + 0.25f * me.focus();
     for (const auto& a : g_others) {
         try {
-            if (!a.is_alive()) continue;
-            if (cheb(a.position(), pos_) > 7) continue;
+            if (!a.is_alive() || cheb(a.position(), pos_) > 7) continue;
             our_hp += a.health();
-            our_pow += a.strength() + 0.25f * a.focus();
+            our_pow += 1.1f * a.strength() + 0.25f * a.focus();
         } catch (const cambc::error&) {}
     }
     float their_hp = 0, their_pow = 0;
     bool stuck_foe = false;
     for (const auto& f : near) {
-        if (cheb(f.pos, pos_) > 7) continue;
         their_hp += f.hp;
-        their_pow += f.power;
+        their_pow += 1.1f * f.power;
         if (f.channel) stuck_foe = true;
         for (const auto& al : altars_)
             if (cheb(al.pos, f.pos) <= 1) {
                 bool lk = false;
-                try { lk = cambc::vision::has_altar_lock(al.pos); } catch (const cambc::error&) {}
+                try { lk = cambc::vision::has_altar_lock(al.pos) && cambc::vision::altar_lock_at(al.pos).is_ally(); }
+                catch (const cambc::error&) {}
                 if (lk) stuck_foe = true;  // clearing our lock: punish
             }
     }
-    if (their_hp <= 0) return false;
     float ratio = (our_hp * our_pow) / std::max(1.0f, their_hp * their_pow);
-    if (home_.at(pos_) <= 6) ratio *= 1.5f;
-    if (stuck_foe) ratio *= 1.3f;
-    const float need = 1.0f + static_cast<float>(me.gem_count()) / 100.0f;
-    const bool fight = ratio >= need;
+    if (home_.at(pos_) <= 3) ratio *= 1.5f;
+    if (stuck_foe) ratio *= kStuckBonus;
+    const bool home = cambc::map::spawn_region(team::ally).is_set(pos_);
+    const float need = kFightRatio + std::min(0.5f, static_cast<float>(me.gem_count()) / 100.0f);
 
-    if (!fight) {
-        // Flee if any of them can reach us soon.
-        bool threat = false;
-        for (const auto& f : near)
-            if (cheb(f.pos, pos_) <= f.range + 3) threat = true;
-        if (!threat) return false;
-        flee_until_ = now() + 3;
-        if (me.gem_count() > 0 && altar_.at(pos_) == 0 && !moved_) {
-            if (tribute(true)) return true;
-        }
-        // Hit back on the way if possible (melee: before walking).
-        if (me.can_attack() && !attacked_)
+    if (ratio < need && !home) {
+        // Far enemies that are not on us: keep farming (tribute checks sightings).
+        if (dmin >= 6 && me.health() > 0.5f * me.max_health()) return false;
+        g_mode = "flee";
+        if (me.gem_count() > 0 && altar_.at(pos_) == 0 && !moved_ && tribute(true)) return true;
+        if (!ranged_ && me.can_attack() && !attacked_ && live())
             for (const auto& f : near)
-                if (cheb(f.pos, pos_) <= me.attack_range()) {
-                    try { me.attack(f.c); attacked_ = true; } catch (const cambc::error& e) { warn("hit-flee", e); }
+                if (cheb(f.pos, pos_) <= 1) {
+                    try { me.attack(f.c); attacked_ = true; } catch (const cambc::error& e) { warn("swing", e); }
                     break;
                 }
-        if (!ranged_ || !attacked_) go(cambc::map::spawn_region(team::ally), true);
+        if (dmin >= 6 && !moved_ && incoming_ <= 0 && now() - hit_at_ > 1 && live()) {
+            try { me.recall(); } catch (const cambc::error& e) { warn("flee recall", e); }
+            return true;
+        }
+        go(cambc::map::spawn_region(team::ally), true);
         return true;
     }
+    // Strong enough but nobody close: keep farming unless the odds invite a hunt (or a tribute to break).
+    if (dmin > 5 && ratio < kHuntRatio && !stuck_foe) return false;
+    if (now() < no_chase_until_ && dmin > me.attack_range() + 1) return false;
+    g_mode = "fight";
 
-    // Fight: target channelers first, then the weakest.
-    const Foe* tgt = nullptr;
-    float best = 1e18f;
-    for (const auto& f : near) {
-        float s = f.hp + static_cast<float>(cheb(f.pos, pos_)) * 60.0f;
-        if (f.channel) s -= 400.0f;
-        if (s < best) { best = s; tgt = &f; }
-    }
-    if (!tgt) return false;
-    const vec2 tp = tgt->pos;
-    // Spells first (some exclude walking).
-    if (!cast_ && !moved_ && me.can_cast()) {
+    auto weakest_in = [&](int r) -> const Foe* {
+        const Foe* aim = nullptr;
+        float best = 1e18f;
+        for (const auto& f : near) {
+            if (cheb(f.pos, cambc::self().position()) > r || !view().lvis.at(f.pos)) continue;
+            const float sc = f.hp - (f.channel ? 400.0f : 0.0f);
+            if (sc < best) { best = sc; aim = &f; }
+        }
+        return aim;
+    };
+    if (!cast_ && !moved_ && me.can_cast() && live()) {
         for (const auto& ab : me.abilities()) {
-            if (!ab.is_ready() || cast_) continue;
-            if (!(ab.is_damage() || ab.is_cc())) continue;
-            if (!ab.can_target_enemies()) continue;
-            if (static_cast<float>(cheb(tp, pos_)) > ability_range(ab)) continue;
+            if (cast_ || !ab.is_ready()) continue;
+            const bool unit_spell = (ab.is_damage() || ab.is_cc()) && ab.can_target_enemies();
+            const bool area_spell = ab.is_aoe_damage() && ab.can_target_ground();
+            if (!unit_spell && !area_spell) continue;
+            const Foe* aim = weakest_in(static_cast<int>(ability_range(ab)));
+            if (!aim) continue;
             try {
-                ab.use(tgt->c);
+                if (unit_spell) ab.use(cambc::vision::champion_at(aim->pos));
+                else ab.use(aim->pos);
                 cast_ = true;
                 invalidate();
-            } catch (const cambc::error& e) { warn("spell", e); }
+            } catch (const cambc::error& e) { warn("enemy spell", e); }
         }
     }
-    if (!live()) return true;
-    auto in_range = [&]() { return cheb(tp, cambc::self().position()) <= me.attack_range(); };
-    if (me.can_attack() && !attacked_ && in_range()) {
+    auto strike = [&]() -> bool {
+        const Foe* aim = weakest_in(me.attack_range());
+        if (!aim || !me.can_attack() || attacked_ || !live()) return false;
         try {
-            if (tgt->c.is_alive() && tgt->c.is_visible()) { me.attack(tgt->c); attacked_ = true; after_hit(); }
-        } catch (const cambc::error& e) { warn("hit", e); }
+            if (!cambc::vision::has_champion(aim->pos)) return false;
+            auto c = cambc::vision::champion_at(aim->pos);
+            if (!c.is_visible() || !c.is_alive()) return false;
+            me.attack(c);
+            attacked_ = true;
+            invalidate();
+            after_hit();
+            if (!attacked_ && me.can_attack() && cambc::vision::has_champion(aim->pos)) {
+                auto again = cambc::vision::champion_at(aim->pos);
+                if (again.is_visible() && again.is_alive()) { me.attack(again); attacked_ = true; }
+            }
+        } catch (const cambc::error& e) { warn("strike", e); }
+        return true;
+    };
+    if (strike()) { chase_turns_ = 0; return true; }
+    if (cast_ && ranged_) return true;
+    if (me.health() > 0.3f * me.max_health()) {
+        if (++chase_turns_ > 5) {
+            chase_turns_ = 0;
+            no_chase_until_ = now() + 15;
+            return false;
+        }
+        auto goal = empty_board();
+        for (const auto& f : near) goal.set(f.pos);
+        goal = grow(goal, me.attack_range()) & ~g_ww;
+        go(goal, dmin > 2);
+        if (!ranged_ && strike()) chase_turns_ = 0;
         return true;
     }
-    if (!in_range()) {
-        auto goal = empty_board();
-        goal.set(tp);
-        goal = grow(goal, std::max(1, me.attack_range() - (ranged_ ? 0 : 0)));
-        goal &= ~g_ww;
-        go(goal, true);
-        if (!ranged_ && me.can_attack() && !attacked_ && live() && in_range()) {
-            try {
-                if (tgt->c.is_alive() && tgt->c.is_visible()) { me.attack(tgt->c); attacked_ = true; after_hit(); }
-            } catch (const cambc::error& e) { warn("hit2", e); }
-        }
-    }
+    go(cambc::map::spawn_region(team::ally), true);
     return true;
 }
 
@@ -835,7 +858,9 @@ int Bot::choose(int& wait_out) {
     wait_out = 0;
     const float gold_w = 0.35f * std::max(0.4f, 1.0f - static_cast<float>(t) / 1500.0f);
     const float hpmax = me.max_health();
-    const vec2 ga = guard_ && guard_altar_ >= 0 ? altars_[guard_altar_].pos : vec2{-100, -100};
+    const bool guarding = guard_ && now() > kGuardFrom;
+    const vec2 ga = guarding && guard_altar_ >= 0 ? altars_[guard_altar_].pos : vec2{-100, -100};
+    const auto sight = read_sighting();
     std::array<std::uint8_t, 5> claims{};
     cambc::shared_memory.read(0, std::span<std::uint8_t>{claims.data(), claims.size()});
     for (size_t i = 0; i < g_.size(); ++i) {
@@ -852,7 +877,8 @@ int Bot::choose(int& wait_out) {
         if (g.d_enemy < g.d_ally) f *= 0.7f;
         if (g.state == Group::reward) f *= 1.3f;
         if (static_cast<int>(i) == target_ && g.state != Group::respawning) f *= 1.25f;
-        if (guard_) {
+        if (sight.ok && sight.age < 30 && cheb(sight.where, g.center) <= 8) f *= kSightPenalty;
+        if (guarding) {
             const int da = cheb(g.center, ga);
             f *= da <= 10 ? 1.6f : (da <= 16 ? 1.0f : 0.5f);
         }
@@ -988,7 +1014,7 @@ void Bot::play_turn() {
     invalidate();
     g_mode = "start";
     turn();
-    if (kLog && now() % 50 == 0) {
+    if (kLog && (now() % 50 == 0 || (now() >= kLogFrom && now() <= kLogTo))) {
         auto& me = cambc::self();
         std::cout << "r" << now() << ' ' << cambc::to_string(me.champion_name()) << ' ' << g_mode << " at " << pos_.x << ',' << pos_.y
                   << " tgt " << target_ << " gems " << me.gem_count() << " hp " << me.health() << " alt " << altar_.at(pos_)
@@ -1008,6 +1034,11 @@ void Bot::turn() {
         return;
     }
     pos_ = me.position();
+    {
+        const float h = me.health();
+        if (h < last_hp_ - 1.0f) hit_at_ = now();
+        last_hp_ = h;
+    }
     if (!inside(pos_)) return;
     if (me.is_recalling() || me.is_teleporting()) { g_mode = "recalling"; return; }
     if (me.is_submitting_gems()) { g_mode = "submitting"; return; }
@@ -1038,8 +1069,26 @@ void Bot::turn() {
     try { if (enemies()) return; } catch (const std::exception& e) { warn("enemies", e); }
     if (!live()) return;
 
-    // Hurt: go heal.
     const float hp = me.health(), mh = me.max_health();
+    // An ally reported enemies close by: join the fight while healthy.
+    if (kHelp && !on_spawn && hp > 0.6f * mh && me.gem_count() < 30) {
+        const auto sight = read_sighting();
+        if (sight.ok && sight.age <= 4 && cheb(sight.where, pos_) <= kHelpRange && cheb(sight.where, pos_) > 3
+            && home_.at(sight.where) < kFar) {
+            g_mode = "help";
+            auto goal = empty_board();
+            goal.set(sight.where);
+            goal = grow(goal, 2) & ~g_ww;
+            if (go(goal, true)) return;
+        }
+    }
+    // Damage from nothing we can see (an enemy in a bush): leave.
+    if (hit_at_ == now() && incoming_ <= 0 && !on_spawn && hp < 0.9f * mh) {
+        g_mode = "ambush";
+        go(cambc::map::spawn_region(team::ally), true);
+        return;
+    }
+    // Hurt: go heal.
     if (hp < 0.25f * mh || (incoming_ > 0 && hp < incoming_ * taken_ * 3 + 40)) {
         g_mode = "hurt";
         if (me.gem_count() >= 10 && altar_.at(pos_) <= 2 && tribute(true)) return;
@@ -1072,7 +1121,7 @@ void Bot::turn() {
     }
     if (target_ < 0) {
         if (me.gem_count() > 0 && tribute(true)) return;
-        if (guard_) guard_post();
+        if (guard_ && now() > kGuardFrom) guard_post();
         else if (hp < 0.8f * mh) go_home_or_recall(0);
         return;
     }
@@ -1092,5 +1141,5 @@ void Bot::turn() {
         return;
     }
     farm(target_);
-    if (guard_ && !moved_ && !attacked_ && g_[target_].state == Group::respawning && wait > 0) guard_post();
+    if (guard_ && now() > kGuardFrom && !moved_ && !attacked_ && g_[target_].state == Group::respawning && wait > 0) guard_post();
 }

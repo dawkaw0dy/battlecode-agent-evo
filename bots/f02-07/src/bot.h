@@ -48,6 +48,9 @@ class Bot {
     int locks_placed_ = 0, locks_cancel_ = 0, lock_gems_ = 0;
     int flee_until_ = -1;
     int plug_ = -1, plug_at_ = -100;
+    float last_hp_ = 0;
+    int hit_at_ = -100;
+    int chase_turns_ = 0, no_chase_until_ = -1;
 
     // Per turn.
     vec2 pos_{};
