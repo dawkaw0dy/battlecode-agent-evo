@@ -1053,13 +1053,7 @@ void init() {
     }
 }
 
-} // namespace
-
-void Bot::play_turn() {
-    if (!initialised) {
-        init();
-        initialised = true;
-    }
+void champion_turn() {
     moved = false;
     move_failed = false;
     acted = false;
@@ -1176,5 +1170,21 @@ void Bot::play_turn() {
         hunt(camps, allies);
     } catch (const std::exception& e) {
         std::cout << "warn: hunt r" << now << " " << e.what() << '\n';
+    }
+}
+
+} // namespace
+
+void Bot::play_turn() {
+    if (!initialised) {
+        init();
+        initialised = true;
+    }
+    // Every action checks its preconditions; this backstop keeps an unexpected engine error from
+    // ending the game's log with a `bot error`.
+    try {
+        champion_turn();
+    } catch (const std::exception& e) {
+        std::cout << "warn: turn r" << cambc::round_number() << " " << e.what() << '\n';
     }
 }

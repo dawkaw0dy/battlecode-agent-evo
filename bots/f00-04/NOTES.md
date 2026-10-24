@@ -38,7 +38,8 @@ the far end of a 30-tile group (go and fight it); shop-recall loop once the buil
 after killing a monolith (gold mode); nearest altar by Chebyshev distance unreachable through holes (01islands, path
 search over all altars); gather deadlock at the monolith; lone monolith carrier killed on the way to the altar
 (escort); side-farming re-picking an unreachable cluster (ban). Last: a fallback target when every group fails the
-danger filter (identical results on 8 elk-heavy games; a safety net for held-out maps).
+danger filter (identical results on 8 elk-heavy games; a safety net for held-out maps), and a whole-turn backstop
+catch that logs `warn:` (one uncaught engine error 5 was seen once in 80 games before hunt() got its own guard).
 
 ## Tried and failed (keep entries from the parent's notes; add yours)
 - Two squads (3 + 2) for parallel farming, big camps pulling both: vs e07-01 0/16, 414 deaths vs 297 for one pack.
