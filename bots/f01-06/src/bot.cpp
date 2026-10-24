@@ -1,5 +1,6 @@
-// Camp-sweep champion: squads of two or three sweep their share of the camp groups in a loop,
-// gem-rich groups first, and bank gems in small batches whenever an altar is close.
+// Camp-sweep champion: each champion sweeps its sector of camp groups (gem value per unit of
+// travel, wait and clear time), shares its target so light groups are not doubled up, and banks
+// gems in small batches whenever an altar is close to its route.
 #include <cambc.h>
 #include "bot.h"
 #include <algorithm>
@@ -1042,7 +1043,7 @@ int Bot::choose_target() {
 }
 
 // Re-plan every few rounds and when the target is gone; announce it to the team.
-void Bot::squad_target() {
+void Bot::pick_target() {
     const int t = now();
     for (int i = 0; i < 5; ++i) ally_target_[static_cast<size_t>(i)] = shm_byte(shm::target + i) - 1;
     const bool gone = target_ < 0 || known_[target_].blocked_until > t
@@ -1278,7 +1279,7 @@ void Bot::play_inner() {
     }
     if (heal_ally()) {}
 
-    squad_target();
+    pick_target();
     const int target = target_;
     if (handle_tribute()) { g_state = 'B'; return; }
 

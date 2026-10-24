@@ -50,7 +50,6 @@ class Bot {
     int target_ = -1, last_choice_ = -100;
     int stage_since_ = -1, stage_group_ = -1;
     int capture_group_ = -1, capture_since_ = 0;
-    int last_captured_seen_ = 0;
     int spawn_wait_ = 0;
     int dynamic_until_ = 0;
     int hold_start_ = 0, last_hold_ = -10;
@@ -78,7 +77,7 @@ class Bot {
     bool handle_enemies();
     bool handle_tribute();
     bool disengage();
-    void squad_target();
+    void pick_target();
     int choose_target();
     int eta(int group) const;
     cambc::bitboard tiles_of(int group) const;
