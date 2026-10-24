@@ -844,25 +844,6 @@ bool Bot::handle_enemies() {
         if (dist(a.pos, pos) <= 6) ours += a.hp * a.power;
     report_enemy(enemies.front().pos, near);
 
-    // Beside an altar with gems: bank them first if we outlive the channel (damage does not cancel it).
-    if (me.gem_count() > 0 && !moved_ && !cast_ && live()) {
-        const int turns = std::max(1, static_cast<int>((me.gem_count() + 9) / 10));
-        float burst = incoming_ * taken_mult_;
-        for (const auto& e : enemies)
-            if (dist(e.pos, pos) <= 8) burst += e.power * 1.5f;
-        if (me.health() > burst * (turns + 1) + 50) {
-            const auto enemy_locks = cambc::vision::altar_lock_tiles(team::enemy);
-            for (auto a : cambc::map::altars().positions())
-                if (dist(a, pos) <= cambc::constants::submit_gems_range && !enemy_locks.is_set(a)) {
-                    try {
-                        me.submit_gems(a);
-                        return true;
-                    } catch (const cambc::error&) {}
-                    break;
-                }
-        }
-    }
-
     // A full bag goes to whoever kills us: demand a bigger edge before fighting with one.
     const float carried = static_cast<float>(std::min<std::uint32_t>(me.gem_count(), 100));
     const bool stronger = ours >= their * (1.15f + (carried >= 20 ? carried * 0.01f : 0.0f));
