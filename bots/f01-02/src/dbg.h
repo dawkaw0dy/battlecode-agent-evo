@@ -41,4 +41,21 @@ inline void dbg_dump_map() {
 
 // Detailed trace window (rounds) for one slot; -1 = all slots.
 inline int g_dbg_from = 0, g_dbg_to = -1, g_dbg_slot = -1;
-#define DBG(slot, expr) do { if (kDebug && static_cast<int>(cambc::round_number()) >= g_dbg_from && static_cast<int>(cambc::round_number()) <= g_dbg_to && (g_dbg_slot < 0 || g_dbg_slot == (slot))) { std::cout << "D r" << cambc::round_number() << " s" << (slot) << " " << expr << std::endl; } } while (0)
+inline bool g_dbg_print = true;
+#define DBG(slot, expr) do { if (kDebug && g_dbg_print && static_cast<int>(cambc::round_number()) >= g_dbg_from && static_cast<int>(cambc::round_number()) <= g_dbg_to && (g_dbg_slot < 0 || g_dbg_slot == (slot))) { std::cout << "D r" << cambc::round_number() << " s" << (slot) << " " << expr << std::endl; } } while (0)
+
+// Fuel marks collected during a turn and printed once at its end (printing costs fuel too).
+#include <vector>
+#include <utility>
+inline std::vector<std::pair<const char*, std::uint64_t>> g_marks;
+inline void fuel_mark(const char* label) {
+    if (kDebug && static_cast<int>(cambc::round_number()) >= g_dbg_from && static_cast<int>(cambc::round_number()) <= g_dbg_to)
+        g_marks.push_back({label, cambc::fuel_remaining()});
+}
+inline void fuel_flush(int slot) {
+    if (!kDebug || g_marks.empty()) return;
+    std::cout << "F r" << cambc::round_number() << " s" << slot;
+    for (auto& [l, f] : g_marks) std::cout << " " << l << "=" << f;
+    std::cout << std::endl;
+    g_marks.clear();
+}
