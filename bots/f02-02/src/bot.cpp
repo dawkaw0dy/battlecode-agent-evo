@@ -6,6 +6,7 @@
 #include <array>
 #include <cmath>
 #include <iostream>
+#include <string>
 #include <span>
 #include <utility>
 #include <variant>
@@ -13,14 +14,16 @@
 constexpr bool kDebugMap = false;
 constexpr bool kStats = false;  // activity counters and positions in stdout
 constexpr bool kTrace = false;
+constexpr bool kTraceChoose = false;
 std::uint64_t g_f0 = 0;
 const char* g_phase_tag = "";
 int now_dbg() { return static_cast<int>(cambc::round_number()); }
+std::string g_fp_log;
 void fp(const char* tag) {
     g_phase_tag = tag;
-    if (!kTrace || cambc::round_number() < 100 || cambc::round_number() > 104) return;
+    if (!kTrace) return;
     const auto f = cambc::fuel_remaining();
-    std::cout << "fuel r" << cambc::round_number() << ' ' << cambc::to_string(cambc::self().champion_name()) << ' ' << tag << ' ' << (g_f0 - f) << '\n';
+    if (g_f0 > f && g_f0 - f > 3000) { g_fp_log += ' '; g_fp_log += tag; g_fp_log += '='; g_fp_log += std::to_string((g_f0 - f) / 1000); }
     g_f0 = f;
 }
 constexpr float kShareTurns = 15.0f;
@@ -36,7 +39,15 @@ std::array<int, 20> g_modes{};
 const char* kModeNames[20] = {"dead", "chan", "enemy", "fuel", "spwait", "hurt", "bank", "idle", "shop", "heal",
     "stuck", "travel", "fight", "capture", "respawn", "approach", "rally", "", "", ""};
 struct ModeCount {
+    std::uint64_t f0 = kStats ? cambc::fuel_remaining() : 0;
     ~ModeCount() {
+        if (kStats) {
+            const auto used = f0 - cambc::fuel_remaining();
+            if (used > 70000)
+                std::cout << "heavy r" << cambc::round_number() << ' ' << cambc::to_string(cambc::self().champion_name())
+                          << ' ' << kModeNames[g_mode] << ' ' << used << g_fp_log << '\n';
+            g_fp_log.clear();
+        }
         ++g_modes[static_cast<size_t>(g_mode)];
         const int r = static_cast<int>(cambc::round_number());
         if (kStats && r % 200 == 0) {
@@ -780,29 +791,83 @@ const cambc::bitboard& Bot::approach_goal(int group, int r) {
 }
 
 // Tiles one or two steps outside the reach of the group's living fighters: where raiders gather.
+// Built on a local box (whole-board dilations by a boss's reach cost tens of thousands of fuel).
 const cambc::bitboard& Bot::rally_goal(int group) {
     if (rally_goal_g_ == group && rally_goal_round_ + 10 > static_cast<int>(cambc::round_number())) return rally_goal_;
     rally_goal_g_ = group;
     rally_goal_round_ = static_cast<int>(cambc::round_number());
-    std::array<cambc::bitboard, 6> by_range;
-    for (auto& b : by_range) b.clear();
-    bool any = false;
-    for (size_t c = 0; c < g_[group].tiles.size(); ++c) {
-        if (k_[group].hp[c] <= 0) continue;
-        const auto s = camp_spec(g_[group].kinds[c]);
+    const auto& g = g_[group];
+    const auto& k = k_[group];
+    int x0 = map_w(), y0 = map_h(), x1 = -1, y1 = -1;
+    for (size_t c = 0; c < g.tiles.size(); ++c) {
+        if (k.hp[c] <= 0 || camp_spec(g.kinds[c]).str <= 0) continue;
+        x0 = std::min(x0, g.tiles[c].x); y0 = std::min(y0, g.tiles[c].y);
+        x1 = std::max(x1, g.tiles[c].x); y1 = std::max(y1, g.tiles[c].y);
+    }
+    rally_goal_ = empty_board();
+    if (x1 < 0) return rally_goal_;
+    const int pad = 7;  // largest reach (5) plus the ring
+    const int bx = x0 - pad, by = y0 - pad, bw = x1 - x0 + 2 * pad + 1, bh = y1 - y0 + 2 * pad + 1;
+    // 2: inside some fighter's reach, 1: in the ring just outside it.
+    std::vector<std::uint8_t> mark(static_cast<size_t>(bw * bh), 0);
+    for (size_t c = 0; c < g.tiles.size(); ++c) {
+        if (k.hp[c] <= 0) continue;
+        const auto s = camp_spec(g.kinds[c]);
         if (s.str <= 0) continue;
-        by_range[static_cast<size_t>(std::clamp(s.range, 0, 5))].set(g_[group].tiles[c]);
-        any = true;
+        const vec2 p = g.tiles[c];
+        for (int y = p.y - s.range - 2; y <= p.y + s.range + 2; ++y) {
+            std::uint8_t* row = mark.data() + (y - by) * bw;
+            const int dy = y > p.y ? y - p.y : p.y - y;
+            for (int x = p.x - s.range - 2; x <= p.x + s.range + 2; ++x) {
+                const int dx = x > p.x ? x - p.x : p.x - x;
+                const std::uint8_t v = (dx > dy ? dx : dy) <= s.range ? 2 : 1;
+                if (row[x - bx] < v) row[x - bx] = v;
+            }
+        }
     }
-    if (!any) { rally_goal_ = empty_board(); return rally_goal_; }
-    auto inner = empty_board(), outer = empty_board();
-    for (int r = 0; r <= 5; ++r) {
-        if (by_range[static_cast<size_t>(r)].is_empty()) continue;
-        inner |= grow(by_range[static_cast<size_t>(r)], r);
-        outer |= grow(by_range[static_cast<size_t>(r)], r + 2);
-    }
-    rally_goal_ = outer & ~inner & ~walk_walls();
+    goal_buf_.assign(cambc::bitboard::linear_buffer_size(), 0);
+    for (int y = 0; y < bh; ++y)
+        for (int x = 0; x < bw; ++x) {
+            if (mark[static_cast<size_t>(y * bw + x)] != 1) continue;
+            const vec2 p{bx + x, by + y};
+            if (!inside(p) || walls_local().at(p)) continue;
+            const int t = tidx(p);
+            goal_buf_[static_cast<size_t>(t >> 3)] |= static_cast<std::uint8_t>(1u << (t & 7));
+        }
+    rally_goal_.import_linear_buffer(std::span<const std::uint8_t>{goal_buf_});
     return rally_goal_;
+}
+
+// Far from the group: one step down its cached walking field instead of a fresh route search (a host
+// BFS each turn is most of our fuel). Not while a dash is ready (the routed walk uses it), and not for a
+// while after the static step was blocked (mixing the two makes champions flip-flop).
+bool Bot::walk_static(int group, int far) {
+    auto& me = cambc::self();
+    const int now = static_cast<int>(cambc::round_number());
+    if (far <= 6 || now < static_off_until_ || moved_ || move_failed_ || !live() || !me.can_move()) return false;
+    const auto& f = gfield_[group];
+    if (f.empty()) return false;
+    if (dasher_ && !cast_ && me.can_cast())
+        for (const auto& ab : me.abilities())
+            if (ab.is_dash() && ab.is_ready()) return false;
+    const vec2 pos = me.position();
+    vec2 best = pos;
+    int best_d = f.at(pos);
+    if (best_d >= kFar) return false;
+    for (auto d : kDirs) {
+        const vec2 t{pos.x + d.x, pos.y + d.y};
+        const int fd = f.at(t);
+        if (fd >= best_d || !free_tile(t) || camp_block_.is_set(t)) continue;
+        best_d = fd;
+        best = t;
+    }
+    if (best == pos) { static_off_until_ = now + 12; return false; }
+    moved_ = true;
+    bool ok = false;
+    try { ok = me.move_absolute(best); } catch (const cambc::error& e) { warn("move", e); }
+    invalidate();
+    if (!ok) { move_failed_ = true; static_off_until_ = now + 12; }
+    return true;
 }
 
 bool Bot::group_awake(int group) const { return !(awake_ & gtiles_[group]).is_empty(); }
@@ -931,7 +996,7 @@ int Bot::choose(int& wait_out) {
     auto trips_for = [&](const ClearCost& cc, int n, float& turns) {
         turns = cc.hp_sum / (dps_ * n);
         const float each = cc.base / (dps_ * n) * taken_ / n;
-        return each <= spare ? 0.0f : std::ceil((each - spare) / cap);
+        return each <= spare ? 0.0f : (each - spare) / cap;  // expected trips home
     };
     // The current target first: a good early best prunes most of the others cheaply.
     const int n_groups = static_cast<int>(g_.size());
@@ -964,15 +1029,15 @@ int Bot::choose(int& wait_out) {
         const float trip = kTripTurns + std::min(60, g.d_ally);
         // Gems still have to reach an altar: about one walk there per 45 carried.
         const float bank = g.gems / 45.0f * std::min(bank_d_[static_cast<size_t>(i)], 6 + home_altar_);
-        const float base_t = e + wait + kCaptureTurns + bank;
+        const float base_t = e + wait + kCaptureTurns;
         Plan plan;
         if (k.state == Known::reward) {
             // Raiders split a boss's reward; anyone else's capture is theirs.
             if (g.boss) plan.n = claimers + 1;
             else for (int c = 0; c < claimers; ++c) f *= 0.3f;
-            plan.score = value / plan.n * f / (e + kCaptureTurns);
+            plan.score = value / plan.n * f / (e + kCaptureTurns + bank / plan.n);
         } else {
-            if (value * f / base_t <= best_plan.score) continue;
+            if (value * f / (base_t + bank) <= best_plan.score) continue;
             const auto& cc = clear_cost(i);
             const float peak = cc.peak * taken_;
             // Alone: worn down over several trips when one health bar is not enough.
@@ -980,13 +1045,13 @@ int Bot::choose(int& wait_out) {
                 float turns = 0;
                 const float trips = trips_for(cc, 1, turns);
                 if (trips <= 4) {
-                    float sc = value * f / (base_t + turns + trips * trip);
+                    float sc = value * f / (base_t + bank + turns + trips * trip);
                     if (claimers > 0) {
                         // Someone is on it: share a long clear, leave a short one to them.
                         if (turns > kShareTurns || trips > 0) {
                             float t2 = 0;
                             const float tr2 = trips_for(cc, claimers + 1, t2);
-                            sc = value / (claimers + 1) * f / (base_t + t2 + tr2 * trip);
+                            sc = value / (claimers + 1) * f / (base_t + bank / (claimers + 1) + t2 + tr2 * trip);
                             if (sc > plan.score) { plan.score = sc; plan.n = claimers + 1; plan.rally = false; }
                             sc = 0;
                         } else {
@@ -1002,9 +1067,11 @@ int Bot::choose(int& wait_out) {
                     if (cap * n < 3 * peak) continue;
                     float turns = 0;
                     const float trips = trips_for(cc, n, turns);
-                    if (trips > 2) continue;
+                    if (trips > 3) continue;
                     const float gather = n > claimers + 1 ? kGatherTurns : 0.0f;
-                    const float sc = value / n * f / (base_t + gather + turns + trips * trip);
+                    // Join a raid that is forming rather than start a second one.
+                    const float join = waiting ? 1.0f : 1.0f + 0.5f * claimers;
+                    const float sc = value / n * f * join / (base_t + bank / n + gather + turns + trips * trip);
                     if (sc > plan.score) { plan.score = sc; plan.n = n; plan.rally = true; }
                 }
             }
@@ -1013,7 +1080,7 @@ int Bot::choose(int& wait_out) {
     }
     raid_n_ = best_plan.n;
     rally_need_ = best_plan.rally;
-    if (kTrace && best >= 0 && best != target_ && now < 700)
+    if (kTraceChoose && best >= 0 && best != target_ && now < 700)
         std::cout << "choose r" << now << ' ' << cambc::to_string(me.champion_name()) << " g" << best << " st " << int(k_[best].state)
                   << " gems " << g_[best].gems << " gold " << g_[best].gold << " hp " << remaining(best) << " eta " << eta(best)
                   << " wait " << wait_out << " n " << raid_n_ << " rally " << rally_need_ << " score " << best_plan.score
@@ -1038,7 +1105,7 @@ void Bot::farm(int group) {
             }
             return;
         }
-        go(tiles, e > 3);
+        if (!walk_static(group, e)) go(tiles, e > 3);
         return;
     }
     capture_g_ = -1;
@@ -1046,7 +1113,7 @@ void Bot::farm(int group) {
         g_mode = 14;
         // Wait close by but off the spawn tiles: standing on one delays the respawn.
         auto near = grow(gtiles_[group], 2) & ~gtiles_[group] & ~walk_walls();
-        if (!near.is_set(pos_)) go(near, true);
+        if (!near.is_set(pos_) && !walk_static(group, e)) go(near, true);
         return;
     }
     // A raid gathers outside the fighters' reach and engages together (or once someone has started).
@@ -1058,7 +1125,7 @@ void Bot::farm(int group) {
             if (rally.is_set(pos_) && rally_since_ < 0) rally_since_ = now;
             if (rally_since_ < 0 || now - rally_since_ < kRallyRounds) {
                 g_mode = 16;
-                if (!rally.is_set(pos_)) go(rally, e > 3);
+                if (!rally.is_set(pos_) && !walk_static(group, e - g_[group].range - 2)) go(rally, e > 3);
                 return;
             }
             if (near < 2) {
@@ -1087,7 +1154,10 @@ void Bot::farm(int group) {
     }
     const auto& goal2 = approach_goal(group, r);
     const bool moved_before = moved_;
+    fp("farm-goal");
+    if (walk_static(group, e - r)) { fp("farm-static"); return; }
     const bool ok = go(goal2, e > 3);
+    fp("farm-go");
     // The safest spots cannot be reached: fall back to any spot in range for a while.
     if (!ok && !moved_before && !moved_ && !goal2.is_set(pos_) && !goal_plain_) plain_until_ = now + 12;
     if (hit_group(group)) reset_hit(group);
@@ -1375,6 +1445,8 @@ void Bot::play_turn() {
 void Bot::turn() {
     ModeCount counter;
     g_mode = 0;
+    g_f0 = cambc::fuel_remaining();
+    g_fp_log.clear();
     g_round = cambc::round_number();
     auto& me = cambc::self();
     pos_ = me.position();

@@ -102,6 +102,7 @@ class Bot {
     int rally_goal_g_ = -1, rally_goal_round_ = -100;
     bool goal_plain_ = false;           // goal_ is every tile in range, not just the safest
     int plain_until_ = -1;
+    int static_off_until_ = -1;         // walk routed (not down the cached field) until then
     std::vector<std::uint8_t> goal_buf_;
 
     void build_threats();
@@ -110,6 +111,7 @@ class Bot {
     float remaining(int group) const;
     const cambc::bitboard& approach_goal(int group, int r);
     const cambc::bitboard& rally_goal(int group);
+    bool walk_static(int group, int far);
     bool group_awake(int group) const;
     int raiders_near(int group) const;
     int eta(int group) const;
