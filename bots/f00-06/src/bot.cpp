@@ -35,7 +35,7 @@ constexpr float kRetreatBalance = 0.55f;  // fall back towards spawn below this
 constexpr int kGolemRound = 300;
 constexpr int kMonoRound = 500;
 constexpr int kStallRounds = 90;
-constexpr float kSoloRecallHp = 0.25f;
+constexpr float kSoloRecallHp = 0.35f;
 
 enum Mode : std::uint8_t { kTravel = 0, kFight = 1, kCapture = 2, kBank = 3, kShop = 4 };
 
