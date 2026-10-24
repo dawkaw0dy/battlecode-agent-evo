@@ -90,6 +90,7 @@ int idle_fight_turns = 0;  // hunting turns with foes in sight but no attack or 
 int capture_turns = 0;     // turns spent waiting on a capture
 int next_choose = 0;       // earliest round for the next target search after a failed one
 int last_enemy_seen = -1000;
+int gather_turns = 0;      // turns spent waiting for the pack at a big camp
 constexpr float kBigRisk = 1.0f;  // golem/monolith: allowed camp damage as a share of team health
 bool acted = false;        // attacked this turn
 
@@ -724,10 +725,24 @@ bool do_tribute() {
             std::cout << "warn: submit " << e.what() << '\n';
         }
     }
-    int ai = nearest_altar(pos, true);
-    if (ai < 0) ai = nearest_altar(pos, false);
-    if (ai < 0) return false;
-    if (step_to(square(altars[ai], cambc::constants::submit_gems_range))) {
+    // Walk to the nearest reachable approach tile of any altar without an enemy lock (the path
+    // search picks the altar, so altars behind holes or walls are skipped).
+    bitboard goals;
+    goals.clear();
+    for (auto a : altars) {
+        bool locked = false;
+        if (cambc::vision::has_altar_lock(a)) {
+            try {
+                locked = cambc::vision::altar_lock_at(a).is_enemy();
+            } catch (const std::exception&) {
+            }
+        }
+        if (!locked) goals |= square(a, cambc::constants::submit_gems_range);
+    }
+    if (goals.is_empty())
+        for (auto a : altars) goals |= square(a, cambc::constants::submit_gems_range);
+    if (goals.is_empty()) return false;
+    if (step_to(goals)) {
         tribute_fail = 0;
     } else if (!move_failed && ++tribute_fail > 5) {
         no_tribute_until = now + 60;
@@ -803,16 +818,26 @@ void hunt(const std::vector<Foe>& camps, const std::vector<Ally>& allies) {
             bool healthy = me.health() >= me.max_health() * 0.8f;
             int nd = 1000;
             for (auto& f : foes) nd = std::min(nd, dist(f.pos, pos));
+            ++gather_turns;
+            if (gather_turns > 30) need = std::max(1, need - 1);
+            if (gather_turns > 70) {
+                // The pack never assembled: give the camp up for a while.
+                g.bad_until = now + 150;
+                write_target(-1);
+                gather_turns = 0;
+                return;
+            }
             if ((near < need || !healthy) && nd <= g.range + 3) {
                 if (nd <= g.range) {
                     std::vector<vec2> th;
                     for (auto& f : foes) th.push_back(f.pos);
                     step_away(th);
                 }
-                if (!healthy && near >= need) safe_recall();
+                if (!healthy && !moved) safe_recall();
                 return;
             }
         }
+        gather_turns = 0;
         fight(foes, false);
         still_turns = 0;
         if (acted || moved) idle_fight_turns = 0;
