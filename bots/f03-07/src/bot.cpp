@@ -666,8 +666,11 @@ int Bot::choose_target() {
         if (d == UNREACHED) continue;
         float rem = 0, inc = 0;
         for (std::size_t i = 0; i < g.tiles.size(); ++i)
-            if (g.state != 0 || g.hp[i] > 0) {
-                rem += g.state == 0 ? g.hp[i] : g.maxhp[i];
+            if (g.state == 0 && g.hp[i] > 0) {
+                rem += g.hp[i];
+                inc += g.str[i];
+            } else if (g.state == 3) {
+                rem += g.maxhp[i];
                 inc += g.str[i];
             }
         inc *= reduce;
@@ -676,7 +679,7 @@ int Bot::choose_target() {
         if (inc > 0) {
             const float tank = mx * 0.7f / inc;
             if (tank < 6) continue; // monoliths and the like are not for a banker
-            const float trips = std::ceil(clear / tank);
+            const float trips = std::max(1.0f, std::ceil(clear / tank));
             extra = (trips - 1) * (2.0f * std::min(g.home, 60) + 15);
         }
         float wait = 0;
@@ -686,15 +689,18 @@ int Bot::choose_target() {
         if (value <= 0) continue;
         float factor = 1.0f;
         if (g.home > g.enemy_home) factor *= 0.65f;
+        bool engaged = false;
         if (static_cast<int>(gi) == target && g.state != 3) {
-            bool engaged = g.state == 2;
+            engaged = g.state == 2 || d <= 3;
             for (std::size_t i = 0; i < g.hp.size(); ++i) if (g.hp[i] > 0 && g.hp[i] < g.maxhp[i]) engaged = true;
             factor *= engaged ? 2.0f : 1.3f;
         }
         if (g.state == 2) factor *= 1.3f;
-        for (int a = 0; a < 5; ++a)
-            if (a < my_index && claims[a] == gi + 1 && clear < 15) factor *= 0.3f;
-        if (now - last_enemy_round < 30 && last_enemy.x >= 0 && cheb(last_enemy, g.tiles[0]) <= 8) factor *= 0.4f;
+        if (!engaged) {
+            for (int a = 0; a < 5; ++a)
+                if (a < my_index && claims[a] == gi + 1 && clear < 15) factor *= 0.3f;
+            if (now - last_enemy_round < 30 && last_enemy.x >= 0 && cheb(last_enemy, g.tiles[0]) <= 8) factor *= 0.5f;
+        }
         const float score = value * factor / (d + clear + 5 + extra + wait + 5);
         if (score > best_score) { best_score = score; best = static_cast<int>(gi); }
     }
@@ -752,7 +758,9 @@ void Bot::farm() {
     auto& me = cambc::self();
     const int prev = target;
     target = choose_target();
-    if (target != prev) { target_radius = me.attack_range(); stuck_turns = 0; }
+    if (target != prev) {
+        target_radius = me.attack_range(); stuck_turns = 0;
+    }
     try {
         std::array<std::uint8_t, 1> c{static_cast<std::uint8_t>(target + 1)};
         cambc::shared_memory.write(my_index, std::span{c});
@@ -858,7 +866,7 @@ void Bot::play_turn() {
     const bool at_spawn = cambc::map::spawn_region(team::ally).is_set(pos);
     if (at_spawn) buy_items();
     if (!fresh()) return;
-    if (handle_enemies()) return;
+    if (handle_enemies()) { dbg("enemies"); return; }
 
     // Heal fully on spawn before heading out.
     if (at_spawn && me.health() < me.max_health() * 0.92f && heal_wait < 15) {
