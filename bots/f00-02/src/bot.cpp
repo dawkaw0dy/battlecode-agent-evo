@@ -347,13 +347,30 @@ bool Bot::go_bank() {
             }
         }
     }
-    // Prefer altars without a visible enemy lock.
-    bitboard avoid;
-    avoid.clear();
-    for (auto a : cambc::vision::altar_lock_tiles(team::enemy).positions()) avoid |= square(a, range);
-    auto free_goals = goals & ~avoid;
-    if (!free_goals.is_empty() && step_to(free_goals)) return true;
-    step_to(goals);
+    // Remember enemy locks so a lock leaving vision does not send us back and forth.
+    const int now = static_cast<int>(cambc::round_number());
+    const auto altars = cambc::map::altars().positions();
+    if (lock_until.size() != altars.size()) lock_until.assign(altars.size(), 0);
+    const auto vis = cambc::vision::visible_tiles();
+    const auto enemy_locks = cambc::vision::altar_lock_tiles(team::enemy);
+    bitboard free_goals;
+    free_goals.clear();
+    int near_free = 999, near_locked = 999;
+    for (std::size_t i = 0; i < altars.size(); ++i) {
+        if (enemy_locks.is_set(altars[i])) lock_until[i] = now + 40;
+        else if (vis.is_set(altars[i])) lock_until[i] = 0;
+        const int d = cheb(pos, altars[i]);
+        if (lock_until[i] <= now) {
+            free_goals |= square(altars[i], range);
+            near_free = std::min(near_free, d);
+        } else {
+            near_locked = std::min(near_locked, d);
+        }
+    }
+    free_goals &= approach;
+    // A lock takes a few hits to break; only detour when a free altar is not much farther.
+    if (!free_goals.is_empty() && near_free <= near_locked + 8 && step_to(free_goals)) return true;
+    if (!moved) step_to(goals);
     return true;
 }
 

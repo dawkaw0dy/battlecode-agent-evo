@@ -24,6 +24,7 @@ class Bot {
     std::vector<GroupInfo> groups;
     std::vector<int> ready_round;        // round from which a group is expected to be alive again
     std::vector<int> banned_until;       // groups we gave up on
+    std::vector<int> lock_until;         // altars believed to carry an enemy lock
     int target = -1;                     // current camp group
     int wait_turns = 0;
     int stuck_turns = 0;
