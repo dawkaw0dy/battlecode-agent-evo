@@ -9,7 +9,6 @@
 #include <span>
 #include <variant>
 #include <vector>
-#include <iostream>
 
 using cambc::bitboard;
 using cambc::distance_field;
@@ -18,7 +17,6 @@ using cambc::vec2;
 
 namespace {
 
-int dbg_reason = 0;
 int W = 0, H = 0;
 constexpr float DANGER = 0.75f;
 constexpr int THREAT_R = 5;
@@ -203,10 +201,6 @@ void Bot::init() {
         all_spawns |= info.spawns;
         groups.push_back(std::move(info));
     }
-    if (cambc::self().champion_name() == cambc::champion_type::vendetta)
-        for (std::size_t i = 0; i < groups.size(); ++i)
-            std::cout << "DBG group " << i << " at " << groups[i].tiles[0].x << "," << groups[i].tiles[0].y << " n=" << groups[i].tiles.size()
-                      << " gems=" << groups[i].gems << " gold=" << groups[i].gold << " mhp=" << groups[i].monster_hp << " spawnd=" << spawn_field.get(groups[i].tiles[0]) << " altar=" << groups[i].altar_dist << std::endl;
     ready_round.assign(groups.size(), 0);
     banned_until.assign(groups.size(), 0);
 
@@ -517,17 +511,6 @@ void Bot::choose_target(const distance_field& from_me, const bitboard& reach) {
     }
     if (best != target) wait_turns = 0;
     target = best;
-    if (best < 0 && now % 25 == 0) {
-        int nb = 0, nu = 0, nm = 0;
-        for (std::size_t i = 0; i < groups.size(); ++i) {
-            if (banned_until[i] > now) ++nb;
-            int dist = UNR;
-            for (auto t : groups[i].tiles) if (reach.is_set(t)) dist = std::min<int>(dist, from_me.get(t));
-            if (dist >= UNR) ++nu;
-            if (groups[i].monster_hp >= 20000) ++nm;
-        }
-        std::cout << "DBG none " << groups.size() << " banned=" << nb << " unreach=" << nu << " mono=" << nm << " reachcnt=" << reach.count() << std::endl;
-    }
 }
 
 bool Bot::fight_group() {
@@ -563,7 +546,7 @@ bool Bot::fight_group() {
                 banned_until[target] = now + 60;
                 target = -1;
                 wait_turns = 0;
-                { dbg_reason = 6; return false; }
+                return false;
             }
         }
         return true;
@@ -580,7 +563,7 @@ bool Bot::fight_group() {
             banned_until[target] = now + 40;
         }
         target = -1;
-        { dbg_reason = 1; return false; }
+        return false;
     }
     if (std::holds_alternative<cambc::map::camp_group_reward_available>(state)) {
         if (g.spawns.is_set(pos)) return true;          // capturing
@@ -596,7 +579,7 @@ bool Bot::fight_group() {
             if ((other_on && !vesper) || other_vesper) {
                 banned_until[target] = now + 8;
                 target = -1;                            // an ally is capturing it (Vesper gets bonus gold)
-                { dbg_reason = 2; return false; }
+                return false;
             }
         }
         const auto zone = square(g.tiles[0], 5);
@@ -606,12 +589,12 @@ bool Bot::fight_group() {
         if (foes > friends) {
             banned_until[target] = now + 30;
             target = -1;
-            { dbg_reason = 3; return false; }
+            return false;
         }
         if (!step_to(g.spawns)) {
             if (moved) return true;
             target = -1;
-            { dbg_reason = 4; return false; }
+            return false;
         }
         return true;
     }
@@ -685,29 +668,8 @@ bool Bot::fight_group() {
     return true;
 }
 
-static int act = 0;
-static std::uint64_t prof[8], prof_max[8];
-#define PROF_BEGIN(i) const auto _pf##i = cambc::fuel_remaining();
-#define PROF_END(i) { const auto d = _pf##i - cambc::fuel_remaining(); prof[i] += d; prof_max[i] = std::max(prof_max[i], d); }
-static int act_count[16];
 void Bot::play_turn() {
-    act = 12;
     play_turn_inner();
-    act_count[act]++;
-    static std::uint64_t min_fuel = 1u << 30;
-    static int low_turns = 0;
-    const auto fr = cambc::fuel_remaining();
-    if (cambc::round_number() > 2) { min_fuel = std::min<std::uint64_t>(min_fuel, fr); if (fr < 20000) ++low_turns; }
-    if (cambc::round_number() % 400 == 0) {
-        std::cout << "FUEL r" << cambc::round_number() << " min=" << min_fuel << " low=" << low_turns;
-        for (int i = 0; i < 5; ++i) std::cout << " p" << i << "=" << prof[i] / cambc::round_number() << "/" << prof_max[i];
-        std::cout << std::endl;
-    }
-    if (cambc::round_number() == 800) {
-        std::cout << "ACT " << cambc::to_string(cambc::self().champion_name());
-        for (int i = 0; i < 13; ++i) std::cout << " " << i << ":" << act_count[i];
-        std::cout << std::endl;
-    }
 }
 
 void Bot::play_turn_inner() {
@@ -716,28 +678,19 @@ void Bot::play_turn_inner() {
     cast_lock = false;
     auto& me = cambc::self();
     if (!me.is_alive()) {
-        act = 0;
         buy_items();
         return;
     }
-    act = me.is_recalling() ? 1 : 2;
     if (me.is_recalling() || me.is_submitting_gems() || me.is_teleporting()) return;
-    act = 3;
     if (me.buffs().has_stun()) return;
-    act = 4;
-    PROF_BEGIN(0)
     update_groups();
-    PROF_END(0)
 
     const int now = static_cast<int>(cambc::round_number());
     const vec2 pos = me.position();
     const bool at_spawn = own_spawn.is_set(pos);
     if (at_spawn) buy_items();
-
-    PROF_BEGIN(1)
     const auto enemies = visible_champions(team::enemy);
     const auto allies = visible_champions(team::ally);
-    PROF_END(1)
     if (!enemies.empty()) {
         last_enemy_round = now;
         // Share the sighting (bytes 6..7: round / 8, coarse 7-tile cell).
@@ -789,11 +742,7 @@ void Bot::play_turn_inner() {
             }
         }
     }
-
-    act = 5;
-    PROF_BEGIN(2)
     const bool threat_here = camp_threat_at(pos);
-    PROF_END(2)
     // Low health: get out of camp range, then recall.
     if (!at_spawn && hp < 0.35f * max_hp) {
         if (threat_here) {
@@ -805,9 +754,7 @@ void Bot::play_turn_inner() {
         if (gems > 0 && altar_field.get(pos) <= 1 && go_bank()) return;
         if (!threat_here) { me.recall(); return; }
     }
-    act = 6;
     if (at_spawn && hp < 0.9f * max_hp && enemies.empty()) return;
-    act = 7;
 
     // Recall early to shop and heal.
     if (!at_spawn && gems < 10 && (me.gold_count() >= SHOP_GOLD || (hp < 0.6f * max_hp && me.gold_count() >= 90))
@@ -825,12 +772,10 @@ void Bot::play_turn_inner() {
         const bool threatened = (now - last_enemy_round < 12 && (gems >= 12 || adist <= 6))
             || (now - team_enemy_round < 40 && gems >= 16);
         if (adist <= 3 + static_cast<int>(gems) / 4 || gems >= 24 || threatened || now > 1900) {
-            act = 8;
             go_bank();
             return;
         }
     }
-    act = 12;
 
     // Farming.
     distance_field from_me;
@@ -844,9 +789,7 @@ void Bot::play_turn_inner() {
         }
         choose_target(from_me, reach);
     };
-    PROF_BEGIN(3)
     if (target < 0 || (now % 8 == 0 && !engaged && !capturing)) rechoose();
-    PROF_END(3)
     if (all_spawns.is_set(pos) && !capturing && !engaged) {
         // Never block a camp group's respawn by idling on its spawn tiles.
         bool needed = false;
@@ -856,12 +799,10 @@ void Bot::play_turn_inner() {
         }
         if (!needed) step_to(square(pos, 2) & ~all_spawns & ~static_walls);
     }
-    PROF_BEGIN(4)
     for (int tries = 0; tries < 4 && target >= 0 && !fight_group(); ++tries) {
         if (target >= 0) banned_until[target] = std::max(banned_until[target], now + 1);
         rechoose();
     }
-    PROF_END(4)
     // No move, attack or cast while farming: count towards giving the group up.
     const bool idle_turn = target >= 0 && !moved && !cast_lock && me.can_attack()
         && !(target >= 0 && groups[target].spawns.is_set(pos));
@@ -872,8 +813,6 @@ void Bot::play_turn_inner() {
         stuck_turns = 0;
     }
     write_claim(target);
-    act = target < 0 ? 12 : (!me.can_attack() && me.attack_range() > 1) || (me.attack_range() == 1 && !me.can_attack()) ? 10 : moved ? 9 : 11;
-    if (now % 25 == 0) std::cout << "DBG r" << now << " " << cambc::to_string(me.champion_name()) << " idx=" << my_index << " tgt=" << target << " pos=" << pos.x << "," << pos.y << " hp=" << hp << " wait=" << wait_turns << " moved=" << moved << " why=" << dbg_reason << std::endl;
     if (target < 0 && gems > 0) go_bank();
     if (target < 0 && gems == 0 && !moved) {
         // Nothing to farm (e.g. every camp is tied to a monolith): gather in the middle as a
