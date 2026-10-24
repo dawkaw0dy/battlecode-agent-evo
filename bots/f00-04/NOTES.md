@@ -45,6 +45,9 @@ search over all altars); gather deadlock at the monolith; lone monolith carrier 
 - Local strength ratio engage/back-off rule alone (before the earlier retreat): no gain vs e07-01 (-545 vs -388).
 - Tribute thresholds 30 / 20 (danger) instead of 25 / 12: fewer trips but more gems lost, -604 vs -388.
 - Side-farming radius 5 instead of 3: vs e02-01 5/12 (+36) vs 9/12 (+193) on the same 6 maps.
+- Cheaper `observe_groups` (per-tile checks, `vision::camp_groups()` only for seen groups without camps; it costs
+  ~35k of the 100k fuel per turn now) plus a per-turn alive-camp mask: same margins vs starter on 20 games (+878 vs
+  +880), 1.4% more rounds, and 01islands A fell from 1020 to 88 gems. Not adopted; worth retrying with more games.
 - Pitfalls: a text edit turned `me.recall()` inside `safe_recall()` into a self call (stack overflow traps, counted
   as faults); a failed target search repeated every turn exceeded fuel (now retried every 8 rounds); `restrictions()`
   is used to skip stunned turns (recall while stunned threw "Champion cannot act", a `bot error`).
@@ -54,5 +57,6 @@ search over all altars); gather deadlock at the monolith; lone monolith carrier 
 - Strong fighting teams (e07-01) kill us ~20 times a game; our fight logic is simple (no shared focus target, no
   kiting, spells fire in a fixed order) and the pack loses gems on deaths.
 - 01yellow-brick-road: slow and erratic (30-tile camp rows split the map); behaviour there shifts with fuel use.
-- Turns can use 60-80k fuel while travelling (distance fields every move); no fuel guard beyond the throttled search.
+- Turns can use 60-80k fuel while travelling (observe_groups ~35k, distance fields ~20k); a turn that runs out is
+  resumed next round on stale data (rare "Known occupied destination" warnings, caught).
 - Team strength for target scoring is estimated from the deciding champion's own stats only.
