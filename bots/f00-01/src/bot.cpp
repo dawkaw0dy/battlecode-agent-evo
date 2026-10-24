@@ -54,13 +54,6 @@ struct World {
 
 // Per-turn scratch.
 const char* stage = "";
-long long prof[8] = {0};
-struct Prof {
-    int slot;
-    long long start;
-    Prof(int s) : slot(s), start(cambc::fuel_remaining()) {}
-    ~Prof() { prof[slot] += start - (long long)cambc::fuel_remaining(); }
-};
 bool moved = false;
 bool move_blocked = false;
 
@@ -97,7 +90,6 @@ cambc::bitboard blocked_cache;
 int blocked_round = -1;
 vec2 blocked_pos{-1, -1};
 cambc::bitboard blocked_tiles() {
-    Prof pf(4);
     const vec2 me_pos = cambc::self().position();
     if (blocked_round == cambc::round_number() && blocked_pos == me_pos) return blocked_cache;
     auto blocked = world.terrain | world.enemy_spawn | cambc::vision::champion_tiles()
@@ -121,7 +113,6 @@ cambc::bitboard blocked_tiles() {
 
 // One step towards the nearest goal tile, only onto free tiles the field reached.
 bool step_towards(cambc::bitboard goals) {
-    Prof pf(1);
     auto& me = cambc::self();
     if (move_blocked || moved || !me.can_move()) return false;
     const vec2 pos = me.position();
@@ -160,12 +151,8 @@ bool step_towards(cambc::bitboard goals) {
             moved = true;
             return true;
         }
-    } catch (const std::exception& e) {
-        std::cout << "dbg move " << e.what() << " r" << cambc::round_number() << " " << pos.x << "," << pos.y
-                  << " -> " << best.x << "," << best.y << " champ=" << cambc::vision::has_champion(best)
-                  << " camp=" << cambc::vision::has_camp(best) << " bush=" << cambc::map::bushes().is_set(best)
-                  << " wall=" << cambc::map::walls().is_set(best) << " aspawn=" << world.ally_spawn.is_set(best) << " blk=" << blocked.is_set(best) << " ct=" << cambc::vision::champion_tiles().is_set(best) << " vis=" << cambc::vision::visible_tiles().is_set(best)
-                  << '\n';
+    } catch (...) {
+        // An unseen unit can still be "known" to the engine; give up walking this turn.
     }
     move_blocked = true;
     return false;
@@ -181,7 +168,6 @@ std::array<CachedField, 10> field_cache;
 int field_cache_next = 0;
 
 CachedField& cached_field(int key, const cambc::bitboard& goals) {
-    Prof pf(0);
     for (auto& c : field_cache)
         if (c.key == key) return c;
     auto& c = field_cache[field_cache_next];
@@ -277,7 +263,6 @@ struct Enemy {
 };
 
 std::vector<Enemy> visible_enemies() {
-    Prof pf(2);
     std::vector<Enemy> out;
     for (auto p : cambc::vision::champion_tiles(team::enemy).positions()) {
         try {
@@ -659,7 +644,6 @@ bool Bot::bank_gems() {
 }
 
 int Bot::choose_group() {
-    Prof pf(3);
     auto& me = cambc::self();
     const vec2 pos = me.position();
     const int now = cambc::round_number();
@@ -697,7 +681,6 @@ int Bot::choose_group() {
 }
 
 void Bot::farm() {
-    Prof pf(5);
     auto& me = cambc::self();
     const int now = cambc::round_number();
     const auto visible = cambc::vision::visible_tiles();
@@ -869,16 +852,9 @@ void Bot::play_turn() {
     } catch (const std::exception& e) {
         std::cout << "dbg exc " << stage << " r" << cambc::round_number() << " " << e.what() << '\n';
     }
-    if (cambc::round_number() % 25 == 3) std::cout << "dbg endfuel " << cambc::fuel_remaining() << '\n';
-    if (cambc::round_number() == 1000) {
-        std::cout << "dbg prof";
-        for (auto v : prof) std::cout << ' ' << v;
-        std::cout << '\n';
-    }
 }
 
 void Bot::turn() {
-    Prof pf(6);
     moved = false;
     move_blocked = false;
     auto& me = cambc::self();
@@ -895,10 +871,7 @@ void Bot::turn() {
     last_health = hp;
 
     if (me.is_recalling() || me.is_teleporting()) return;
-    if (me.is_submitting_gems()) {
-        // Hit anything in range while the channel runs? Actions are blocked during channels.
-        return;
-    }
+    if (me.is_submitting_gems()) return;   // channels block other actions
     if (!me.can_move() && !me.can_attack() && !me.can_cast()) return;
 
     const bool spawn = at_ally_spawn();
@@ -933,10 +906,6 @@ void Bot::turn() {
         }
     }
 
-    if (cambc::round_number() % 50 == 2)
-        std::cout << "dbg fuel " << cambc::fuel_remaining() << " r" << cambc::round_number() << " i" << my_index << " w" << warden << " pos " << me.position().x
-                  << "," << me.position().y << " tg " << target_group << " gems " << me.gem_count() << " gold "
-                  << me.gold_count() << '\n';
     // Lock any free altar in reach: our team still tributes there, theirs must break it.
     if (kLockAll && has_lock_item()) {
         int best = -1;
