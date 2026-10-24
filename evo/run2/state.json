@@ -5469,7 +5469,9 @@
     "B": [
      "r02-B"
     ],
-    "C": []
+    "C": [
+     "r02-C"
+    ]
    },
    "members": [
     "f01-07",
@@ -6997,6 +6999,120 @@
      ]
     ]
    ],
+   "plan_C": [
+    [
+     [
+      "f02-02",
+      "f02-03"
+     ],
+     [
+      "h-1b58",
+      "h-1b59",
+      "h-1b5c",
+      "h-1b5d",
+      "h-1b5e",
+      "h-1ce9",
+      "h-1cea",
+      "h-1e7b"
+     ]
+    ],
+    [
+     [
+      "f02-02",
+      "starter"
+     ],
+     [
+      "h-1b58",
+      "h-1b59",
+      "h-1b5c",
+      "h-1b5d",
+      "h-1b5e",
+      "h-1ce9",
+      "h-1cea",
+      "h-1e7b"
+     ]
+    ],
+    [
+     [
+      "f02-02",
+      "f00-03"
+     ],
+     [
+      "h-1b58",
+      "h-1b59",
+      "h-1b5c",
+      "h-1b5d",
+      "h-1b5e",
+      "h-1ce9",
+      "h-1cea",
+      "h-1e7b"
+     ]
+    ],
+    [
+     [
+      "f02-02",
+      "f01-07"
+     ],
+     [
+      "h-1b58",
+      "h-1b59",
+      "h-1b5c",
+      "h-1b5d",
+      "h-1b5e",
+      "h-1ce9",
+      "h-1cea",
+      "h-1e7b"
+     ]
+    ],
+    [
+     [
+      "f02-03",
+      "starter"
+     ],
+     [
+      "h-1b58",
+      "h-1b59",
+      "h-1b5c",
+      "h-1b5d",
+      "h-1b5e",
+      "h-1ce9",
+      "h-1cea",
+      "h-1e7b"
+     ]
+    ],
+    [
+     [
+      "f02-03",
+      "f00-03"
+     ],
+     [
+      "h-1b58",
+      "h-1b59",
+      "h-1b5c",
+      "h-1b5d",
+      "h-1b5e",
+      "h-1ce9",
+      "h-1cea",
+      "h-1e7b"
+     ]
+    ],
+    [
+     [
+      "f02-03",
+      "f01-07"
+     ],
+     [
+      "h-1b58",
+      "h-1b59",
+      "h-1b5c",
+      "h-1b5d",
+      "h-1b5e",
+      "h-1ce9",
+      "h-1cea",
+      "h-1e7b"
+     ]
+    ]
+   ],
    "ranking": [
     "f02-01",
     "f02-02",
@@ -7542,6 +7658,14 @@
    },
    "stage": "B",
    "status": "verified"
+  },
+  "r02-C": {
+   "generation": 2,
+   "pushed_at": 1792877586,
+   "pushed_commit": "f105a7d6974d312dc56d1657c9ad9595829b0269",
+   "retries": 0,
+   "stage": "C",
+   "status": "pending"
   }
  },
  "launch_errors_in_a_row": 0,
@@ -7668,7 +7792,8 @@
   "2026-10-24T21:30:11Z g02 phase EVAL_B_DONE: results for r02-B",
   "2026-10-24T21:30:23Z g02 r02-B-spot: pushed 4c4890649a (33 sampled games, 23 shards)",
   "2026-10-24T21:32:42Z g02 r02-B: verified, 1632 rows, spot-check 33 OK",
-  "2026-10-24T21:32:53Z g02 phase EVAL_C_PENDING: stage C for f02-02 vs f02-03"
+  "2026-10-24T21:32:53Z g02 phase EVAL_C_PENDING: stage C for f02-02 vs f02-03",
+  "2026-10-24T21:33:06Z g02 r02-C: pushed f105a7d697 with 7 shards"
  ],
  "paused": null,
  "phase": "EVAL_C_PENDING",
