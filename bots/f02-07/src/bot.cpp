@@ -15,10 +15,12 @@ namespace {
 
 using it = cambc::item_type;
 constexpr bool kLog = true;
-constexpr int kLogFrom = 100, kLogTo = 300;
-constexpr float kFightRatio = 1.0f;
+constexpr int kLogFrom = 1, kLogTo = 0;
+constexpr float kFightRatio = 1.3f;
 constexpr float kHuntRatio = 1.6f;
 constexpr float kStuckBonus = 1.3f;
+constexpr float kGold = 0.35f, kGoldVesper = 0.35f;
+constexpr int kBankGems = 30;
 constexpr bool kHelp = false;
 constexpr int kHelpRange = 14;
 constexpr int kThreat = 4;
@@ -788,7 +790,7 @@ bool Bot::tribute(bool force) {
     const int d = altar_.at(pos_);
     if (d >= kFar) return false;
     const bool endgame = now() > static_cast<int>(cambc::constants::max_rounds) - 60 - d;
-    const bool want = force || endgame || gems >= 45 || (gems >= 20 && d <= 10) || (gems >= 10 && d <= 3)
+    const bool want = force || endgame || gems >= kBankGems || (gems >= 20 && d <= 10) || (gems >= 10 && d <= 3)
         || (gems >= 10 && now() - last_enemy_seen_ < 40);
     if (!want) return false;
     if (now() < trib_block_until_ && !endgame) return false;
@@ -875,7 +877,8 @@ int Bot::choose(int& wait_out) {
     int best = -1;
     float best_s = 0;
     wait_out = 0;
-    const float gold_w = 0.35f * std::max(0.4f, 1.0f - static_cast<float>(t) / 1500.0f);
+    const float gold_w = (me.champion_name() == cambc::champion_type::vesper_vale ? kGoldVesper : kGold)
+        * std::max(0.4f, 1.0f - static_cast<float>(t) / 1500.0f);
     const float hpmax = me.max_health();
     const bool guarding = guard_ && now() > kGuardFrom;
     const vec2 ga = guarding && guard_altar_ >= 0 ? altars_[guard_altar_].pos : vec2{-100, -100};
