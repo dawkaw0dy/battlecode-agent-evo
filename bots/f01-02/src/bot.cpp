@@ -580,7 +580,7 @@ bool Bot::try_dash(const Grid16* local, const cambc::distance_field* field, cons
                     move_failed_ = true;
                 }
                 return ok;
-            } catch (const cambc::error&) {
+            } catch (const std::exception&) {
                 // The engine's dash path rules are stricter than ours: try the next landing tile.
             }
         }
@@ -705,13 +705,16 @@ bool Bot::walk_field(const Grid16& field, bool allow_dash) {
             }
         const int now = static_cast<int>(cambc::round_number());
         if (in_bounds(blocker) && view().lcamps.at(blocker)) {
-            // Living camps plug the way and there is no short way round: clear them.
+            // Living camps plug the way and there is no short way round: clear them, unless no
+            // champion can clear them alone (then walk the long way).
             const int g = camp_group_at_[static_cast<size_t>(tile_index(blocker))];
-            if (g >= 0 && blocker_group_ < 0) {
-                blocker_group_ = g;
-                blocker_since_ = now;
+            if (g >= 0 && !groups_[g].has_monolith && groups_[g].dps < 120) {
+                if (blocker_group_ < 0) {
+                    blocker_group_ = g;
+                    blocker_since_ = now;
+                }
+                return false;
             }
-            return false;
         }
         if (in_bounds(blocker) && ally_at(blocker) && threats_.empty() && g_enemies.empty()) {
             // An ally in the way: wait a little for it to move on, then take the long way for a while.
