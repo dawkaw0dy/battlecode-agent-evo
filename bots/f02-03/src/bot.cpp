@@ -28,7 +28,7 @@ constexpr float kBossTurns = 8.0f;  // turns a champion must be able to tank a b
 constexpr bool kFleeStun = true;      // stun a lone chaser instead of stepping away
 constexpr bool kEagerShield = true;   // shield as soon as camps hit us
 constexpr int kReserveRounds = 8;     // keep camp spells for enemies seen this recently (0: never)
-constexpr bool kReserveResets = false;
+constexpr bool kReserveResets = false;  // also hold attack resets (worse: 33/80 vs 42/80)
 constexpr bool kKiteCast = true;      // cast while fleeing when standing still costs no hit
 constexpr bool kKiteAttack = false;   // ranged: and basic attacks (worse: kills 642/593 vs 706/466)
 
