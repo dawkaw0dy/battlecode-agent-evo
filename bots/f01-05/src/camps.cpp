@@ -258,6 +258,8 @@ int Bot::choose_target(float keep_bonus) {
     const int follow = slot != 0 ? static_cast<int>(read_shared(0)) - 1 : static_cast<int>(read_shared(1)) - 1;
     const int zone_lo = slot * 256 / std::max(1, bodies), zone_hi = (slot + 1) * 256 / std::max(1, bodies);
     const int team = std::max(1, std::min(bodies, 5));
+    const bool packed = plan.mode != mode_spread;
+    const int leader_target = slot != 0 ? static_cast<int>(read_shared(0)) - 1 : -1;
 
     int best = -1, best_n = 1, best_need = 1;
     float best_score = 0, best_damage = 0;
@@ -268,14 +270,15 @@ int Bot::choose_target(float keep_bonus) {
         const bool is_boss = gi == boss;
         if (is_boss && round < boss_start) continue;
         if (!(g.flags & group_reachable) || (g.facts.gems <= 0 && g.facts.gold <= 0)) continue;
-        if (g.facts.monolith && !is_boss && (team < 4 || round < 300)) continue;
+        if (g.facts.monolith && !is_boss) continue;
         if (g.lonely_until > round && !is_boss) continue;
         if (g.reward && g.ally_capturing_until > round) continue;
         const int d = group_distance(gi, pos);
         if (d >= far_away) continue;
         const int wait = std::max(0, g.respawn_at - round - d);
         const float home = static_cast<float>(std::min(home_field.at(g.facts.tiles.front()), 60));
-        const float gold_part = std::min(gold_weight * static_cast<float>(g.facts.gold), std::max(15.0f, 1.5f * static_cast<float>(g.facts.gems)));
+        float gold_part = gold_weight * static_cast<float>(g.facts.gold);
+        if (!plan.gemless) gold_part = std::min(gold_part, std::max(15.0f, 1.5f * static_cast<float>(g.facts.gems)));
         const float value = static_cast<float>(g.facts.gems) + gold_part;
         const int n_now = 1 + claims[i];
         // Upper bound (no clear time, no trips): skip groups that cannot beat the best so far.
@@ -284,6 +287,18 @@ int Bot::choose_target(float keep_bonus) {
         clear_cost(g, dps, &unused);
         const float hits = g.hits;
 
+        // Fewest champions that clear it without anyone leaving to heal.
+        int need_any = 1;
+        if (!g.reward) {
+            need_any = team;
+            for (int n = 1; n <= team; ++n) {
+                float clear = 0;
+                if (clear_cost(g, dps * static_cast<float>(n), &clear) / static_cast<float>(n) <= hp_now - margin) {
+                    need_any = n;
+                    break;
+                }
+            }
+        }
         // Our share of the reward per round spent with n champions on it; < 0 when one champion's
         // trips would be too short (under six rounds of fighting) or too many (over six).
         const auto rate = [&](int n, float* mine_out, bool* trips_out) {
@@ -301,8 +316,11 @@ int Bot::choose_target(float keep_bonus) {
                 trip_time = trips * (10.0f + home);
             }
             *mine_out = mine;
-            return value / static_cast<float>(n)
-                / (static_cast<float>(d + wait) + clear + trip_time + 6.0f / static_cast<float>(n) + 12.0f);
+            // Spread teams value their own share; packed teams the whole reward (they farm together)
+            // less 45% per champion beyond those the group needs.
+            const float share = packed ? value * std::pow(0.55f, static_cast<float>(std::max(0, n - need_any)))
+                                       : value / static_cast<float>(n);
+            return share / (static_cast<float>(d + wait) + clear + trip_time + 6.0f / static_cast<float>(n) + 12.0f);
         };
         float mine = 0;
         bool trips = false;
@@ -325,7 +343,8 @@ int Bot::choose_target(float keep_bonus) {
         if (g.reward && claims[i] > 0) score *= 0.2f;
         if (g.reward) score *= 1.3f;
         if (plan.mode == mode_spread && g.zone >= zone_lo && g.zone < zone_hi) score *= 1.3f;
-        if (gi == target) score *= keep_bonus;
+        if (gi == target && wait <= 10) score *= keep_bonus;
+        if (packed && gi == leader_target) score *= 2.0f;
         // The altar guard: the whole team chips it down, then everyone banks.
         if (is_boss) {
             if (wait > 0) continue; // respawning: farm elsewhere meanwhile
@@ -333,7 +352,8 @@ int Bot::choose_target(float keep_bonus) {
             n_at_best = team;
         }
         if (g.contested_until > round) score *= 0.1f;
-        if (g.enemy_near_until > round) score *= 0.6f;
+        // Lone farmers avoid where enemies were seen; a packed team contests it.
+        if (!packed && g.enemy_near_until > round) score *= 0.6f;
         if ((g.flags & group_enemy_side) && !plan.gemless) score *= g.facts.gems > 0 ? 0.5f : 0.25f;
         if (support && gi == follow) score *= 6.0f;
         if (score > best_score) {
@@ -470,6 +490,50 @@ bool Bot::step_towards(vec2 goal) {
     return walk(best);
 }
 
+// Where to wait for a group's respawn: two to four steps from it, nearest our spawn. Cached.
+vec2 Bot::wait_spot(int index) {
+    auto& g = groups[static_cast<std::size_t>(index)];
+    if (g.wait_spot.x >= 0 || !g.field) return g.wait_spot;
+    vec2 best{-1, -1};
+    int best_home = far_away;
+    int x0 = 1 << 20, y0 = 1 << 20, x1 = -1, y1 = -1;
+    for (auto t : g.facts.tiles) {
+        x0 = std::min(x0, t.x); y0 = std::min(y0, t.y);
+        x1 = std::max(x1, t.x); y1 = std::max(y1, t.y);
+    }
+    for (int y = y0 - 4; y <= y1 + 4; ++y)
+        for (int x = x0 - 4; x <= x1 + 4; ++x) {
+            const vec2 t{x, y};
+            if (!in_bounds(t) || wall_bits.get(t)) continue;
+            const int v = g.field->at(t);
+            if (v < 2 || v > 4) continue;
+            const int h = home_field.at(t) * 4 + v;
+            if (h < best_home) { best_home = h; best = t; }
+        }
+    g.wait_spot = best;
+    return best;
+}
+
+// One step to a free tile farther along `field` from its roots.
+bool Bot::step_outward(const Field& field) {
+    auto& me = cambc::self();
+    if (walked_fail || cast_exclusive || !me.can_move()) return false;
+    const auto pos = me.position();
+    const Bits blocked(cambc::vision::champion_tiles() | cambc::vision::awake_camp_tiles()
+        | cambc::vision::asleep_camp_tiles() | cambc::vision::teleport_tiles());
+    vec2 best = pos;
+    int best_v = field.at(pos);
+    for (int dx = -1; dx <= 1; ++dx)
+        for (int dy = -1; dy <= 1; ++dy) {
+            const vec2 q{pos.x + dx, pos.y + dy};
+            if (q == pos || !in_bounds(q) || wall_bits.get(q) || blocked.get(q)) continue;
+            const int v = field.at(q);
+            if (v > best_v && v < far_away) { best_v = v; best = q; }
+        }
+    if (best == pos) return false;
+    return walk(best);
+}
+
 bool Bot::farm() {
     const bool acted = farm_step();
     // Path fields are large host calls (about 5.5 fuel per tile): build one for a group we lack
@@ -507,7 +571,7 @@ bool Bot::farm_step() {
                           << " farm " << fuel_mark[2] - static_cast<long>(cambc::fuel_remaining()) << " left " << cambc::fuel_remaining() << '\n';
         }
     } report{this, round};
-    if (camp_trace && round >= 100 && round <= 129 && slot == 2) {
+    if (camp_trace && round % 10 == 0 && round <= 300) {
         int es = 0;
         const float inc = camp_incoming(&es);
         std::cout << "T r" << round << " s" << slot << " " << cambc::to_string(pos) << " hp" << int(me.health()) << " t" << target
@@ -608,13 +672,22 @@ bool Bot::farm_step() {
     }
     hold_group = -1;
     // Never stand on a captured region: an occupied spawn tile stops the group respawning.
+    // Wait three or four tiles out, leaving a lane free so whoever stands on the region (blocking its
+    // respawn) can step off, even in a one-tile corridor.
+    // Everyone waits on the same spot (2 to 4 steps out, on our side) so the team meets enemies together.
     if (g.respawn_at > round) {
-        if (g.tiles.is_set(pos)) {
-            step_off(g.tiles);
+        const int here = field.at(pos);
+        if (here == 0) {
+            if (!step_outward(field)) step_off(g.tiles);
             return mark(4);
         }
-        if (field.at(pos) <= 2) return mark(4); // wait close by for the respawn
-        step_along(field, true);
+        const vec2 spot = wait_spot(target);
+        if (spot.x < 0 || pos == spot) return mark(4);
+        if (cheb(pos, spot) <= 1 && here >= 2) return mark(4);
+        if (cheb(pos, spot) > 3 || !step_towards(spot)) {
+            if (here > 4) step_along(field, true);
+            else if (here < 2) step_outward(field);
+        }
         return mark(4);
     }
 
@@ -636,9 +709,19 @@ bool Bot::farm_step() {
     int coming = 0;
     for (int s = 0; s < std::min(bodies, max_slots); ++s)
         if (s != slot && static_cast<int>(read_shared(s)) - 1 == target) ++coming;
-    if (need_n > 1 && !group_awake && coming > 0 && rally_ready(target) + 1 < need_n) {
+    // Packed teams move together anyway and wait less (monolith and golem groups excepted).
+    const int patience = plan.mode == mode_spread || g.deadly ? 30 : 15;
+    // Nobody else is coming to a group that needs a team: drop it for a while.
+    if (need_n > 1 && !group_awake && coming == 0) {
+        g.lonely_until = round + 60;
+        set_ready(false);
+        target = choose_target(1.0f);
+        chosen_round = round;
+        return mark(6);
+    }
+    if (need_n > 1 && !group_awake && rally_ready(target) + 1 < need_n) {
         if (gather_since < 0) gather_since = round;
-        if (round - gather_since > 30) {
+        if (round - gather_since > patience) {
             // Nobody came: farm something else for a while.
             g.lonely_until = round + 120;
             gather_since = -1;

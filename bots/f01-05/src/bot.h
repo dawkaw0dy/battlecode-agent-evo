@@ -56,6 +56,7 @@ struct Group {
     std::vector<std::pair<float, float>> order;
     float cluster_hp = 0, hits = 0;
     bool order_dirty = true;
+    cambc::vec2 wait_spot{-1, -1}; // where we wait for its respawn
     std::unique_ptr<Field> field;
 };
 
@@ -115,6 +116,8 @@ class Bot {
     int group_distance(int index, cambc::vec2 pos) const;
     bool farm_step();
     bool step_towards(cambc::vec2 goal);
+    bool step_outward(const Field& field);
+    cambc::vec2 wait_spot(int index);
 
     void init();
     void update_groups();
