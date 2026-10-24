@@ -32,6 +32,8 @@ constexpr int kFollowDist = 2;
 constexpr int kGatherDist = 3;
 constexpr int kGatherWait = 8;
 constexpr int kLeadAhead = 3;
+constexpr float kHuntBalance = 1.1f;    // chase only with this much more health nearby
+constexpr float kRetreatBalance = 0.55f;  // fall back towards spawn below this
 constexpr int kGolemRound = 400;
 constexpr int kMonoRound = 700;
 constexpr int kStallRounds = 90;
@@ -76,6 +78,9 @@ struct World {
     cambc::distance_field altar_field;
     cambc::bitboard altar_reach;
     bool altar_ready = false;
+    cambc::distance_field spawn_field;
+    cambc::bitboard spawn_reach;
+    bool spawn_ready = false;
     std::vector<int> field_order;
     std::size_t next_field = 0;
 };
@@ -140,6 +145,11 @@ void progress_fields(std::uint64_t reserve) {
                 }
             w.altar_field.compute(w.terrain, roots, w.altar_reach);
             w.altar_ready = true;
+            continue;
+        }
+        if (!w.spawn_ready) {
+            w.spawn_field.compute(w.terrain, cambc::map::spawn_region(team::ally), w.spawn_reach);
+            w.spawn_ready = true;
             continue;
         }
         if (w.next_field >= w.field_order.size()) return;
@@ -491,6 +501,17 @@ bool threatened(const Ctx& c) {
     return false;
 }
 
+// Our nearby health against the enemies we can see; above 1 means we are the stronger side here.
+float local_balance(const Ctx& c) {
+    float ours = cambc::self().health();
+    for (const auto& a : c.allies)
+        if (dist(a.pos, c.pos) <= 4) ours += a.hp;
+    float theirs = 0;
+    for (const auto& e : c.enemies)
+        if (dist(e.pos, c.pos) <= 6) theirs += e.hp;
+    return theirs <= 0 ? 100.f : ours / theirs;
+}
+
 bool exclusive(const cambc::ability& a) {
     const auto& info = a.info();
     if (!info) return false;
@@ -778,7 +799,7 @@ void leader_plan(Ctx& c) {
             ++near_enemies;
             if (!weakest || e.hp < weakest->hp) weakest = &e;
         }
-        if (weakest && near_allies >= near_enemies && g_hunt_rounds < 15) {
+        if (weakest && near_allies >= near_enemies && local_balance(c) >= kHuntBalance && g_hunt_rounds < 15) {
             sm.b[6] = static_cast<std::uint8_t>(weakest->pos.x);
             sm.b[7] = static_cast<std::uint8_t>(weakest->pos.y);
             ++g_hunt_rounds;
@@ -1140,7 +1161,15 @@ void act(Ctx& c) {
     const bool must_bank = gems > 0 && (mode == kBank || endgame || (gems >= 2 * kBankGems));
     const auto& enemy_spawn = cambc::map::spawn_region(team::enemy);
     bool handled = false;
-    if (must_bank && (enemy_close > 2 || c.enemies.size() <= c.allies.size())) {
+    if (closest && enemy_close <= 5 && !c.at_spawn && local_balance(c) < kRetreatBalance) {
+        // Outmatched: fall back towards spawn, where the rest of the team regroups.
+        if (w.spawn_ready && w.spawn_reach.is_set(c.pos)) handled = step_field(c, w.spawn_field, w.spawn_reach, 0);
+        if (!handled) {
+            std::vector<vec2> threats;
+            for (const auto& e : c.enemies) threats.push_back(e.pos);
+            handled = step_away(c, threats);
+        }
+    } else if (must_bank && (enemy_close > 2 || c.enemies.size() <= c.allies.size())) {
         bank(c);
         handled = true;
     } else if (c.sm.hunting() && dist(c.sm.hunt(), c.pos) <= 9 && !enemy_spawn.is_set(c.sm.hunt())) {
