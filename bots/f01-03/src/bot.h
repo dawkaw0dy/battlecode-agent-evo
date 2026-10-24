@@ -1,5 +1,6 @@
 #pragma once
 #include <cambc.h>
+#include <array>
 #include <cstdint>
 #include <vector>
 #include "plan.h"
@@ -28,7 +29,9 @@ struct Grid16 {
 };
 
 // A visible champion read at the start of a decision.
-struct Sighting { cambc::vec2 pos; float hp, max_hp, power; int range; int gems = 0; bool stunned = false; };
+struct Sighting { cambc::vec2 pos; float hp, max_hp, power; int range; int gems = 0; bool stunned = false; int type = -1; };
+// Where we last saw an enemy champion (indexed by champion type).
+struct Memo { cambc::vec2 pos{}; float hp = 0, power = 0; int round = -1000; };
 
 // Per-champion state survives between turns.
 class Bot {
@@ -86,13 +89,17 @@ class Bot {
     float remaining_hp(int group) const;
     bool disengage_from_camps();
     void report_enemy(cambc::vec2 where, int count);
+    std::array<Memo, 16> enemy_memo_{};
+    Grid16 home_walk_;                    // home field without dash jumps
+    bool dash_ready() const;
     int flee_until_ = 0;                  // keep retreating from a stronger force until then
     int chase_streak_ = 0, no_chase_until_ = 0;
     bool hit_champion(cambc::vec2 p);
     int pick_victim(const std::vector<Sighting>& enemies, int range, float burst) const;
     bool fight_spells(const std::vector<Sighting>& enemies, float burst);
     bool fight_attack(const std::vector<Sighting>& enemies, float burst);
-    void retreat(int dmin);
+    void retreat(int dmin, const std::vector<Sighting>& threats);
+    bool flee_step(const std::vector<Sighting>& threats);
 
 public:
     void play_turn();

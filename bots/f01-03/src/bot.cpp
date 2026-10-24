@@ -14,6 +14,14 @@
 using cambc::vec2;
 using cambc::team;
 
+// Fight tuning switches.
+constexpr bool kUseMemo = false;      // count enemies seen in the last rounds
+constexpr bool kFleeHpGate = true;    // keep retreating out of sight only while hurt
+constexpr bool kTradeAlways = true;   // trade blows whenever fleeing cannot avoid them
+constexpr bool kFleeStep = false;     // threat-aware flee steps instead of the home path
+constexpr bool kAvoidSpawnCampers = true;  // keep out of reach of enemies on their spawn
+
+
 namespace {
 
 constexpr std::array<vec2, 8> dirs{vec2{0, 1}, vec2{1, 1}, vec2{1, 0}, vec2{1, -1},
@@ -99,16 +107,25 @@ const View& view() {
     return g_view;
 }
 
+// Tiles in reach of enemies standing on their own spawn (they heal there and cannot be fought),
+// rebuilt each turn; avoided unless we already stand in it.
+cambc::bitboard g_hotb;
+Grid8 g_hot;
+bool g_hot_any = false;
+bool hot_avoid() { return g_hot_any && !g_hot.at(cambc::self().position()); }
+
 bool blocked_at(vec2 p) {
     if (!in_bounds(p)) return true;
     const auto& v = view();
     if (p == cambc::self().position()) return false;
+    if (hot_avoid() && g_hot.at(p)) return true;
     return walls_local().at(p) || v.lcamps.at(p) || v.lchamps.at(p) || v.ltele.at(p);
 }
 
 cambc::bitboard blocked_board(const cambc::bitboard& walls) {
     const auto& v = view();
     auto blocked = walls | v.champs | v.camps | v.teleports;
+    if (hot_avoid()) blocked |= g_hotb;
     blocked.set(cambc::self().position(), false);
     return blocked;
 }
@@ -169,6 +186,7 @@ std::vector<Sighting> visible_champions(team side) {
             if (!c.is_alive()) continue;
             Sighting s{p, c.health(), c.max_health(), c.strength() + 0.3f * c.focus(), c.attack_range()};
             try { s.gems = static_cast<int>(c.gem_count()); } catch (const cambc::error&) {}
+            try { s.type = static_cast<int>(c.champion_name()); } catch (const cambc::error&) {}
             try { s.stunned = c.buffs().has_stun(); } catch (const cambc::error&) {}
             out.push_back(s);
         } catch (const cambc::error&) {
@@ -259,6 +277,12 @@ void Bot::initialise() {
     cambc::bitboard seen;
     f.compute(*walls_, cambc::map::spawn_region(team::ally), seen);
     home_.load(f);
+    if (dasher_) {
+        f.compute(static_walls_ally(), cambc::map::spawn_region(team::ally), seen);
+        home_walk_.load(f);
+    } else {
+        home_walk_ = home_;
+    }
     auto beside = empty_board();
     for (auto a : cambc::map::altars().positions()) add_box(beside, a, cambc::constants::submit_gems_range);
     beside &= ~static_walls_ally();
@@ -599,8 +623,15 @@ bool Bot::hold_for_dash() {
     return now - hold_start_ < 12;
 }
 
+bool Bot::dash_ready() const {
+    for (const auto& ab : cambc::self().abilities())
+        if (ab.is_dash() && ab.is_ready()) return true;
+    return false;
+}
+
 void Bot::go_home() {
-    const bool w = walk_field(home_, true);
+    // Without a dash ready, never wait beside a hole: walk the long way round.
+    const bool w = (dasher_ && !dash_ready()) ? walk_field(home_walk_, false) : walk_field(home_, true);
     bool st = false;
     if (!w) st = step_to(cambc::map::spawn_region(team::ally), true);
     TRACE("  home w" << w << " st" << st << " hd" << home_.at(cambc::self().position()) << " dyn" << dynamic_until_ << " mv" << moved_ << " mf" << move_failed_ << " cm" << cambc::self().can_move() << " fuel" << cambc::fuel_remaining());
@@ -907,8 +938,77 @@ bool Bot::fight_attack(const std::vector<Sighting>& enemies, float burst) {
     return true;
 }
 
+// One step (or a dash) that keeps out of the enemies' reach, homewards when that is equal.
+bool Bot::flee_step(const std::vector<Sighting>& threats) {
+    auto& me = cambc::self();
+    if (moved_ || move_failed_ || !me.can_move() || !live()) return false;
+    const vec2 pos = me.position();
+    auto cost = [&](vec2 t) {
+        int danger = 0;
+        for (const auto& e : threats) {
+            const int reach = e.range <= 1 ? 2 : e.range;  // melee walk and hit; ranged must stand still
+            if (dist(t, e.pos) <= reach) danger += 1;
+        }
+        const int h = home_walk_.at(t);
+        return danger * 1000 + (h >= unreached ? 500 : h);
+    };
+    vec2 best = pos;
+    int best_cost = cost(pos);
+    for (auto d : dirs) {
+        const vec2 t{pos.x + d.x, pos.y + d.y};
+        if (blocked_at(t)) continue;
+        const int c = cost(t);
+        if (c < best_cost) { best_cost = c; best = t; }
+    }
+    // Still in reach after the best step: a dash may get clear.
+    if (best_cost >= 1000 && !cast_ && me.can_cast() && fuel_ok(15000))
+        for (const auto& ab : me.abilities()) {
+            if (!ab.is_dash() || !ab.is_ready()) continue;
+            std::array<std::pair<int, vec2>, 16> cands;
+            size_t n = 0;
+            for (int dx = -2; dx <= 2; ++dx)
+                for (int dy = -2; dy <= 2; ++dy) {
+                    if (std::max(std::abs(dx), std::abs(dy)) != 2) continue;
+                    const vec2 t{pos.x + dx, pos.y + dy};
+                    if (!in_bounds(t) || blocked_at(t) || hard_walls_local().at(t) || cambc::map::holes().is_set(t)) continue;
+                    bool path = false;
+                    for (int sx = -1; sx <= 1 && !path; ++sx)
+                        for (int sy = -1; sy <= 1 && !path; ++sy) {
+                            const vec2 m{pos.x + sx, pos.y + sy};
+                            if ((!sx && !sy) || !in_bounds(m) || dist(m, t) != 1) continue;
+                            if (hard_walls_local().at(m) || view().lchamps.at(m) || view().lcamps.at(m)) continue;
+                            path = true;
+                        }
+                    const int c = cost(t);
+                    if (path && c < best_cost) cands[n++] = {c, t};
+                }
+            std::sort(cands.begin(), cands.begin() + n, [](auto a, auto b) { return a.first < b.first; });
+            for (size_t i = 0; i < n && i < 4; ++i) {
+                if (!live()) return false;
+                try {
+                    const bool ok = ab.use(cands[i].second);
+                    cast_ = true;
+                    moved_ = true;
+                    invalidate_view();
+                    if (!ok) move_failed_ = true;
+                    if (ok) return true;
+                    break;
+                } catch (const cambc::error&) {
+                }
+            }
+            break;
+        }
+    if (best == pos || !me.can_move() || move_failed_) return false;
+    moved_ = true;
+    bool ok = false;
+    try { ok = me.move_absolute(best); } catch (const cambc::error&) {}
+    invalidate_view();
+    if (!ok) move_failed_ = true;
+    return ok;
+}
+
 // Run for home; recall once nothing can interrupt it.
-void Bot::retreat(int dmin) {
+void Bot::retreat(int dmin, const std::vector<Sighting>& threats) {
     auto& me = cambc::self();
     const vec2 pos = me.position();
     const bool home = cambc::map::spawn_region(team::ally).is_set(pos);
@@ -917,6 +1017,7 @@ void Bot::retreat(int dmin) {
         safe_recall();
         return;
     }
+    if (kFleeStep && dmin <= 4 && flee_step(threats)) return;
     go_home();
 }
 
@@ -930,12 +1031,22 @@ bool Bot::handle_enemies() {
     std::vector<Sighting> enemies;
     if (!cambc::vision::champion_tiles(team::enemy).is_empty()) {
         enemies = visible_champions(team::enemy);
+        std::vector<Sighting> parked;
+        for (const auto& e : enemies)
+            if (cambc::map::spawn_region(team::enemy).is_set(e.pos)) parked.push_back(e);
         // Enemies on their own spawn heal fully every round and cannot be reached: ignore them.
         std::erase_if(enemies, [](const Sighting& e) { return cambc::map::spawn_region(team::enemy).is_set(e.pos); });
+        // Standing in their reach with nobody else to hit: step out of it.
+        if (kAvoidSpawnCampers && g_hot_any && g_hot.at(pos) && !home) {
+            bool target = false;
+            for (const auto& e : enemies) target |= dist(e.pos, pos) <= me.attack_range();
+            TRACE("r" << now << " " << static_cast<int>(me.champion_name()) << " p" << pos.x << "," << pos.y << " HOT hp" << int(me.health()) << " tgt" << target);
+            if (!target && flee_step(parked)) return true;
+        }
     }
     if (enemies.empty()) {
         // Keep running from a force we just fled: it is probably still behind us.
-        if (now < flee_until_ && !home && hp_frac < 0.9f) {
+        if (now < flee_until_ && !home && (!kFleeHpGate || hp_frac < 0.9f)) {
             if (!moved_ && incoming_ == 0 && home_.at(pos) > 4) safe_recall();
             else go_home();
             return true;
@@ -980,7 +1091,20 @@ bool Bot::handle_enemies() {
         }
         if (e.range <= 1 ? d <= 1 : d <= e.range - 1) hit_anyway = true;
     }
+    for (const auto& e : enemies)
+        if (e.type >= 0 && e.type < static_cast<int>(enemy_memo_.size()))
+            enemy_memo_[static_cast<size_t>(e.type)] = Memo{e.pos, e.hp, e.power, now};
     if (!near) return false;
+    // Enemies seen in the last few rounds and now out of sight are probably still close.
+    for (size_t t = 0; t < enemy_memo_.size(); ++t) {
+        const auto& m = enemy_memo_[t];
+        if (!kUseMemo || now - m.round > 4 || now == m.round || dist(m.pos, pos) > 8) continue;
+        bool seen = false;
+        for (const auto& e : enemies) seen |= e.type == static_cast<int>(t);
+        if (seen) continue;
+        their_hp += m.hp;
+        their_pow += std::max(20.0f, m.power);
+    }
     float our_hp = me.health(), our_pow = std::max(20.0f, me.strength() + 0.3f * me.focus());
     for (const auto& a : visible_champions(team::ally))
         if (dist(a.pos, pos) <= 6) { our_hp += a.hp; our_pow += std::max(20.0f, a.power); }
@@ -1017,15 +1141,23 @@ bool Bot::handle_enemies() {
     if (!live()) return true;
     if (mode == flee) {
         flee_until_ = now + 10;
-        // Running from someone who hits us anyway only gives free damage: trade instead.
-        if (in_range && hit_anyway && hp_frac >= 0.12f && home_.at(pos) > 2) {
+        // Running from someone who hits us anyway only gives free damage: trade instead,
+        // as long as we can take one of them down before we die.
+        float incoming = 0;
+        for (const auto& e : threats)
+            if (dist(e.pos, pos) <= std::max(1, e.range) + 1) incoming += std::max(20.0f, e.power);
+        const int v = pick_victim(threats, me.attack_range(), burst);
+        const float victim_hp = v >= 0 ? threats[static_cast<size_t>(v)].hp : 1e9f;
+        const float to_kill = 1 + std::max(0.0f, victim_hp - burst) / std::max(1.0f, me.strength());
+        const float to_die = me.health() / std::max(1.0f, incoming);
+        if (in_range && hit_anyway && (kTradeAlways ? hp_frac >= 0.12f : to_kill <= to_die + 0.5f) && home_.at(pos) > 2) {
             fight_spells(threats, burst);
             fight_attack(threats, burst);
             return true;
         }
         // Melee: a free swing before stepping away.
         if (me.attack_range() <= 1) fight_attack(threats, burst);
-        retreat(dmin);
+        retreat(dmin, threats);
         return true;
     }
 
@@ -1227,6 +1359,22 @@ void Bot::play_turn() {
         return;
     }
     (void)view();
+    // Enemies parked on their spawn shoot whoever walks past: keep out of their reach.
+    g_hot_any = false;
+    if (kAvoidSpawnCampers) {
+        const auto parked = cambc::vision::champion_tiles(team::enemy) & cambc::map::spawn_region(team::enemy);
+        if (!parked.is_empty()) {
+            g_hotb = empty_board();
+            for (auto p : parked.positions()) {
+                int reach = 3;
+                try { const int r = cambc::vision::champion_at(p).attack_range(); reach = r <= 1 ? 2 : r; } catch (const cambc::error&) {}
+                add_box(g_hotb, p, reach);
+            }
+            g_hotb &= ~cambc::map::spawn_region(team::ally);
+            g_hot.load(g_hotb);
+            g_hot_any = true;
+        }
+    }
     update_knowledge();
     const bool at_spawn = cambc::map::spawn_region(team::ally).is_set(me.position());
     if (at_spawn || me.champion_name() == cambc::champion_type::tavi) buy_items();
