@@ -18,7 +18,7 @@ using cambc::team;
 constexpr bool kUseMemo = false;      // count enemies seen in the last rounds
 constexpr bool kFleeHpGate = true;    // keep retreating out of sight only while hurt
 constexpr bool kTradeAlways = false;  // trade blows whenever fleeing cannot avoid them
-constexpr bool kFleeStep = false;     // threat-aware flee steps instead of the home path
+constexpr bool kFleeStep = true;      // threat-aware flee steps instead of the home path
 constexpr bool kAvoidSpawnCampers = true;  // keep out of reach of enemies on their spawn
 
 
