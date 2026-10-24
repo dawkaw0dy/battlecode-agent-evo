@@ -983,18 +983,30 @@ void Bot::farm(int gi) {
             if (g.hp[c] > 0) living.set(g.tiles[c]);
         if (living.is_empty()) living = g.spawn;
         goal_ = grow(living, r) & ~g_ww;
-        close_ = r > 1 ? grow(living, 1) & ~g_ww : goal_;
+        close_ = grow(living, 1) & ~g_ww;
+        bushgoal_ = close_ & cambc::map::bushes();
         goal_g_ = gi;
         goal_r_ = r;
         goal_sig_ = sig;
     }
     if (goal_.is_set(pos_)) {
-        // In range but nothing hit (no line of sight): close in.
-        if (!attacked_ && !moved_ && r > 1) go(close_, false);
+        // In range but nothing hit (no line of sight, camps hidden in a bush): close in, then enter the bush.
+        if (!attacked_ && !moved_) {
+            ++nohit_;
+            if (nohit_ > 14) {
+                g.blocked_until = now() + 80;
+                target_ = -1;
+                nohit_ = 0;
+                return;
+            }
+            if (nohit_ <= 4 && r > 1 && !close_.is_set(pos_)) go(close_, false);
+            else if (!bushgoal_.is_empty() && !bushgoal_.is_set(pos_)) go(bushgoal_, false);
+        }
     } else {
         go(goal_, true);
     }
     if (!ranged_ && !attacked_) hit_camps(gi);
+    if (attacked_) nohit_ = 0;
 }
 
 // The guard waits next to its altar when it has nothing better to do.
@@ -1130,7 +1142,7 @@ void Bot::turn() {
         const int prev = target_;
         target_ = choose(wait);
         chosen_at_ = now();
-        if (target_ != prev) { stuck_g_ = target_; stuck_since_ = now(); best_eta_ = kFar; write_claim(target_); }
+        if (target_ != prev) { nohit_ = 0; stuck_g_ = target_; stuck_since_ = now(); best_eta_ = kFar; write_claim(target_); }
     }
     if (plug_ >= 0 && now() - plug_at_ < 25 && g_[plug_].state != Group::respawning && g_[plug_].state != Group::reward) {
         target_ = plug_;

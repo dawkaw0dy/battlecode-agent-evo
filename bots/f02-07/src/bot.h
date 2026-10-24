@@ -34,7 +34,8 @@ class Bot {
     std::vector<Altar> altars_;
     int guard_altar_ = -1;
     Dist home_, altar_;
-    cambc::bitboard spots_, goal_, close_, post_;
+    cambc::bitboard spots_, goal_, close_, bushgoal_, post_;
+    int nohit_ = 0;
     int goal_g_ = -1, goal_r_ = -1, goal_sig_ = 0;
     std::vector<int> fill_order_;
 
