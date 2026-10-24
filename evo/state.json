@@ -19163,17 +19163,18 @@
    "status": "verified"
   },
   "g07-B": {
+   "arrived_at": 1792833411,
    "generation": 7,
    "pushed_at": 1792833200,
    "pushed_commit": "8516078602c84994c5137a451073e8cc8949a7eb",
+   "results_commit": "acb4ddedb9c8fd98517667a4e1e5f7536cb6c9a0",
    "retries": 0,
    "stage": "B",
-   "status": "pending"
+   "status": "arrived"
   }
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-23T18:34:54Z g02 resumed (max_generations is now 5 in evo/config.toml); was paused: generation 02 selected; max_generations=3 reached",
   "2026-10-23T18:34:59Z g03 phase PLANNED: 8 slots",
   "2026-10-23T18:35:05Z g03 phase TASKS_PUSHED: 7 task files",
   "2026-10-23T18:35:17Z g03 PAUSED: cannot launch: working tree is not clean",
@@ -19372,10 +19373,11 @@
   "2026-10-24T09:10:29Z g07 g07-A-spot: pushed 42465fd85e (16 sampled games, 11 shards)",
   "2026-10-24T09:12:57Z g07 g07-A: verified, 768 rows, spot-check 16 OK",
   "2026-10-24T09:13:06Z g07 phase EVAL_B_PENDING: stage A ranked: e07-05, e07-01, e06-05, e07-04, e07-07, e05-05, e07-02, e07-06, e04-06, starter",
-  "2026-10-24T09:13:20Z g07 g07-B: pushed 8516078602 with 33 shards"
+  "2026-10-24T09:13:20Z g07 g07-B: pushed 8516078602 with 33 shards",
+  "2026-10-24T09:16:51Z g07 phase EVAL_B_DONE: results for g07-B"
  ],
  "paused": null,
- "phase": "EVAL_B_PENDING",
+ "phase": "EVAL_B_DONE",
  "sessions_launched": 49,
  "version": 1
 }
