@@ -601,16 +601,19 @@ class Engine:
                 lineage.append({'agent': aid, 'generation': g, 'kind': a['kind'], 'parents': a['parents'],
                                 'operator': a['operator'], 'focus': a['focus'], 'archetype': a['archetype'],
                                 'rng_key': a['rng_key'], 'status': a['status'], 'reason': a['reason']})
+        st.log(self.state, f'survivors {survivors}, hall of fame {self.state["hall_of_fame"]}')
+        gen['selection_done'] = True
+        done = self.max_generations_reached(g)
+        if not done:
+            self.plan_next(survivors, games, members)
+        # written only now, so a crash while planning leaves no rows to be appended twice on the next step
         lin = path_in(self.root, self.cfg, 'lineage')
         lin.parent.mkdir(parents=True, exist_ok=True)
         with lin.open('a', encoding='utf-8', newline='\n') as f:
             for row in lineage:
                 f.write(json.dumps(row, sort_keys=True) + '\n')
-        st.log(self.state, f'survivors {survivors}, hall of fame {self.state["hall_of_fame"]}')
-        gen['selection_done'] = True
-        if self.max_generations_reached(g):
+        if done:
             return self.save(f'evo: generation {g:02d} selected (run complete)', [self.rel(lin)])
-        self.plan_next(survivors, games, members)
         self.save(f'evo: generation {g:02d} selected, generation {g + 1:02d} planned', [self.rel(lin)])
 
     def max_generations_reached(self, g):
@@ -669,10 +672,14 @@ class Engine:
         archetypes = sorted(p.stem for p in (self.root / cfg['run']['archetypes_dir']).glob('*.md'))
         recent = [a['archetype'] for a in self.state['agents'].values()
                   if a['kind'] == 'immigrant' and g - 2 <= a['generation'] < g]
+        last_used = {}
+        for a in self.state['agents'].values():
+            if a['kind'] == 'immigrant' and a['generation'] < g:
+                last_used[a['archetype']] = max(last_used.get(a['archetype'], -1), a['generation'])
         taken = []
         for _ in range(cfg['immigrants']):
             rng = mutate.slot_rng(cfg['seed'], g, slot)
-            arche = mutate.choose_archetype(rng, archetypes, recent, taken)
+            arche = mutate.choose_archetype(rng, archetypes, recent, taken, last_used)
             taken.append(arche)
             base = ['starter']
             if cfg['mutation']['immigrant_base'] == 'hall_of_fame' and g >= 2 and self.state['hall_of_fame']:

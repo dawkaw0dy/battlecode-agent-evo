@@ -82,9 +82,17 @@ def choose_focus(rng, focus, focus_tags, map_tags, evidence_rows, previous_focus
     return weighted_choice(rng, weights)
 
 
-def choose_archetype(rng, archetypes, recent, taken=()):
-    """§13.4: an archetype no immigrant used in the previous two generations (nor this one)."""
+def choose_archetype(rng, archetypes, recent, taken=(), last_used=None):
+    """§13.4: an archetype no immigrant used in the previous two generations (nor this one).
+
+    D41: when none is left (a gen-0 population of immigrants uses most of them), fall back to the
+    archetypes whose last use is oldest, still none taken this generation if possible."""
     free = sorted(set(archetypes) - set(recent) - set(taken))
     if not free:
-        raise ValueError('no unused archetype left; add archetypes (need at least n + 2)')
+        pool = sorted(set(archetypes) - set(taken)) or sorted(set(archetypes))
+        if not pool:
+            raise ValueError('no archetypes found')
+        last_used = last_used or {}
+        oldest = min(last_used.get(a, -1) for a in pool)
+        free = [a for a in pool if last_used.get(a, -1) == oldest]
     return free[rng.randrange(len(free))]

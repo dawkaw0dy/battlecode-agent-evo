@@ -106,9 +106,18 @@ def test_operator_focus_and_archetype_choices_are_seeded():
     picks = [mutate.weighted_choice(mutate.slot_rng(1, 1, s), weights) for s in range(400)]
     assert picks == [mutate.weighted_choice(mutate.slot_rng(1, 1, s), weights) for s in range(400)]
     assert picks.count('tweak') > picks.count('radical')
-    with pytest.raises(ValueError):
-        mutate.choose_archetype(random.Random(1), ['a', 'b'], recent=['a'], taken=['b'])
     assert mutate.choose_archetype(random.Random(1), ['a', 'b', 'c'], recent=['a', 'b']) == 'c'
+    with pytest.raises(ValueError):
+        mutate.choose_archetype(random.Random(1), [], recent=[])
+
+
+def test_archetype_fallback_is_least_recently_used():
+    # D41: all used in the last two generations -> the oldest last use wins, never one taken this generation
+    arch, used = ['a', 'b', 'c', 'd'], {'a': 0, 'b': 0, 'c': 1, 'd': 1}
+    picks = {mutate.choose_archetype(random.Random(s), arch, recent=arch, last_used=used) for s in range(40)}
+    assert picks == {'a', 'b'}
+    assert mutate.choose_archetype(random.Random(1), arch, recent=arch, taken=['a'], last_used=used) == 'b'
+    assert mutate.choose_archetype(random.Random(1), ['a'], recent=['a'], taken=['a'], last_used=used) == 'a'
 
 
 def test_focus_weighting_uses_tags_and_halves_repeats():
