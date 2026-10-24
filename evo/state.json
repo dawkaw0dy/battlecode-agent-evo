@@ -2986,8 +2986,8 @@
     }
    ],
    "slot": 1,
-   "src_sha256": null,
-   "status": "done",
+   "src_sha256": "b9799c010d67cf4913ea6f147516790b80abb72638d7caceaf8e3f71657cd680",
+   "status": "admitted",
    "task_sha256": "19babd2e7638c65538c96d1262c78023bfa87c4b0fea24d4b5dba9703c0f4d30"
   },
   "e07-02": {
@@ -3063,8 +3063,8 @@
     }
    ],
    "slot": 2,
-   "src_sha256": null,
-   "status": "done",
+   "src_sha256": "b918b08cbf2ebbc9cd8b0fed9572246fe5c7fc24ef4b5f28d2aadc666c402fcf",
+   "status": "admitted",
    "task_sha256": "7cc523fc138a5741024d60b7a5f5a9766e5c2be66d4e7864009fb0a2508aed73"
   },
   "e07-03": {
@@ -3215,8 +3215,8 @@
     }
    ],
    "slot": 4,
-   "src_sha256": null,
-   "status": "done",
+   "src_sha256": "161e372b73650ebc95143efbc17a72e5d7a7627a2516386ee504b333e1d4f70a",
+   "status": "admitted",
    "task_sha256": "a49771229571fb4076047bfa0ab2c3dca0092009e8a26eb41b2dd00948cb2be0"
   },
   "e07-05": {
@@ -3292,8 +3292,8 @@
     }
    ],
    "slot": 5,
-   "src_sha256": null,
-   "status": "done",
+   "src_sha256": "d5fd7e1c3654d6e145c2ee46cbf1a94b278bc4fcf38c8995d7d8f2e0ca292392",
+   "status": "admitted",
    "task_sha256": "3892ac09be871b85282bbe05a489268020a24cebf08d79012f286edb038a9c94"
   },
   "e07-06": {
@@ -3369,8 +3369,8 @@
     }
    ],
    "slot": 6,
-   "src_sha256": null,
-   "status": "done",
+   "src_sha256": "f9c9af0d81d447f7035b7ee73f789a824833feff2fe5c4d11e4bbe475f330a7b",
+   "status": "admitted",
    "task_sha256": "3fc674ed6ae9b6e775d4eaf5c228e7a8c0a4682b9b2b69cdca4083bc44f17d09"
   },
   "e07-07": {
@@ -3446,8 +3446,8 @@
     }
    ],
    "slot": 7,
-   "src_sha256": null,
-   "status": "done",
+   "src_sha256": "db4af9d46182e7c8c5d81d4dbd20f135cae28400acc08c60c29a8e3c3a03653f",
+   "status": "admitted",
    "task_sha256": "ba8bfcbcf63ea8721fb2332293c01e33cd8ca2ee7bde1f7131b2dd811d9238c1"
   }
  },
@@ -17052,6 +17052,15 @@
     "B": [],
     "C": []
    },
+   "members": [
+    "e06-05",
+    "e07-01",
+    "e07-02",
+    "e07-04",
+    "e07-05",
+    "e07-06",
+    "e07-07"
+   ],
    "slots": [
     "e06-05",
     "e07-01",
@@ -17398,12 +17407,6 @@
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-23T15:48:06Z g02 e02-06: admitted (6e2787b21384)",
-  "2026-10-23T15:48:14Z g02 e02-07: admitted (c7ce11d12c15)",
-  "2026-10-23T15:48:23Z g02 phase EVAL_A_PENDING",
-  "2026-10-23T15:48:37Z g02 g02-A: pushed a10b764732 with 21 shards",
-  "2026-10-23T15:50:56Z g02 phase EVAL_A_DONE: results for g02-A",
-  "2026-10-23T16:06:25Z g02 g02-A: verified, 672 rows, spot-check 14 OK",
   "2026-10-23T16:06:33Z g02 phase EVAL_B_PENDING: stage A ranked: e02-01, e02-05, e02-02, e02-06, e02-03, e01-01, e02-04, e00-01, e02-07, starter",
   "2026-10-23T16:06:47Z g02 g02-B: pushed 1e24587b38 with 36 shards",
   "2026-10-23T16:11:23Z g02 phase EVAL_B_DONE: results for g02-B",
@@ -17597,7 +17600,13 @@
   "2026-10-24T09:06:09Z g07 e07-05: done on origin/claude/evolution-agent-e07-05-evmn42 at 564b1b8848",
   "2026-10-24T09:06:12Z g07 e07-06: done on origin/claude/evo-task-e07-06-9v4kkc at 21fffab0f1",
   "2026-10-24T09:06:16Z g07 e07-07: done on origin/claude/evo-task-e07-07-v93tv2 at dae63b8015",
-  "2026-10-24T09:06:16Z g07 phase ADMITTED"
+  "2026-10-24T09:06:16Z g07 phase ADMITTED",
+  "2026-10-24T09:06:24Z g07 e07-01: admitted (b9799c010d67)",
+  "2026-10-24T09:06:29Z g07 e07-02: admitted (b918b08cbf2e)",
+  "2026-10-24T09:06:32Z g07 e07-04: admitted (161e372b7365)",
+  "2026-10-24T09:06:36Z g07 e07-05: admitted (d5fd7e1c3654)",
+  "2026-10-24T09:06:41Z g07 e07-06: admitted (f9c9af0d81d4)",
+  "2026-10-24T09:06:46Z g07 e07-07: admitted (db4af9d46182)"
  ],
  "paused": null,
  "phase": "ADMITTED",

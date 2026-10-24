@@ -1,0 +1,27 @@
+{
+ "agent": "e07-06",
+ "task_sha256": "3fc674ed6ae9b6e775d4eaf5c228e7a8c0a4682b9b2b69cdca4083bc44f17d09",
+ "base_commit": "b83728388b241c6d74d2935d8053e46af9671b11",
+ "session_id": "cse_01LE4UW9j4BRMPDDv7Ni6QXf",
+ "bot_dir": "bots/e07-06",
+ "self_eval": {
+  "vs": "e05-05",
+  "games": 24,
+  "wins": 12
+ },
+ "games_played": 340,
+ "summary": "Camp economy: danger-based squad sizing for camp groups, team target pulls only for groups one champion cannot clear, capture hand-off to a single holder; 28/48 vs e05-05+e06-05 on 12 maps (parent 26/48).",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "89a7727348afbe32876c3d3e57b28ddf80cbacda9931cc51d61cb70397ea9bc0",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 19.45,
+  "remote": "true",
+  "session_id": "cse_01LE4UW9j4BRMPDDv7Ni6QXf",
+  "effort_level": "high",
+  "model": null
+ }
+}

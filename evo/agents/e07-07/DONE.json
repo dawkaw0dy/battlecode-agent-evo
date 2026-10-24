@@ -1,0 +1,27 @@
+{
+ "agent": "e07-07",
+ "task_sha256": "ba8bfcbcf63ea8721fb2332293c01e33cd8ca2ee7bde1f7131b2dd811d9238c1",
+ "base_commit": "a23b04a77905bfa530b63e346c886008c497acdf",
+ "session_id": "cse_016nfbuRAtWaiY73SufccvUv",
+ "bot_dir": "bots/e07-07",
+ "self_eval": {
+  "vs": "e05-05",
+  "games": 8,
+  "wins": 6
+ },
+ "games_played": 112,
+ "summary": "e06-04 pathing tweaks: bad-step memory 20 rounds, enemy-avoiding step tie-break, spawn-ward retreat tie-break",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "89a7727348afbe32876c3d3e57b28ddf80cbacda9931cc51d61cb70397ea9bc0",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 20.85,
+  "remote": "true",
+  "session_id": "cse_016nfbuRAtWaiY73SufccvUv",
+  "effort_level": "high",
+  "model": null
+ }
+}
