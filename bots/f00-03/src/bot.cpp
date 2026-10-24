@@ -54,6 +54,16 @@ bool fuel_ok(std::uint64_t need) { return cambc::fuel_remaining() > need; }
 std::uint32_t g_turn_round = 0;
 bool live() { return cambc::round_number() == g_turn_round; }
 
+// Channel and self-cast actions can still be refused (a stun, a lock we cannot see): never let that end the turn.
+void safe_recall() {
+    if (!live()) return;
+    try { cambc::self().recall(); } catch (const cambc::error&) {}
+}
+void safe_use(const cambc::ability& ab) {
+    if (!live()) return;
+    try { ab.use(); } catch (const cambc::error&) {}
+}
+
 const Grid8& walls_local() {
     static const Grid8 g = [] { Grid8 x; x.load(static_walls_ally()); return x; }();
     return g;
@@ -214,6 +224,10 @@ void Bot::initialise() {
     group_field_.assign(groups_.size(), Grid16{});
     camp_group_at_.assign(static_cast<size_t>(map_w() * map_h()), -1);
     for (size_t i = 0; i < groups_.size(); ++i) group_tiles_.push_back(handles_[i].spawn_tiles());
+    camp_kind_at_.assign(static_cast<size_t>(map_w() * map_h()), -1);
+    for (const auto& g : handles_)
+        for (const auto& c : g.camps())
+            camp_kind_at_[static_cast<size_t>(tile_index(c.spawn_position()))] = static_cast<std::int8_t>(static_cast<int>(c.kind()));
     for (size_t i = 0; i < groups_.size(); ++i)
         for (auto t : groups_[i].tiles) camp_group_at_[static_cast<size_t>(tile_index(t))] = static_cast<std::int16_t>(i);
 
@@ -376,7 +390,7 @@ void Bot::buy_items() {
             cant_spend_ = true;
             return;
         }
-        me.buy(shard, 1);
+        try { me.buy(shard, 1); } catch (const cambc::error&) { cant_spend_ = true; return; }
         cant_spend_ = false;
     }
 }
@@ -478,7 +492,8 @@ bool Bot::walk_field(const Grid16& field, bool allow_dash) {
     }
     if (!live()) return moved_;
     moved_ = true;
-    const bool ok = me.move_absolute(best);
+    bool ok = false;
+    try { ok = me.move_absolute(best); } catch (const cambc::error&) {}
     invalidate_view();
     if (!ok) move_failed_ = true;
     return ok;
@@ -568,7 +583,8 @@ bool Bot::step_to(const cambc::bitboard& goals_in, bool allow_dash) {
     }
     if (!live()) return moved_;
     moved_ = true;
-    const bool ok = me.move_absolute(best);
+    bool ok = false;
+    try { ok = me.move_absolute(best); } catch (const cambc::error&) {}
     invalidate_view();
     if (!ok) move_failed_ = true;
     return ok;
@@ -674,7 +690,7 @@ bool Bot::reset_and_hit(int group) {
     for (const auto& ab : me.abilities()) {
         if (!ab.is_attack_reset() || !ab.is_ready()) continue;
         cast_ = true;
-        ab.use();
+        safe_use(ab);
         if (me.can_attack() && group >= 0) return attack_group(group);
         return true;
     }
@@ -690,7 +706,7 @@ void Bot::cast_spells(int group) {
         if (ab.is_shield()) {
             if (incoming_ > 0 && me.health() < me.max_health() * 0.95f) {
                 cast_ = true;
-                ab.use();
+                safe_use(ab);
                 return;
             }
             continue;
@@ -743,6 +759,8 @@ bool Bot::disengage_from_camps() {
     bool any = false;
     for (auto p : view().camps.positions()) {
         if (dist(p, me.position()) > 6) continue;
+        const int kind = camp_kind_at_[static_cast<size_t>(tile_index(p))];
+        if (kind >= 0 && camp_strength(static_cast<cambc::camp_type>(kind)) <= 0) continue;
         try {
             auto c = cambc::vision::camp_at(p);
             if (!c.is_awake()) continue;
@@ -841,7 +859,7 @@ bool Bot::handle_enemies() {
                     break;
                 }
         if (dmin >= 6 && !moved_ && incoming_ == 0 && me.gem_count() > 0) {
-            if (live()) me.recall();
+            safe_recall();
             return true;
         }
         go_home();
@@ -864,7 +882,7 @@ bool Bot::handle_enemies() {
                 for (const auto& ab : me.abilities())
                     if (ab.is_attack_reset() && ab.is_ready()) {
                         cast_ = true;
-                        ab.use();
+                        safe_use(ab);
                         if (me.can_attack() && cambc::vision::has_champion(best->pos)) {
                             auto again = cambc::vision::champion_at(best->pos);
                             if (again.is_visible() && again.is_alive()) me.attack(again);
@@ -979,7 +997,9 @@ bool Bot::handle_tribute(int next_target, int next_wait) {
         const float turns = std::ceil(gems / 10.0f) + 1;
         if (dist(a, pos) <= cambc::constants::submit_gems_range && !enemy_locks.is_set(a)
             && me.health() > incoming_ * taken_mult_ * turns + 50) {
-            if (live()) me.submit_gems(a);
+            if (live()) {
+                try { me.submit_gems(a); } catch (const cambc::error&) {}
+            }
             return true;
         }
     }
@@ -1089,6 +1109,8 @@ void Bot::play_turn() {
     for (auto p : view().camps.positions()) {
         const int d = dist(p, me.position());
         if (d > 5) continue;
+        const int kind = camp_kind_at_[static_cast<size_t>(tile_index(p))];
+        if (kind >= 0 && camp_strength(static_cast<cambc::camp_type>(kind)) <= 0) continue;  // clusters never hit
         try {
             auto c = cambc::vision::camp_at(p);
             const int r = camp_range(c.kind());
@@ -1120,7 +1142,7 @@ void Bot::play_turn() {
     if (!at_spawn && (hp < max_hp * 0.2f || (incoming_ > 0 && hp < incoming_ * taken_mult_ * (exit_steps_ + 2) + 40))) {
         if (disengage_from_camps()) { return; }
         if (incoming_ == 0 && !moved_) {
-            if (live()) me.recall();
+            safe_recall();
             return;
         }
     }
@@ -1153,11 +1175,11 @@ void Bot::play_turn() {
         // Nothing worth doing soon: go shop and heal.
         if (!at_spawn && (me.gold_count() >= 60 || hp < max_hp * 0.8f) && incoming_ == 0 && me.gem_count() == 0) {
             if (home_d <= 5) go_home();
-            else if (!moved_ && live()) me.recall();
+            else if (!moved_) safe_recall();
             return;
         }
         if (target < 0) {
-            if (!at_spawn && hp < max_hp * 0.9f && incoming_ == 0 && !moved_ && live()) me.recall();
+            if (!at_spawn && hp < max_hp * 0.9f && incoming_ == 0 && !moved_) safe_recall();
             fill_fields(40000);
             return;
         }
@@ -1167,7 +1189,7 @@ void Bot::play_turn() {
         && me.champion_name() != cambc::champion_type::tavi
         && (known_[target].state != Known::alive || eta(target) > 6) && remaining_hp(target) >= groups_[target].hp * 0.99f) {
         if (home_d <= 8) go_home();
-        else if (!moved_ && live()) me.recall();
+        else if (!moved_) safe_recall();
         return;
     }
     // Heal before a fight we cannot finish at this health.
@@ -1175,7 +1197,7 @@ void Bot::play_turn() {
         const float dmg = estimate_damage(target, dps_);
         if (dmg > hp - 100) {
             if (home_d <= 5) go_home();
-            else if (!moved_ && live()) me.recall();
+            else if (!moved_) safe_recall();
             return;
         }
     }
