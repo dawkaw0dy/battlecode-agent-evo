@@ -1,0 +1,27 @@
+{
+ "agent": "f01-01",
+ "task_sha256": "71e9bf8f5477840d05147934a4856003abbdd66ae14693b5cedf00f7c43deb9c",
+ "base_commit": "f0434ae94cb14a9c64e5d009086ce7d6e4bda67d",
+ "session_id": "cse_01UW9jv8Ju7GyWXuJLMR4Adr",
+ "bot_dir": "bots/f01-01",
+ "self_eval": {
+  "vs": "f00-03",
+  "games": 80,
+  "wins": 46
+ },
+ "games_played": 897,
+ "summary": "Defense tweaks on f00-03: remembered/shared altar locks with path-cost altar choice and lock breaking, flee below 45% own hp, walk home from unseen attackers, gem-aware fight edge, bank at 30 gems, stale-position fault fix",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "f247aa3d11f80362ff69f212df761ab6c6b89ffd123f9e6d0ad41e2e5f0fc916",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 17.76,
+  "remote": "true",
+  "session_id": "cse_01UW9jv8Ju7GyWXuJLMR4Adr",
+  "effort_level": "high",
+  "model": null
+ }
+}
