@@ -281,6 +281,16 @@ void Bot::initialise() {
 }
 
 void Bot::fill_fields(std::uint64_t reserve) {
+    for (int i : field_order_) {
+        if (!group_field_[i].empty()) continue;
+        if (!fuel_ok(reserve)) return;
+        auto roots = empty_board();
+        for (auto t : groups_[i].tiles) roots.set(t);
+        cambc::distance_field f;
+        cambc::bitboard seen;
+        f.compute(*walls_, roots, seen);
+        group_field_[i].load(f);
+    }
     for (size_t i = 0; i < altars_.size(); ++i) {
         if (!altar_field_[i].empty()) continue;
         if (!fuel_ok(reserve)) return;
@@ -291,16 +301,6 @@ void Bot::fill_fields(std::uint64_t reserve) {
         cambc::bitboard seen;
         f.compute(*walls_, roots, seen);
         altar_field_[i].load(f);
-    }
-    for (int i : field_order_) {
-        if (!group_field_[i].empty()) continue;
-        if (!fuel_ok(reserve)) return;
-        auto roots = empty_board();
-        for (auto t : groups_[i].tiles) roots.set(t);
-        cambc::distance_field f;
-        cambc::bitboard seen;
-        f.compute(*walls_, roots, seen);
-        group_field_[i].load(f);
     }
 }
 
