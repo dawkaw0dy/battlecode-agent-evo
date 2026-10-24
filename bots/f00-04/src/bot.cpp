@@ -277,10 +277,11 @@ struct Foe {
     int group;  // camp group index, -1 for champions
 };
 
+std::vector<std::int16_t> tile_group;  // row-major: camp group whose spawn tile this is, or -1
+
 int group_of_tile(vec2 p) {
-    for (int i = 0; i < static_cast<int>(groups.size()); ++i)
-        if (groups[i].spawns.is_set(p)) return i;
-    return -1;
+    if (!in_bounds(p)) return -1;
+    return tile_group[static_cast<std::size_t>(p.y * W + p.x)];
 }
 
 std::vector<Foe> all_camps;  // every visible living camp this turn
@@ -1004,6 +1005,10 @@ void init() {
         if (g.tiles.empty()) g.tiles = g.spawns.positions();
         groups.push_back(g);
     }
+    tile_group.assign(static_cast<std::size_t>(W * H), -1);
+    for (int i = 0; i < static_cast<int>(groups.size()); ++i)
+        for (auto t : groups[i].spawns.positions())
+            if (in_bounds(t)) tile_group[static_cast<std::size_t>(t.y * W + t.x)] = static_cast<std::int16_t>(i);
     {
         // Can we ever tribute without killing a camp first?
         bitboard camp_tiles;
@@ -1044,50 +1049,12 @@ void init() {
     }
 }
 
-constexpr bool kDump = false;
-void dump_map() {
-    bitboard cs;
-    cs.clear();
-    for (auto& g : groups) cs |= g.spawns;
-    for (int y = 0; y < H; ++y) {
-        std::string row;
-        for (int x = 0; x < W; ++x) {
-            vec2 v{x, y};
-            char c = '.';
-            if (cambc::map::walls().is_set(v)) c = '#';
-            else if (cambc::map::holes().is_set(v)) c = 'o';
-            else if (cambc::map::altars().is_set(v)) c = 'A';
-            else if (ally_spawn.is_set(v)) c = 'S';
-            else if (cambc::map::spawn_region(team::enemy).is_set(v)) c = 'E';
-            else if (cs.is_set(v)) c = static_cast<char>('a' + group_of_tile(v) % 26);
-            else if (cambc::map::bushes().is_set(v)) c = '"';
-            row += c;
-        }
-        std::cout << "map " << row << '\n';
-    }
-}
-
 } // namespace
 
 void Bot::play_turn() {
-    const auto fuel0 = cambc::fuel_remaining();
-    struct FuelLog {
-        std::uint64_t f0;
-        ~FuelLog() {
-            auto used = f0 - cambc::fuel_remaining();
-            if (used > 60000) std::cout << "fuel r" << cambc::round_number() << " used " << used << '\n';
-            auto& me = cambc::self();
-            const vec2 pos = me.position();
-            if (now % 50 == 0)
-                std::cout << "st r" << now << " " << static_cast<int>(my_type) << " p" << pos.x << "," << pos.y
-                          << " hp" << me.health() << " gems" << me.gem_count() << " gold" << me.gold_count() << " t" << read_target()
-                          << " mv" << moved << " still" << still_turns << '\n';
-        }
-    } fuel_log{fuel0};
     if (!initialised) {
         init();
         initialised = true;
-        if (kDump && cambc::self().champion_name() == cambc::champion_type::ryth) dump_map();
     }
     moved = false;
     move_failed = false;
