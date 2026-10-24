@@ -146,7 +146,7 @@ bool init() {
         if (!approach.is_empty()) {
             bitboard visited;
             cambc::distance_field f;
-            f.compute(g_static | g_camp_spawns, approach, visited);
+            f.compute(g_static, approach, visited);
             g_altar_dist.load(f);
         }
         g_init_phase = 3;
@@ -892,8 +892,8 @@ void play_turn_inner() {
     const int gems = static_cast<int>(me.gem_count());
     const int altar_d = g_altar_dist.at(pos);
     const bool bank = gems > 0 && altar_d < kFar
-        && (gems >= 30 || (gems >= 12 && altar_d <= 10) || (raid >= 0 && gems >= 8) || (g_round > 1880) || (gems >= 4 && altar_d <= 2));
-    if (bank && (threats.empty() || gems >= 25)) {
+        && (gems >= 22 || (gems >= 10 && altar_d <= 14) || (raid >= 0 && gems >= 8) || (g_round > 1880) || (gems >= 4 && altar_d <= 3));
+    if (bank && (threats.empty() || gems >= 18)) {
         g_branch = "bank";
         for (vec2 a : g_altars) {
             if (cheb(a, pos) > 1) continue;
@@ -927,13 +927,8 @@ void play_turn_inner() {
     bool in_raid = false;
     if (raid >= 0) {
         const Group& rg = G[static_cast<size_t>(raid)];
-        if (rg.mono || g_team <= 3) in_raid = true;
-        else {
-            const int mine = cheb(pos, rg.center);
-            int closer = 0;
-            for (vec2 a : g_allies) if (cheb(a, rg.center) < mine) ++closer;
-            in_raid = closer < 3;
-        }
+        // Golem raids take a fixed three (by handle order) so every champion agrees.
+        in_raid = rg.mono || g_team <= 3 || g_my_index < 3;
     }
 
     if (in_raid) {
