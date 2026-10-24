@@ -860,7 +860,9 @@
    "generation": 2,
    "id": "f02-01",
    "kind": "child",
-   "nudged": [],
+   "nudged": [
+    "session_01NtrBKtUusbaUXQvL8fLYPy"
+   ],
    "operator": "subsystem",
    "parents": [
     "f01-07"
@@ -934,7 +936,9 @@
    "generation": 2,
    "id": "f02-02",
    "kind": "child",
-   "nudged": [],
+   "nudged": [
+    "session_01YKp1nZ54113g9Dxx8rnJ6F"
+   ],
    "operator": "subsystem",
    "parents": [
     "f01-07"
