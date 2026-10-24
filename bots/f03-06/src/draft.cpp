@@ -20,7 +20,7 @@ std::vector<cd> choose_picks(Plan plan, int size) {
     if (plan == kBoss)
         order = {cd::vendetta, cd::marcella, cd::varg, cd::ryth, cd::vesper_vale};
     else
-        order = {cd::vendetta, cd::willow, cd::varg, cd::marcella, cd::vesper_vale};
+        order = {cd::vendetta, cd::willow, cd::vesper_vale, cd::marcella, cd::varg};
     order.resize(static_cast<size_t>(std::min<int>(size, 5)));
     return order;
 }
@@ -133,7 +133,10 @@ void write_plan() {
         if (acc >= wsum * 0.5f) { squad_size = k; break; }
     }
     squad_size = std::clamp(squad_size, 2, std::max(2, nb));  // nobody farms alone: lone champions get picked off
-    const int nsq = std::clamp(nb / squad_size, 1, 4);
+    int nsq = std::clamp(nb / squad_size, 1, 4);
+    // Small maps are fought over: split squads get caught alone, so move as one team.
+    const int area = cambc::map::width() * cambc::map::height();
+    if (area <= 45 * 45) nsq = 1;
     const auto squads = assign_squads(g_picks, nsq);
     const auto owner = assign_owners(groups, nsq);
 

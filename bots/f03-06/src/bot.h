@@ -56,6 +56,7 @@ class Bot {
     std::vector<vec2> altar_plug_tiles_;  // camp tiles that are the only way next to an altar
     int raid_cand_ = -1;                  // boss group the team raids once strong enough
     bool raid_on_ = false;
+    bool loose_ = true;                   // squad members may farm cheap neighbouring groups
     std::vector<int> d_home_;             // walking distance from our spawn to each group
     Bits terrain_, campspawn_, spawn_, hard_;
     cambc::bitboard walls_camps_;         // static walls + all camp spawn tiles
@@ -104,7 +105,7 @@ class Bot {
     bool hurt();
     bool tribute();
     void farm();
-    int choose(int& eta_out);
+    int choose(int& eta_out, int near_group = -1);
     void engage(int g);
     bool hit_group(int g);
     void spells_on_group(int g, bool before_move);

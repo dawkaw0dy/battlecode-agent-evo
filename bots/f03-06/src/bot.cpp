@@ -1130,7 +1130,7 @@ void Bot::update_raid() {
 
 // ---------------------------------------------------------------- farming
 
-int Bot::choose(int& eta_out) {
+int Bot::choose(int& eta_out, int near_group) {
     auto& me = cambc::self();
     // Plan with the squad as drafted: allies out of sight cannot be inspected.
     const float team = dps() * (1.0f + 0.85f * (squad_n_ - 1));
@@ -1144,6 +1144,7 @@ int Bot::choose(int& eta_out) {
         const auto& G = g_[gi];
         const auto& k = k_[gi];
         if (G.tiles.empty() || k.fail > now_) continue;
+        if (near_group >= 0 && cheb(G.center, g_[static_cast<size_t>(near_group)].center) > 7) continue;
         if (G.monolith && !(plan_ == kBoss && g == boss_)) continue;
         if (g == raid_cand_ && G.boss && !raid_on_ && !(plan_ == kBoss && g == boss_)) continue;
         const int d = dist_to_group(g);
@@ -1167,6 +1168,11 @@ int Bot::choose(int& eta_out) {
         else if (own == 255) f = 0.8f;
         else f = 0.6f;
         if (G.d_enemy < G.d_ally) f *= 0.85f;
+        // Loose squad: a member spreads to a cheap neighbour of the leader's target.
+        if (near_group >= 0) {
+            if (g == near_group) f *= 0.6f;
+            else if (needed(g, squad_n_) > 1) f *= 0.3f;
+        }
         const float score = value * f / (d + wait + clear + 5.0f + trips * trip_cost + 6.0f);
         if (g == target_) cur = score;
         if (score > bs) { bs = score; best = g; eta_out = d; }
@@ -1181,7 +1187,15 @@ void Bot::farm() {
     int g = -1;
     const bool lead = leader();
     if (raid_on_) g = raid_cand_;
-    else if (!lead) g = read_target();
+    else if (!lead) {
+        g = read_target();
+        // The leader's target is cheap: farm a group next to it instead of crowding it.
+        if (g >= 0 && k_[static_cast<size_t>(g)].st == Known::alive && needed(g, squad_n_) <= 1 && loose_) {
+            int e2 = kFar;
+            const int own = choose(e2, g);
+            if (own >= 0) g = own;
+        }
+    }
     if (g >= 0 && k_[static_cast<size_t>(g)].fail > now_ && !raid_on_) g = -1;
     ph();
     if (g < 0) {
