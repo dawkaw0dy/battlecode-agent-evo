@@ -19169,13 +19169,19 @@
    "pushed_commit": "8516078602c84994c5137a451073e8cc8949a7eb",
    "results_commit": "acb4ddedb9c8fd98517667a4e1e5f7536cb6c9a0",
    "retries": 0,
+   "spotcheck": {
+    "games": 27,
+    "job": "g07-B-spot",
+    "pushed_at": 1792833433,
+    "pushed_commit": "b663a53929e69b0aa0b73a827fcbe999f59f2330",
+    "status": "pending"
+   },
    "stage": "B",
    "status": "arrived"
   }
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-23T18:34:59Z g03 phase PLANNED: 8 slots",
   "2026-10-23T18:35:05Z g03 phase TASKS_PUSHED: 7 task files",
   "2026-10-23T18:35:17Z g03 PAUSED: cannot launch: working tree is not clean",
   "2026-10-23T18:51:11Z g03 resumed (the unclean tree was the app's own uncommitted code; committed); was paused: cannot launch: working tree is not clean",
@@ -19374,7 +19380,8 @@
   "2026-10-24T09:12:57Z g07 g07-A: verified, 768 rows, spot-check 16 OK",
   "2026-10-24T09:13:06Z g07 phase EVAL_B_PENDING: stage A ranked: e07-05, e07-01, e06-05, e07-04, e07-07, e05-05, e07-02, e07-06, e04-06, starter",
   "2026-10-24T09:13:20Z g07 g07-B: pushed 8516078602 with 33 shards",
-  "2026-10-24T09:16:51Z g07 phase EVAL_B_DONE: results for g07-B"
+  "2026-10-24T09:16:51Z g07 phase EVAL_B_DONE: results for g07-B",
+  "2026-10-24T09:17:13Z g07 g07-B-spot: pushed b663a53929 (27 sampled games, 19 shards)"
  ],
  "paused": null,
  "phase": "EVAL_B_DONE",
