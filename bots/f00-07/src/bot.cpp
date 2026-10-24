@@ -82,6 +82,7 @@ struct Seen {
 bool g_init = false;
 bitboard g_static_walls;   // walls | holes | altars | enemy spawn
 bitboard g_bushes;
+bitboard g_enemy_spawn_zone;  // enemy spawn tiles and everything within 3 of them
 std::vector<Group> g_groups;
 std::vector<vec2> g_altars;
 vec2 g_my_spawn{}, g_enemy_spawn{};
@@ -114,6 +115,7 @@ void init_static() {
     kTeamBonus = W * H <= 2500 ? 2.5f : 1.2f;
     g_static_walls = M::walls() | M::holes() | M::altars() | M::spawn_region(team::enemy);
     g_bushes = M::bushes();
+    for (auto p : M::spawn_region(team::enemy).positions()) square(g_enemy_spawn_zone, p, 3);
     {
         const auto mine = M::spawn_region(team::ally).positions();
         const auto theirs = M::spawn_region(team::enemy).positions();
@@ -221,9 +223,9 @@ bool do_move(vec2 to) {
     try {
         ok = me.move_absolute(to);
     } catch (const cambc::error& e) {
-        std::cout << "DIAG move " << e.what() << " champ " << V::has_champion(to) << " camp " << V::has_camp(to)
-                  << " live " << live_camps().is_set(to) << " ctile " << V::camp_tiles().is_set(to) << " tp "
-                  << V::teleport_tiles().is_set(to) << " wall " << g_static_walls.is_set(to) << " phase " << g_phase << "\n";
+        // A unit hidden in a bush can make the engine report the tile as known-occupied; treat it as blocked.
+        (void)e;
+        g_bad_steps.emplace_back(to, ROUND + 3);
         g_stop_moving = true;
         return false;
     }
@@ -598,8 +600,23 @@ void broadcast_call(vec2 p) {
 }
 
 // Returns true when the turn was spent on combat (fight or flight).
+bool combat_inner();
+
+// Enemies resting on their own spawn are not a fight we can take or need to flee: ignore them unless adjacent.
 bool combat() {
     g_phase = "combat";
+    if (g_enemies.empty()) return false;
+    const vec2 pos = cambc::self().position();
+    std::vector<Seen> all;
+    all.swap(g_enemies);
+    for (const auto& e : all)
+        if (!g_enemy_spawn_zone.is_set(e.p) || dist(e.p, pos) <= 2) g_enemies.push_back(e);
+    const bool r = combat_inner();
+    g_enemies.swap(all);
+    return r;
+}
+
+bool combat_inner() {
     auto& me = cambc::self();
     if (g_enemies.empty()) return false;
     const vec2 pos = me.position();
@@ -616,7 +633,7 @@ bool combat() {
         // Finish off a nearly dead enemy even when the fight is slightly unfavourable.
         if (t->hp < me.strength() * 2.5f && hp_ratio > 0.3f && bal >= 0.5f) engage = true;
         // Do not dive deep into the enemy spawn.
-        if (dist(t->p, g_enemy_spawn) <= 4) engage = false;
+        if (g_enemy_spawn_zone.is_set(t->p)) engage = false;
     }
     if (engage && t) {
         broadcast_call(t->p);
@@ -663,10 +680,7 @@ bool combat() {
         return true;
     }
     // Enemies at 4-7 and the fight is not ours: keep distance only if they are heading for us.
-    if (bal < 0.6f) {
-        retreat();
-        return true;
-    }
+    if (bal < 0.6f) return retreat();
     return false;
 }
 
@@ -790,7 +804,7 @@ int choose_group() {
     int best = -1;
     float bestv = 0;
     for (auto& G : g_groups) {
-        if (G.boss || G.ban_until > ROUND) continue;
+        if (G.ban_until > ROUND) continue;
         const int d = group_distance(G, pos);
         if (d >= 100000) continue;
         const int wait = std::max(0, G.ready_round - ROUND);
@@ -801,7 +815,12 @@ int choose_group() {
         const float dmg = G.str * clear * 0.8f;
         const float budget = me.health() * 0.85f;
         float value = G.gems + kGoldWeight * G.gold;
-        if (dmg > budget) value *= std::max(0.2f, budget / dmg);
+        if (G.boss) {
+            // Monolith: only with a strong pack; its damage moves to the next champion as each one retreats.
+            if (helpers < 3 || dmg > 0.6f * helpers * me.health()) continue;
+        } else if (dmg > budget) {
+            value *= std::max(0.2f, budget / dmg);
+        }
         float score = value / (std::max(static_cast<float>(d), static_cast<float>(wait)) + clear + 8.f);
         if (G.index == team_group) score *= kTeamBonus;
         if (G.index == g_target_group) score *= 1.25f;  // hysteresis
@@ -1001,7 +1020,17 @@ void init_shared_memory_once() {
 
 }  // namespace
 
+struct TurnTrace {
+    ~TurnTrace() {
+        if (ROUND >= 1200 && ROUND <= 1212 && cambc::self().is_alive())
+            std::cout << "trace r" << ROUND << " " << static_cast<int>(cambc::self().champion_name()) << " pos "
+                      << cambc::self().position().x << "," << cambc::self().position().y << " phase " << g_phase
+                      << " tgt " << g_target_group << " enemies " << g_enemies.size() << "\n";
+    }
+};
+
 void Bot::play_turn() {
+    TurnTrace trace_guard;
     g_phase = "play_turn";
     ROUND = static_cast<int>(cambc::round_number());
     if (!g_init) init_static();
