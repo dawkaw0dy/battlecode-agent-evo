@@ -85,6 +85,7 @@ vec2 last_pos{-1, -1};
 int still_turns = 0;
 int idle_fight_turns = 0;  // hunting turns with foes in sight but no attack or move
 int capture_turns = 0;     // turns spent waiting on a capture
+int why = 0;               // debug: line of the last early return
 bool acted = false;        // attacked this turn
 
 // Shared memory: [0] target group + 1, [1] spare, [2..7] three (group + 1, avail / 16) notes.
@@ -532,8 +533,9 @@ std::vector<cambc::item_type> build_order() {
 void buy_items() {
     auto& me = cambc::self();
     static const auto order = build_order();
-    for (int guard = 0; guard < 40 && build_step < static_cast<int>(order.size()); ++guard) {
-        auto it = order[build_step];
+    for (int guard = 0; guard < 40; ++guard) {
+        // Past the end of the list, keep buying the last entry (a power shard).
+        auto it = order[std::min<std::size_t>(build_step, order.size() - 1)];
         if (me.gold_count() < it.cost()) return;
         try {
             if (!me.can_buy(it, 1)) return;
@@ -720,7 +722,7 @@ void hunt(const std::vector<Foe>& camps, const std::vector<Ally>& allies) {
     if (t < 0) {
         // Nothing worth doing: bank gems or wait at spawn.
         if (me.gem_count() > 0) do_tribute();
-        return;
+        return (void)(why = 723);
     }
     auto& g = groups[t];
 
@@ -739,7 +741,7 @@ void hunt(const std::vector<Foe>& camps, const std::vector<Ally>& allies) {
     if (!foes.empty()) {
         // Big camps: gather first, bank gems first (a camp kill destroys them).
         if (g.big && !any_awake) {
-            if (me.gem_count() >= 5) { do_tribute(); return; }
+            if (me.gem_count() >= 5) { do_tribute(); return (void)(why = 742); }
             int near = 0;
             for (auto& a : allies)
                 if (dist(a.pos, pos) <= 6) ++near;
@@ -754,7 +756,7 @@ void hunt(const std::vector<Foe>& camps, const std::vector<Ally>& allies) {
                     step_away(th);
                 }
                 if (!healthy && near >= need) me.recall();
-                return;
+                return (void)(why = 757);
             }
         }
         fight(foes, false);
@@ -765,7 +767,7 @@ void hunt(const std::vector<Foe>& camps, const std::vector<Ally>& allies) {
             write_target(-1);
             idle_fight_turns = 0;
         }
-        return;
+        return (void)(why = 768);
     }
 
     // No living camp in sight. Is the target in vision?
@@ -780,7 +782,7 @@ void hunt(const std::vector<Foe>& camps, const std::vector<Ally>& allies) {
                 std::vector<vec2> th{pos};
                 step_away(th);
             }
-            return;
+            return (void)(why = 783);
         }
         if (g.state == 2 && g.state_round == now) {
             // Reward available: stand on a free spawn tile of the group. If the capture stalls, an
@@ -792,22 +794,22 @@ void hunt(const std::vector<Foe>& camps, const std::vector<Ally>& allies) {
                     if (g.spawns.is_set(e.pos)) contest.push_back(e);
                 if (!contest.empty()) {
                     fight(contest, true);
-                    return;
+                    return (void)(why = 795);
                 }
                 const auto unseen = g.spawns & ~cambc::vision::visible_tiles();
                 if (!unseen.is_empty() && capture_turns < 60) {
-                    if (step_to(unseen)) return;
+                    if (step_to(unseen)) return (void)(why = 799);
                 }
                 if (capture_turns > 60) {
                     g.bad_until = now + 100;
                     write_target(-1);
                     capture_turns = 0;
-                    return;
+                    return (void)(why = 805);
                 }
             }
-            if (g.spawns.is_set(pos)) return;
+            if (g.spawns.is_set(pos)) return (void)(why = 808);
             step_to(g.spawns);
-            return;
+            return (void)(why = 810);
         }
         capture_turns = 0;
         // Alive but its camps are out of sight (long groups): walk to the unseen part.
@@ -816,14 +818,14 @@ void hunt(const std::vector<Foe>& camps, const std::vector<Ally>& allies) {
             bitboard goals;
             goals.clear();
             for (auto tile : unseen.positions()) goals |= square(tile, 1);
-            if (step_to(goals)) return;
+            if (step_to(goals)) return (void)(why = 819);
         }
         if (++idle_fight_turns > 10) {
             g.bad_until = now + 150;
             write_target(-1);
             idle_fight_turns = 0;
         }
-        return;
+        return (void)(why = 826);
     }
 
     // Travel.
@@ -833,7 +835,7 @@ void hunt(const std::vector<Foe>& camps, const std::vector<Ally>& allies) {
         g.bad_until = now + 100;
         write_target(-1);
         still_turns = 0;
-        return;
+        return (void)(why = 836);
     }
     bitboard goals;
     goals.clear();
@@ -911,6 +913,12 @@ void Bot::play_turn() {
         ~FuelLog() {
             auto used = f0 - cambc::fuel_remaining();
             if (used > 60000) std::cout << "fuel r" << cambc::round_number() << " used " << used << '\n';
+            auto& me = cambc::self();
+            const vec2 pos = me.position();
+            if (now % 50 == 0 || (now >= 1300 && now < 1303))
+                std::cout << "st why" << why << " r" << now << " " << static_cast<int>(my_type) << " p" << pos.x << "," << pos.y
+                          << " hp" << me.health() << " gems" << me.gem_count() << " gold" << me.gold_count() << " t" << read_target()
+                          << " mv" << moved << " still" << still_turns << '\n';
         }
     } fuel_log{fuel0};
     if (!initialised) {
@@ -921,21 +929,19 @@ void Bot::play_turn() {
     moved = false;
     move_failed = false;
     acted = false;
+    why = 0;
     now = static_cast<int>(cambc::round_number());
     auto& me = cambc::self();
 
     if (!me.is_alive()) {
         buy_items();
-        return;
+        return (void)(why = 929);
     }
-    if (me.is_recalling() || me.is_submitting_gems() || me.is_teleporting()) return;
+    if (me.is_recalling() || me.is_submitting_gems() || me.is_teleporting()) return (void)(why = 931);
 
     const vec2 pos = me.position();
     const bool at_spawn = ally_spawn.is_set(pos);
     if (at_spawn) buy_items();
-    if (now % 50 == 0)
-        std::cout << "st r" << now << " " << static_cast<int>(my_type) << " p" << pos.x << "," << pos.y << " hp" << me.health()
-                  << " gems" << me.gem_count() << " gold" << me.gold_count() << " t" << read_target() << '\n';
 
     read_notes();
     observe_groups();
@@ -948,7 +954,7 @@ void Bot::play_turn() {
     const float hp = me.health(), max_hp = me.max_health();
 
     // Heal up on spawn before leaving.
-    if (at_spawn && hp < max_hp * 0.95f && enemies.empty()) return;
+    if (at_spawn && hp < max_hp * 0.95f && enemies.empty()) return (void)(why = 953);
 
     // Low health: get out of range, then recall.
     if (!at_spawn && hp < max_hp * 0.35f) {
@@ -959,10 +965,10 @@ void Bot::play_turn() {
             if (!step_away(th)) {
                 if (const Foe* f = pick_in_range(enemies)) attack_foe(*f);
             }
-            return;
+            return (void)(why = 964);
         }
         me.recall();
-        return;
+        return (void)(why = 967);
     }
 
     // Enemy champions nearby: fight when we are not outnumbered.
@@ -979,12 +985,12 @@ void Bot::play_turn() {
                     std::vector<Foe> targets;
                     for (auto& e : enemies) if (dist(e.pos, pos) <= 6) targets.push_back(e);
                     fight(targets, true);
-                    return;
+                    return (void)(why = 984);
                 }
             } else if (hp < max_hp * 0.7f) {
                 std::vector<vec2> th;
                 for (auto& e : enemies) th.push_back(e.pos);
-                if (step_away(th)) return;
+                if (step_away(th)) return (void)(why = 989);
             }
         }
     }
@@ -1001,15 +1007,15 @@ void Bot::play_turn() {
             bool fighting_awake = false;
             for (auto& c : camps) if (c.awake && c.str > 0 && dist(c.pos, pos) <= c.range) fighting_awake = true;
             if (!fighting_awake || win_now) {
-                if (do_tribute()) return;
+                if (do_tribute()) return (void)(why = 1006);
             }
         }
     }
 
     // Shopping trip: plenty of gold, nothing carried, not in a fight.
-    if (!at_spawn && me.gold_count() >= 240 && gems == 0 && threats_near(camps, enemies, pos).empty()) {
+    if (!at_spawn && me.gold_count() >= 240 && gems == 0 && build_step < 60 && threats_near(camps, enemies, pos).empty()) {
         me.recall();
-        return;
+        return (void)(why = 1014);
     }
 
     hunt(camps, allies);
