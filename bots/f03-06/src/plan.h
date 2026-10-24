@@ -41,7 +41,7 @@ constexpr int owner = 32;     // one byte per group: owner squad, 255 = shared
 
 // Shared memory layout (8 bytes).
 namespace sm {
-constexpr int target = 0;     // bytes 0..3: target group + 1 of each squad (written by its leader)
+constexpr int target = 0;     // bytes 0..5: target group + 1 of each squad (written by its leader)
 constexpr int raid = 6;       // boss raid flag: group + 1
 constexpr int alarm = 7;      // round/8 of the latest enemy sighting near our spawn
 }

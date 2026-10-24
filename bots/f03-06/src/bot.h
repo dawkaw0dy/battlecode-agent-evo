@@ -33,7 +33,7 @@ struct Slot {
 class Bot {
     // Static knowledge.
     bool init_ = false;
-    int slot_ = 0, bodies_ = 1, squad_ = 0, nsquads_ = 1;
+    int slot_ = 0, bodies_ = 1, squad_ = 0, nsquads_ = 1, squad_n_ = 1;
     std::vector<cambc::champion_draft> picks_;
     std::vector<int> ally_slot_, ally_squad_;
     std::uint8_t squad_of_[6]{};
@@ -104,11 +104,13 @@ class Bot {
     bool attack_foe(const Unit& u);
     void spells_on_foe(const Unit& u, bool before_move);
     void defensive_spells(float incoming);
+    void heal_allies();
 
     float dps() const;
     float incoming_camp_damage() const;
     float group_remaining(int g) const;
     int dist_to_group(int g) const;
+    int here(const Field& f) const;  // field value at our tile, through a neighbour if ours reads as a wall
     bool on_group_tile(int g) const;
 
     void turn();
