@@ -32,6 +32,7 @@ constexpr std::array<vec2, 8> kDirs{vec2{0, 1}, vec2{1, 1}, vec2{1, 0}, vec2{1, 
 float kTeamBonus = 2.5f;  // set per map in init_static
 constexpr float kHealRecall = 0.5f;
 constexpr float kGoldWeight = 0.3f;
+constexpr float kEngage = 0.9f;
 constexpr int kSightX = 0, kSightY = 1, kSightR = 2, kSightF = 3, kCallX = 4, kCallY = 5, kCallR = 6, kTeamGroup = 7;
 
 int W = 0, H = 0, ROUND = 0;
@@ -470,6 +471,8 @@ bool can_use(const cambc::ability& ab) {
 }
 
 // Cast offensive spells at an enemy champion (stun first when the target is not stunned).
+vec2 g_spell_hit{-1, -1};  // champion tile our spell hit this turn (it may have died)
+
 bool cast_at_enemy(const Seen& t) {
     g_phase = "cast_at_enemy";
     bool used = false;
@@ -482,7 +485,7 @@ bool cast_at_enemy(const Seen& t) {
         bool ok = false;
         if (ab.can_target_enemies()) ok = ab.use(t.h);
         else if (ab.can_target_ground()) ok = ab.use(t.p);
-        if (ok) used = true, g_cast = true;
+        if (ok) used = true, g_cast = true, g_spell_hit = t.p;
     });
     return used;
 }
@@ -548,7 +551,15 @@ void try_reset_and_attack(float hp_before, const cambc::unit& target) {
     for_ability([&](const cambc::ability& ab) {
         if (g_cast || !ab.is_attack_reset() || !ab.is_ready()) return;
         if (!target.is_visible() || target.health() <= 0) return;
-        if (ab.use()) {
+        // The engine can reject a reset ("an available attack cannot be reset") in states can_attack() does
+        // not reveal; the action then has no effect, so treat the rejection as "not cast".
+        bool reset = false;
+        try {
+            reset = ab.use();
+        } catch (const cambc::error&) {
+            reset = false;
+        }
+        if (reset) {
             g_cast = true;
             if (!me.can_attack() || !target.is_visible() || target.health() <= 0) return;
             if (!me.attack_tiles().is_set(target.position())) return;
@@ -628,7 +639,7 @@ bool combat_inner() {
 
     const float bal = local_balance(pos, 6, 5);
     const Seen* t = pick_target(pos, 7);
-    bool engage = bal >= 0.9f && hp_ratio > 0.25f;
+    bool engage = bal >= kEngage && hp_ratio > 0.25f;
     if (t) {
         // Finish off a nearly dead enemy even when the fight is slightly unfavourable.
         if (t->hp < me.strength() * 2.5f && hp_ratio > 0.3f && bal >= 0.5f) engage = true;
@@ -715,6 +726,7 @@ void place_ward(vec2 focus_point) {
     g_phase = "place_ward";
     auto& me = cambc::self();
     if (me.ward_cooldown() > 0) return;
+    if (me.buffs().has_stun() || (!me.can_move() && !me.can_attack() && !me.can_cast())) return;
     const vec2 pos = me.position();
     for (auto w : me.ward_positions())
         if (dist(w, focus_point) <= 3) return;  // already watching this area
@@ -1036,6 +1048,7 @@ void Bot::play_turn() {
     if (!g_init) init_static();
     init_shared_memory_once();
     g_moved = g_stop_moving = g_attacked = g_cast = false;
+    g_spell_hit = {-1, -1};
     if (g_bad_steps.size() > 16)
         g_bad_steps.erase(std::remove_if(g_bad_steps.begin(), g_bad_steps.end(),
             [](const auto& b) { return b.second < ROUND; }), g_bad_steps.end());
