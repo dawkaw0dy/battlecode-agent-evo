@@ -1,0 +1,27 @@
+{
+ "agent": "f00-01",
+ "task_sha256": "98a7ba6c7b0ba04ad413cef28201639f58b24f665584a8cd70c82fe5cecdd396",
+ "base_commit": "cacbd3f5f84121b4ea87abe77ce09a17deed0df3",
+ "session_id": "cse_01X7GNKk3dxUxVcVBoNxDdiS",
+ "bot_dir": "bots/f00-01",
+ "self_eval": {
+  "vs": "starter",
+  "games": 79,
+  "wins": 76
+ },
+ "games_played": 826,
+ "summary": "Altar control: lock every free altar passed, one Vendetta warden locks enemy tributes; path-cached camp farming with retreat-before-recall; 76/79 vs starter on 40 maps",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "8225c1d38b5a90c91456d4d0b6d77f40901d162fdd30888c6a2d6aba7c249335",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 18.21,
+  "remote": "true",
+  "session_id": "cse_01X7GNKk3dxUxVcVBoNxDdiS",
+  "effort_level": "high",
+  "model": null
+ }
+}

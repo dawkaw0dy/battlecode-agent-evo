@@ -1,0 +1,27 @@
+{
+ "agent": "f00-02",
+ "task_sha256": "a76b566a75683369cf058863a162c7047fae73735475fd3932f8723caf0cdd0d",
+ "base_commit": "cacbd3f5f84121b4ea87abe77ce09a17deed0df3",
+ "session_id": "cse_01T9a4DEaRx34LkbgiQJuigb",
+ "bot_dir": "bots/f00-02",
+ "self_eval": {
+  "vs": "starter",
+  "games": 80,
+  "wins": 80
+ },
+ "games_played": 891,
+ "summary": "Safe-banker immigrant: claim-based camp farming, quick tributes with altar-lock memory, fight back when engaged, Durability+Home emblems; 80/80 vs starter.",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "8225c1d38b5a90c91456d4d0b6d77f40901d162fdd30888c6a2d6aba7c249335",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 19.16,
+  "remote": "true",
+  "session_id": "cse_01T9a4DEaRx34LkbgiQJuigb",
+  "effort_level": "high",
+  "model": null
+ }
+}

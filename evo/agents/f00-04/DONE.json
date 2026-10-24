@@ -1,0 +1,27 @@
+{
+ "agent": "f00-04",
+ "task_sha256": "6634a10aaca2f7856d983aa0de49acc5987ce4b27fa0f37cd04fa41cfb304cd9",
+ "base_commit": "cacbd3f5f84121b4ea87abe77ce09a17deed0df3",
+ "session_id": "cse_01773fjh1VqQ7vQjUYyYCXpz",
+ "bot_dir": "bots/f00-04",
+ "self_eval": {
+  "vs": "starter",
+  "games": 80,
+  "wins": 79
+ },
+ "games_played": 886,
+ "summary": "Big-game hunter pack: shared camp target, gated golem/monolith fights, carrier escort, solo cluster side-farming; 79/80 vs starter",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "8225c1d38b5a90c91456d4d0b6d77f40901d162fdd30888c6a2d6aba7c249335",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 19.54,
+  "remote": "true",
+  "session_id": "cse_01773fjh1VqQ7vQjUYyYCXpz",
+  "effort_level": "high",
+  "model": null
+ }
+}
