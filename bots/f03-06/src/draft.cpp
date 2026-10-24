@@ -20,7 +20,7 @@ std::vector<cd> choose_picks(Plan plan, int size) {
     if (plan == kBoss)
         order = {cd::vendetta, cd::marcella, cd::varg, cd::ryth, cd::vesper_vale};
     else
-        order = {cd::vendetta, cd::willow, cd::vesper_vale, cd::marcella, cd::varg};
+        order = {cd::vendetta, cd::willow, cd::varg, cd::marcella, cd::vesper_vale};
     order.resize(static_cast<size_t>(std::min<int>(size, 5)));
     return order;
 }

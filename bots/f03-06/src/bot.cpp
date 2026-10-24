@@ -1064,8 +1064,8 @@ bool Bot::tribute() {
     if (da >= kFar) return false;
     const int total = static_cast<int>(cambc::global_submitted_gems(team::ally));
     const bool endgame = now_ + da + (gems + 9) / 10 + 12 >= 2000;
-    bool want = gems >= 45 || (gems >= 20 && da <= 8) || (gems >= 8 && da <= 2) || endgame
-        || total + gems >= 1000 || (gems >= 10 && !foes_.empty());
+    bool want = gems >= 32 || (gems >= 14 && da <= 8) || (gems >= 6 && da <= 3) || endgame
+        || total + gems >= 1000 || (gems >= 8 && !foes_.empty());
     debug_block({
         if (type_ == cambc::champion_type::vendetta && now_ % 10 == 0)
             std::cout << "trib r" << now_ << " pos=" << pos_.x << ',' << pos_.y << " gems=" << gems << " da=" << da << " want=" << want << " plugged=" << altar_plugged_ << '\n';
