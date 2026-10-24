@@ -17,6 +17,7 @@ using cambc::distance_field;
 
 namespace {
 
+constexpr bool kDebug = false; // per-100-round trace lines on stdout
 constexpr std::uint16_t UNREACHED = distance_field::unreachable;
 // Indexed by camp_type: wolf, elk, gem cluster, gold cluster, monolith, golem.
 constexpr std::array<float, 6> CAMP_HP{1350, 2400, 120, 120, 20000, 5000};
@@ -920,11 +921,6 @@ void Bot::play_turn() {
     if (!inited) init();
     moved = move_failed = attacked = false;
 
-    if (turn_round == 800) {
-        std::cout << "MODES #" << my_index;
-        for (int i = 0; i < 12; ++i) std::cout << " " << modes[i];
-        std::cout << "\n";
-    }
     if (!me.is_alive()) {
         ++modes[0];
         buy_items();
@@ -969,12 +965,12 @@ void Bot::play_turn() {
 }
 
 void Bot::mark(const char* what) {
-    if (turn_round % 100 != 0) return;
+    if (!kDebug || turn_round % 100 != 0) return;
     std::cout << "    " << what << " " << cambc::fuel_remaining() << " r" << cambc::round_number() << "\n";
 }
 
 void Bot::dbg(const char* what) {
-    if (turn_round % 100 != 0) return;
+    if (!kDebug || turn_round % 100 != 0) return;
     auto& me = cambc::self();
     std::cout << "r" << turn_round << " #" << my_index << " " << what << " pos " << pos.x << "," << pos.y
         << " hp " << me.health() << "/" << me.max_health() << " gems " << me.gem_count() << " gold " << me.gold_count()
