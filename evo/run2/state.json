@@ -1193,6 +1193,109 @@
      ]
     ]
    ],
+   "ranking_A": [
+    "f00-03",
+    "f00-00",
+    "f00-06",
+    "f00-07",
+    "f00-02",
+    "f00-04",
+    "f00-01",
+    "f00-05",
+    "starter"
+   ],
+   "ratings_A": {
+    "f00-00": {
+     "disqualified": false,
+     "fault_rate": 0.0,
+     "interval": [
+      0.7586208180125915,
+      1.3464857895990858
+     ],
+     "mean_margin": 316.19140625,
+     "strength": 1.0055636099867629
+    },
+    "f00-01": {
+     "disqualified": false,
+     "fault_rate": 0.0,
+     "interval": [
+      -0.8559192734045356,
+      -0.3179524847715539
+     ],
+     "mean_margin": -182.05859375,
+     "strength": -0.5801690634580026
+    },
+    "f00-02": {
+     "disqualified": false,
+     "fault_rate": 0.0,
+     "interval": [
+      -0.01949560108877621,
+      0.6626726322846126
+     ],
+     "mean_margin": 86.7578125,
+     "strength": 0.28990917717401266
+    },
+    "f00-03": {
+     "disqualified": false,
+     "fault_rate": 0.0,
+     "interval": [
+      1.1179187433773574,
+      1.8920200117423713
+     ],
+     "mean_margin": 418.76171875,
+     "strength": 1.4335379138688151
+    },
+    "f00-04": {
+     "disqualified": false,
+     "fault_rate": 0.0,
+     "interval": [
+      -0.09700092270583029,
+      0.5587455903970524
+     ],
+     "mean_margin": 71.078125,
+     "strength": 0.25383834335366545
+    },
+    "f00-05": {
+     "disqualified": false,
+     "fault_rate": 0.0,
+     "interval": [
+      -2.672319742062427,
+      -1.4126474394078545
+     ],
+     "mean_margin": -379.9140625,
+     "strength": -1.949233514927755
+    },
+    "f00-06": {
+     "disqualified": false,
+     "fault_rate": 0.0,
+     "interval": [
+      0.36066170483130255,
+      1.1695299166212896
+     ],
+     "mean_margin": 244.13671875,
+     "strength": 0.7610300535080884
+    },
+    "f00-07": {
+     "disqualified": false,
+     "fault_rate": 0.0,
+     "interval": [
+      -0.01859953230962815,
+      0.9950719398650848
+     ],
+     "mean_margin": 70.87109375,
+     "strength": 0.45197441645343556
+    },
+    "starter": {
+     "disqualified": false,
+     "fault_rate": 0.0,
+     "interval": [
+      -3.394229751781213,
+      -2.767331249146354
+     ],
+     "mean_margin": -645.82421875,
+     "strength": -2.9997318428180697
+    }
+   },
    "slots": [
     "f00-00",
     "f00-01",
@@ -1216,14 +1319,19 @@
    "results_commit": "f6386f4b2492963b7bacf926bf6ac2a462ecd7f1",
    "retries": 0,
    "spotcheck": {
+    "arrived_at": 1792859927,
     "games": 24,
     "job": "r00-A-spot",
+    "mismatches": [],
+    "missing": 0,
     "pushed_at": 1792859787,
     "pushed_commit": "0d46df721b989ceb7f805cfedb9579aa9961bf62",
-    "status": "pending"
+    "results_commit": "ef4ca4462e43e781073e873cc085dfac0d2ecc19",
+    "runner": "ubuntu-22.04",
+    "status": "done"
    },
    "stage": "A",
-   "status": "arrived"
+   "status": "verified"
   }
  },
  "launch_errors_in_a_row": 0,
@@ -1259,10 +1367,12 @@
   "2026-10-24T16:33:52Z g00 phase EVAL_A_PENDING",
   "2026-10-24T16:34:02Z g00 r00-A: pushed b76713dd14 with 36 shards",
   "2026-10-24T16:36:16Z g00 phase EVAL_A_DONE: results for r00-A",
-  "2026-10-24T16:36:27Z g00 r00-A-spot: pushed 0d46df721b (24 sampled games, 17 shards)"
+  "2026-10-24T16:36:27Z g00 r00-A-spot: pushed 0d46df721b (24 sampled games, 17 shards)",
+  "2026-10-24T16:38:47Z g00 r00-A: verified, 1152 rows, spot-check 24 OK",
+  "2026-10-24T16:38:55Z g00 phase EVAL_B_PENDING: stage A ranked: f00-03, f00-00, f00-06, f00-07, f00-02, f00-04, f00-01, f00-05, starter"
  ],
  "paused": null,
- "phase": "EVAL_A_DONE",
+ "phase": "EVAL_B_PENDING",
  "sessions_launched": 8,
  "version": 1
 }
