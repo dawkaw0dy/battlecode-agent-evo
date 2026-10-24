@@ -81,6 +81,29 @@ bool safe_move(vec2 t) {
     }
 }
 
+// Basic attack, then spend a ready attack reset on a second hit at the same tile.
+template <class Lookup>
+void attack_twice(vec2 tile, Lookup lookup) {
+    auto& me = cambc::self();
+    auto first = lookup(tile);
+    if (!first || !me.can_attack()) return;
+    me.attack(*first);
+    if (me.can_attack() || !me.can_cast()) return;
+    for (const auto& ab : me.abilities()) {
+        if (!ab.is_attack_reset() || !ab.is_ready()) continue;
+        try {
+            if (!ab.use()) return;
+        } catch (const cambc::error& e) {
+            // "An available attack cannot be reset": the engine disagrees about the allowance.
+            if (e.code() == cambc::error_code::invalid_action_spell_cast_cant_cast) return;
+            throw;
+        }
+        auto again = lookup(tile);
+        if (again && me.can_attack()) me.attack(*again);
+        return;
+    }
+}
+
 struct CampStat { float hp, str; int range; };
 CampStat camp_stat(int kind) {
     switch (static_cast<cambc::camp_type>(kind)) {
@@ -587,7 +610,7 @@ bool Bot::fight_group() {
         cast_on_camp(tgt->pos);
         if (me.can_attack()) {
             auto c = camp_here(tgt->pos);
-            if (c && c->is_alive()) me.attack(*c);
+            if (c && c->is_alive()) attack_twice(tgt->pos, camp_here);
         }
         return true;
     }
@@ -604,7 +627,7 @@ bool Bot::fight_group() {
         for (const auto& l : live) {
             if (!atk2.is_set(l.pos)) continue;
             auto c = camp_here(l.pos);
-            if (c && c->is_alive()) { me.attack(*c); break; }
+            if (c && c->is_alive()) { attack_twice(l.pos, camp_here); break; }
         }
     }
     return true;
@@ -686,13 +709,13 @@ void Bot::play_turn_inner() {
             if (weakest && !routed && me.can_attack()) {
                 // Engaged: fleeing only hands out free hits, so fight back.
                 auto c = champion_here(weakest->pos);
-                if (c) { me.attack(*c); return; }
+                if (c) { attack_twice(weakest->pos, champion_here); return; }
             }
             if (routed || outmatched) {
                 if (flee(threats)) return;
                 if (weakest && me.can_attack()) {
                     auto c = champion_here(weakest->pos);
-                    if (c) me.attack(*c);
+                    if (c) attack_twice(weakest->pos, champion_here);
                 }
                 return;
             }
