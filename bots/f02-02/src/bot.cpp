@@ -78,6 +78,7 @@ struct View {
     cambc::bitboard vis, camps, champs, tele;
     Bits lvis, lcamps, lchamps, ltele;
     std::vector<vec2> allies;  // allied positions, including ones hidden in bushes
+    std::vector<cambc::champion_type> ally_types;  // ... and who stands there
     bool ok = false;
 };
 View g_view;
@@ -89,6 +90,7 @@ const View& view() {
         g_view.champs = cambc::vision::champion_tiles();
         g_view.tele = cambc::vision::teleport_tiles();
         g_view.allies.clear();
+        g_view.ally_types.clear();
         static std::vector<cambc::champion> others;  // allied handles other than ours, built once
         static bool built = false;
         if (!built) {
@@ -103,6 +105,7 @@ const View& view() {
                 const vec2 p = a.position();
                 if (inside(p)) {
                     g_view.allies.push_back(p);
+                    g_view.ally_types.push_back(a.champion_name());
                     g_view.champs.set(p);
                 }
             } catch (const cambc::error&) {}
@@ -1032,9 +1035,22 @@ int Bot::choose(int& wait_out) {
         const float base_t = e + wait + kCaptureTurns;
         Plan plan;
         if (k.state == Known::reward) {
-            // Raiders split a boss's reward; anyone else's capture is theirs.
-            if (g.boss) plan.n = claimers + 1;
-            else for (int c = 0; c < claimers; ++c) f *= 0.3f;
+            // The claimers nearest the region capture (raiders split a boss's reward, as many as its
+            // region holds; one is enough elsewhere); the others move on.
+            const int room = g.boss ? static_cast<int>(g.tiles.size()) : 1;
+            int nearer = 0;
+            if (claimers > 0) {
+                const int mine = cheb(pos_, g.center);
+                const auto& v = view();
+                for (size_t a = 0; a < v.allies.size(); ++a) {
+                    const int o = slot_of(v.ally_types[a], size_);
+                    if (o < 0 || o > 4 || claims[static_cast<size_t>(o)] != i + 1) continue;
+                    const int theirs = cheb(v.allies[a], g.center);
+                    if (theirs < mine || (theirs == mine && o < slot_)) ++nearer;
+                }
+            }
+            if (nearer >= room) f *= 0.1f;
+            else plan.n = std::min(claimers + 1, room);
             plan.score = value / plan.n * f / (e + kCaptureTurns + bank / plan.n);
         } else {
             if (value * f / (base_t + bank) <= best_plan.score) continue;
