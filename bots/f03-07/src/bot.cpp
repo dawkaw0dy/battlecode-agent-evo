@@ -764,7 +764,7 @@ bool Bot::attack_camps(int gi) {
     if (best_g < 0) return false;
     // Only wake a different group when it is awake already (it hits us anyway).
     const vec2 t = groups[best_g].tiles[best_i];
-    if (best_g != gi) {
+    if (best_g != gi && gi != -2) {
         bool awake = false;
         try { awake = cambc::vision::awake_camp_tiles().is_set(t); } catch (const std::exception&) {}
         if (!awake) return false;
@@ -819,7 +819,11 @@ void Bot::farm() {
         // Capture: stand on one of the group's tiles.
         bitboard goals;
         for (auto t : g.tiles) goals.set(t);
-        if (goals.is_set(pos)) return;
+        if (goals.is_set(pos)) {
+            // Standing still for the capture: work on a neighbouring camp meanwhile.
+            if (me.health() > me.max_health() * 0.6f) attack_camps(-2);
+            return;
+        }
         try {
             goals &= ~(cambc::vision::awake_camp_tiles() | cambc::vision::asleep_camp_tiles()
                 | cambc::vision::champion_tiles());
