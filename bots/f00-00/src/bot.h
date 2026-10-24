@@ -5,10 +5,26 @@
 #include <vector>
 #include "plan.h"
 
-// A static path field toward a set of root tiles, with the tiles it reached.
+// Row-major copy of a bitboard, read without host calls (each host call costs real fuel).
+struct Bits {
+    std::vector<std::uint8_t> bytes;
+    int width = 0;
+    Bits() = default;
+    explicit Bits(const cambc::bitboard& board) : bytes(board.export_linear_buffer()), width(cambc::map::width()) {}
+    // Position must be inside the map.
+    bool get(cambc::vec2 p) const {
+        const int i = p.y * width + p.x;
+        return (bytes[static_cast<std::size_t>(i >> 3)] >> (i & 7)) & 1;
+    }
+};
+
+// A path field toward a set of root tiles, with the tiles it reached, mirrored into wasm memory.
 struct Field {
     cambc::distance_field dist;
     cambc::bitboard seen, roots;
+    std::vector<std::uint16_t> values;
+    Bits reached;
+    void compute(const cambc::bitboard& walls, const cambc::bitboard& from);
     int at(cambc::vec2 p) const;
 };
 
@@ -37,6 +53,7 @@ class Bot {
     Plan plan;
     std::vector<Group> groups;
     cambc::bitboard walls;
+    Bits wall_bits, avoid_bits;
     std::unique_ptr<Field> detour;
     const Field* detour_for = nullptr;
     int detour_until = -1;

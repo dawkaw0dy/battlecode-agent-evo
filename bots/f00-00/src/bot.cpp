@@ -71,15 +71,22 @@ std::uint8_t read_shared(int offset) {
 }
 } // namespace
 
+void Field::compute(const cambc::bitboard& walls, const cambc::bitboard& from) {
+    dist.compute(walls, from, seen);
+    values = dist.export_linear_buffer();
+    reached = Bits(seen);
+}
+
 int Field::at(vec2 p) const {
-    if (!in_bounds(p) || !seen.is_set(p)) return far_away;
-    return dist.get(p);
+    if (!in_bounds(p) || !reached.get(p)) return far_away;
+    return values[static_cast<std::size_t>(p.y * reached.width + p.x)];
 }
 
 void Bot::init() {
     auto& me = cambc::self();
     plan = the_plan();
     walls = static_walls();
+    wall_bits = Bits(walls);
     const auto handles = cambc::map::camp_groups();
     groups.reserve(handles.size());
     const bool plan_ok = plan.ngroups == std::min<std::size_t>(handles.size(), max_groups);
@@ -104,9 +111,19 @@ void Bot::init() {
                 if (in_bounds(t) && !walls.is_set(t)) altar_roots.set(t);
             }
     altar_field.roots = altar_roots;
-    altar_field.dist.compute(walls, altar_roots, altar_field.seen);
+    altar_field.compute(walls, altar_roots);
     home_field.roots = cambc::map::spawn_region(team::ally);
-    home_field.dist.compute(walls, home_field.roots, home_field.seen);
+    home_field.compute(walls, home_field.roots);
+    if (trace) {
+        int mismatches = 0;
+        for (int y = 0; y < cambc::map::height(); y += 3)
+            for (int x = 0; x < cambc::map::width(); x += 3) {
+                const vec2 p{x, y};
+                const int slow = home_field.seen.is_set(p) ? home_field.dist.get(p) : far_away;
+                if (slow != home_field.at(p) || walls.is_set(p) != wall_bits.get(p)) ++mismatches;
+            }
+        std::cout << "linear check mismatches " << mismatches << '\n';
+    }
 
     const auto team_list = cambc::champions(team::ally);
     bodies = static_cast<int>(team_list.size());
@@ -127,18 +144,18 @@ const Field& Bot::group_field(int index) {
     if (!g.field) {
         g.field = std::make_unique<Field>();
         g.field->roots = g.tiles;
-        g.field->dist.compute(walls, g.tiles, g.field->seen);
+        g.field->compute(walls, g.tiles);
     }
     return *g.field;
 }
 
 void Bot::update_groups() {
     const auto pos = cambc::self().position();
-    const auto visible = cambc::vision::visible_tiles();
+    const Bits visible(cambc::vision::visible_tiles());
     const int round = static_cast<int>(cambc::round_number());
     for (auto& g : groups) {
         if (cheb(g.facts.center, pos) > 14) continue;
-        if ((g.tiles & visible).is_empty()) continue;
+        if (std::none_of(g.facts.tiles.begin(), g.facts.tiles.end(), [&](vec2 t) { return visible.get(t); })) continue;
         try {
             const auto state = g.handle.state();
             if (std::holds_alternative<cambc::map::camp_group_alive>(state)) {
@@ -218,6 +235,7 @@ bool Bot::step_along(const Field& field, bool roots_are_targets) {
     const int round = static_cast<int>(cambc::round_number());
     const auto camps = cambc::vision::camp_tiles();
     const auto blocked = walls | cambc::vision::champion_tiles() | camps | cambc::vision::teleport_tiles();
+    const Bits blocked_bits(blocked), camp_bits(camps);
 
     // Pick the best free neighbour on a field; report whether a unit or camp blocks a better one.
     const auto pick = [&](const Field& f, bool& unit_blocked, bool& camp_blocked) {
@@ -228,14 +246,14 @@ bool Bot::step_along(const Field& field, bool roots_are_targets) {
             if (!in_bounds(q)) continue;
             const int v = f.at(q);
             if (v >= best_value) continue;
-            if (blocked.is_set(q)) {
-                if (!walls.is_set(q)) {
+            if (blocked_bits.get(q)) {
+                if (!wall_bits.get(q)) {
                     unit_blocked = true;
-                    if (camps.is_set(q)) camp_blocked = true;
+                    if (camp_bits.get(q)) camp_blocked = true;
                 }
                 continue;
             }
-            if (avoid_active && avoid.is_set(q) && !avoid.is_set(pos)) continue;
+            if (avoid_active && avoid_bits.get(q) && !avoid_bits.get(pos)) continue;
             best = q;
             best_value = v;
         }
@@ -257,7 +275,7 @@ bool Bot::step_along(const Field& field, bool roots_are_targets) {
         }
         auto dyn_walls = (camp_blocked ? (walls | camps) : blocked) & ~detour->roots;
         dyn_walls.set(pos, false);
-        detour->dist.compute(dyn_walls, detour->roots, detour->seen);
+        detour->compute(dyn_walls, detour->roots);
         detour_for = &field;
         detour_until = round + (camp_blocked ? 60 : 3);
         bool ub = false, cb = false;
@@ -271,13 +289,14 @@ bool Bot::step_away(const cambc::bitboard& threat) {
     auto& me = cambc::self();
     if (walked_fail || cast_exclusive || !me.can_move()) return false;
     const auto pos = me.position();
-    const auto blocked = walls | cambc::vision::champion_tiles() | cambc::vision::camp_tiles() | cambc::vision::teleport_tiles();
+    const Bits blocked(walls | cambc::vision::champion_tiles() | cambc::vision::camp_tiles() | cambc::vision::teleport_tiles());
+    const Bits danger(threat);
     vec2 best = pos;
-    int best_cost = (threat.is_set(pos) ? 100000 : 0) + home_field.at(pos);
+    int best_cost = (danger.get(pos) ? 100000 : 0) + home_field.at(pos);
     for (auto d : directions) {
         const vec2 q = pos + d;
-        if (!in_bounds(q) || blocked.is_set(q)) continue;
-        const int cost = (threat.is_set(q) ? 100000 : 0) + home_field.at(q);
+        if (!in_bounds(q) || blocked.get(q)) continue;
+        const int cost = (danger.get(q) ? 100000 : 0) + home_field.at(q);
         if (cost < best_cost) { best = q; best_cost = cost; }
     }
     if (best == pos) return false;
@@ -288,10 +307,10 @@ bool Bot::step_off(const cambc::bitboard& avoid) {
     auto& me = cambc::self();
     if (walked_fail || cast_exclusive || !me.can_move()) return false;
     const auto pos = me.position();
-    const auto blocked = walls | avoid | cambc::vision::champion_tiles() | cambc::vision::camp_tiles() | cambc::vision::teleport_tiles();
+    const Bits blocked(walls | avoid | cambc::vision::champion_tiles() | cambc::vision::camp_tiles() | cambc::vision::teleport_tiles());
     for (auto d : directions) {
         const vec2 q = pos + d;
-        if (!in_bounds(q) || blocked.is_set(q)) continue;
+        if (!in_bounds(q) || blocked.get(q)) continue;
         return walk(q);
     }
     return false;
@@ -522,7 +541,7 @@ int Bot::choose_target(float keep_bonus) {
     Field from_me;
     cambc::bitboard root;
     root.set(pos);
-    from_me.dist.compute(walls, root, from_me.seen);
+    from_me.compute(walls, root);
 
     std::vector<int> claims(groups.size(), 0);
     for (int s = 0; s < std::min(bodies, 8); ++s) {
@@ -744,6 +763,7 @@ void Bot::play_turn() {
     if (avoid_active) {
         avoid.clear();
         for (const auto& e : enemies) add_square(avoid, e.pos, 3);
+        avoid_bits = Bits(avoid);
     }
     bool chased = false;
     const int now = static_cast<int>(cambc::round_number());
