@@ -36,7 +36,7 @@ e00-01 / e00-03 24/24 (8 mixed maps unless stated).
   the Vesper/Ryth/Tavi-first draft: 8/12 and 11/16.
 - Regroup mode (leader retreats to spawn when fewer than 2 allies are near after recent enemy contact): 8/16 vs 11/16.
 - More aggressive hunting (balance 0.9, 25 rounds): 8/16 vs 11/16. Bank at 16 gems: +104 vs +187. Retreat at 0.8: worse
-  than 0.55 vs e02-01 (12/16 vs 15/16).
+  than 0.55 vs e02-01 (12/16 vs 15/16); retreat at 0.45: 11/16 +98 vs 13/16 +212 vs e07-05.
 - Using Tavi's damaging stun on camps whenever no enemy is visible: 7/16 vs 10-11/16 vs e07-05 (stun not ready for fights).
 
 ## Known weaknesses
