@@ -277,7 +277,9 @@
    "generation": 0,
    "id": "f00-07",
    "kind": "immigrant",
-   "nudged": [],
+   "nudged": [
+    "session_01JezuLUfbCXZ6xG6xtgPh4u"
+   ],
    "operator": null,
    "parents": [
     "starter"
