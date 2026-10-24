@@ -22,6 +22,7 @@ int dbg_reason = 0;
 int W = 0, H = 0;
 constexpr float DANGER = 0.75f;
 constexpr int THREAT_R = 5;
+constexpr unsigned SHOP_GOLD = 150;
 constexpr float OUTMATCH = 1.1f;
 constexpr std::uint16_t UNR = distance_field::unreachable;
 constexpr std::array<vec2, 8> DIRS{vec2{0, 1}, vec2{1, 1}, vec2{1, 0}, vec2{1, -1},
@@ -372,7 +373,9 @@ void Bot::choose_target(const distance_field& from_me, const bitboard& reach) {
     const int now = static_cast<int>(cambc::round_number());
     const float my_str = std::max(1.0f, me.strength());
     const float my_hp = me.health();
-    const int allies = static_cast<int>(cambc::champions(team::ally).size());
+    int helpers = 1;
+    for (auto p : cambc::vision::champion_tiles(team::ally).positions())
+        if (p != me.position() && cheb(p, me.position()) <= 8) ++helpers;
     std::array<int, 8> claims{};
     for (int j = 0; j < 8; ++j) claims[j] = j == my_index ? -1 : read_claim(j);
     const float gold_w = 0.33f;
@@ -393,26 +396,12 @@ void Bot::choose_target(const distance_field& from_me, const bitboard& reach) {
         int claimants = 0;
         for (int j = 0; j < 8; ++j) if (claims[j] == static_cast<int>(i)) ++claimants;
         float factor = 1.0f;
-        float dps = my_str + 50.0f * claimants;
+        const float k = static_cast<float>(std::max(helpers, 1 + claimants));
+        const float dps = my_str * k;
         if (g.monsters > 0) {
-            const float team_hp = my_hp + 750.0f * claimants;
-            const float ttk = g.monster_hp / dps;
-            const float dmg = g.strength * ttk * (g.monsters > 1 ? 0.7f : 1.0f);
-            if (claimants > 0) {
-                // Already clearable without us? Then we add little.
-                const float o_dps = 50.0f * claimants, o_hp = 750.0f * claimants;
-                const float o_dmg = g.strength * (g.monster_hp / o_dps) * (g.monsters > 1 ? 0.7f : 1.0f);
-                if (o_dmg <= DANGER * o_hp && claimants >= 2) factor = 0.35f;
-            }
-            if (dmg > DANGER * team_hp) {
-                // Needs a coalition: worth proposing only if the whole team could do it.
-                const float all_dps = my_str + 50.0f * (allies - 1);
-                const float all_hp = my_hp + 750.0f * (allies - 1);
-                const float all_dmg = g.strength * (g.monster_hp / all_dps) * (g.monsters > 1 ? 0.7f : 1.0f);
-                if (allies < 2 || all_dmg > DANGER * all_hp) continue;
-                factor = 0.45f;
-                dps = all_dps;
-            }
+            // Camps hit the nearest champion; spread the expected damage over the helpers.
+            const float dmg = g.strength * (g.monster_hp / dps) / k * (g.monsters > 1 ? 0.7f : 1.0f);
+            if (dmg > DANGER * my_hp) factor = 0.05f;   // last resort only
         } else if (claimants > 0) {
             factor = 0.1f;                             // someone else is already on this harmless group
         }
@@ -533,37 +522,6 @@ bool Bot::fight_group() {
         return true;
     }
 
-    // Enough allies here to clear it safely?
-    if (strength > 0 && !any_awake) {
-        float dps = 0, hp = 0;
-        int monsters = 0;
-        for (const auto& l : live) if (l.str > 0) ++monsters;
-        for (auto p : cambc::vision::champion_tiles(team::ally).positions()) {
-            if (cheb(p, live[0].pos) > 7) continue;
-            auto c = champion_here(p);
-            if (!c) continue;
-            dps += c->strength();
-            hp += c->health();
-        }
-        dps = std::max(dps, 1.0f);
-        const float dmg = strength * (monster_hp / dps) * (monsters > 1 ? 0.7f : 1.0f);
-        if (dmg > DANGER * hp) {
-            if (++wait_turns > 30) {
-                banned_until[target] = now + 120;
-                target = -1;
-                wait_turns = 0;
-                { dbg_reason = 5; return false; }
-            }
-            // Wait next to the group without waking it.
-            bitboard goals;
-            goals.clear();
-            for (const auto& l : live) goals |= square(l.pos, range + 1);
-            for (const auto& l : live) goals &= ~square(l.pos, 1);
-            goals &= ~static_walls;
-            if (!goals.is_set(pos)) step_to(goals);
-            return true;
-        }
-    }
     wait_turns = 0;
 
     // Choose a camp: killing blows first, then monsters (lowest health), then clusters.
@@ -703,8 +661,8 @@ void Bot::play_turn_inner() {
     act = 7;
 
     // Recall early to shop and heal.
-    if (!at_spawn && gems == 0 && hp < 0.6f * max_hp && me.gold_count() >= 120
-        && spawn_field.get(pos) > 10 && !camp_threat_at(pos) && enemies.empty()) {
+    if (!at_spawn && gems < 10 && (me.gold_count() >= SHOP_GOLD || (hp < 0.6f * max_hp && me.gold_count() >= 90))
+        && spawn_field.get(pos) > 6 && !camp_threat_at(pos) && enemies.empty()) {
         me.recall();
         return;
     }
