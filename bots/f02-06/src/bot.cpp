@@ -584,6 +584,29 @@ bool has_passive(cambc::item_passive p) {
     return p == cambc::item_passive::jungle ? jungle : monster;
 }
 
+void safe_recall() {
+    try {
+        if (live() && !cambc::self().restrictions().contains(cambc::buff_restrictions::move)) cambc::self().recall();
+    } catch (const cambc::error& e) { warn("recall", e); }
+}
+
+// Outside raids the same byte holds our claimed target group (top bit clear).
+void write_claim(int gi) {
+    if (g_my_index > 5) return;
+    std::array<std::uint8_t, 1> b{static_cast<std::uint8_t>(gi >= 0 && gi < 127 ? gi + 1 : 0)};
+    cambc::shared_memory.write(2 + static_cast<size_t>(g_my_index), std::span<std::uint8_t>{b});
+}
+std::array<std::uint8_t, 6> g_claims{};
+void read_claims() { cambc::shared_memory.read(2, std::span<std::uint8_t>{g_claims}); }
+bool claimed_by_other(int gi) {
+    for (int i = 0; i < 6; ++i) {
+        if (i == g_my_index) continue;
+        const auto v = g_claims[static_cast<size_t>(i)];
+        if (!(v & 128) && v == gi + 1) return true;
+    }
+    return false;
+}
+
 float my_dps() {
     auto& me = cambc::self();
     return me.strength() * 1.1f + me.focus() * 0.3f;
@@ -614,8 +637,8 @@ bool handle_enemies(const std::vector<Foe>& foes) {
     float theirs = 0;
     int closest = 99;
     for (const auto& f : foes) { theirs += f.hp * (f.str + 30.0f); closest = std::min(closest, cheb(f.p, pos)); }
-    const float need = 1.0f + static_cast<float>(me.gem_count()) / 150.0f;
-    if (ours >= theirs * need && me.health() > me.max_health() * 0.3f) {
+    const float need = 1.2f + static_cast<float>(me.gem_count()) / 100.0f;
+    if (ours >= theirs * need && me.health() > me.max_health() * 0.45f && near_allies + 1 >= static_cast<int>(foes.size())) {
         // Fight: spells and basic attack on the weakest enemy in range.
         const Foe* best = nullptr;
         for (const auto& f : foes)
@@ -654,7 +677,7 @@ bool handle_enemies(const std::vector<Foe>& foes) {
         }
         return false;
     }
-    if (closest <= 5) {
+    if (closest <= 6) {
         std::vector<vec2> threats;
         for (const auto& f : foes) threats.push_back(f.p);
         step_away(threats);
@@ -725,9 +748,7 @@ float target_score(int gi, vec2 pos, float dps, float hp_now, float maxhp, float
     if (gi == target) s *= 1.3f;
     if (x.state == 1) s *= 1.4f;
     // Allies already on a small group: leave it to them.
-    int ally_near = 0;
-    for (vec2 a : g_allies) if (cheb(a, x.center) <= 3 && cheb(a, x.center) < cheb(pos, x.center)) ++ally_near;
-    if (ally_near > 0 && hp_left < 1500) s *= 0.35f;
+    if (claimed_by_other(gi)) s *= hp_left > 3000 ? 0.7f : 0.15f;
     // Enemy half: closer to their spawn than to ours.
     if (cheb(x.center, g_enemy_spawn_pos) + 4 < cheb(x.center, g_spawn_pos)) s *= 0.75f;
     return s;
@@ -761,7 +782,15 @@ struct FuelReport {
     }
 };
 
+void play_turn_inner();
+
 void Bot::play_turn() {
+    try {
+        play_turn_inner();
+    } catch (const std::exception& e) { warn("turn", e); }
+}
+
+void play_turn_inner() {
     FuelReport fuel_report;
     g_round = cambc::round_number();
     moved = attacked = cast_done = no_move = false;
@@ -830,12 +859,20 @@ void Bot::play_turn() {
     if (!live()) return;
 
     // Retreat when hurt: leave camp range, then recall.
-    const float low = std::max(maxhp * 0.3f, static_cast<float>(hp_drop) * 2.5f);
+    float incoming = 0;
+    for (vec2 t : threats) {
+        const int gi = g_tile_group[static_cast<size_t>(tidx(t))];
+        if (gi < 0) continue;
+        const Group& x = G[static_cast<size_t>(gi)];
+        for (size_t i = 0; i < x.tiles.size(); ++i) if (x.tiles[i] == t) incoming += x.str[i];
+    }
+    incoming *= mult;
+    const float low = std::max({maxhp * 0.35f, static_cast<float>(hp_drop) * 3.0f, incoming * 4.0f});
     if (!at_spawn && (hp < low || (retreating && hp < maxhp * 0.6f))) {
         retreating = true;
         g_branch = "retreat";
         if (threats.empty() && foes.empty()) {
-            if (live()) me.recall();
+            safe_recall();
             return;
         }
         // Keep hitting a nearly dead target rather than walking away.
@@ -847,7 +884,7 @@ void Bot::play_turn() {
 
     // Shopping trip when rich and idle.
     if (!at_spawn && me.gold_count() >= 300 && threats.empty() && g_home.at(pos) > 8 && me.gem_count() < 10) {
-        if (live()) me.recall();
+        safe_recall();
         return;
     }
 
@@ -855,8 +892,8 @@ void Bot::play_turn() {
     const int gems = static_cast<int>(me.gem_count());
     const int altar_d = g_altar_dist.at(pos);
     const bool bank = gems > 0 && altar_d < kFar
-        && (gems >= 40 || (gems >= 12 && altar_d <= 8) || (raid >= 0 && gems >= 8) || (g_round > 1880) || (gems >= 4 && altar_d <= 2));
-    if (bank && threats.empty()) {
+        && (gems >= 30 || (gems >= 12 && altar_d <= 10) || (raid >= 0 && gems >= 8) || (g_round > 1880) || (gems >= 4 && altar_d <= 2));
+    if (bank && (threats.empty() || gems >= 25)) {
         g_branch = "bank";
         for (vec2 a : g_altars) {
             if (cheb(a, pos) > 1) continue;
@@ -875,7 +912,8 @@ void Bot::play_turn() {
     if (raid < 0 && static_cast<int>(g_round) >= boss_round && raid_age() >= 120) {
         for (size_t gi = 0; gi < G.size(); ++gi) {
             if (!G[gi].big) continue;
-            if (G[gi].mono && (g_round < 300 || bought < 5)) continue;
+            if (G[gi].mono && (g_round < 350 || bought < 8 || g_team < 4)) continue;
+            if (!G[gi].mono && bought < 3) continue;
             if (group_dist(static_cast<int>(gi), pos) >= kFar) continue;
             if (raid_feasible(static_cast<int>(gi), dps, maxhp, mult)) {
                 set_raid(static_cast<int>(gi));
@@ -946,6 +984,7 @@ void Bot::play_turn() {
     }
 
     // Farm: choose the best group.
+    read_claims();
     {
         float best = 0;
         int bi = -1;
@@ -955,6 +994,7 @@ void Bot::play_turn() {
             if (s > best) { best = s; bi = static_cast<int>(gi); }
         }
         if (bi != target) { target = bi; target_since = static_cast<int>(g_round); stall = 0; }
+        write_claim(target);
     }
     if (target < 0) {
         // Nothing worth doing: bank gems or go home.
