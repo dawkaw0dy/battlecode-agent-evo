@@ -210,7 +210,7 @@ bool Bot::walk(vec2 destination) {
     return ok;
 }
 
-bool Bot::step_along(const Field& field) {
+bool Bot::step_along(const Field& field, bool roots_are_targets) {
     auto& me = cambc::self();
     if (walked_fail || cast_exclusive || !me.can_move()) return false;
     const auto pos = me.position();
@@ -249,10 +249,15 @@ bool Bot::step_along(const Field& field) {
         // Route around what we can see. Camps do not move, so a detour around them is kept
         // until we arrive; a detour around champions only for a few turns.
         if (!detour) detour = std::make_unique<Field>();
-        auto dyn_walls = (camp_blocked ? (walls | camps) : blocked) & ~field.roots;
-        dyn_walls.set(pos, false);
+        // Occupied goal tiles (a camp on an altar approach, an ally on spawn) are not goals.
         detour->roots = field.roots;
-        detour->dist.compute(dyn_walls, field.roots, detour->seen);
+        if (!roots_are_targets) {
+            auto free_roots = field.roots & ~blocked;
+            if (!free_roots.is_empty()) detour->roots = free_roots;
+        }
+        auto dyn_walls = (camp_blocked ? (walls | camps) : blocked) & ~detour->roots;
+        dyn_walls.set(pos, false);
+        detour->dist.compute(dyn_walls, detour->roots, detour->seen);
         detour_for = &field;
         detour_until = round + (camp_blocked ? 60 : 3);
         bool ub = false, cb = false;
@@ -426,6 +431,7 @@ bool Bot::basic_attack() {
 
 bool Bot::try_bank() {
     auto& me = cambc::self();
+
 
     const unsigned gems = me.gem_count();
     if (gems == 0) return false;
@@ -638,7 +644,7 @@ bool Bot::farm() {
     } else if (field.at(pos) <= 1 && g.respawn_at > 0) {
         return true; // wait beside the region for the respawn
     }
-    step_along(field);
+    step_along(field, true);
     return true;
 }
 

@@ -59,7 +59,7 @@ class Bot {
     void recall();
     float my_dps() const;
     bool walk(cambc::vec2 destination);
-    bool step_along(const Field& field);
+    bool step_along(const Field& field, bool roots_are_targets = false);
     bool step_away(const cambc::bitboard& threat);
     bool step_off(const cambc::bitboard& avoid);
     bool try_spells();
