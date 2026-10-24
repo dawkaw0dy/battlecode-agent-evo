@@ -44,6 +44,7 @@ sighting (shared memory) the team packs up on the lowest-index champion's target
 - Angular sectors per champion (f00-03 style, ×0.45 outside own sector): clearly worse here (−756 vs −579).
 - Drafting the opponents' line-up (Vesper, Vendetta, Marcella, Tavi with remote shopping, Varg): worse.
 - Max 3 trips per group, gold weight 0.8/0.4 or 0.3/0.2, softer claim factor 0.4: within noise or worse.
+- Recalling to heal/shop whenever a respawn wait outlasts the round trip: 2/20 vs 6/20 on ten maps.
 - Some camp tiles fail every attack (engine error 42/98 although visible); skip such a tile for 20 rounds.
 
 ## Known weaknesses
