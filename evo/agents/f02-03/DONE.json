@@ -1,0 +1,27 @@
+{
+ "agent": "f02-03",
+ "task_sha256": "d5806abfe9787e2227cedf2c0e566679071fbcb2cb3303bc114c3df19f10d8a1",
+ "base_commit": "e64ed4997ace0131444bfcb3d1ecab238ef7b94a",
+ "session_id": "cse_01SKqAdwQhhAfbSnvF9igfYB",
+ "bot_dir": "bots/f02-03",
+ "self_eval": {
+  "vs": "f01-03",
+  "games": 80,
+  "wins": 42
+ },
+ "games_played": 876,
+ "summary": "f01-07 + f01-03 fight/spell module, stun targeting, flee stun, kite casts, run shield, camp-spell reserve: 42/80 vs f01-03, 47/80 vs f00-03, 57/80 vs f01-07",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "54eb070b451545432474025de1d9caf3a5088efc5c73bd5cae48adeb56c738fa",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 16.5,
+  "remote": "true",
+  "session_id": "cse_01SKqAdwQhhAfbSnvF9igfYB",
+  "effort_level": "high",
+  "model": null
+ }
+}
