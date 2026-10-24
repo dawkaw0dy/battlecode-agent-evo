@@ -317,7 +317,9 @@
     "B": [
      "r00-B"
     ],
-    "C": []
+    "C": [
+     "r00-C"
+    ]
    },
    "members": [
     "f00-00",
@@ -1773,6 +1775,56 @@
      ]
     ]
    ],
+   "plan_C": [
+    [
+     [
+      "f00-00",
+      "f00-07"
+     ],
+     [
+      "h-1b58",
+      "h-1b5b",
+      "h-1b5f",
+      "h-1ce9",
+      "h-1ceb",
+      "h-1cee",
+      "h-1cef",
+      "h-1e7b"
+     ]
+    ],
+    [
+     [
+      "f00-00",
+      "starter"
+     ],
+     [
+      "h-1b58",
+      "h-1b5b",
+      "h-1b5f",
+      "h-1ce9",
+      "h-1ceb",
+      "h-1cee",
+      "h-1cef",
+      "h-1e7b"
+     ]
+    ],
+    [
+     [
+      "f00-07",
+      "starter"
+     ],
+     [
+      "h-1b58",
+      "h-1b5b",
+      "h-1b5f",
+      "h-1ce9",
+      "h-1ceb",
+      "h-1cee",
+      "h-1cef",
+      "h-1e7b"
+     ]
+    ]
+   ],
    "ranking": [
     "f00-03",
     "f00-00",
@@ -2150,6 +2202,14 @@
    },
    "stage": "B",
    "status": "verified"
+  },
+  "r00-C": {
+   "generation": 0,
+   "pushed_at": 1792860248,
+   "pushed_commit": "88146b3cee76c68504d2ef2ca3b019a522a6826f",
+   "retries": 0,
+   "stage": "C",
+   "status": "pending"
   }
  },
  "launch_errors_in_a_row": 0,
@@ -2192,7 +2252,8 @@
   "2026-10-24T16:41:19Z g00 phase EVAL_B_DONE: results for r00-B",
   "2026-10-24T16:41:33Z g00 r00-B-spot: pushed 94e47e9f71 (16 sampled games, 10 shards)",
   "2026-10-24T16:43:49Z g00 r00-B: verified, 800 rows, spot-check 16 OK",
-  "2026-10-24T16:43:57Z g00 phase EVAL_C_PENDING: stage C for f00-00 vs f00-07"
+  "2026-10-24T16:43:57Z g00 phase EVAL_C_PENDING: stage C for f00-00 vs f00-07",
+  "2026-10-24T16:44:08Z g00 r00-C: pushed 88146b3cee with 3 shards"
  ],
  "paused": null,
  "phase": "EVAL_C_PENDING",
