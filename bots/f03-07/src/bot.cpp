@@ -738,8 +738,8 @@ int Bot::choose_target() {
         }
         float wait = 0;
         if (g.state == 3) wait = std::max(0, g.respawn_at - now - d);
-        if (wait > 60) continue;
-        wait *= 1.5f;
+        if (wait > 40) continue;
+        wait *= 2.5f;
         float value = g.gems + gold_w * g.gold;
         if (value <= 0) continue;
         float factor = 1.0f;
