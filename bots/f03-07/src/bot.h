@@ -84,6 +84,7 @@ private:
     int last_enemy_round = -1000;
 
     void init();
+    void turn();
     void assign_sectors(int n);
     void dbg(const char* what);
     void mark(const char* what);

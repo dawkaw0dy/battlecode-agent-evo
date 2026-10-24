@@ -947,6 +947,15 @@ void Bot::farm() {
 
 void Bot::play_turn() {
     turn_round = cambc::round_number();
+    try {
+        turn();
+    } catch (const std::exception&) {
+        // A turn that ran out of fuel resumes a round later on stale state; only then drop the error.
+        if (fresh()) throw;
+    }
+}
+
+void Bot::turn() {
     auto& me = cambc::self();
     if (!inited) init();
     moved = move_failed = attacked = false;
