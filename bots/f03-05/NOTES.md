@@ -31,7 +31,7 @@ All runs bench2.py, 40 maps × both sides, 0 faults / 0 bot errors throughout.
   recalls for a new lock): vs f02-01 66/80 (+450), opponent banked 37k → 33k.
 - Final = v8 + memory of enemy-locked altars (skip them; break the nearest when every altar is locked), and
   locks are broken by submit_gems at the locked altar. Final vs starter 20/20 (10 maps), vs v8 (a lock user)
-  14/30 on mirror-like games, 0 warnings.
+  14/30 on mirror-like games, vs the parent f02-02 31/40 (+454, 20 maps), 0 warnings. 900 games in total.
 
 ## Tried and failed (keep entries from the parent's notes; add yours)
 - Fuel: host calls cost ~30–40 fuel, but every bitboard temporary (&, |, ~, shift) ~600 and a grow(r) ~4k·r;
