@@ -16,6 +16,8 @@ struct Group {
     int respawn_at = 0;         // expected respawn round while state == 3
     int seen = -1000;           // last round a tile of the group was visible
     int home = 0, enemy_home = 0; // walking distance from each spawn
+    int owner = -1;              // champion index whose sector this is
+    bool boss = false;
 };
 
 // One ability slot, read once from the engine.
@@ -82,6 +84,7 @@ private:
     int last_enemy_round = -1000;
 
     void init();
+    void assign_sectors(int n);
     void dbg(const char* what);
     void mark(const char* what);
     void buy_items();

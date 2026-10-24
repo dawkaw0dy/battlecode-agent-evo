@@ -119,6 +119,7 @@ void Bot::init() {
             g.maxhp.push_back(CAMP_HP[t]);
             g.str.push_back(CAMP_STR[t]);
             g.range.push_back(CAMP_RANGE[t]);
+            if (t >= 4) g.boss = true;
             if (p.x >= 0 && p.y >= 0 && p.x < W && p.y < H) tile_owner[p.y * W + p.x] = gi * 256 + ci;
             // Distance from spawn to a free tile next to the camp.
             for (auto d : DIRS) {
@@ -148,6 +149,34 @@ void Bot::init() {
     if (my_index > 4) my_index = 4;
 
     read_kit();
+    assign_sectors(static_cast<int>(handles.size()));
+}
+
+// Same split on every ally: our side's groups sorted by angle around our spawn, cut into equal-value sectors.
+void Bot::assign_sectors(int n) {
+    if (n <= 1) return;
+    const auto spawn = cambc::map::spawn_region(team::ally).positions();
+    if (spawn.empty()) return;
+    float cx = 0, cy = 0;
+    for (auto p : spawn) { cx += p.x; cy += p.y; }
+    cx /= spawn.size();
+    cy /= spawn.size();
+    std::vector<std::pair<float, int>> order;
+    float total = 0;
+    for (std::size_t gi = 0; gi < groups.size(); ++gi) {
+        const auto& g = groups[gi];
+        if (g.home == UNREACHED || g.home > g.enemy_home || g.boss) continue;
+        order.push_back({std::atan2(g.tiles[0].y - cy, g.tiles[0].x - cx), static_cast<int>(gi)});
+        total += g.gems + 0.35f * g.gold;
+    }
+    std::sort(order.begin(), order.end());
+    float acc = 0;
+    for (const auto& [angle, gi] : order) {
+        auto& g = groups[gi];
+        const float v = g.gems + 0.35f * g.gold;
+        g.owner = std::min(n - 1, static_cast<int>((acc + v * 0.5f) / total * n));
+        acc += v;
+    }
 }
 
 // Health first (the archetype), with camp-damage reduction to keep the farming loop alive.
@@ -745,6 +774,7 @@ int Bot::choose_target() {
         if (value <= 0) continue;
         float factor = 1.0f;
         if (g.home > g.enemy_home) factor *= 0.65f;
+        if (g.owner >= 0 && g.owner != my_index) factor *= 0.6f;
         bool engaged = false;
         if (static_cast<int>(gi) == target && g.state != 3) {
             engaged = g.state == 2 || d <= 3;
