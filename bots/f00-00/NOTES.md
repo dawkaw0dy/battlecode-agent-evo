@@ -26,7 +26,8 @@ champion's target. Bank at altars, recall when hurt, shop eagerly, fight by loca
 - Shopping: walk home with >= 150 gold within 10 tiles, recall with >= 210 gold; Tavi shops anywhere.
 - Chases capped at 12 steps without a hit, then 30 rounds off.
 - Capture hold timeout: capture_time + 6 rounds on a region without payout marks it contested for 60 rounds (x0.1).
-- Boss plan: boss_start = 400; boss score 100 / (distance + 10) while alive, skipped while respawning.
+- Boss plan: boss_start = 400 for a monolith/golem guard (0 otherwise); boss score 100 / (distance + 10)
+  while alive, skipped while respawning.
 
 ## Changes this generation
 - New bot (immigrant from starter infrastructure): plan.cpp/h (draft map reading), draft.cpp (plan-based

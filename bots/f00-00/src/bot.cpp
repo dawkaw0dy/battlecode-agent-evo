@@ -557,7 +557,9 @@ Fight Bot::assess_fight(const Seen** weakest) const {
 
 int Bot::choose_target(float keep_bonus) {
     auto& me = cambc::self();
-    constexpr int boss_start = 400;
+    // A monolith or golem guard waits until we have shards; a small guard is cleared at once.
+    const int boss_start = boss >= 0 && (groups[static_cast<std::size_t>(boss)].facts.monolith
+        || groups[static_cast<std::size_t>(boss)].facts.golem) ? 400 : 0;
     const auto pos = me.position();
     const int round = static_cast<int>(cambc::round_number());
 
