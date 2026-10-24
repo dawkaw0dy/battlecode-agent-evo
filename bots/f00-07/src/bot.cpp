@@ -31,7 +31,7 @@ constexpr std::array<vec2, 8> kDirs{vec2{0, 1}, vec2{1, 1}, vec2{1, 0}, vec2{1, 
 //   4..6 call to arms x, y, round & 0xff        7 team camp group index (0xff none)
 float kTeamBonus = 2.5f;  // set per map in init_static
 constexpr float kHealRecall = 0.5f;
-constexpr float kGoldWeight = 0.3f;
+constexpr float kGoldWeight = 0.5f;
 constexpr float kEngage = 0.9f;
 constexpr int kSightX = 0, kSightY = 1, kSightR = 2, kSightF = 3, kCallX = 4, kCallY = 5, kCallR = 6, kTeamGroup = 7;
 
