@@ -14,14 +14,14 @@
 namespace {
 
 using it = cambc::item_type;
-constexpr bool kLog = true;
+constexpr bool kLog = false;
 constexpr int kLogFrom = 1, kLogTo = 0;
 constexpr float kFightRatio = 1.3f;
 constexpr float kHuntRatio = 1.6f;
 constexpr float kStuckBonus = 1.3f;
 constexpr float kGold = 0.35f, kGoldVesper = 0.35f;
 constexpr int kBankGems = 30;
-constexpr bool kHelp = false;
+constexpr bool kHelp = true;
 constexpr int kHelpRange = 14;
 constexpr int kThreat = 4;
 constexpr int kGuardFrom = 250;
