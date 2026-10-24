@@ -1,7 +1,7 @@
 ## Strategy (≤10 lines)
 Vision-ambush immigrant built from the starter's infrastructure only (main loop, build layout).
 Draft: Vesper Vale, Ryth, Tavi, Vendetta, Marcella (stuns and burst for picks, sturdy strength farmers).
-Farming: cached static distance fields per camp group (about 2.3 fuel per tile), group score = (gems + 0.3 gold) /
+Farming: cached static distance fields per camp group (about 2.3 fuel per tile), group score = (gems + min(0.5 gold, 60)) /
 (path or respawn wait + clear time + 8), soft camp-danger penalty, Monolith only with 3+ allies in sight; shared
 team-target group (x2.5 on maps <= 2500 tiles, x1.2 on larger ones). Stall guards ban a group for a while.
 Sightings: 8-byte shared memory carries the most vulnerable enemy seen (flags: count, weak, at altar), a call to arms
@@ -12,7 +12,8 @@ spawn zone (and ignore enemies resting there), stun first then damage spells the
 Wards: placed on hidden bushes near the group we farm or capture, each champion type on its own tile class.
 
 ## Key parameters
-kEngage 0.9 (1.3 tested: worse). kTeamBonus 2.5 small / 1.2 large (area 2500). kGoldWeight 0.3. kHealRecall 0.5
+kEngage 0.9 (1.3 tested: worse). kTeamBonus 2.5 small / 1.2 large (area 2500). kGoldWeight 0.5, gold part capped
+at 60 per group. kHealRecall 0.5
 (0.4 neutral). Shopping recall at 400 gold (300 neutral), or 150 gold and < 60% HP. Recall < 35% HP when no enemy
 within 5 and no awake camp within 4. Bank at 35 gems, 12 within 6 of an altar, 10 with enemies seen, any after 1880.
 Group skipped when respawn wait > 30; banned 40 rounds after 9 contested capture turns or a blocked path, 100 rounds
@@ -20,8 +21,12 @@ after 90 rounds without income on the same target. Field built only when fuel > 
 Items: 5 power shards of the main stat, 5 durability health, 5 main stat, then health/main alternately.
 
 ## Changes this generation
-New bot (immigrant, generation 0). Benchmarks (bench2, both sides): vs starter 77/80 on all 40 maps, 0 faults,
-0 errors; vs e07-07 (run-1 champion) 27/80 on all maps; vs e03-07 10/12, vs e06-04 5/12 on 6 other maps.
+New bot (immigrant, generation 0). Benchmarks (bench2, both sides): vs starter 77/80 on all 40 maps (gold 0.3),
+final version 40/40 on the odd half and 7/8 on the weak maps; 0 faults, 0 errors. vs e07-07 (run-1 champion) 27/80
+on all maps with gold weight 0.3 (25 by tributed gems, -203); gold weight 0.5 raised that to 27 by gems (-162) over
+the same 80 games; the 60-gold cap kept the e07-07 result (10/20 vs 11/20, margin -3 vs -13) and turned
+01yellow-brick-road vs starter from 0/2 into 2/2 (a 600-gold road of clusters no longer outweighs gem camps).
+vs e03-07 10/12, vs e06-04 5/12 on 6 other maps.
 Big fixes along the way: dead camps stay in camp_tiles() (use awake | asleep), dead champions have no position
 (check is_alive first), static fields were never built on large maps (fuel guard 12/tile, real cost 2.3/tile),
 islands need reachability checks, contested captures and blocked paths need bans.
