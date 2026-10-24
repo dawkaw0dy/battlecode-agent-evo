@@ -19565,17 +19565,18 @@
    "status": "verified"
   },
   "g07-C": {
+   "arrived_at": 1792833742,
    "generation": 7,
    "pushed_at": 1792833606,
    "pushed_commit": "758567f785e140c750eaf205c326cd5e30dd021e",
+   "results_commit": "8d6efc7685977948360b000e0f369f21a41786ec",
    "retries": 0,
    "stage": "C",
-   "status": "pending"
+   "status": "arrived"
   }
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-23T18:51:31Z g03 PAUSED: waiting for approval: python -m evo approve 03",
   "2026-10-23T19:21:21Z g03 generation 03 tasks re-rendered after D36 (env_fingerprint in DONE.json; manifest)",
   "2026-10-23T20:31:42Z g03 approval pause cleared: require_approval = false (was: waiting for approval: python -m evo approve 03)",
   "2026-10-23T20:31:54Z g03 phase RUNNING",
@@ -19774,10 +19775,11 @@
   "2026-10-24T09:17:13Z g07 g07-B-spot: pushed b663a53929 (27 sampled games, 19 shards)",
   "2026-10-24T09:19:39Z g07 g07-B: verified, 1326 rows, spot-check 27 OK",
   "2026-10-24T09:19:49Z g07 phase EVAL_C_PENDING: stage C for e07-04 vs e07-01",
-  "2026-10-24T09:20:06Z g07 g07-C: pushed 758567f785 with 9 shards"
+  "2026-10-24T09:20:06Z g07 g07-C: pushed 758567f785 with 9 shards",
+  "2026-10-24T09:22:22Z g07 phase EVAL_C_DONE: results for g07-C"
  ],
  "paused": null,
- "phase": "EVAL_C_PENDING",
+ "phase": "EVAL_C_DONE",
  "sessions_launched": 49,
  "version": 1
 }
