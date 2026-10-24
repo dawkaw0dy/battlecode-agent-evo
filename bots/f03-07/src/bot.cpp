@@ -619,6 +619,17 @@ bool Bot::go_tribute() {
     bool go = gems >= 50 || d <= 3 + gems / 5 || left <= d + (gems + 9) / 10 + 6
         || (now - last_enemy_round < 30 && gems >= 8) || target < 0;
     if (!go) return false;
+    // Give up a trip that stops making progress (blocked or guarded altar) for a while.
+    const bool urgent = left <= d + (gems + 9) / 10 + 6;
+    if (!urgent && now < tribute_ban) return false;
+    if (d < trib_best) { trib_best = d; trib_since = now; }
+    if (now - trib_last > 3) { trib_best = d; trib_since = now; }
+    trib_last = now;
+    if (!urgent && now - trib_since > 10) {
+        tribute_ban = now + 60;
+        trib_best = 1 << 20;
+        return false;
+    }
     step_towards(goals);
     return true;
 }

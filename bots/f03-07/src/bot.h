@@ -74,6 +74,7 @@ private:
     int stuck_turns = 0;
     int heal_wait = 0;
     int bought = 0;
+    int tribute_ban = 0, trib_best = 1 << 20, trib_since = 0, trib_last = -100;
     int modes[12] = {};
     int flee_until = -1;
     cambc::vec2 last_enemy{-1, -1};
