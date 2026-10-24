@@ -19,6 +19,7 @@ using it = cambc::item_type;
 
 constexpr bool kDebug = true;
 std::uint32_t g_round = 0;
+const char* g_branch = "";
 bool live() { return cambc::round_number() == g_round; }
 
 void warn(const char* where, const std::exception& e) {
@@ -463,7 +464,7 @@ bool attack_camp(int tgt, bool allow_big) {
     for (int dy = -r; dy <= r; ++dy)
         for (int dx = -r; dx <= r; ++dx) {
             const vec2 p{pos.x + dx, pos.y + dy};
-            if (!LV_camps.at(p)) continue;
+            if (!LV_camps.at(p) || !LV_vis.at(p)) continue;
             const int gi = inside(p) ? g_tile_group[static_cast<size_t>(tidx(p))] : -1;
             const bool awake = LV_awake.at(p);
             if (gi != tgt && !awake) continue;
@@ -754,6 +755,9 @@ struct FuelReport {
         if (!kDebug) return;
         const auto f = cambc::fuel_remaining();
         if (f < 25000 && g_round > 2) std::cout << "lowfuel r" << g_round << ' ' << f << '\n';
+        if (g_round >= 150 && g_round < 154)
+            std::cout << "br r" << g_round << ' ' << cambc::to_string(cambc::self().champion_name()) << ' ' << g_branch
+                      << " moved " << moved << " att " << attacked << " stall " << stall << " tgt " << target << '\n';
     }
 };
 
@@ -761,6 +765,7 @@ void Bot::play_turn() {
     FuelReport fuel_report;
     g_round = cambc::round_number();
     moved = attacked = cast_done = no_move = false;
+    g_branch = "start";
     g_fight_group = -1;
     g_fields_this_turn = 0;
     auto& me = cambc::self();
@@ -820,6 +825,7 @@ void Bot::play_turn() {
 
     // Enemies.
     const auto foes = visible_foes();
+    g_branch = "enemy";
     if (handle_enemies(foes)) return;
     if (!live()) return;
 
@@ -827,6 +833,7 @@ void Bot::play_turn() {
     const float low = std::max(maxhp * 0.3f, static_cast<float>(hp_drop) * 2.5f);
     if (!at_spawn && (hp < low || (retreating && hp < maxhp * 0.6f))) {
         retreating = true;
+        g_branch = "retreat";
         if (threats.empty() && foes.empty()) {
             if (live()) me.recall();
             return;
@@ -850,6 +857,7 @@ void Bot::play_turn() {
     const bool bank = gems > 0 && altar_d < kFar
         && (gems >= 40 || (gems >= 12 && altar_d <= 8) || (raid >= 0 && gems >= 8) || (g_round > 1880) || (gems >= 4 && altar_d <= 2));
     if (bank && threats.empty()) {
+        g_branch = "bank";
         for (vec2 a : g_altars) {
             if (cheb(a, pos) > 1) continue;
             try {
@@ -891,6 +899,7 @@ void Bot::play_turn() {
     }
 
     if (in_raid) {
+        g_branch = "raid";
         Group& rg = G[static_cast<size_t>(raid)];
         target = raid;
         g_fight_group = raid;
@@ -910,11 +919,18 @@ void Bot::play_turn() {
             std::cout << "raid r" << g_round << " idx " << g_my_index << " md " << rg.min_dist(pos) << " rr " << rr << " gathered " << gathered
                       << " need " << need << " fighting " << fighting << " state " << rg.state << " hp " << rg.hp_left() << '\n';
         if (gathered >= need || fighting) {
-            if (attack_camp(raid, true)) { if (try_reset()) attack_camp(raid, true); return; }
+            if (attack_camp(raid, true)) { stall = 0; if (try_reset()) attack_camp(raid, true); return; }
             bitboard alive = empty_board();
             for (size_t i = 0; i < rg.tiles.size(); ++i) if (rg.hp[i] > 0) alive.set(rg.tiles[i], true);
             if (alive.is_empty()) alive = rg.bb;
-            step_to(grow(alive, me.attack_range()));
+            bitboard goal = grow(alive, me.attack_range());
+            if (goal.is_set(pos)) {
+                if (++stall > 2) {
+                    const bitboard bush = grow(alive, 1) & cambc::map::bushes();
+                    if (!bush.is_empty() && !bush.is_set(pos)) goal = bush;
+                }
+            }
+            step_to(goal);
             if (attack_camp(raid, true)) try_reset();
             return;
         }
@@ -948,13 +964,17 @@ void Bot::play_turn() {
     }
     Group& tg = G[static_cast<size_t>(target)];
     g_fight_group = target;
+    g_branch = "farm";
     if (tg.state == 1) {
+        g_branch = "capture";
         if (!tg.bb.is_set(pos)) step_to(tg.bb);
         return;
     }
     if (tg.state == 2) {
-        // Wait near the group for its respawn.
-        if (tg.min_dist(pos) <= 2) return;
+        g_branch = "respawnwait";
+        // Wait near the group for its respawn, never on its spawn tiles (that delays it).
+        const int md = tg.min_dist(pos);
+        if (md >= 1 && md <= 2) return;
         step_to(grow(tg.bb, 2) & ~tg.bb);
         return;
     }
@@ -968,8 +988,13 @@ void Bot::play_turn() {
     if (alive.is_empty()) alive = tg.bb;
     int r = me.attack_range();
     if (r > 1 && stall > 3) r = 1;
-    const bitboard goal = grow(alive, r);
+    bitboard goal = grow(alive, r);
     if (goal.is_set(pos)) ++stall;
+    if (stall > 2) {
+        // Camps hidden in a bush: step into the bush to see them.
+        const bitboard bush = grow(alive, 1) & cambc::map::bushes();
+        if (!bush.is_empty() && !bush.is_set(pos)) goal = bush;
+    }
     step_to(goal);
     if (attack_camp(target, false)) { stall = 0; try_reset(); }
 }
