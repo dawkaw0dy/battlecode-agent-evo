@@ -11,6 +11,7 @@ struct Known {
     int seen = -1000;   // last round its state was read
     std::vector<float> hp;  // last seen health per camp (camps do not regenerate)
     int blocked_until = 0;  // a capture that never completes (contested): leave it alone until then
+    mutable float est_dps = -1, est_mult = -1, est_hp_sum = -1, est_dmg = 0;  // estimate_damage cache
 };
 
 // Row-major local copies: every bitboard or field query is a host call, so loops read these.
@@ -39,9 +40,12 @@ class Bot {
     std::vector<Grid16> group_field_;     // walking distance to each group's camp tiles, filled lazily
     std::vector<int> field_order_;
     Grid16 home_, altar_;
+    cambc::bitboard altar_tiles_;          // where we can stand to tribute
     int target_ = -1, target_wait_ = 0, last_choice_ = -100;
     int approach_shrink_ = 0;
     int capture_group_ = -1, capture_since_ = 0;
+    int dynamic_until_ = 0;
+    cambc::vec2 pos_{};                   // our position, refreshed before position-dependent planning
     std::vector<std::int16_t> camp_group_at_;  // tile -> group index of the camp spawned there, -1 if none
     int blocker_group_ = -1, blocker_since_ = 0;  // living camps walling us in: clear them
 
