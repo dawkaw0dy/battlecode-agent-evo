@@ -1,0 +1,132 @@
+{
+ "env_manifest_sha256": "c1c41cadabeb6984130d228ebd97fd8f99a611679eee5d7d3367a26fda5dc837",
+ "generation": 2,
+ "heldout_repo": "dawkaw0dy/battlecode-agent-evo-heldout",
+ "job_id": "r02-C",
+ "map_sha256": {
+  "h-1b58": "87693b47f19c186e0a2f9605d90c89032b8877ff5216b9f18829095fe198cba6",
+  "h-1b59": "b283e684b10c7a8d7c5bd4d6cd4533db04fbb6588748ef53ce73f7504cf0ba55",
+  "h-1b5c": "d99b1540b5d9197f41f1a8d85618df73e0bdfb95784a6db1d583aa0851d962cd",
+  "h-1b5d": "5807dc75e0b71b41a1dc927fa5bc564988d4289782b56ba872aecc28a8b61885",
+  "h-1b5e": "069c2161c732cf3bb2cafe3a317a0c8a7fbf917afe02f931853015cdcc8fe9cf",
+  "h-1ce9": "85704f93950c1337beac4efbe03e7bebe4fcd9c4789cacbf998edae5941797a5",
+  "h-1cea": "0b16829d8987fefc580849704961b7f776e39a1ca621fb0051f6fcda8f692ede",
+  "h-1e7b": "cc6e124455e6096d7b1ad999300fff96db6be35015c186f09544fa5c7c9427f5"
+ },
+ "runner_version": "cambc==3.0.5",
+ "shards": [
+  {
+   "a": "f02-02",
+   "b": "f02-03",
+   "heldout": true,
+   "maps": [
+    "h-1b58",
+    "h-1b59",
+    "h-1b5c",
+    "h-1b5d",
+    "h-1b5e",
+    "h-1ce9",
+    "h-1cea",
+    "h-1e7b"
+   ]
+  },
+  {
+   "a": "f02-02",
+   "b": "starter",
+   "heldout": true,
+   "maps": [
+    "h-1b58",
+    "h-1b59",
+    "h-1b5c",
+    "h-1b5d",
+    "h-1b5e",
+    "h-1ce9",
+    "h-1cea",
+    "h-1e7b"
+   ]
+  },
+  {
+   "a": "f02-02",
+   "b": "f00-03",
+   "heldout": true,
+   "maps": [
+    "h-1b58",
+    "h-1b59",
+    "h-1b5c",
+    "h-1b5d",
+    "h-1b5e",
+    "h-1ce9",
+    "h-1cea",
+    "h-1e7b"
+   ]
+  },
+  {
+   "a": "f02-02",
+   "b": "f01-07",
+   "heldout": true,
+   "maps": [
+    "h-1b58",
+    "h-1b59",
+    "h-1b5c",
+    "h-1b5d",
+    "h-1b5e",
+    "h-1ce9",
+    "h-1cea",
+    "h-1e7b"
+   ]
+  },
+  {
+   "a": "f02-03",
+   "b": "starter",
+   "heldout": true,
+   "maps": [
+    "h-1b58",
+    "h-1b59",
+    "h-1b5c",
+    "h-1b5d",
+    "h-1b5e",
+    "h-1ce9",
+    "h-1cea",
+    "h-1e7b"
+   ]
+  },
+  {
+   "a": "f02-03",
+   "b": "f00-03",
+   "heldout": true,
+   "maps": [
+    "h-1b58",
+    "h-1b59",
+    "h-1b5c",
+    "h-1b5d",
+    "h-1b5e",
+    "h-1ce9",
+    "h-1cea",
+    "h-1e7b"
+   ]
+  },
+  {
+   "a": "f02-03",
+   "b": "f01-07",
+   "heldout": true,
+   "maps": [
+    "h-1b58",
+    "h-1b59",
+    "h-1b5c",
+    "h-1b5d",
+    "h-1b5e",
+    "h-1ce9",
+    "h-1cea",
+    "h-1e7b"
+   ]
+  }
+ ],
+ "src_sha256": {
+  "f00-03": "e82e392a93a87be2051fbcc9deac0f5041cca7518abbb32d291e19f6a23a5729",
+  "f01-07": "cd09b4530e45e1a31827447093b349c4c5d2b1fc1ba60d885780391e8ea954a3",
+  "f02-02": "72553045cfcfea4b0f5def5127334188fd33205e420d5faf93e9debaf3e0976c",
+  "f02-03": "2c7e9157eb8417af538cb42bea9d543e699874eab865bbca79a00503e7e9c071",
+  "starter": "9023e6a089796897d6ed661f26054d1b81b298e048a09a5df75d3b9cb5d3c6a9"
+ },
+ "stage": "C"
+}
