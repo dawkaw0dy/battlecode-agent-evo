@@ -1,0 +1,27 @@
+{
+ "agent": "f02-01",
+ "task_sha256": "c5ff07c414d97638d314a458a5fa0064e902487fd01a91dd930d8a38055b80a7",
+ "base_commit": "e64ed4997ace0131444bfcb3d1ecab238ef7b94a",
+ "session_id": "cse_01NtrBKtUusbaUXQvL8fLYPy",
+ "bot_dir": "bots/f02-01",
+ "self_eval": {
+  "vs": "f00-03",
+  "games": 80,
+  "wins": 56
+ },
+ "games_played": 896,
+ "summary": "Spell subsystem rewritten (spells.cpp): value-based casts from engine kit metadata, ranged walk+reset, Vendetta kill free hits, flee stuns/kill-shots, melee nuke after a missed chase step; 56/80 vs f00-03 (parent 42/80), 58/80 vs f01-07, 40/40 vs starter.",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "54eb070b451545432474025de1d9caf3a5088efc5c73bd5cae48adeb56c738fa",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 23.15,
+  "remote": "true",
+  "session_id": "cse_01NtrBKtUusbaUXQvL8fLYPy",
+  "effort_level": "high",
+  "model": null
+ }
+}
