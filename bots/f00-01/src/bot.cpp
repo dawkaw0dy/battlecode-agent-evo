@@ -5,6 +5,7 @@
 #include "bot.h"
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstdint>
 #include <iostream>
 #include <span>
@@ -18,12 +19,14 @@ namespace {
 
 // ---- tunables ----
 constexpr int kWardenMinTeam = 3;     // warden only with at least this many champions
-constexpr float kRecallHp = 0.35f;
+constexpr float kRecallHp = 0.45f;
 constexpr float kHealTo = 0.9f;
 constexpr unsigned kBankGems = 40;
 constexpr unsigned kRecallGold = 180;
 constexpr int kChaseRadius = 3;
 constexpr bool kLockAll = true;      // lock every free altar we pass
+constexpr float kGemWeight = 5.0f;   // gems vs gold in camp value
+constexpr float kDangerExp = 1.5f;   // penalty for camps that would out-damage us
 
 int distance(vec2 a, vec2 b) { return static_cast<int>(a.chebyshev_distance(b)); }
 
@@ -682,8 +685,9 @@ int Bot::choose_group() {
         // Camps hit the nearest champion: expect to tank most of it ourselves.
         const float dmg = gi.str * clear / (1 + helpers);
         const int wait = world.respawn_round[g] - now;
-        float score = (3.0f * gi.gems + gi.gold) / (std::max(d, wait) + clear + 6.0f);
-        if (dmg > me.max_health() * 0.7f) score *= 0.05f;
+        float score = (kGemWeight * gi.gems + gi.gold) / (std::max(d, wait) + clear + 6.0f);
+        const float safe = me.max_health() * 0.8f;
+        if (dmg > safe) score *= std::pow(safe / dmg, kDangerExp);
         if (helpers && gi.hp < 3000) score *= 0.5f;
         if (world.skip_until[g] > now) score *= 0.01f;
         if (g == target_group) score *= 1.3f;
