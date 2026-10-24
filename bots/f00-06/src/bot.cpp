@@ -900,16 +900,34 @@ void bank(Ctx& c) {
     auto& me = cambc::self();
     auto& w = *world;
     for (auto a : w.altars) {
-        if (dist(a, c.pos) <= cambc::constants::submit_gems_range && !cambc::vision::has_altar_lock(a)) {
+        if (dist(a, c.pos) > cambc::constants::submit_gems_range) continue;
+        bool enemy_lock = false;
+        if (cambc::vision::has_altar_lock(a)) {
             try {
-                g_bank_branch = 1;
-                me.submit_gems(a);
-                g_bank_stuck = 0;
+                const auto lock = cambc::vision::altar_lock_at(a);
+                enemy_lock = lock.is_enemy();
+                if (enemy_lock) {
+                    // Break the lock: three to five basic attacks clear it.
+                    if (me.can_attack() && dist(a, c.pos) <= me.attack_range()) {
+                        me.attack(lock);
+                        c.attacked = true;
+                    }
+                    g_bank_branch = 5;
+                    g_bank_stuck = 0;
+                    return;
+                }
             } catch (...) {
-                g_bank_branch = 9;
+                return;
             }
-            return;
         }
+        try {
+            g_bank_branch = 1;
+            me.submit_gems(a);
+            g_bank_stuck = 0;
+        } catch (...) {
+            g_bank_branch = 9;
+        }
+        return;
     }
     g_bank_branch = 2;
     if (c.round >= g_dyn_until && w.altar_ready && step_field(c, w.altar_field, w.altar_reach, 0)) {
@@ -932,7 +950,6 @@ void bank(Ctx& c) {
     cambc::bitboard goals;
     goals.clear();
     for (auto a : w.altars) {
-        if (cambc::vision::has_altar_lock(a)) continue;
         for (auto d : kDirs) {
             const vec2 p = a + d;
             if (in_bounds(p)) goals.set(p);
@@ -1126,6 +1143,11 @@ void act(Ctx& c) {
         attack_reset(c);
     }
     cast_spell(c, false);
+    if (false && !c.enemies.empty()) {
+        std::string d = "F r" + std::to_string(c.round) + " id" + std::to_string(c.my_id) + " t" + std::to_string(static_cast<int>(me.champion_name())) + " hp" + std::to_string(static_cast<int>(me.health())) + " @" + std::to_string(c.pos.x) + "," + std::to_string(c.pos.y) + " m" + std::to_string(mode) + " al" + std::to_string(c.allies.size()) + " atk" + std::to_string(c.attacked) + " cast" + std::to_string(c.cast) + " mv" + std::to_string(c.moved) + " |";
+        for (const auto& e : c.enemies) d += " " + std::to_string(e.pos.x) + "," + std::to_string(e.pos.y) + ":" + std::to_string(static_cast<int>(e.hp));
+        std::cout << d << std::endl;
+    }
 }
 
 }  // namespace
