@@ -62,6 +62,12 @@ Common settings in `evo/config.toml`: `population`, `[agents].deadline_minutes`,
 to `best-bot/<id>/`. The same code is always on `main` in `bots/<id>/`. Submitting to the ladder is up to you
 (evo never touches the platform account).
 
+## Starting a fresh run
+
+A run's ids and files are set in `[run]` of `evo/config.toml` (`id_prefix`, `job_prefix`, `state`, `lineage`,
+`cache`). For a new run from zero, pick unused prefixes and new paths (run 2: `f`/`r`, `evo/run2/`, D39), commit
+and push, then `python -m evo init` and `evo-run.cmd`. The old run stays readable by switching those values back.
+
 ## Unattended runs
 
 With `[agents].require_approval = false` (D37), generations follow each other without the `y` prompt; the run

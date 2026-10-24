@@ -1,17 +1,17 @@
-seed = 20261022            # master seed; every random choice derives from it
+seed = 21376769            # master seed; every random choice derives from it
 population = 8             # n (M5: owner, 2026-10-23)
-keep_fraction = 0.25       # k; survivors s = max(2, ceil(n*k))
+keep_fraction = 0.1        # k; survivors s = max(2, ceil(n*k))
 elites = 1                 # top bots carried over frozen, no new session
-immigrants = 0             # fresh agents from an archetype per generation (D37: 0 for the 5-hour push)
+immigrants = 2             # fresh agents from an archetype per generation (run 2: owner, 2026-10-24)
 language = "cpp"           # only C++ is admitted (§8)
 
 [agents]
-max_parallel = 7           # cloud sessions running at once (D37: a whole generation in one wave)
+max_parallel = 7           # cloud sessions running at once (D37: a whole generation after gen 0 in one wave)
 require_approval = false   # D37: owner chose to run unattended; max_sessions_total is the hard stop (§0.4)
-max_sessions_total = 50    # hard cap on cloud sessions for the whole run (D37: 14 used + 5 generations x 7)
-deadline_minutes = 40      # no DONE marker by then -> slot is dead; gen 0 gets 1.5x (M4: owner)
+max_sessions_total = 110   # hard cap on cloud sessions for the whole run (run 2: 8 + 14 generations x 7 = 106)
+deadline_minutes = 120     # no DONE marker by then -> slot is dead; gen 0 gets 1.5x; nudge at -20 min (run 2, D40)
 relaunch_dead = 0          # relaunch attempts per dead slot per generation (M4: owner)
-local_game_budget = 400    # games an agent may play while developing (D32: owner, 2026-10-22)
+local_game_budget = 900    # games an agent may play while developing (D32; run 2: owner, 2026-10-24)
 
 [eval]
 runner_version = "cambc==3.0.5"    # pinned in M0 (M0.md item 1); keep equal to VER in evo/env/setup.sh
@@ -38,4 +38,10 @@ evidence_losses = 3
 immigrant_base = "starter"         # or "hall_of_fame" from generation 2 (§13.4)
 
 [run]
-max_generations = 8         # D37: run up to generation 07, then pause
+max_generations = 15       # run 2: generations 00-14, then pause
+# D39: run 2, a fresh start. Run 1 (e/g ids) stays in evo/state.json, evo/lineage.jsonl, evo/cache.jsonl.
+id_prefix = "f"             # agents fGG-SS
+job_prefix = "r"            # jobs rGG-A
+state = "evo/run2/state.json"
+lineage = "evo/run2/lineage.jsonl"
+cache = "evo/run2/cache.jsonl"

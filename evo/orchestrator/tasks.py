@@ -34,7 +34,6 @@ def render(cfg, state, agent_id, root=ROOT):
     a = state['agents'][agent_id]
     g = a['generation']
     manifest_sha = hashlib.sha256((root / 'evo/env/manifest.json').read_bytes()).hexdigest()
-    deadline = a['deadline_minutes']
     if a['kind'] == 'immigrant':
         arche = (root / cfg['run']['archetypes_dir'] / f"{a['archetype']}.md").read_text(encoding='utf-8').strip()
         base = a['parents'][0] if a['parents'] else 'starter'
@@ -57,7 +56,7 @@ def render(cfg, state, agent_id, root=ROOT):
                   + '\n'.join(f'- {i}' for i in ideas))
     text = fill((PROMPTS / 'agent.md').read_text(encoding='utf-8'), {
         'id': agent_id, 'generation': g, 'slot': a['slot'], 'env_manifest_sha256': manifest_sha,
-        'game_budget': cfg['agents']['local_game_budget'], 'deadline_minutes': deadline,
+        'game_budget': cfg['agents']['local_game_budget'],
         'opponents': ', '.join(dict.fromkeys(list(cfg['eval']['panel']) + list(state['hall_of_fame'])
                                              + [p for p in a['parents'] if p not in cfg['eval']['panel']])),
         'starting_point': start, 'mutation': mutation, 'focus': focus,
