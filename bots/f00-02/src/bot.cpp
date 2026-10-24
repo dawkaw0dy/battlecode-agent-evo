@@ -21,7 +21,7 @@ int W = 0, H = 0;
 constexpr float DANGER = 0.75f;
 constexpr int THREAT_R = 5;
 constexpr unsigned SHOP_GOLD = 150;
-constexpr float OUTMATCH = 1.1f;
+constexpr float OUTMATCH = 1.4f;
 constexpr std::uint16_t UNR = distance_field::unreachable;
 constexpr std::array<vec2, 8> DIRS{vec2{0, 1}, vec2{1, 1}, vec2{1, 0}, vec2{1, -1},
                                    vec2{0, -1}, vec2{-1, -1}, vec2{-1, 0}, vec2{-1, 1}};
