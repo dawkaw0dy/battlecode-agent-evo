@@ -507,23 +507,15 @@ bool cast_at_camp(vec2 p) {
     return used;
 }
 
-// Heal the most hurt visible ally, shield ourselves when enemies are close.
+// Shield ourselves when enemies are close.
 void cast_support() {
     g_phase = "cast_support";
     auto& me = cambc::self();
     for_ability([&](const cambc::ability& ab) {
         if (!can_use(ab)) return;
-        if (ab.is_heal()) {
-            const auto tiles = ab.valid_tiles();
-            const Seen* best = nullptr;
-            float worst = 1.f;
-            for (const auto& a : g_allies) {
-                if (a.p == me.position() || !tiles.is_set(a.p)) continue;
-                const float r = a.hp / std::max(1.f, a.maxhp);
-                if (r < worst && a.maxhp - a.hp > 150.f) worst = r, best = &a;
-            }
-            if (best && ab.use(best->h)) g_cast = true;
-        } else if (ab.is_shield()) {
+        // Heals are not cast: our draft has no healer, and an ally heal threw "target relationship is not
+        // allowed" in testing.
+        if (ab.is_shield()) {
             bool threat = false;
             for (const auto& e : g_enemies)
                 if (dist(e.p, me.position()) <= e.range + 1) threat = true;
