@@ -41,7 +41,6 @@ class Bot {
     std::vector<Known> known_;
     std::vector<Grid16> group_field_;
     std::vector<int> field_order_;
-    std::vector<cambc::bitboard> group_tiles_;
     std::vector<std::int16_t> group_at_;   // tile -> group of the camp spawned there
     std::vector<std::int8_t> kind_at_;     // tile -> camp_type spawned there
     Grid16 home_, altar_;
@@ -82,6 +81,7 @@ class Bot {
     void squad_target();
     int choose_target();
     int eta(int group) const;
+    cambc::bitboard tiles_of(int group) const;
     float my_dps() const;
     int helpers(int group) const;
     float estimate_damage(int group, float dps) const;

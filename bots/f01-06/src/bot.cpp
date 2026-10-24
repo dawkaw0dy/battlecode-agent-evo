@@ -228,7 +228,6 @@ void Bot::initialise() {
     group_at_.assign(static_cast<size_t>(map_w() * map_h()), -1);
     kind_at_.assign(static_cast<size_t>(map_w() * map_h()), -1);
     for (size_t i = 0; i < handles_.size(); ++i) {
-        group_tiles_.push_back(handles_[i].spawn_tiles());
         for (const auto& c : handles_[i].camps()) {
             const int k = static_cast<int>(c.kind());
             known_[i].hp.push_back(camp_max_hp(k));
@@ -273,11 +272,17 @@ void Bot::initialise() {
     cambc::bitboard seen;
     f.compute(*walls_, cambc::map::spawn_region(team::ally), seen);
     home_.load(f);
+    // Tiles beside an altar; camp spawn tiles only where an altar has no other free side.
     auto beside = empty_board();
-    for (auto a : cambc::map::altars().positions()) add_box(beside, a, cambc::constants::submit_gems_range);
-    beside &= ~walk_walls();
-    for (const auto& g : groups_)
-        for (auto t : g.tiles) beside.set(t, false);
+    for (auto a : cambc::map::altars().positions()) {
+        auto box = empty_board();
+        add_box(box, a, cambc::constants::submit_gems_range);
+        box &= ~walk_walls();
+        auto free = box;
+        for (auto t : box.positions())
+            if (group_at_[tile_index(t)] >= 0) free.set(t, false);
+        beside |= free.is_empty() ? box : free;
+    }
     f.compute(*walls_, beside, seen);
     altar_.load(f);
     altar_tiles_ = beside;
@@ -296,11 +301,21 @@ void Bot::fill_fields(std::uint64_t reserve) {
         if (!fuel_ok(reserve)) return;
         auto roots = empty_board();
         for (auto t : groups_[i].tiles) roots.set(t);
+        // Roots inside walls are refused (a group can reach into the enemy spawn).
+        roots &= ~*walls_;
         cambc::distance_field f;
         cambc::bitboard seen;
-        f.compute(*walls_, roots, seen);
+        if (!roots.is_empty()) f.compute(*walls_, roots, seen);
         group_field_[i].load(f);
+        if (roots.is_empty()) std::fill(group_field_[i].v.begin(), group_field_[i].v.end(), static_cast<std::uint16_t>(unreached));
     }
+}
+
+cambc::bitboard Bot::tiles_of(int group) const {
+    auto b = empty_board();
+    for (auto t : groups_[group].tiles)
+        if (in_bounds(t)) b.set(t);
+    return b;
 }
 
 int Bot::eta(int group) const {
@@ -1074,6 +1089,7 @@ bool Bot::handle_tribute() {
                 break;
             }
     const int d_altar = altar_.at(pos);
+    if (STATE_LOG && now() % 25 == 0) std::cout << "A r" << now() << " s" << slot_ << " gems" << gems << " d" << d_altar << " altars" << cambc::map::altars().count() << " tiles" << altar_tiles_.count() << "\n";
     if (d_altar >= unreached) return false;
     const int late = static_cast<int>(cambc::constants::max_rounds) - now();
     const Report report = read_report();
@@ -1117,9 +1133,11 @@ void Bot::farm(int group) {
 
     if (k.state == Known::reward) {
         g_state = 'C';
-        const auto& spawns = group_tiles_[group];
-        if (spawns.is_set(me.position())) {
+        const auto spawns = tiles_of(group);
+        const vec2 here = me.position();
+        if (std::find(groups_[group].tiles.begin(), groups_[group].tiles.end(), here) != groups_[group].tiles.end()) {
             if (capture_group_ != group) { capture_group_ = group; capture_since_ = t; }
+            g_state = '0';
             if (t - capture_since_ > cambc::constants::capture_time + 6) {
                 known_[group].blocked_until = t + 60;
                 capture_group_ = -1;
@@ -1127,12 +1145,15 @@ void Bot::farm(int group) {
             return;
         }
         // One of us on a spawn tile is enough; others stand by.
+        g_state = '1';
         step_to(spawns, false);
+        g_state = '2';
         return;
     }
     if (k.state == Known::respawning) {
         g_state = 'r';
-        auto near = dilate(group_tiles_[group], 2) & ~group_tiles_[group];
+        const auto own = tiles_of(group);
+        auto near = dilate(own, 2) & ~own;
         near &= ~walk_walls();
         if (!near.is_set(me.position())) step_to(near, true);
         return;
@@ -1155,7 +1176,7 @@ void Bot::farm(int group) {
         if (stage_group_ != group || stage_since_ < 0) { stage_group_ = group; stage_since_ = t; }
         if (t - stage_since_ < 12) {
             g_state = 's';
-            const auto living = group_tiles_[group] & ~(view().visb & ~view().camps);
+            const auto living = tiles_of(group) & ~(view().visb & ~view().camps);
             const int r = groups_[group].range;
             auto ring = dilate(living, r + 2) & ~dilate(living, r);
             ring &= ~walk_walls();
@@ -1171,7 +1192,7 @@ void Bot::farm(int group) {
         return;
     }
     const int r = std::max(1, me.attack_range());
-    const auto living = group_tiles_[group] & ~(view().visb & ~view().camps);
+    const auto living = tiles_of(group) & ~(view().visb & ~view().camps);
     auto goal = dilate(living, r) & ~walk_walls();
     step_to(goal, e > 3);
     if (attack_group(group)) reset_and_hit(group);
@@ -1179,7 +1200,11 @@ void Bot::farm(int group) {
 
 void Bot::play_turn() {
     g_state = '?';
-    play_inner();
+    try {
+        play_inner();
+    } catch (const cambc::error& e) {
+        std::cout << "dbg err state " << g_state << " r" << now() << " s" << slot_ << " " << e.what() << "\n";
+    }
     if (STATE_LOG) std::cout << "S" << slot_ << g_state << (moved_ ? "m" : "") << (attacked_ ? "a" : "") << "\n";
 }
 
@@ -1288,5 +1313,6 @@ void Bot::play_inner() {
                   << " t" << target << " st" << (int)k.state << " eta" << eta(target) << " near" << squad_near(target)
                   << " gems" << me.gem_count() << " inc" << incoming_ << "\n";
     farm(target);
+    if (g_state == '2') g_state = '3';
     fill_fields(50000);
 }
