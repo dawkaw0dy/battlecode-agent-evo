@@ -1066,22 +1066,20 @@ void act(Ctx& c) {
     const bool must_bank = gems > 0 && (mode == kBank || endgame || (gems >= 2 * kBankGems));
     const auto& enemy_spawn = cambc::map::spawn_region(team::enemy);
     bool handled = false;
-    if (must_bank && enemy_close > 3) {
+    if (must_bank && (enemy_close > 2 || c.enemies.size() <= c.allies.size())) {
         bank(c);
         handled = true;
     } else if (c.sm.hunting() && dist(c.sm.hunt(), c.pos) <= 9 && !enemy_spawn.is_set(c.sm.hunt())) {
         const vec2 h = c.sm.hunt();
-        if (dist(h, c.pos) > range) walk_to(c, h, range);
-        handled = true;
+        // An unreachable quarry must not freeze the ball: fall through when the chase cannot step.
+        handled = dist(h, c.pos) <= range || walk_to(c, h, range);
     } else if (closest && enemy_close <= 5 && !in_reach && !enemy_spawn.is_set(closest->pos)) {
         // Enemy near but no hunt order: close in only if our group is locally stronger.
         int near_allies = 1;
         for (const auto& a : c.allies)
             if (dist(a.pos, c.pos) <= 4) ++near_allies;
-        if (near_allies >= static_cast<int>(c.enemies.size()) && dist(closest->pos, anchor) <= 6) {
-            walk_to(c, closest->pos, range);
-            handled = true;
-        }
+        if (near_allies >= static_cast<int>(c.enemies.size()) && dist(closest->pos, anchor) <= 6)
+            handled = walk_to(c, closest->pos, range);
     }
     if (handled) {
     } else if (mode == kFight && target >= 0) {
