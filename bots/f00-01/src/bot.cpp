@@ -649,8 +649,9 @@ int Bot::choose_group() {
     const int now = cambc::round_number();
     cambc::distance_field f;
     cambc::bitboard v;
-    constexpr int kScan = 36;
-    field_from(pos, f, v, kScan);
+    // Full path scan on small and medium maps; bounded on large ones (fuel).
+    const int kScan = world.w * world.h <= 4900 ? 400 : 36;
+    field_from(pos, f, v, std::uint16_t(kScan));
     std::array<std::uint8_t, 8> claims{};
     read_claims(claims);
     const float dps = std::max(20.0f, me.strength());
