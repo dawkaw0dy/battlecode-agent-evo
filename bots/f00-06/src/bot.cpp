@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <iostream>
 #include <memory>
+#include <utility>
 #include <span>
 #include <string>
 #include <variant>
@@ -210,6 +211,7 @@ struct Ctx {
 };
 
 // Per-champion memory.
+std::vector<std::pair<vec2, int>> g_hidden;  // tiles where a step bounced off a hidden unit
 int g_index = -1;
 bool g_solo_recall = false;
 int g_target_since = 0;
@@ -223,6 +225,7 @@ int g_still_rounds = 0;
 int g_bank_stuck = 0;
 int g_dyn_until = -1;
 int g_bank_block = -1;
+int g_bank_branch = 0;
 
 void collect(Ctx& c) {
     auto& w = *world;
@@ -260,8 +263,11 @@ void collect(Ctx& c) {
             }
         }
     }
-    c.blocked = w.terrain | cambc::vision::champion_tiles() | cambc::vision::camp_tiles()
-        | cambc::vision::teleport_tiles();
+    // Dead camps keep reporting their tile but do not block walking: mark living ones only.
+    c.blocked = w.terrain | cambc::vision::champion_tiles() | cambc::vision::teleport_tiles();
+    for (const auto& cv : c.camps) c.blocked.set(cv.pos);
+    std::erase_if(g_hidden, [&](const auto& h) { return h.second < c.round; });
+    for (const auto& h : g_hidden) c.blocked.set(h.first);
     const int target = c.sm.target();
     for (const auto& cv : c.camps) {
         if (!cv.awake || !hazard(cv, target)) continue;
@@ -326,7 +332,9 @@ bool try_step(Ctx& c, vec2 to) {
         c.moved = true;
         c.pos = to;
     } else {
+        // A hidden unit sits there; remember it so we path around it for a while.
         c.move_failed = true;
+        g_hidden.push_back({to, c.round + 12});
     }
     return ok;
 }
@@ -892,13 +900,16 @@ void bank(Ctx& c) {
     for (auto a : w.altars) {
         if (dist(a, c.pos) <= cambc::constants::submit_gems_range && !cambc::vision::has_altar_lock(a)) {
             try {
+                g_bank_branch = 1;
                 me.submit_gems(a);
                 g_bank_stuck = 0;
             } catch (...) {
+                g_bank_branch = 9;
             }
             return;
         }
     }
+    g_bank_branch = 2;
     if (c.round >= g_dyn_until && w.altar_ready && step_field(c, w.altar_field, w.altar_reach, 0)) {
         g_bank_stuck = 0;
         return;
@@ -925,6 +936,7 @@ void bank(Ctx& c) {
             if (in_bounds(p)) goals.set(p);
         }
     }
+    g_bank_branch = 3;
     if (step_dynamic(c, goals)) {
         // Keep the detour for a few turns, or the static field walks us straight back.
         if (c.round >= g_dyn_until) g_dyn_until = c.round + 6;
@@ -932,6 +944,7 @@ void bank(Ctx& c) {
         return;
     }
     ++g_bank_stuck;
+    g_bank_branch = 4;
 }
 
 // Move into attack range of the target group's nearest living camp.
@@ -1168,7 +1181,7 @@ void Bot::play_turn() {
             std::cout << "L r" << c.round << " id" << c.my_id << " pos " << c.pos.x << "," << c.pos.y << " mode "
                       << c.sm.mode() << " tgt " << c.sm.target() << " gems " << me.gem_count() << " gold "
                       << me.gold_count() << " hp " << me.health() << " allies " << c.allies.size() << " camps "
-                      << c.camps.size() << " fuel " << cambc::fuel_remaining() << " ch" << channeling << " rec" << me.is_recalling() << " still" << g_still_rounds << " bs" << g_bank_stuck << " dyn" << g_dyn_until << " en" << c.enemies.size() << std::endl;
+                      << c.camps.size() << " fuel " << cambc::fuel_remaining() << " ch" << channeling << " rec" << me.is_recalling() << " still" << g_still_rounds << " bs" << g_bank_stuck << " br" << g_bank_branch << " v" << (world->altar_reach.is_set(c.pos) ? world->altar_field.get(c.pos) : -1) << " dyn" << g_dyn_until << " en" << c.enemies.size() << std::endl;
         c.sm.b[0] = static_cast<std::uint8_t>(c.my_id);
         c.sm.b[1] = static_cast<std::uint8_t>(c.pos.x);
         c.sm.b[2] = static_cast<std::uint8_t>(c.pos.y);
