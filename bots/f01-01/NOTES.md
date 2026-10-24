@@ -18,7 +18,7 @@ champion hit by an unseen enemy walks home instead of recalling in place.
 - Multi-trip: allowed if ≥6 turns of fighting per trip and ≤6 trips; each trip costs 10 + distance from spawn.
 - Retreat from camps when hp < 20% or hp < incoming·(steps out of range + 2) + 40; heal first when hp < 50% and
   the fight would not finish; wait at most 2 turns on spawn to heal.
-- Tribute: ≥40 gems, ≥15 within 10 tiles, ≤4 tiles away, ≥10 after a recent enemy report, or end of game;
+- Tribute: ≥30 gems, ≥15 within 10 tiles, ≤4 tiles away, ≥10 after a recent enemy report, or end of game;
   allowed under camp fire if we survive ceil(gems/10)+1 turns of it. Altar = min(path distance + 15 if locked).
 - Fight: fight when ours ≥ theirs × (1.15 + 0.01·gems carried, gems counted from 20, capped at 100); flee when
   weaker and (hp < 90%, 2+ enemies or ours < 0.8 theirs), and always when own hp < 45% (off spawn).
@@ -45,7 +45,14 @@ Measured with tools/benchmark.py against f00-03 (mirror, so the starting point i
 - Kept: hidden attacker → walk home for 4 rounds (champions re-started cancelled recalls in place until dead).
   Fight set 15/24 (−1) but deaths 303 → 204; 6 other fight maps 6/12 vs 5/12, deaths 184 → 127; first side-A win
   vs f00-07 on 01starfish.
+- Kept: bank at 30 carried gems (was 40): 16/24 vs 15/24, +7957 vs +5786, gems lost 899 → 360, deaths 204 → 178.
+- Fixed a caught exception (engine error 5 on 00lanes vs starter): after a fuel-suspended turn resumed, farm() read
+  a stale position for a bitboard query; now checks live() and bounds first. live() also survives a failing query.
 - Full 40 maps vs f00-03 after the first three kept changes: 42/80, +7214 gems, deaths 768 → 642, gems lost 6222 → 2771.
+- Final, full 40 maps both sides: vs f00-03 46/80 (parent mirror 40/80), +12055 gems, deaths 768 → 450, gems lost
+  6222 → 1899; vs starter 80/80 (parent 79/80, lost 01yellow-brick-road as B), deaths 197 → 93.
+  Evidence maps: vs f00-01 01broken-curve 2/2 (parent 0/2), vs f00-07 01starfish 1/2 (parent 0/2),
+  vs f00-02 01yellow-brick-road 0/2 (unchanged, a capture/pathing problem).
 
 ## Tried and failed (keep entries from the parent's notes; add yours)
 - Linear bitboard buffers are bit-packed (not one byte per tile as the API doc says).
@@ -73,6 +80,9 @@ Measured with tools/benchmark.py against f00-03 (mirror, so the starting point i
 - Recall when fleeing at low health without gems (parent only recalls with gems): 10/24, deaths 410.
 - Answer ally invader reports from 16 tiles (vs 12): 9/24, deaths 437.
 - Steeper gem-aware fight edge (0.02·gems from 10 gems): 12/24 vs 16/24; 0/2 vs f00-07.
+- Hidden-attacker retreat for 8 rounds (vs 4): 2/2 vs f00-07 on 01starfish, but mirror 12/24 + 5/12 vs 15/24 + 6/12.
+- Bank at 25 gems: 14/24 vs 16/24 at 30.
+- Treat an ally's report as danger for banking for 60 rounds (vs 30): 13/24 vs 16/24.
 - Debug prints to stdout cost enough fuel to change games; remove them before measuring.
 
 ## Known weaknesses
