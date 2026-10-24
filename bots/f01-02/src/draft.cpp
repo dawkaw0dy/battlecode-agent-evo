@@ -15,7 +15,7 @@ void play_draft() {
     if (!analysed) {
         analysed = true;
         groups = analyse_groups();
-        if (cambc::draft::current_draft(cambc::team::ally).empty()) dbg_dump_map();
+        if (kDebug && cambc::draft::current_draft(cambc::team::ally).empty()) dbg_dump_map();
     }
     const bool dash_map = is_dash_map(groups);
     const auto picks = preferred_picks(size, dash_map);
