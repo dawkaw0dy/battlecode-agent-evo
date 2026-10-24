@@ -356,7 +356,9 @@
    "generation": 1,
    "id": "f01-01",
    "kind": "child",
-   "nudged": [],
+   "nudged": [
+    "session_01UW9jv8Ju7GyWXuJLMR4Adr"
+   ],
    "operator": "tweak",
    "parents": [
     "f00-03"
