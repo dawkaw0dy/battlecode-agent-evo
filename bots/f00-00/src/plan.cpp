@@ -21,6 +21,21 @@ MonsterSpec spec(cambc::camp_type type) {
     return {1000, 50, 3};
 }
 
+// Field values and reached bits copied into wasm memory: per-tile host calls cost real fuel.
+struct Mirror {
+    std::vector<std::uint16_t> values;
+    std::vector<std::uint8_t> bits;
+    int width = 0;
+    Mirror(const cambc::distance_field& field, const cambc::bitboard& reached)
+        : values(field.export_linear_buffer()), bits(reached.export_linear_buffer()), width(cambc::map::width()) {}
+    int at(vec2 p) const {
+        if (!cambc::map::is_in_bounds(p)) return 9999;
+        const int i = p.y * width + p.x;
+        if (!((bits[static_cast<std::size_t>(i >> 3)] >> (i & 7)) & 1)) return 9999;
+        return values[static_cast<std::size_t>(i)];
+    }
+};
+
 vec2 region_center(const cambc::bitboard& region) {
     const auto tiles = region.positions();
     if (tiles.empty()) return {0, 0};
@@ -96,10 +111,10 @@ void build_plan(Plan& plan) {
     cambc::distance_field from_enemy;
     cambc::bitboard enemy_reached;
     from_enemy.compute(open, cambc::map::spawn_region(team::enemy), enemy_reached);
+    const Mirror spawn_dist(from_spawn, reached), enemy_dist(from_enemy, enemy_reached);
     {
         int best = 9999;
-        for (auto t : cambc::map::spawn_region(team::ally).positions())
-            if (enemy_reached.is_set(t)) best = std::min<int>(best, from_enemy.get(t));
+        for (auto t : cambc::map::spawn_region(team::ally).positions()) best = std::min(best, enemy_dist.at(t));
         plan.spawn_gap = static_cast<std::uint16_t>(std::min(best, 9999));
     }
 
@@ -109,8 +124,7 @@ void build_plan(Plan& plan) {
         for (int dx = -1; dx <= 1; ++dx)
             for (int dy = -1; dy <= 1; ++dy) {
                 const vec2 t{altar.x + dx, altar.y + dy};
-                if (!cambc::map::is_in_bounds(t) || !reached.is_set(t)) continue;
-                altar_dist = std::min<int>(altar_dist, from_spawn.get(t));
+                altar_dist = std::min(altar_dist, spawn_dist.at(t));
             }
 
     struct Entry { int index; double angle; };
@@ -123,10 +137,10 @@ void build_plan(Plan& plan) {
         checksum = static_cast<std::uint16_t>(checksum + facts.gems * 7 + facts.gold);
         int best = 9999;
         for (auto t : facts.tiles)
-            if (reached.is_set(t)) best = std::min<int>(best, from_spawn.get(t));
+            best = std::min(best, spawn_dist.at(t));
         int enemy_best = 9999;
         for (auto t : facts.tiles)
-            if (enemy_reached.is_set(t)) enemy_best = std::min<int>(enemy_best, from_enemy.get(t));
+            enemy_best = std::min(enemy_best, enemy_dist.at(t));
         std::uint8_t flags = 0;
         if (best < 9999) flags |= group_reachable;
         if (enemy_best * 10 < best * 8) flags |= group_enemy_side;

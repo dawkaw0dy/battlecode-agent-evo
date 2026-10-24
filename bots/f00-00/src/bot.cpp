@@ -599,6 +599,7 @@ int Bot::choose_target(float keep_bonus) {
         if (plan.mode == mode_spread && g.zone >= zone_lo && g.zone < zone_hi) score *= 1.6f;
         if (plan.mode != mode_spread && static_cast<int>(i) == leader_target) score *= 4.0f;
         if (static_cast<int>(i) == target) score *= keep_bonus;
+        if (g.contested_until > round) score *= 0.1f;
         if ((g.flags & group_enemy_side) && !plan.gemless) score *= g.facts.gems > 0 ? 0.5f : 0.25f;
         if (support && static_cast<int>(i) == follow) score *= 6.0f;
         if (trace && slot == 0 && round < 160)
@@ -665,10 +666,25 @@ bool Bot::farm() {
     const auto& field = group_field(target);
 
     if (g.reward) {
-        if (g.tiles.is_set(pos)) return true; // hold the capture
+        if (g.tiles.is_set(pos)) {
+            // Hold the capture; a region that never pays out is contested somewhere out of sight.
+            if (hold_group != target) {
+                hold_group = target;
+                hold_since = round;
+            }
+            if (round - hold_since <= cambc::constants::capture_time + 6) return true;
+            g.contested_until = round + 60;
+            hold_group = -1;
+            target = choose_target(1.0f);
+            chosen_round = round;
+            if (target < 0) return false;
+            step_along(group_field(target), !groups[static_cast<std::size_t>(target)].reward);
+            return true;
+        }
         step_along(field);
         return true;
     }
+    hold_group = -1;
     // Never stand on a captured region: an occupied spawn tile stops the group respawning.
     if (g.tiles.is_set(pos)) {
         step_off(g.tiles);

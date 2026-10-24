@@ -36,6 +36,7 @@ struct Group {
     std::uint8_t flags = 0, zone = 0;
     int respawn_at = 0;  // round the group is next expected alive
     bool reward = false; // all members dead, reward waiting
+    int contested_until = 0; // a capture here stalled: avoid until this round
     std::unique_ptr<Field> field;
 };
 
@@ -65,6 +66,7 @@ class Bot {
     cambc::bitboard avoid;
     int purchases = 0;
     int chase_streak = 0, no_chase_until = 0;
+    int hold_group = -1, hold_since = 0;
 
     std::vector<Seen> enemies, allies;
 
