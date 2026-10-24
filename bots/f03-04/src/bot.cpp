@@ -30,6 +30,7 @@ constexpr float kShareTurns = 15.0f;
 constexpr int kChaseTurns = 5;      // approach turns without a hit before giving up a chase
 constexpr float kEngageBias = -150.0f;  // fight value needed to engage
 constexpr float kStick = 0.0f;       // fight value margin in favour of the last decision
+constexpr bool kDoomedFights = false;  // fight back when fleeing looks fatal anyway
 constexpr float kBossTurns = 8.0f;  // turns a champion must be able to tank a boss
 
 namespace {
@@ -1694,8 +1695,11 @@ bool Bot::enemies() {
         try {
             if (!a.is_alive()) continue;
             const vec2 p = a.position();
-            if (!inside(p) || cheb(p, pos_) > 7) continue;
-            if (a.is_recalling()) continue;
+            if (!inside(p)) continue;
+            // Near us or near the enemies: our own step must not change who counts.
+            bool near = cheb(p, pos_) <= 7;
+            for (size_t i = 0; i < theirs.size() && !near; ++i) near = cheb(p, theirs[i].pos) <= 8;
+            if (!near || a.is_recalling()) continue;
             Fighter f;
             if (!read_fighter(a, p, f)) continue;
             f.safe = spawn_local_.at(p);
@@ -1740,7 +1744,15 @@ bool Bot::enemies() {
     bool engage = fight.value > need && !(fight.me_dies && fight.their_deaths == 0);
     // Carrying a big bag: only clearly winning fights.
     if (engage && fight.me_dies && gems >= 40 && fight.value < 2.0f * gems) engage = false;
-    if (!engage && (doomed_if_flee || kill_now) && !(fight.me_dies && gems >= 60 && !doomed_if_flee)) engage = true;
+    if (!engage && ((kDoomedFights && doomed_if_flee) || kill_now) && !(fight.me_dies && gems >= 60 && !doomed_if_flee)) engage = true;
+    // The spawn's heal wins this fight, not us: hold it rather than walk out.
+    bool hold_spawn = false;
+    if (engage && ours[0].safe) {
+        auto off = ours;
+        off[0].safe = false;
+        const SimResult out = simulate(off, theirs, 10);
+        hold_spawn = !(out.value > need && !(out.me_dies && out.their_deaths == 0));
+    }
     if (kTrace) {
         std::string line = "fight r" + std::to_string(now) + ' ' + cambc::to_string(me.champion_name()) + " v" + std::to_string(static_cast<int>(fight.value))
             + " die" + std::to_string(fight.me_dies) + " k" + std::to_string(fight.their_deaths) + " d" + std::to_string(fight.our_deaths)
@@ -1773,6 +1785,7 @@ bool Bot::enemies() {
     if (!live()) return true;
     fight_spells(theirs, true);
     if (strike(theirs)) { chase_turns_ = 0; return true; }
+    if (hold_spawn) return ++spawn_hold_ <= 20;
     if (move_failed_ || (cast_ && me.attack_range() > 1)) return true;
     // Approach: tiles in basic range of the enemies; ranged champions prefer the ones melee cannot reach.
     if (++chase_turns_ > kChaseTurns) {
@@ -1884,6 +1897,7 @@ void Bot::play_turn() {
 }
 
 void Bot::turn() {
+    if (kTrace) last_mode_ = g_mode;
     ModeCount counter;
     g_mode = 0;
     g_f0 = cambc::fuel_remaining();
@@ -1918,8 +1932,12 @@ void Bot::turn() {
     }
     moved_ = attacked_ = cast_ = move_failed_ = false;
     invalidate();
+    if (kTrace && me.is_alive()) alive_round_ = static_cast<int>(g_round);
 
     if (!me.is_alive()) {
+        if (kTrace && alive_round_ == static_cast<int>(g_round) - 1)
+            std::cout << "died r" << g_round << ' ' << cambc::to_string(me.champion_name()) << " fight_r" << fight_round_
+                      << " engaged " << fight_engaged_ << " mode " << last_mode_ << '\n';
         g_mode = 0;
         write_claim(-1);
         shop();

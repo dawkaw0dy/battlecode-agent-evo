@@ -67,7 +67,8 @@ class Bot {
     Bits spawn_local_;                  // our spawn tiles
     int fight_round_ = -100;            // last round we weighed a fight ...
     bool fight_engaged_ = false;        // ... and whether we took it
-    int spawn_hold_ = 0;                // turns spent holding our spawn against enemies
+    int spawn_hold_ = 0;
+    int alive_round_ = -1, last_mode_ = 0;  // trace only                // turns spent holding our spawn against enemies
     int chase_turns_ = 0, no_chase_until_ = -1;  // a chase that lands no hit is dropped
 
     // Per turn.
