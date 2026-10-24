@@ -2755,7 +2755,7 @@
    ],
    "slot": 5,
    "src_sha256": "24a06b4e553a288a5fdb22cd6aa06dec2ead35a30e494525f2d710abb1791e68",
-   "status": "admitted",
+   "status": "rated",
    "task_sha256": "13e6c6f912feb153b2d118efd3f2c7fad8a5d3527b060dfb21c6e80a61d21193"
   },
   "e06-06": {
@@ -2987,7 +2987,7 @@
    ],
    "slot": 1,
    "src_sha256": "b9799c010d67cf4913ea6f147516790b80abb72638d7caceaf8e3f71657cd680",
-   "status": "admitted",
+   "status": "rated",
    "task_sha256": "19babd2e7638c65538c96d1262c78023bfa87c4b0fea24d4b5dba9703c0f4d30"
   },
   "e07-02": {
@@ -3064,7 +3064,7 @@
    ],
    "slot": 2,
    "src_sha256": "b918b08cbf2ebbc9cd8b0fed9572246fe5c7fc24ef4b5f28d2aadc666c402fcf",
-   "status": "admitted",
+   "status": "rated",
    "task_sha256": "7cc523fc138a5741024d60b7a5f5a9766e5c2be66d4e7864009fb0a2508aed73"
   },
   "e07-03": {
@@ -3216,7 +3216,7 @@
    ],
    "slot": 4,
    "src_sha256": "161e372b73650ebc95143efbc17a72e5d7a7627a2516386ee504b333e1d4f70a",
-   "status": "admitted",
+   "status": "rated",
    "task_sha256": "a49771229571fb4076047bfa0ab2c3dca0092009e8a26eb41b2dd00948cb2be0"
   },
   "e07-05": {
@@ -3293,7 +3293,7 @@
    ],
    "slot": 5,
    "src_sha256": "d5fd7e1c3654d6e145c2ee46cbf1a94b278bc4fcf38c8995d7d8f2e0ca292392",
-   "status": "admitted",
+   "status": "rated",
    "task_sha256": "3892ac09be871b85282bbe05a489268020a24cebf08d79012f286edb038a9c94"
   },
   "e07-06": {
@@ -3370,7 +3370,7 @@
    ],
    "slot": 6,
    "src_sha256": "f9c9af0d81d447f7035b7ee73f789a824833feff2fe5c4d11e4bbe475f330a7b",
-   "status": "admitted",
+   "status": "rated",
    "task_sha256": "3fc674ed6ae9b6e775d4eaf5c228e7a8c0a4682b9b2b69cdca4083bc44f17d09"
   },
   "e07-07": {
@@ -3447,7 +3447,7 @@
    ],
    "slot": 7,
    "src_sha256": "db4af9d46182e7c8c5d81d4dbd20f135cae28400acc08c60c29a8e3c3a03653f",
-   "status": "admitted",
+   "status": "rated",
    "task_sha256": "ba8bfcbcf63ea8721fb2332293c01e33cd8ca2ee7bde1f7131b2dd811d9238c1"
   }
  },
@@ -19281,6 +19281,8 @@
      "strength": -2.943665152766894
     }
    },
+   "selection_done": true,
+   "similar_skipped": [],
    "slots": [
     "e06-05",
     "e07-01",
@@ -19294,6 +19296,10 @@
    "stage_c_bots": [
     "e07-04",
     "e07-01"
+   ],
+   "survivors": [
+    "e07-05",
+    "e07-04"
    ],
    "top": [
     "e07-05",
@@ -19310,7 +19316,8 @@
   "e03-07",
   "e04-06",
   "e05-05",
-  "e06-05"
+  "e06-05",
+  "e07-05"
  ],
  "halted": null,
  "jobs": {
@@ -19703,8 +19710,6 @@
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-23T20:32:14Z g03 e03-01: launched session_01Rja24x4HX8Ee1ZyNAucibm",
-  "2026-10-23T20:32:27Z g03 e03-02: launched session_01AwHJK32CKYV3d8S83VreCT",
   "2026-10-23T20:32:40Z g03 e03-03: launched session_01Rpx6Rmz9aQKrcDhHgWQ18w",
   "2026-10-23T20:32:53Z g03 e03-04: launched session_01FLaZNS7WhSJAH4udq2LDEC",
   "2026-10-23T20:33:08Z g03 e03-05: launched session_01CfKgTjFdLus1mTCnrZ9uD9",
@@ -19902,9 +19907,11 @@
   "2026-10-24T09:22:22Z g07 phase EVAL_C_DONE: results for g07-C",
   "2026-10-24T09:22:34Z g07 g07-C-spot: pushed 3ca051f007 (4 sampled games, 3 shards)",
   "2026-10-24T09:25:03Z g07 g07-C: verified, 144 rows, spot-check 4 OK",
-  "2026-10-24T09:25:13Z g07 phase SELECTED: final: e07-05, e07-04, e07-01, e06-05, e05-05, e07-07, e07-02, e07-06, e04-06, starter"
+  "2026-10-24T09:25:13Z g07 phase SELECTED: final: e07-05, e07-04, e07-01, e06-05, e05-05, e07-07, e07-02, e07-06, e04-06, starter",
+  "2026-10-24T09:25:24Z g07 survivors ['e07-05', 'e07-04'], hall of fame ['e00-01', 'e01-01', 'e02-01', 'e03-07', 'e04-06', 'e05-05', 'e06-05', 'e07-05']",
+  "2026-10-24T09:25:24Z g07 PAUSED: generation 07 selected; max_generations=8 reached"
  ],
- "paused": null,
+ "paused": "generation 07 selected; max_generations=8 reached",
  "phase": "SELECTED",
  "sessions_launched": 49,
  "version": 1
