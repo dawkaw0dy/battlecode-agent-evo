@@ -2915,9 +2915,11 @@
   },
   "e07-01": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evo-task-e07-01-8pd6og",
+   "commit": "063e423b56fb5b10c9ba5106620d62f03c18780c",
    "deadline_minutes": 40,
+   "done_at": 1792832756,
+   "effort_level": "high",
    "evidence": [
     {
      "gems_opponent": 1028,
@@ -2965,6 +2967,7 @@
    "generation": 7,
    "id": "e07-01",
    "kind": "child",
+   "model": null,
    "nudged": [],
    "operator": "tweak",
    "parents": [
@@ -2984,14 +2987,16 @@
    ],
    "slot": 1,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "19babd2e7638c65538c96d1262c78023bfa87c4b0fea24d4b5dba9703c0f4d30"
   },
   "e07-02": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evo-e07-02-0pec5t",
+   "commit": "f4f438dc1473045799943c6e054ea0788e97bb64",
    "deadline_minutes": 40,
+   "done_at": 1792832758,
+   "effort_level": "high",
    "evidence": [
     {
      "gems_opponent": 1028,
@@ -3039,6 +3044,7 @@
    "generation": 7,
    "id": "e07-02",
    "kind": "child",
+   "model": null,
    "nudged": [],
    "operator": "subsystem",
    "parents": [
@@ -3058,7 +3064,7 @@
    ],
    "slot": 2,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "7cc523fc138a5741024d60b7a5f5a9766e5c2be66d4e7864009fb0a2508aed73"
   },
   "e07-03": {
@@ -3118,7 +3124,7 @@
    "parents": [
     "e06-05"
    ],
-   "reason": null,
+   "reason": "deadline",
    "rng_key": "20261022:7:3",
    "sessions": [
     {
@@ -3132,14 +3138,16 @@
    ],
    "slot": 3,
    "src_sha256": null,
-   "status": "running",
+   "status": "dead",
    "task_sha256": "4e424c38e8fa5eacb9ff9826a448d14b7bc481536438cad409ed97b5b2f3e1d7"
   },
   "e07-04": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evo-task-e07-04-4hwcbm",
+   "commit": "e6ad184f2a859964793884a492e30fde8f74b824",
    "deadline_minutes": 40,
+   "done_at": 1792832765,
+   "effort_level": "high",
    "evidence": [
     {
      "gems_opponent": 1028,
@@ -3187,6 +3195,7 @@
    "generation": 7,
    "id": "e07-04",
    "kind": "child",
+   "model": null,
    "nudged": [],
    "operator": "crossover",
    "parents": [
@@ -3207,14 +3216,16 @@
    ],
    "slot": 4,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "a49771229571fb4076047bfa0ab2c3dca0092009e8a26eb41b2dd00948cb2be0"
   },
   "e07-05": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evolution-agent-e07-05-evmn42",
+   "commit": "564b1b8848070fbb30409fc3b661070df6d5eb7f",
    "deadline_minutes": 40,
+   "done_at": 1792832769,
+   "effort_level": "high",
    "evidence": [
     {
      "gems_opponent": 1028,
@@ -3262,6 +3273,7 @@
    "generation": 7,
    "id": "e07-05",
    "kind": "child",
+   "model": null,
    "nudged": [],
    "operator": "radical",
    "parents": [
@@ -3281,14 +3293,16 @@
    ],
    "slot": 5,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "3892ac09be871b85282bbe05a489268020a24cebf08d79012f286edb038a9c94"
   },
   "e07-06": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evo-task-e07-06-9v4kkc",
+   "commit": "21fffab0f15dc989d1522f7b447578a815d8e3a6",
    "deadline_minutes": 40,
+   "done_at": 1792832772,
+   "effort_level": "high",
    "evidence": [
     {
      "gems_opponent": 1012,
@@ -3336,6 +3350,7 @@
    "generation": 7,
    "id": "e07-06",
    "kind": "child",
+   "model": null,
    "nudged": [],
    "operator": "radical",
    "parents": [
@@ -3355,14 +3370,16 @@
    ],
    "slot": 6,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "3fc674ed6ae9b6e775d4eaf5c228e7a8c0a4682b9b2b69cdca4083bc44f17d09"
   },
   "e07-07": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evo-task-e07-07-v93tv2",
+   "commit": "dae63b80157142c2318f078b2c5ffb286eb4ecd8",
    "deadline_minutes": 40,
+   "done_at": 1792832776,
+   "effort_level": "high",
    "evidence": [
     {
      "gems_opponent": 1012,
@@ -3410,6 +3427,7 @@
    "generation": 7,
    "id": "e07-07",
    "kind": "child",
+   "model": null,
    "nudged": [],
    "operator": "tweak",
    "parents": [
@@ -3429,7 +3447,7 @@
    ],
    "slot": 7,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "ba8bfcbcf63ea8721fb2332293c01e33cd8ca2ee7bde1f7131b2dd811d9238c1"
   }
  },
@@ -17380,14 +17398,6 @@
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-23T15:44:17Z g02 e02-07: done on origin/claude/evo-e02-07-task-2enk5t at eb2baf65ff",
-  "2026-10-23T15:46:51Z g02 e02-06: done on origin/claude/evo-task-e02-06-jsx32t at f425e96625",
-  "2026-10-23T15:46:51Z g02 phase ADMITTED",
-  "2026-10-23T15:47:21Z g02 e02-01: admitted (d5892401dd52)",
-  "2026-10-23T15:47:32Z g02 e02-02: admitted (23aedee9fb46)",
-  "2026-10-23T15:47:41Z g02 e02-03: admitted (bac253e183e4)",
-  "2026-10-23T15:47:50Z g02 e02-04: admitted (358027b3c300)",
-  "2026-10-23T15:47:58Z g02 e02-05: admitted (314f03a9434d)",
   "2026-10-23T15:48:06Z g02 e02-06: admitted (6e2787b21384)",
   "2026-10-23T15:48:14Z g02 e02-07: admitted (c7ce11d12c15)",
   "2026-10-23T15:48:23Z g02 phase EVAL_A_PENDING",
@@ -17579,10 +17589,18 @@
   "2026-10-23T23:09:13Z g07 e07-04: launched session_018xrAZZoLsUWcx1VXpEcYrE",
   "2026-10-23T23:09:24Z g07 e07-05: launched session_01BXzdhGFkMunUazPNPCwvKJ",
   "2026-10-23T23:09:35Z g07 e07-06: launched session_01LE4UW9j4BRMPDDv7Ni6QXf",
-  "2026-10-23T23:09:50Z g07 e07-07: launched session_016nfbuRAtWaiY73SufccvUv"
+  "2026-10-23T23:09:50Z g07 e07-07: launched session_016nfbuRAtWaiY73SufccvUv",
+  "2026-10-24T09:05:56Z g07 e07-01: done on origin/claude/evo-task-e07-01-8pd6og at 063e423b56",
+  "2026-10-24T09:05:58Z g07 e07-02: done on origin/claude/evo-e07-02-0pec5t at f4f438dc14",
+  "2026-10-24T09:06:01Z g07 e07-03: dead (deadline)",
+  "2026-10-24T09:06:05Z g07 e07-04: done on origin/claude/evo-task-e07-04-4hwcbm at e6ad184f2a",
+  "2026-10-24T09:06:09Z g07 e07-05: done on origin/claude/evolution-agent-e07-05-evmn42 at 564b1b8848",
+  "2026-10-24T09:06:12Z g07 e07-06: done on origin/claude/evo-task-e07-06-9v4kkc at 21fffab0f1",
+  "2026-10-24T09:06:16Z g07 e07-07: done on origin/claude/evo-task-e07-07-v93tv2 at dae63b8015",
+  "2026-10-24T09:06:16Z g07 phase ADMITTED"
  ],
  "paused": null,
- "phase": "RUNNING",
+ "phase": "ADMITTED",
  "sessions_launched": 49,
  "version": 1
 }
