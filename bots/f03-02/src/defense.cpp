@@ -6,37 +6,23 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
-#include <iostream>
 #include <span>
 
 using ct = cambc::champion_type;
 using cambc::ability_kind;
 
-constexpr bool kDefStats = true;
-std::array<int, 16> g_def{};  // decision counters
-const char* kDefNames[16] = {"ratio-run", "lethal-run", "fight", "far-ignore", "cancel-rec", "cancel-trib", "rw-unsafe", "rw-recall",
-    "flee-recall", "flee-step", "trib-now-e", "trib-unsafe", "hunt-skip", "help", "keep-chan", ""};
-void dstat(int i) {
-    ++g_def[static_cast<size_t>(i)];
-    if (!kDefStats) return;
-    const int r = static_cast<int>(cambc::round_number());
-    static int last = -1;
-    if (r / 400 != last) {
-        last = r / 400;
-        std::cout << "def r" << r << ' ' << cambc::to_string(cambc::self().champion_name());
-        for (int k = 0; k < 15; ++k) if (g_def[static_cast<size_t>(k)]) std::cout << ' ' << kDefNames[k] << '=' << g_def[static_cast<size_t>(k)];
-        std::cout << '\n';
-    }
-}
-constexpr int kRecallSlack = -2;
-constexpr int kHorizon = 3;     // turns of enemy damage a channel decision looks at
-constexpr int kGuardGems = 40;   // a tribute this big calls nearby allies to guard it
-constexpr int kGuardClaim = 254;  // claim byte 255: "tributing a big bag, come and guard"
-constexpr int kRelevantSteps = 6;  // enemies further than this many steps from hitting us are ignored
-constexpr int kPowerModel = 0;  // 0: 1.1 str + 0.25 focus (parent), 1: kit-based
-constexpr int kFleeMode = 0;     // 0: run home on the shortest route, 1: danger-scored steps
-constexpr int kRecallRule = 0;   // fleeing: 0 recall when nobody is within 6, 1 recall_safe()
-constexpr bool kRwSafe = false;  // recall_or_walk waits for recall_safe()  // recall when the first possible hit is later than recall_time + this
+constexpr int kRecallSlack = -2;      // recall_safe(): first possible hit later than recall_time + this
+constexpr int kHorizon = 3;           // turns of enemy damage a channel decision looks at
+constexpr int kGuardGems = 40;        // a tribute this big calls nearby allies to guard it
+constexpr int kGuardClaim = 254;      // claim byte 255: "tributing a big bag, come and guard"
+constexpr int kRelevantSteps = 6;     // enemies further than this many steps from hitting us are ignored
+// Switches for variants that tested worse (NOTES.md, "Tried and failed"); 0/false is the tested bot.
+constexpr int kPowerModel = 0;        // fight odds: 0 1.1 str + 0.25 focus, 1 kit-based
+constexpr bool kCornered = false;     // fight back when running cannot save us
+constexpr int kFleeMode = 0;          // 0 run home on the shortest route, 1 danger-scored steps
+constexpr float kHomeWeight = 12.0f;  // flee steps: danger (hp) worth one tile closer to home
+constexpr int kRecallRule = 0;        // fleeing: 0 recall when nobody is within 6, 1 recall_safe(), 2 walking reach
+constexpr bool kRwSafe = false;       // recall_or_walk waits for recall_safe()
 
 namespace {
 
@@ -203,7 +189,7 @@ bool Bot::flee() {
     const vec2 pos = me.position();
     auto score = [&](vec2 t) {
         float s = danger_at(t, 1) + 0.35f * danger_at(t, 3);
-        s += 12.0f * static_cast<float>(std::min(home_.at(t), 200));
+        s += kHomeWeight * static_cast<float>(std::min(home_.at(t), 200));
         return s;
     };
     const float stay = score(pos);
@@ -273,12 +259,12 @@ bool Bot::flee() {
 void Bot::flee_walk_only() {
     auto& me = cambc::self();
     const vec2 pos = me.position();
-    float best = danger_at(pos, 1) + 0.35f * danger_at(pos, 3) + 12.0f * static_cast<float>(std::min(home_.at(pos), 200));
+    float best = danger_at(pos, 1) + 0.35f * danger_at(pos, 3) + kHomeWeight * static_cast<float>(std::min(home_.at(pos), 200));
     vec2 to = pos;
     for (auto d : kDirs) {
         const vec2 t{pos.x + d.x, pos.y + d.y};
         if (!free_tile(t) || camp_block_.is_set(t) || home_.at(t) >= kFar) continue;
-        const float s = danger_at(t, 1) + 0.35f * danger_at(t, 3) + 12.0f * static_cast<float>(std::min(home_.at(t), 200));
+        const float s = danger_at(t, 1) + 0.35f * danger_at(t, 3) + kHomeWeight * static_cast<float>(std::min(home_.at(t), 200));
         if (s < best) { best = s; to = t; }
     }
     if (to == pos || !live()) return;
@@ -302,12 +288,10 @@ bool Bot::recall_or_walk(int walk_limit) {
     }
     if (moved_ || incoming_ > 0 || !live()) return moved_;
     if (kRwSafe && !recall_safe()) {
-        dstat(6);
         // Someone could break the recall: put distance between us first.
         if (!flee()) go_home();
         return true;
     }
-    dstat(7);
     try { me.recall(); } catch (const cambc::error& e) { warn("recall", e); }
     return true;
 }
@@ -334,14 +318,12 @@ bool Bot::hold_channel() {
             if (t.stun && !t.stunned && steps_to_hit(t, pos_) <= std::min(left, kHorizon - 1)) stunner = true;
         const int first = first_hit(pos_);
         if ((dmg < hp * 0.9f && !(stunner && left >= 2)) || left == 0 || first <= 1) return true;
-        dstat(5);
         try { me.cancel_submit_gems(); } catch (const cambc::error& e) { warn("cancel tribute", e); return true; }
         return false;
     }
     if (me.is_recalling()) {
         // Any hit breaks a recall: when one lands next turn anyway, use this turn to act instead.
         if (first_hit(pos_) > 1) return true;
-        dstat(4);
         try { me.cancel_recall(); } catch (const cambc::error& e) { warn("cancel recall", e); return true; }
         return false;
     }
@@ -370,7 +352,6 @@ bool Bot::guard() {
             auto goal = empty_board();
             goal.set(p);
             goal = grow(goal, 2) & ~walk_walls();
-            dstat(13);
             return go(goal, true);
         } catch (const cambc::error&) {}
     }
@@ -422,29 +403,37 @@ bool Bot::enemies() {
     const float need = 1.0f + std::min(0.6f, gems / 80.0f);
 
     // Gems at hand and an altar within reach: bank them if the tribute finishes before we could die.
-    if (gems > 0 && !moved_ && tribute_now(true)) { dstat(10); return true; }
+    if (gems > 0 && !moved_ && tribute_now(true)) return true;
 
     bool run = ratio < need && !home;
     // About to be burst down alone: step back even when the totals look fine.
-    if (!run && !home && lethal >= hp * 0.95f && help_hp_ <= 0) { run = true; dstat(1); }
-    else if (run) dstat(0);
+    if (!run && !home && lethal >= hp * 0.95f && help_hp_ <= 0) run = true;
+    // Cornered: chasers as fast as we are would kill us before we reach home, so hit back.
+    if (run && kCornered && dmin <= 2 && hp > 0) {
+        const int hd = home_.at(pos_);
+        float chase = 0;
+        for (const auto& t : threats_)
+            if (t.d <= 2 && t.range <= 1 && !t.stunned) chase += t.dps;
+        if (hd > 3 && hd < kFar && chase * static_cast<float>(hd) * taken_champ_ >= hp && our_hp * our_dps >= 0.5f * their_hp * their_dps) {
+            run = false;
+        }
+    }
     if (run) {
         // Far enemies that are not coming for us: carry on, but bank sooner (tribute checks sightings).
-        if (dmin >= 6 && hp > max_hp * 0.5f && first_hit(pos_) > 2) { dstat(3); return false; }
+        if (dmin >= 6 && hp > max_hp * 0.5f && first_hit(pos_) > 2) return false;
         // Run: free hits and stuns on whoever is next to us (spells.cpp), recall once nobody can break it.
         flee_spells(list);
-        if (!moved_ && (kRecallRule ? recall_safe() : dmin >= 6 && incoming_ == 0)) {
-            dstat(8);
+        const bool recall_ok = kRecallRule == 1 ? recall_safe()
+            : kRecallRule == 2 ? incoming_ == 0 && first_hit(pos_) >= 4 : dmin >= 6 && incoming_ == 0;
+        if (!moved_ && recall_ok) {
             if (live()) try { me.recall(); } catch (const cambc::error& ex) { warn("flee recall", ex); }
             return true;
         }
-        dstat(9);
-        if (kFleeMode == 0 || (!flee() && !moved_ && !move_failed_)) go_home();
+        if (kFleeMode == 0 || first_hit(pos_) > 1 || (!flee() && !moved_ && !move_failed_)) go_home();
         return true;
     }
     // Strong enough but nobody close: keep farming unless the odds invite a hunt.
-    if (dmin > 5 && ratio < 1.6f) { dstat(12); return false; }
-    dstat(2);
+    if (dmin > 5 && ratio < 1.6f) return false;
     // A chase that never lands a hit only wastes farming time.
     if (now < no_chase_until_ && dmin > me.attack_range() + 1) return false;
 
@@ -488,7 +477,7 @@ bool Bot::tribute_now(bool pressed) {
         for (const auto& t : threats_)
             if (t.stun && !t.stunned && steps_to_hit(t, pos_) <= std::min(turns, kHorizon) - 1) stunner = true;
         const bool safe = hp > camp + champs + 40 && !(stunner && turns >= 2 && !pressed);
-        if (!safe) { if (!pressed) dstat(11); return false; }
+        if (!safe) return false;
         try { me.submit_gems(a); } catch (const cambc::error& e) { warn("submit", e); return false; }
         if (gems >= kGuardGems) write_claim(kGuardClaim);
         return true;
