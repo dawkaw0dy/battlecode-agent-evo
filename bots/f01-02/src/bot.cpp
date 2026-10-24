@@ -1209,12 +1209,29 @@ int Bot::choose_target(int& wait_out) {
     return best;
 }
 
+// Enemy altar locks seen, kept while their altar is out of sight (vision alone made us circle the altar).
+namespace {
+struct Lock { vec2 altar; int until; };
+std::vector<Lock> g_locks;
+}
+
+static void update_locks(const cambc::bitboard& visible_locks) {
+    const int now = static_cast<int>(cambc::round_number());
+    std::erase_if(g_locks, [now](const Lock& l) { return l.until < now; });
+    for (auto a : cambc::map::altars().positions()) {
+        if (!view().vis.at(a)) continue;
+        std::erase_if(g_locks, [a](const Lock& l) { return l.altar == a; });
+        if (visible_locks.is_set(a)) g_locks.push_back({a, now + 60});
+    }
+}
+
 bool Bot::handle_tribute(int next_target, int next_wait) {
     auto& me = cambc::self();
     const int gems = static_cast<int>(me.gem_count());
     if (gems <= 0) return false;
     const vec2 pos = me.position();
     const auto enemy_locks = cambc::vision::altar_lock_tiles(team::enemy);
+    update_locks(enemy_locks);
     // Tribute when standing beside an altar.
     for (auto a : cambc::map::altars().positions()) {
         // Damage does not interrupt a tribute; just make sure we live through it.
@@ -1227,18 +1244,26 @@ bool Bot::handle_tribute(int next_target, int next_wait) {
             return true;
         }
     }
-    // Beside an enemy-locked altar: break the lock with basic attacks.
+    // Beside an enemy-locked altar: break the lock with basic attacks (a tribute attempt on a locked
+    // altar attacks the lock too).
     if (!enemy_locks.is_empty() && me.can_attack() && live())
-        for (auto a : enemy_locks.positions())
-            if (dist(a, pos) <= std::min(cambc::constants::submit_gems_range, me.attack_range())) {
-                try {
-                    me.attack(cambc::vision::altar_lock_at(a));
-                    attacked_ = true;
-                    return true;
-                } catch (const cambc::error&) {
-                }
-                break;
+        for (auto a : enemy_locks.positions()) {
+            if (dist(a, pos) > cambc::constants::submit_gems_range) continue;
+            try {
+                if (dist(a, pos) <= me.attack_range()) me.attack(cambc::vision::altar_lock_at(a));
+                else me.submit_gems(a);
+                attacked_ = true;
+                invalidate_view();
+                return true;
+            } catch (const cambc::error&) {
             }
+            // Out of reach from here: step next to the altar.
+            auto beside = empty_board();
+            add_box(beside, a, 1);
+            beside &= ~static_walls_ally();
+            if (step_to(beside, false)) return true;
+            break;
+        }
     const int d_altar = altar_.at(pos);
     if (d_altar >= unreached) return false;
     const int late = static_cast<int>(cambc::constants::max_rounds) - static_cast<int>(cambc::round_number());
@@ -1248,17 +1273,27 @@ bool Bot::handle_tribute(int next_target, int next_wait) {
         && dist(report.where, pos) <= 16;
     const bool go = gems >= 40 || next_target < 0 || next_wait > d_altar || d_altar <= 4
         || (gems >= 15 && d_altar <= 10) || (danger && gems >= 10) || late < d_altar + 30;
-    DBG(slot_, "tribute? go " << go << " d_altar " << d_altar << " gems " << gems);
+    DBG(slot_, "tribute? go " << go << " d_altar " << d_altar << " gems " << gems << " locks " << g_locks.size() << " at " << pos.x << "," << pos.y);
     if (!go) return false;
-    if (enemy_locks.is_empty() && walk_field(altar_, true)) return true;
-    DBG(slot_, "tribute walk_field failed; moved " << moved_ << " mf " << move_failed_ << " dyn_until " << dynamic_until_);
-    auto goal = altar_tiles_;
-    for (auto a : enemy_locks.positions()) {
-        auto locked = empty_board();
-        add_box(locked, a, cambc::constants::submit_gems_range);
-        goal &= ~locked;
+    if (!g_locks.empty()) {
+        // Prefer an unlocked altar that is not much farther; otherwise go and break the nearest lock.
+        auto goal = altar_tiles_;
+        for (const auto& l : g_locks) {
+            auto locked = empty_board();
+            add_box(locked, l.altar, cambc::constants::submit_gems_range);
+            goal &= ~locked;
+        }
+        if (!goal.is_empty() && fuel_ok(40000)) {
+            cambc::distance_field f;
+            cambc::bitboard reached;
+            auto here = empty_board();
+            here.set(pos);
+            f.compute_to(*walls_, goal & ~*walls_, here, reached, static_cast<std::uint16_t>(d_altar + 12));
+            if (reached.is_set(pos)) return step_to(goal, true);
+        }
     }
-    return step_to(goal, true);
+    if (walk_field(altar_, true)) return true;
+    return step_to(altar_tiles_, true);
 }
 
 void Bot::farm(int group) {

@@ -25,11 +25,18 @@ way, remembers occupants vision misses, and falls back to whole-map unit-aware f
   (01broken-curve: champions carried 20–50 gems for 1000+ rounds), allies hidden in bushes refusing steps,
   vision-dependent blockers, waiting behind enemies while fleeing, respawn waits parked on another group's
   spawn tiles (01gold-rush: three champions blocked each other's groups for 1000 rounds).
+- Altar locks (tribute movement): enemy locks are remembered while their altar is out of sight (vision alone
+  made champions circle a locked altar forever: 0 gems in 2000 rounds vs f00-01 on 00ambush/01broken-curve);
+  go to an unlocked altar if it is at most 12 steps farther, else walk to the nearest altar and break its lock
+  (attack in range, else a tribute attempt, which the engine turns into an attack on the lock).
 - Fuel: map size in plain globals (function statics cost a guard per call), cached own position in the view,
   row-pointer ring scan, lazy occupancy refresh; walking turn ≈13k fuel (first draft was ≈50k and lost turns).
 - Local results, final version: vs starter 80/80 on all 40 maps, sum of rounds 91173 vs parent 93570;
   vs f00-03 24/32 (+310 mean gems) on the generation-0 stage-A maps, 44/80 (+76) on all 40 maps;
-  vs f00-07 10/16 (+124) where f00-03 gets 9/16 (−11).
+  vs f00-07 10/16 (+124) where f00-03 gets 9/16 (−11); vs f00-01 11/16 before the lock fix, then
+  01broken-curve 2/2 (+751) and 00elkring 2/2 (was 1/2).
+- dbg.h: kDebug=false. Set it true locally for a draft map dump, 20-round position traces, DBG(...) windows,
+  STUCK (circling) and OVF (fuel overflow) counters in the replay stdout.
 
 ## Tried and failed (keep entries from the parent's notes; add yours)
 - Linear bitboard buffers are bit-packed (not one byte per tile as the API doc says).
