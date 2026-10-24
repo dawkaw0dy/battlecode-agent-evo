@@ -89,7 +89,6 @@ bitboard occupied() {
     return cambc::vision::champion_tiles() | cambc::vision::camp_tiles() | cambc::vision::teleport_tiles();
 }
 
-struct Seen { vec2 pos; float hp, str; };
 
 std::vector<Seen> visible_champions(team side) {
     std::vector<Seen> out;
@@ -337,6 +336,26 @@ bool Bot::cast_on_camp(const vec2& tile) {
     return false;
 }
 
+void Bot::cast_on_enemy(const std::vector<Seen>& enemies) {
+    auto& me = cambc::self();
+    if (moved || cast_lock || !me.can_cast() || enemies.empty()) return;
+    for (const auto& ab : me.abilities()) {
+        if (!(ab.is_damage() || ab.is_aoe_damage() || ab.is_cc())) continue;
+        if (!ab.is_ready() || !(ab.can_target_enemies() || ab.can_target_ground())) continue;
+        const auto mask = ab.valid_tiles();
+        const Seen* best = nullptr;
+        for (const auto& e : enemies)
+            if (mask.is_set(e.pos) && (!best || e.hp < best->hp)) best = &e;
+        if (!best) continue;
+        auto c = champion_here(best->pos);
+        if (!c) continue;
+        cast_lock = true;
+        if (ab.can_target_enemies()) ab.use(*c);
+        else ab.use(best->pos);
+        return;
+    }
+}
+
 void Bot::use_support_spells() {
     auto& me = cambc::self();
     if (!me.can_cast()) return;
@@ -463,10 +482,13 @@ bool Bot::fight_group() {
     const auto state = group_handles()[target].state();
     if (const auto* r = std::get_if<cambc::map::camp_group_respawning>(&state)) {
         ready_round[target] = now + std::max(1, r->timer);
-        if (r->timer <= 2 && ++wait_turns < 25) {
-            // About to respawn (or blocked by someone standing on it): clear the tiles and wait.
-            if (all_spawns.is_set(pos)) step_to(square(pos, 2) & ~all_spawns & ~static_walls);
-            return true;
+        if (r->timer <= 2) {
+            if (++wait_turns < 25) {
+                // About to respawn (or blocked by someone standing on it): clear the tiles and wait.
+                if (all_spawns.is_set(pos)) step_to(square(pos, 2) & ~all_spawns & ~static_walls);
+                return true;
+            }
+            banned_until[target] = now + 40;
         }
         target = -1;
         { dbg_reason = 1; return false; }
@@ -488,8 +510,12 @@ bool Bot::fight_group() {
                 { dbg_reason = 2; return false; }
             }
         }
-        if (!(cambc::vision::champion_tiles(team::enemy) & square(g.tiles[0], 4)).is_empty()) {
-            banned_until[target] = now + 40;
+        const auto zone = square(g.tiles[0], 5);
+        const int foes = static_cast<int>((cambc::vision::champion_tiles(team::enemy) & zone).count());
+        const int friends = static_cast<int>((cambc::vision::champion_tiles(team::ally) & zone).count())
+            + (zone.is_set(pos) ? 0 : 1);
+        if (foes > friends) {
+            banned_until[target] = now + 30;
             target = -1;
             { dbg_reason = 3; return false; }
         }
@@ -553,7 +579,12 @@ bool Bot::fight_group() {
     }
     cast_on_camp(primary->pos);
     bitboard goals = square(primary->pos, range) & ~static_walls;
-    step_to(goals);
+    if (!step_to(goals) && !moved) {
+        // The preferred camp may be walled in by its group: approach any living member.
+        goals.clear();
+        for (const auto& l : live) goals |= square(l.pos, range);
+        step_to(goals & ~static_walls);
+    }
     if (me.can_attack()) {
         const auto atk2 = me.attack_tiles();
         for (const auto& l : live) {
@@ -622,24 +653,21 @@ void Bot::play_turn_inner() {
             const Seen* weakest = nullptr;
             for (const auto& e : enemies)
                 if (atk.is_set(e.pos) && (!weakest || e.hp < weakest->hp)) weakest = &e;
-            const bool kill_shot = weakest && weakest->hp <= my_str * 1.05f;
-            const bool outmatched = theirs > OUTMATCH * ours || (gems >= 10 && theirs > 0.7f * ours)
-                || hp < 0.3f * max_hp;
-            if (kill_shot && me.can_attack()) {
+            const bool routed = theirs > 1.6f * ours || hp < 0.25f * max_hp || (gems >= 15 && theirs > ours);
+            const bool outmatched = theirs > OUTMATCH * ours || (gems >= 10 && theirs > 0.7f * ours);
+            if (!routed) cast_on_enemy(enemies);
+            if (weakest && !routed && me.can_attack()) {
+                // Engaged: fleeing only hands out free hits, so fight back.
                 auto c = champion_here(weakest->pos);
                 if (c) { me.attack(*c); return; }
             }
-            if (outmatched) {
+            if (routed || outmatched) {
                 if (flee(threats)) return;
                 if (weakest && me.can_attack()) {
                     auto c = champion_here(weakest->pos);
                     if (c) me.attack(*c);
                 }
                 return;
-            }
-            if (weakest && me.can_attack()) {
-                auto c = champion_here(weakest->pos);
-                if (c) { me.attack(*c); return; }
             }
         }
     }
@@ -699,9 +727,18 @@ void Bot::play_turn_inner() {
         }
         if (!needed) step_to(square(pos, 2) & ~all_spawns & ~static_walls);
     }
-    if (target >= 0 && !fight_group()) {
+    for (int tries = 0; tries < 4 && target >= 0 && !fight_group(); ++tries) {
+        if (target >= 0) banned_until[target] = std::max(banned_until[target], now + 1);
         choose_target(from_me, reach);
-        if (target >= 0) fight_group();
+    }
+    // No move, attack or cast while farming: count towards giving the group up.
+    const bool idle_turn = target >= 0 && !moved && !cast_lock && me.can_attack()
+        && !(target >= 0 && groups[target].spawns.is_set(pos));
+    stuck_turns = idle_turn ? stuck_turns + 1 : 0;
+    if (stuck_turns > 12 && wait_turns == 0) {
+        banned_until[target] = now + 60;
+        target = -1;
+        stuck_turns = 0;
     }
     write_claim(target);
     act = target < 0 ? 12 : (!me.can_attack() && me.attack_range() > 1) || (me.attack_range() == 1 && !me.can_attack()) ? 10 : moved ? 9 : 11;

@@ -14,6 +14,9 @@ struct GroupInfo {
     int altar_dist = 0;                  // path distance from the group to the nearest altar
 };
 
+// A visible champion snapshot.
+struct Seen { cambc::vec2 pos; float hp, str; };
+
 // Per-champion state survives between turns.
 class Bot {
     bool initialised = false;
@@ -23,6 +26,7 @@ class Bot {
     std::vector<int> banned_until;       // groups we gave up on
     int target = -1;                     // current camp group
     int wait_turns = 0;
+    int stuck_turns = 0;
     int last_enemy_round = -1000;
     bool moved = false, cast_lock = false;
     cambc::bitboard static_walls, approach, own_spawn, all_spawns;
@@ -37,6 +41,7 @@ class Bot {
     bool go_bank();
     bool fight_group();
     void use_support_spells();
+    void cast_on_enemy(const std::vector<Seen>& enemies);
     bool cast_on_camp(const cambc::vec2& tile);
     void write_claim(int group);
     int read_claim(int index);
