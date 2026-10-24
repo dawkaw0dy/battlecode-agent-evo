@@ -22,7 +22,7 @@
    "slot": 0,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "c6a0ba567e4b837f41ecaaa893a7d88c4ed6f9b0a464a4323876be21be1cec6f"
   },
   "f00-01": {
    "archetype": "altar-control",
@@ -46,7 +46,7 @@
    "slot": 1,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "98a7ba6c7b0ba04ad413cef28201639f58b24f665584a8cd70c82fe5cecdd396"
   },
   "f00-02": {
    "archetype": "safe-banker",
@@ -70,7 +70,7 @@
    "slot": 2,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "a76b566a75683369cf058863a162c7047fae73735475fd3932f8723caf0cdd0d"
   },
   "f00-03": {
    "archetype": "split-farm",
@@ -94,7 +94,7 @@
    "slot": 3,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "1b2a65e1ebf9d6179ceca784b7b947d7c17f7b1e6ade73cb65836ff72dd51bda"
   },
   "f00-04": {
    "archetype": "big-game-hunter",
@@ -118,7 +118,7 @@
    "slot": 4,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "6634a10aaca2f7856d983aa0de49acc5987ce4b27fa0f37cd04fa41cfb304cd9"
   },
   "f00-05": {
    "archetype": "early-aggression",
@@ -142,7 +142,7 @@
    "slot": 5,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "c97c0dd12b53028c0948a16e4f0263df4f424d2138cff9458c282fb08917f6b4"
   },
   "f00-06": {
    "archetype": "deathball",
@@ -166,7 +166,7 @@
    "slot": 6,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "02700e5185e6b5b4994d54b99a29cf61dc090c76e27175585025ea0cb1d5a7d1"
   },
   "f00-07": {
    "archetype": "vision-ambush",
@@ -190,7 +190,7 @@
    "slot": 7,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "3c44aec145f16f27649f692ba87df819ce54273b566c25bf6f724303ad134f3f"
   }
  },
  "generation": 0,
@@ -220,10 +220,11 @@
  "jobs": {},
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-24T11:08:03Z g00 initialised generation 0 with 8 immigrants"
+  "2026-10-24T11:08:03Z g00 initialised generation 0 with 8 immigrants",
+  "2026-10-24T11:08:21Z g00 phase TASKS_PUSHED: 8 task files"
  ],
  "paused": null,
- "phase": "PLANNED",
+ "phase": "TASKS_PUSHED",
  "sessions_launched": 0,
  "version": 1
 }
