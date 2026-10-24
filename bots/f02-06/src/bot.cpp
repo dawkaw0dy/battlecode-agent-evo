@@ -18,7 +18,7 @@ namespace {
 using cambc::bitboard;
 using it = cambc::item_type;
 
-constexpr bool kDebug = true;
+constexpr bool kDebug = false;
 constexpr int kPackMemory = 48;
 constexpr float kMaxTrips = 6;
 constexpr float kClaimed = 0.15f, kLongWait = 0.6f;
@@ -1034,7 +1034,7 @@ void play_turn_inner() {
         if (rg.min_dist(pos) <= rr + 3) { mark_staged(); ++stage_wait; } else stage_wait = 0;
         const int gathered = staged_count();
         int need = std::max(2, std::min(g_team, rg.mono ? std::max(3, g_team - 1) : 3));
-        if (stage_wait > 30) need = std::max(2, need - 1);
+        if (stage_wait > 15) need = std::max(2, need - 1);
         bool fighting = false;
         for (vec2 t : rg.tiles) if (LV_awake.at(t)) fighting = true;
         if (kDebug && g_round % 50 == 0)
