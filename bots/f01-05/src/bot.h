@@ -49,7 +49,7 @@ struct Group {
     std::vector<float> member_hp; // last known health per member (0: dead)
     int enemy_near_until = 0;     // enemy champions seen nearby: risky until this round
     int lonely_until = 0;         // waited for helpers in vain: skip until this round
-    bool deadly = false;          // golem or monolith: never woken alone
+    bool deadly = false;          // golem, monolith or 150+ summed strength: never woken alone
     int ally_capturing_until = 0; // an ally stands on the region of its reward
     // Living monsters in kill order (health, strength), cluster health and summed strength; rebuilt
     // when order_dirty is set (a member's health changed).
