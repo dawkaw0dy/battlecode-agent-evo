@@ -866,15 +866,42 @@ bool Bot::handle_enemies() {
         return true;
     }
 
-    // Fight: attack the weakest enemy in range, chase if close.
+    // Fight: open with a damage or stun spell on the weakest enemy in its range, then basic attacks.
+    if (!live()) return true;
+    if (!cast_ && !moved_ && me.can_cast()) {
+        for (const auto& ab : me.abilities()) {
+            if (cast_ || !ab.is_ready()) continue;
+            const bool unit_spell = (ab.is_damage() || ab.is_cc()) && ab.can_target_enemies();
+            const bool area_spell = ab.is_aoe_damage() && ab.can_target_ground();
+            if (!unit_spell && !area_spell) continue;
+            float spell_range = 4;
+            if (const auto& info = ab.info()) {
+                if (auto* d = std::get_if<cambc::ability_damage>(&*info)) spell_range = d->range;
+                else if (auto* c = std::get_if<cambc::ability_cc>(&*info)) spell_range = c->range;
+                else if (auto* g = std::get_if<cambc::ability_aoe_damage>(&*info)) spell_range = g->range;
+            }
+            const Sighting* aim = nullptr;
+            for (const auto& e : enemies)
+                if (dist(e.pos, pos) <= static_cast<int>(spell_range) && view().vis.at(e.pos) && (!aim || e.hp < aim->hp)) aim = &e;
+            if (!aim) continue;
+            try {
+                if (unit_spell) ab.use(cambc::vision::champion_at(aim->pos));
+                else ab.use(aim->pos);
+                cast_ = true;
+                invalidate_view();
+            } catch (const cambc::error&) {
+            }
+        }
+    }
     const int range = me.attack_range();
     const Sighting* best = nullptr;
     for (const auto& e : enemies)
         if (dist(e.pos, pos) <= range && view().vis.at(e.pos) && (!best || e.hp < best->hp)) best = &e;
-    if (!live()) return true;
-    if (best && me.can_attack()) {
+    if (best && me.can_attack() && live()) {
         try {
+            if (!cambc::vision::has_champion(best->pos)) return true;
             auto c = cambc::vision::champion_at(best->pos);
+            if (!c.is_visible() || !c.is_alive()) return true;
             me.attack(c);
             attacked_ = true;
             invalidate_view();
@@ -893,23 +920,7 @@ bool Bot::handle_enemies() {
         }
         return true;
     }
-    // Damage or stun spell on the nearest enemy.
-    if (!cast_ && !moved_ && live() && me.can_cast()) {
-        for (const auto& ab : me.abilities()) {
-            if (!ab.is_ready() || !(ab.is_damage() || ab.is_cc()) || !ab.can_target_enemies()) continue;
-            for (const auto& e : enemies) {
-                if (dist(e.pos, pos) > 4) continue;
-                try {
-                    cast_ = true;
-                    ab.use(cambc::vision::champion_at(e.pos));
-                    invalidate_view();
-                    return true;
-                } catch (const cambc::error&) {
-                }
-                break;
-            }
-        }
-    }
+    if (cast_) return true;
     if (dmin <= 4 && me.health() > me.max_health() * 0.4f) {
         auto goal = empty_board();
         for (const auto& e : enemies) add_box(goal, e.pos, range);
