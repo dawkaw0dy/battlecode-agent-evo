@@ -34,8 +34,8 @@ constexpr int kGatherWait = 8;
 constexpr int kLeadAhead = 3;
 constexpr float kHuntBalance = 1.1f;    // chase only with this much more health nearby
 constexpr float kRetreatBalance = 0.55f;  // fall back towards spawn below this
-constexpr int kGolemRound = 400;
-constexpr int kMonoRound = 700;
+constexpr int kGolemRound = 300;
+constexpr int kMonoRound = 500;
 constexpr int kStallRounds = 90;
 constexpr float kSoloRecallHp = 0.25f;
 
