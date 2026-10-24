@@ -499,8 +499,6 @@ bool Bot::try_dash(const cambc::distance_field& f, const cambc::bitboard& seen) 
 // visible units; falls back to the plain terrain route when those close the way.
 bool Bot::go(const cambc::bitboard& goals_in, bool dash) {
     auto& me = cambc::self();
-    const bool dbg = kLog && now() == 200;
-    if (dbg) std::cout << "go " << moved_ << move_failed_ << me.can_move() << live() << ' ' << cambc::fuel_remaining() << '\n';
     if (moved_ || move_failed_ || !me.can_move() || !live()) return false;
     if (!fuel(25000)) return false;
     const vec2 pos = me.position();
@@ -514,7 +512,6 @@ bool Bot::go(const cambc::bitboard& goals_in, bool dash) {
     cambc::distance_field f;
     cambc::bitboard seen;
     if (!goals.is_empty()) f.compute_to(blocked, goals, here, seen);
-    if (dbg) std::cout << "go2 " << goals.count() << ' ' << seen.is_set(pos) << ' ' << goals_in.count() << '\n';
     if (goals.is_empty() || !seen.is_set(pos)) {
         // Camps or units close the way: follow the terrain route and let the farm logic clear plugs.
         auto soft = g_ww | v.camps | v.champs | v.tele;
@@ -545,8 +542,18 @@ bool Bot::go(const cambc::bitboard& goals_in, bool dash) {
         const int fd = f.get(t);
         if (fd < best_d) { best_d = fd; best = t; }
     }
-    if (dbg) std::cout << "go3 " << best.x << ',' << best.y << ' ' << best_d << ' ' << from.x << ',' << from.y << '\n';
-    if (best == from) return moved_;
+    if (best == from) {
+        // A living camp on the only way forward: remember its group so we clear it.
+        for (auto d : kDirs) {
+            const vec2 t{from.x + d.x, from.y + d.y};
+            if (!inside(t) || !seen.is_set(t) || !view().lcamps.at(t)) continue;
+            if (f.get(t) >= best_d) continue;
+            const int gi = group_at_[static_cast<size_t>(tidx(t))];
+            if (gi >= 0) { plug_ = gi; plug_at_ = now(); }
+            break;
+        }
+        return moved_;
+    }
     moved_ = true;
     bool ok = false;
     try { ok = me.move_absolute(best); } catch (const cambc::error& e) { warn("move", e); }
@@ -928,8 +935,8 @@ void Bot::farm(int gi) {
         return;
     }
     if (g.state == Group::respawning) {
-        // Wait beside the group.
-        if (cheb(pos_, g.center) <= g.reach + 2) return;
+        // Wait beside the group, never on its spawn tiles (that blocks the respawn).
+        if (cheb(pos_, g.center) <= g.reach + 2 && !g.spawn.is_set(pos_)) return;
         auto goal = grow(g.spawn, 2) & ~g_ww & ~g.spawn;
         go(goal, true);
         return;
@@ -985,6 +992,9 @@ void Bot::play_turn() {
         auto& me = cambc::self();
         std::cout << "r" << now() << ' ' << cambc::to_string(me.champion_name()) << ' ' << g_mode << " at " << pos_.x << ',' << pos_.y
                   << " tgt " << target_ << " gems " << me.gem_count() << " hp " << me.health() << " alt " << altar_.at(pos_)
+                  << " g " << (target_ >= 0 ? g_[target_].center.x : -1) << ',' << (target_ >= 0 ? g_[target_].center.y : -1)
+                  << " st " << (target_ >= 0 ? int(g_[target_].state) : -1) << " eta " << (target_ >= 0 ? eta(target_) : -1)
+                  << " stuck " << stuck_since_ << '/' << best_eta_ << " plug " << plug_
                   << " locks " << locks_placed_ << '/' << locks_cancel_ << '/' << lock_gems_ << " fuel " << cambc::fuel_remaining() << " live " << live() << '\n';
     }
 }
@@ -1057,6 +1067,9 @@ void Bot::turn() {
         chosen_at_ = now();
         if (target_ != prev) { stuck_g_ = target_; stuck_since_ = now(); best_eta_ = kFar; write_claim(target_); }
     }
+    if (plug_ >= 0 && now() - plug_at_ < 25 && g_[plug_].state != Group::respawning && g_[plug_].state != Group::reward) {
+        target_ = plug_;
+    }
     if (target_ < 0) {
         if (me.gem_count() > 0 && tribute(true)) return;
         if (guard_) guard_post();
@@ -1073,7 +1086,7 @@ void Bot::turn() {
     // Stuck detection: no progress towards the target for a long time.
     const int e = eta(target_);
     if (e < best_eta_) { best_eta_ = e; stuck_since_ = now(); stuck_g_ = target_; }
-    else if (now() - stuck_since_ > 40 && g_[target_].state == Group::alive && cheb(pos_, g_[target_].center) > g_[target_].reach + me.attack_range() + 1) {
+    else if (now() - stuck_since_ > 40 && (g_[target_].state == Group::alive || g_[target_].state == Group::unknown) && cheb(pos_, g_[target_].center) > g_[target_].reach + me.attack_range() + 1) {
         g_[target_].blocked_until = now() + 60;
         target_ = -1;
         return;
