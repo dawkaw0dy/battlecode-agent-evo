@@ -1,0 +1,27 @@
+{
+  "agent": "f01-04",
+  "task_sha256": "ddbb56d2c2729d46edb19b4b8f5534957a42b39869a5a4e7ff70183bcdfff848",
+  "base_commit": "f0434ae94cb14a9c64e5d009086ce7d6e4bda67d",
+  "session_id": "cse_01PwnWUfngPqCzR2CyUmAr2V",
+  "bot_dir": "bots/f01-04",
+  "self_eval": {
+    "vs": "f00-00",
+    "games": 80,
+    "wins": 61
+  },
+  "games_played": 880,
+  "summary": "Pathing: travel dash down fields when it saves 2 steps and no enemy within 6 tiles; allies count as occupied when stepping",
+  "env_fingerprint": {
+    "cli": "cambc 3.0.5",
+    "manifest_sha256": "f247aa3d11f80362ff69f212df761ab6c6b89ffd123f9e6d0ad41e2e5f0fc916",
+    "nproc": 4,
+    "python": "3.13.17",
+    "node": "v22.22.0",
+    "smoke_finished": true,
+    "smoke_seconds": 18.22,
+    "remote": "true",
+    "session_id": "cse_01PwnWUfngPqCzR2CyUmAr2V",
+    "effort_level": "high",
+    "model": null
+  }
+}
