@@ -83,6 +83,8 @@ int now = 0;
 // Stuck detection while travelling to the pack target.
 vec2 last_pos{-1, -1};
 int still_turns = 0;
+int idle_fight_turns = 0;  // hunting turns with foes in sight but no attack or move
+bool acted = false;        // attacked this turn
 
 // Shared memory: [0] target group + 1, [1] spare, [2..7] three (group + 1, avail / 16) notes.
 int read_target() {
@@ -245,6 +247,8 @@ std::vector<Foe> visible_enemies() {
         try {
             auto c = cambc::vision::champion_at(p);
             if (!c.is_visible() || !c.is_alive()) continue;
+            // Enemies on their own spawn heal every turn: not worth a fight.
+            if (cambc::map::spawn_region(team::enemy).is_set(p)) continue;
             out.push_back({p, c.health(), c.max_health(), true, true, static_cast<int>(c.strength()),
                 c.attack_range(), -1});
         } catch (const std::exception&) {
@@ -405,6 +409,7 @@ bool attack_foe(const Foe& f) {
             me.attack(c);
         }
         if (!is_melee) moved = true;  // ranged: attacking uses the move allowance
+        acted = true;
         return true;
     } catch (const std::exception& e) {
         std::cout << "warn: attack " << e.what() << '\n';
@@ -579,7 +584,9 @@ int choose_target() {
     cambc::distance_field field;
     bitboard visited;
     visited.clear();
-    field.compute(terrain, single(pos), visited);
+    auto walls = terrain | remembered_camps();
+    walls.set(pos, false);
+    field.compute(walls, single(pos), visited);
     const float dps = team_dps(), ehp = team_ehp();
     int best = -1;
     float best_s = -1;
@@ -735,6 +742,12 @@ void hunt(const std::vector<Foe>& camps, const std::vector<Ally>& allies) {
         }
         fight(foes, false);
         still_turns = 0;
+        if (acted || moved) idle_fight_turns = 0;
+        else if (++idle_fight_turns > 10) {
+            g.bad_until = now + 150;
+            write_target(-1);
+            idle_fight_turns = 0;
+        }
         return;
     }
 
@@ -811,6 +824,29 @@ void init() {
     me.set_priority(is_tank ? 3 : (is_melee ? 2 : 1));
 }
 
+constexpr bool kDump = true;
+void dump_map() {
+    bitboard cs;
+    cs.clear();
+    for (auto& g : groups) cs |= g.spawns;
+    for (int y = 0; y < H; ++y) {
+        std::string row;
+        for (int x = 0; x < W; ++x) {
+            vec2 v{x, y};
+            char c = '.';
+            if (cambc::map::walls().is_set(v)) c = '#';
+            else if (cambc::map::holes().is_set(v)) c = 'o';
+            else if (cambc::map::altars().is_set(v)) c = 'A';
+            else if (ally_spawn.is_set(v)) c = 'S';
+            else if (cambc::map::spawn_region(team::enemy).is_set(v)) c = 'E';
+            else if (cs.is_set(v)) c = static_cast<char>('a' + group_of_tile(v) % 26);
+            else if (cambc::map::bushes().is_set(v)) c = '"';
+            row += c;
+        }
+        std::cout << "map " << row << '\n';
+    }
+}
+
 } // namespace
 
 void Bot::play_turn() {
@@ -825,9 +861,11 @@ void Bot::play_turn() {
     if (!initialised) {
         init();
         initialised = true;
+        if (kDump && cambc::self().champion_name() == cambc::champion_type::ryth) dump_map();
     }
     moved = false;
     move_failed = false;
+    acted = false;
     now = static_cast<int>(cambc::round_number());
     auto& me = cambc::self();
 
