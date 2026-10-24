@@ -187,7 +187,12 @@ void Bot::initialise() {
     groups_ = analyse_groups();
     handles_ = cambc::map::camp_groups();
     known_.assign(groups_.size(), Known{});
+    for (size_t i = 0; i < groups_.size(); ++i)
+        for (const auto& c : handles_[i].camps()) known_[i].hp.push_back(camp_max_hp(c.kind()));
     group_field_.assign(groups_.size(), Grid16{});
+    camp_group_at_.assign(static_cast<size_t>(map_w() * map_h()), -1);
+    for (size_t i = 0; i < groups_.size(); ++i)
+        for (auto t : groups_[i].tiles) camp_group_at_[static_cast<size_t>(tile_index(t))] = static_cast<std::int16_t>(i);
 
     const auto* mem = cambc::draft_memory.data();
     const size_t size = cambc::draft_memory.size();
@@ -276,11 +281,24 @@ void Bot::update_knowledge() {
             const auto st = handles_[i].state();
             auto& k = known_[i];
             k.seen = now;
-            if (std::holds_alternative<cambc::map::camp_group_alive>(st)) k.state = Known::alive;
-            else if (std::holds_alternative<cambc::map::camp_group_reward_available>(st)) k.state = Known::reward;
-            else {
+            if (std::holds_alternative<cambc::map::camp_group_alive>(st)) {
+                k.state = Known::alive;
+                const auto& camps = handles_[i].camps();
+                if (dist(groups_[i].center, pos) <= 10)
+                    for (size_t c = 0; c < camps.size(); ++c) {
+                        const vec2 p = camps[c].spawn_position();
+                        if (!v.vis.at(p)) continue;
+                        if (!v.lcamps.at(p)) k.hp[c] = 0;
+                        else if (camp_strength(camps[c].kind()) > 0) k.hp[c] = camp_hp(p);
+                        else k.hp[c] = camp_max_hp(camps[c].kind());
+                    }
+            } else if (std::holds_alternative<cambc::map::camp_group_reward_available>(st)) {
+                k.state = Known::reward;
+            } else {
                 k.state = Known::respawning;
                 k.ready = now + std::max(1, std::get<cambc::map::camp_group_respawning>(st).timer);
+                const auto& camps = handles_[i].camps();
+                for (size_t c = 0; c < camps.size(); ++c) k.hp[c] = camp_max_hp(camps[c].kind());
             }
         } catch (const std::exception&) {
         }
@@ -423,6 +441,18 @@ bool Bot::step_to(const cambc::bitboard& goals_in, bool allow_dash) {
         // Units block every path: head the static way and step around them.
         field.compute_to(*walls_, goals, here, reached);
         if (!reached.is_set(pos)) return false;
+        // Note a living camp on the static way so we can clear it.
+        const int d0 = field.get(pos);
+        for (auto d : dirs) {
+            const vec2 t{pos.x + d.x, pos.y + d.y};
+            if (!in_bounds(t) || !view().lcamps.at(t) || !reached.is_set(t) || field.get(t) >= d0) continue;
+            const int g = camp_group_at_[static_cast<size_t>(tile_index(t))];
+            if (g >= 0 && blocker_group_ < 0) {
+                blocker_group_ = g;
+                blocker_since_ = static_cast<int>(cambc::round_number());
+            }
+            break;
+        }
     }
     auto best_walk = [&](vec2 from, int& best_d) {
         vec2 best = from;
@@ -478,16 +508,13 @@ float Bot::my_dps() const {
 float Bot::estimate_damage(int group, float dps) const {
     std::array<std::pair<float, float>, 32> monsters;  // strength, health
     size_t n = 0;
-    for (const auto& c : handles_[group].camps()) {
+    const auto& camps = handles_[group].camps();
+    for (size_t c = 0; c < camps.size(); ++c) {
         if (n == monsters.size()) break;
-        const float s = camp_strength(c.kind());
+        const float s = camp_strength(camps[c].kind());
         if (s <= 0) continue;  // clusters do not hit back
-        float hp = camp_max_hp(c.kind());
-        const vec2 p = c.spawn_position();
-        if (view().vis.at(p)) {
-            if (!view().lcamps.at(p)) continue;
-            hp = camp_hp(p);
-        }
+        const float hp = known_[group].hp[c];
+        if (hp <= 0) continue;
         monsters[n++] = {s, hp};
     }
     std::sort(monsters.begin(), monsters.begin() + n, [](auto a, auto b) { return a.first > b.first; });
@@ -497,6 +524,12 @@ float Bot::estimate_damage(int group, float dps) const {
         dmg += monsters[i].first * t;
     }
     return dmg * taken_mult_;
+}
+
+float Bot::remaining_hp(int group) const {
+    float total = 0;
+    for (float hp : known_[group].hp) total += hp;
+    return total;
 }
 
 bool Bot::attack_group(int group) {
@@ -652,16 +685,31 @@ bool Bot::handle_enemies() {
         }
         return false;
     }
-    const auto enemies = visible_champions(team::enemy);
+    // Enemies on their own spawn heal fully every round and cannot be reached: ignore them.
+    auto enemies = visible_champions(team::enemy);
+    std::erase_if(enemies, [](const Sighting& e) { return cambc::map::spawn_region(team::enemy).is_set(e.pos); });
     if (enemies.empty()) return false;
 
+    // Walking distance to each enemy: one across a hole or wall is no immediate threat.
+    static const cambc::bitboard terrain = cambc::map::walls() | cambc::map::holes() | cambc::map::altars();
+    cambc::distance_field field;
+    cambc::bitboard reached;
+    {
+        auto targets = empty_board();
+        for (const auto& e : enemies) targets.set(e.pos);
+        auto root = empty_board();
+        root.set(pos);
+        field.compute_to(terrain, root, targets, reached, 12);
+    }
     int near = 0;
     float their = 0;
     int dmin = 99;
     for (const auto& e : enemies) {
         const int d = dist(e.pos, pos);
+        const int walk = reached.is_set(e.pos) ? field.get(e.pos) : 99;
+        if (walk > 9 && d > 1) continue;
         dmin = std::min(dmin, d);
-        if (d <= 7) { ++near; their += e.hp * e.power; }
+        if (walk <= 8) { ++near; their += e.hp * e.power; }
     }
     if (!near) return false;
     float ours = me.health() * (me.strength() + 0.3f * me.focus());
@@ -670,7 +718,8 @@ bool Bot::handle_enemies() {
     report_enemy(enemies.front().pos, near);
 
     const bool stronger = ours >= their * 1.15f;
-    if (!stronger && (me.health() < me.max_health() * 0.9f || near >= 2 || ours < their * 0.8f)) {
+    const bool home = cambc::map::spawn_region(team::ally).is_set(pos);
+    if (!stronger && !home && (me.health() < me.max_health() * 0.9f || near >= 2 || ours < their * 0.8f)) {
         // Run home; recall once out of reach.
         if (dmin >= 6 && !moved_ && incoming_ == 0 && me.gem_count() > 0) {
             if (live()) me.recall();
@@ -758,6 +807,7 @@ int Bot::choose_target(int& wait_out) {
         const auto& k = known_[i];
         const float value = g.gems + 0.35f * g.gold;
         if (value <= 0) continue;
+        if (k.blocked_until > now) continue;
         const int e = eta(i);
         if (e >= 9999) continue;
         const int avail = k.state == Known::respawning ? k.ready : now;
@@ -772,10 +822,21 @@ int Bot::choose_target(int& wait_out) {
         if (bound <= best_score) continue;
         float clear = 0;
         if (k.state != Known::reward) {
+            // Camps never heal, so a group too strong for one trip can be worn down over several.
             const float dmg = estimate_damage(i, dps);
-            if (dmg > max_hp - margin) continue;           // beyond us even at full health
-            if (dmg > hp - margin && e > 0) continue;      // heal first
-            clear = g.hp / std::max(1.0f, dps);
+            clear = remaining_hp(i) / std::max(1.0f, dps);
+            if (dmg > hp - margin) {
+                float hits = 0;
+                const auto& camps = handles_[i].camps();
+                for (size_t c = 0; c < camps.size(); ++c)
+                    if (k.hp[c] > 0) hits += camp_strength(camps[c].kind());
+                hits *= taken_mult_;
+                const float cap = max_hp - margin;
+                if (hits > 0 && cap / hits < 6) continue;  // too little fighting per trip
+                const float trips = std::ceil(dmg / std::max(1.0f, cap));
+                if (trips > 6) continue;
+                clear += trips * (10 + std::min(60, g.dist_ally));
+            }
         }
         const float score = value * factor / (e + wait + clear + 12.0f);
         if (score > best_score) { best_score = score; best = i; wait_out = wait; }
@@ -821,7 +882,15 @@ void Bot::farm(int group) {
         // Stand on a spawn tile until the capture completes.
         auto spawns = empty_board();
         for (auto t : groups_[group].tiles) spawns.set(t);
-        if (spawns.is_set(me.position())) return;
+        const int now = static_cast<int>(cambc::round_number());
+        if (spawns.is_set(me.position())) {
+            if (capture_group_ != group) { capture_group_ = group; capture_since_ = now; }
+            if (now - capture_since_ > cambc::constants::capture_time + 6) {
+                known_[group].blocked_until = now + 60;  // contested: try elsewhere
+                capture_group_ = -1;
+            }
+            return;
+        }
         step_to(spawns, false);
         return;
     }
@@ -873,6 +942,7 @@ void Bot::play_turn() {
         fill_fields(40000);
         return;
     }
+    if (cambc::round_number() % 100 == 0) std::cout << "T r" << cambc::round_number() << " s" << slot_ << " pos " << cambc::to_string(me.position()) << " hp " << me.health() << " rec " << me.is_recalling() << " sub " << me.is_submitting_gems() << " gems " << me.gem_count() << " enemies " << cambc::vision::champion_tiles(team::enemy).count() << "\n";
     update_knowledge();
     const bool at_spawn = cambc::map::spawn_region(team::ally).is_set(me.position());
     if (at_spawn || me.champion_name() == cambc::champion_type::tavi) buy_items();
@@ -883,11 +953,17 @@ void Bot::play_turn() {
 
     // Strength of awake camps that can reach us.
     incoming_ = 0;
+    exit_steps_ = 0;
     for (auto p : view().camps.positions()) {
-        if (dist(p, me.position()) > 5) continue;
+        const int d = dist(p, me.position());
+        if (d > 5) continue;
         try {
             auto c = cambc::vision::camp_at(p);
-            if (c.is_awake() && dist(p, me.position()) <= camp_range(c.kind())) incoming_ += camp_strength(c.kind());
+            const int r = camp_range(c.kind());
+            if (c.is_awake() && d <= r) {
+                incoming_ += camp_strength(c.kind());
+                exit_steps_ = std::max(exit_steps_, r + 1 - d);
+            }
         } catch (const std::exception&) {}
     }
     {
@@ -907,7 +983,7 @@ void Bot::play_turn() {
 
     const float hp = me.health(), max_hp = me.max_health();
     // Badly hurt: leave camp range, then recall.
-    if (!at_spawn && (hp < max_hp * 0.25f || (incoming_ > 0 && hp < incoming_ * 4))) {
+    if (!at_spawn && (hp < max_hp * 0.2f || (incoming_ > 0 && hp < incoming_ * taken_mult_ * (exit_steps_ + 2) + 40))) {
         if (disengage_from_camps()) return;
         if (incoming_ == 0 && !moved_) {
             if (live()) me.recall();
@@ -926,7 +1002,16 @@ void Bot::play_turn() {
     }
     const int target = target_;
     const int wait = target_wait_;
+    if (now % 100 == 0) std::cout << "ST r" << now << " slot " << slot_ << " pos " << cambc::to_string(me.position()) << " hp " << hp << "/" << max_hp << " gems " << me.gem_count() << " gold " << me.gold_count() << " tgt " << target << " wait " << wait << " st " << (target >= 0 ? int(known_[target].state) : -1) << " eta " << (target >= 0 ? eta(target) : -1) << " dps " << dps_ << " fuel " << cambc::fuel_remaining() << " inc " << incoming_ << "\n";
 
+    if (blocker_group_ >= 0) {
+        // Living camps stand between us and where we want to go: cut through them.
+        if (known_[blocker_group_].state != Known::alive || now - blocker_since_ > 40) blocker_group_ = -1;
+        else {
+            farm(blocker_group_);
+            return;
+        }
+    }
     if (handle_tribute(target, wait)) return;
 
     const int home_d = home_.at(me.position());

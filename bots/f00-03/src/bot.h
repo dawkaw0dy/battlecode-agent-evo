@@ -9,6 +9,8 @@ struct Known {
     enum State : std::uint8_t { unknown, alive, reward, respawning } state = unknown;
     int ready = 0;      // round the group respawns (respawning only)
     int seen = -1000;   // last round its state was read
+    std::vector<float> hp;  // last seen health per camp (camps do not regenerate)
+    int blocked_until = 0;  // a capture that never completes (contested): leave it alone until then
 };
 
 // Row-major local copies: every bitboard or field query is a host call, so loops read these.
@@ -39,10 +41,14 @@ class Bot {
     Grid16 home_, altar_;
     int target_ = -1, target_wait_ = 0, last_choice_ = -100;
     int approach_shrink_ = 0;
+    int capture_group_ = -1, capture_since_ = 0;
+    std::vector<std::int16_t> camp_group_at_;  // tile -> group index of the camp spawned there, -1 if none
+    int blocker_group_ = -1, blocker_since_ = 0;  // living camps walling us in: clear them
 
     // Per-turn flags.
     bool moved_ = false, attacked_ = false, cast_ = false, move_failed_ = false;
     float incoming_ = 0;                  // strength of awake camps that can hit us
+    int exit_steps_ = 0;                  // steps to get out of their range
     float taken_mult_ = 1.0f, dps_ = 50.0f;
 
     void initialise();
@@ -63,6 +69,7 @@ class Bot {
     void go_home();
     float my_dps() const;
     float estimate_damage(int group, float dps) const;
+    float remaining_hp(int group) const;
     bool disengage_from_camps();
     void report_enemy(cambc::vec2 where, int count);
 
