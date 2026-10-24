@@ -885,7 +885,7 @@ bool Bot::handle_enemies() {
     const bool stronger = ours >= their * (1.15f + (carried >= 20 ? carried * 0.01f : 0.0f));
     const bool home = cambc::map::spawn_region(team::ally).is_set(pos);
     // Allies' health counts towards ours, but the enemy focuses one of us: get out before we drop.
-    const bool low = me.health() < me.max_health() * 0.35f;
+    const bool low = me.health() < me.max_health() * 0.45f;
     if ((!stronger || low) && !home && (low || me.health() < me.max_health() * 0.9f || near >= 2 || ours < their * 0.8f)) {
         // Run home, hitting back first if a melee swing is free; recall once out of reach.
         if (me.attack_range() <= 1 && me.can_attack() && live())
