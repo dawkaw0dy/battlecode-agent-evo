@@ -93,9 +93,9 @@ float hit_score(const Mark& m, float str) {
 }
 
 // Hit the best enemy in attack range; true when a hit landed.
-bool strike_best(const std::vector<Mark>& ms) {
+bool strike_best(const std::vector<Mark>& ms, bool force = false) {
     auto& me = cambc::self();
-    if (!me.can_attack() || !live()) return false;
+    if ((!force && !me.can_attack()) || !live()) return false;
     const int r = me.attack_range();
     const float str = me.strength();
     std::array<std::pair<float, vec2>, 8> c;
@@ -248,21 +248,29 @@ void Bot::reset_hit(int group) {
         // Only a ranged walk spends the attack without using it.
         if (!moved_ || move_failed_ || me.attack_range() <= 1) return;
     }
-    // Is anything left to hit?
-    const auto& v = view();
-    const vec2 pos = me.position();
     const int r = me.attack_range();
-    bool any = false;
-    for (size_t c = 0; c < g_[group].tiles.size() && !any; ++c) {
-        const vec2 p = g_[group].tiles[c];
-        any = cheb(p, pos) <= r && k_[group].hp[c] > 0 && v.lvis.at(p) && v.lcamps.at(p);
+    for (int tries = 0; tries < 3; ++tries) {
+        // Is anything left to hit?
+        const auto& v = view();
+        const vec2 pos = me.position();
+        bool any = false;
+        for (size_t c = 0; c < g_[group].tiles.size() && !any; ++c) {
+            const vec2 p = g_[group].tiles[c];
+            any = cheb(p, pos) <= r && k_[group].hp[c] > 0 && v.lvis.at(p) && v.lcamps.at(p);
+        }
+        if (!any || !live() || !fuel(6000)) return;
+        try {
+            if (!ab->use()) return;
+            cast_ = true;
+        } catch (const cambc::error&) {
+            // The attack is still there (Vendetta's kill gives it back without can_attack() showing it):
+            // take the free hit, and the reset is still ours.
+            if (!hit_group(group, true)) return;
+            continue;
+        }
+        if (me.can_attack()) hit_group(group);
+        return;
     }
-    if (!any) return;
-    try {
-        if (!ab->use()) return;
-        cast_ = true;
-    } catch (const cambc::error& e) { warn("reset", e); return; }
-    if (me.can_attack()) hit_group(group);
 }
 
 // ---------------------------------------------------------------- dash
@@ -394,7 +402,7 @@ bool Bot::fight_spells(const std::vector<Foe>& list) {
                     cast_ = true;
                     strike_best(marks(list, reach));
                 }
-            } catch (const cambc::error& e) { warn("fight reset", e); }
+            } catch (const cambc::error&) { strike_best(marks(list, reach), true); }
         }
     }
     return true;
@@ -410,9 +418,13 @@ bool Bot::strike_after_move(const std::vector<Foe>& list) {
         // Melee: walk and hit, then reset and hit again.
         if (!strike_best(ms)) return false;
         attacked_ = true;
+    } else if (me.can_attack()) {
+        // Ranged and the attack is still there (a dash does not spend it).
+        if (!strike_best(ms)) return false;
+        attacked_ = true;
     } else if (moved_ && !move_failed_ && !attacked_) {
         // Ranged: the step spent the attack; a reset gives it back.
-        if (cast_ || !me.can_cast() || me.can_attack()) return false;
+        if (cast_ || !me.can_cast()) return false;
         const auto abs = me.abilities();
         const auto* ab = ready_slot(abs, kit_, ability_kind::attack_reset);
         if (!ab) return false;
@@ -434,7 +446,7 @@ bool Bot::strike_after_move(const std::vector<Foe>& list) {
                     cast_ = true;
                     strike_best(marks(list, reach));
                 }
-            } catch (const cambc::error& e) { warn("chase reset", e); }
+            } catch (const cambc::error&) { strike_best(marks(list, reach), true); }
         }
     }
     return true;
@@ -443,8 +455,25 @@ bool Bot::strike_after_move(const std::vector<Foe>& list) {
 void Bot::flee_spells(const std::vector<Foe>& list) {
     auto& me = cambc::self();
     if (!live()) return;
-    auto ms = marks(list, 3);
+    auto ms = marks(list, 4);
     if (ms.empty()) return;
+    // A spell that kills a chaser is worth the step it may cost.
+    if (!cast_ && me.can_cast() && !moved_ && fuel(12000)) {
+        const auto abs = me.abilities();
+        for (size_t i = 0; i < abs.size() && !cast_; ++i) {
+            const auto& sl = kit_[i];
+            if (!sl.used || !sl.hits() || !sl.enemies || sl.kind == ability_kind::aoe_damage || !abs[i].is_ready()) continue;
+            for (const auto& m : ms) {
+                if (m.d > sl.range || cast_value(sl, abs[i], m) < 1000 || !live()) continue;
+                try {
+                    if (cambc::vision::has_champion(m.pos)) cast_ = abs[i].use(cambc::vision::champion_at(m.pos));
+                    invalidate();
+                } catch (const cambc::error& e) { warn("flee spell", e); }
+                break;
+            }
+        }
+        if (cast_) ms = marks(list, 3);
+    }
     // A shield costs no step.
     if (!cast_ && me.can_cast() && !has_shield()) {
         const auto abs = me.abilities();
@@ -467,7 +496,7 @@ void Bot::flee_spells(const std::vector<Foe>& list) {
                     cast_ = true;
                     strike_best(marks(list, 1));
                 }
-            } catch (const cambc::error& e) { warn("flee reset", e); }
+            } catch (const cambc::error&) { strike_best(marks(list, 1), true); }
         }
     }
 }

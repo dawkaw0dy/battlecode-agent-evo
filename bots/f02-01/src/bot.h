@@ -85,7 +85,7 @@ class Bot {
     bool tribute();
     int choose(int& wait);
     void farm(int group);
-    bool hit_group(int group);
+    bool hit_group(int group, bool force = false);  // force: try even when can_attack() says no
     bool escape_camps();
 
     // Spells (spells.cpp): which slot, on which target, at what moment.

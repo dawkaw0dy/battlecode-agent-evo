@@ -565,9 +565,9 @@ float Bot::estimate_damage(int group) const {
     return dmg * taken_;
 }
 
-bool Bot::hit_group(int group) {
+bool Bot::hit_group(int group, bool force) {
     auto& me = cambc::self();
-    if (!me.can_attack() || !live()) return false;
+    if ((!force && !me.can_attack()) || !live()) return false;
     const vec2 pos = me.position();
     const int range = me.attack_range();
     const float str = me.strength();
