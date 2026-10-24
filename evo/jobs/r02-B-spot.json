@@ -1,0 +1,228 @@
+{
+ "env_manifest_sha256": "c1c41cadabeb6984130d228ebd97fd8f99a611679eee5d7d3367a26fda5dc837",
+ "generation": 2,
+ "heldout_repo": "dawkaw0dy/battlecode-agent-evo-heldout",
+ "job_id": "r02-B-spot",
+ "map_sha256": {
+  "00corners": "97906cc38f503e027c041b681a877465519b3fcb19a410c316cf6efc40c909ea",
+  "00eight": "76b5ce0895130f5f423f3ac6a630c5cf8e1202d4150e6ad4e287c75d21794765",
+  "00expanse": "af4236f408f8450f7da871731f08ef80295f07fac86b541f6547639a78dc2205",
+  "00fragment": "46512bf4fe1fc57d1651b15d44c283cac69cfce1914a5000d19fab979f5b8bbb",
+  "00interlock": "140e5bc3ac11c7f74dfc4ed99cc53739a34be8d3f71a7f4d0520dc4a3c197e19",
+  "00lost-world": "566697c98eace1c84152f571e9e1fa0b54ec64e038e4695305c874bd3dc2bc6e",
+  "00monolith": "ba5674bf2ab26336eb99df0c9e97c16b27bd231deffc023de1d873a05a558313",
+  "00packs": "60ee7a86ee377a04a77d11008b78aaed9e2c1cfcfc4302055974195e078c675a",
+  "00quadrants": "261fe6c133f076653bda84e88965dc35c5a59a70e7730082b4c6df9ca892df92",
+  "00road-of-riches": "8365e18788720a079a906c0430e809317236acecccf888b517a1de409689b049",
+  "01concentrated-wealth": "dc09c386d5e9dec3cec8bc4575c19d43233e08790e138ccd02be4644f2808c65",
+  "01corridors": "794132d979b297de5a534da393af8932cd2d5cc9d831e79d2cefdb4617d4d5e8",
+  "01fracture": "f82a1b99a7a70f8ab21f275dc8e22fbad6a71030f09fdd224d61977fe55dd914",
+  "01hooks": "23e58fe8f41ff66761ade251d3d10a9c3eead864f9ad74f12ad9e34f4bece378",
+  "01yellow-brick-road": "130453395278cdabb1ff80564357a99ca8394afaef006fdede8beb88924a8fa0",
+  "h-1b5b": "9a6c2084d609d27cf7b9eb183eb5e46f16a442caa7b187646540329a951b3502",
+  "h-1b5f": "8cbf98310de6c013efa1dfc4a8b8221606ff5a9ad65cd6975e1fc0c0abe0ca32",
+  "h-1ce8": "7e8f4ef4618e4c4566567cf39f8b7933761210c6a844a24f6dacb6327511a71b",
+  "h-1ceb": "d2fbfff4f56275b736f8869045ec1d2f753e9b6bb761d27a6a8ba549f857a59f",
+  "h-1cec": "cd7bbee79257e81d33e3eda06ab17a960aa94e8d922a453b42739bc6dae8c261",
+  "h-1ced": "4f2b95d35f20f6a2bd223a56e4669911d9019a0d4af4b18c0dd69df04dfdaaad",
+  "h-1e79": "4571d396da0b989532f0ee03917548990c5fcf2c689ea216c486d9d6b64dca71",
+  "h-1e7a": "770ec046edcf0c02690086c001ca3e681601d290f83f4f18a10dd4128116eecb",
+  "h-1e7c": "5a8764a6c8f267bec4b87592787432d68497b1d40901398ee506ba2547f2c64b",
+  "h-1e7d": "30de071943beda86486c5b987fbd8a7fd88544429fe64ee5927da08a6d9143fd"
+ },
+ "runner_version": "cambc==3.0.5",
+ "runs_on": "ubuntu-22.04",
+ "shards": [
+  {
+   "a": "f02-01",
+   "b": "f00-03",
+   "maps": [
+    "00fragment"
+   ]
+  },
+  {
+   "a": "f02-01",
+   "b": "f00-03",
+   "heldout": true,
+   "maps": [
+    "h-1ced"
+   ]
+  },
+  {
+   "a": "f02-01",
+   "b": "f01-07",
+   "maps": [
+    "01concentrated-wealth"
+   ]
+  },
+  {
+   "a": "f02-01",
+   "b": "f02-03",
+   "heldout": true,
+   "maps": [
+    "h-1cec"
+   ]
+  },
+  {
+   "a": "f02-01",
+   "b": "f02-05",
+   "maps": [
+    "00corners"
+   ]
+  },
+  {
+   "a": "f02-01",
+   "b": "starter",
+   "maps": [
+    "00eight",
+    "00road-of-riches"
+   ]
+  },
+  {
+   "a": "f02-01",
+   "b": "starter",
+   "heldout": true,
+   "maps": [
+    "h-1b5f",
+    "h-1cec",
+    "h-1e7d"
+   ]
+  },
+  {
+   "a": "f02-02",
+   "b": "f00-03",
+   "maps": [
+    "00monolith"
+   ]
+  },
+  {
+   "a": "f02-02",
+   "b": "f01-07",
+   "maps": [
+    "00eight"
+   ]
+  },
+  {
+   "a": "f02-02",
+   "b": "f01-07",
+   "heldout": true,
+   "maps": [
+    "h-1e7a"
+   ]
+  },
+  {
+   "a": "f02-02",
+   "b": "f02-01",
+   "maps": [
+    "00fragment"
+   ]
+  },
+  {
+   "a": "f02-02",
+   "b": "f02-03",
+   "maps": [
+    "01hooks"
+   ]
+  },
+  {
+   "a": "f02-02",
+   "b": "f02-03",
+   "heldout": true,
+   "maps": [
+    "h-1ce8"
+   ]
+  },
+  {
+   "a": "f02-02",
+   "b": "f02-05",
+   "maps": [
+    "00expanse",
+    "00lost-world"
+   ]
+  },
+  {
+   "a": "f02-02",
+   "b": "starter",
+   "maps": [
+    "00fragment",
+    "00quadrants"
+   ]
+  },
+  {
+   "a": "f02-02",
+   "b": "starter",
+   "heldout": true,
+   "maps": [
+    "h-1b5b"
+   ]
+  },
+  {
+   "a": "f02-03",
+   "b": "f01-07",
+   "maps": [
+    "00corners",
+    "00packs",
+    "01yellow-brick-road"
+   ]
+  },
+  {
+   "a": "f02-03",
+   "b": "f01-07",
+   "heldout": true,
+   "maps": [
+    "h-1e79"
+   ]
+  },
+  {
+   "a": "f02-03",
+   "b": "f02-05",
+   "maps": [
+    "01concentrated-wealth",
+    "01corridors"
+   ]
+  },
+  {
+   "a": "f02-03",
+   "b": "f02-05",
+   "heldout": true,
+   "maps": [
+    "h-1ceb",
+    "h-1e7c"
+   ]
+  },
+  {
+   "a": "f02-03",
+   "b": "starter",
+   "maps": [
+    "00interlock",
+    "01fracture"
+   ]
+  },
+  {
+   "a": "f02-05",
+   "b": "f00-03",
+   "heldout": true,
+   "maps": [
+    "h-1e7c"
+   ]
+  },
+  {
+   "a": "f02-05",
+   "b": "f01-07",
+   "heldout": true,
+   "maps": [
+    "h-1e7c"
+   ]
+  }
+ ],
+ "src_sha256": {
+  "f00-03": "e82e392a93a87be2051fbcc9deac0f5041cca7518abbb32d291e19f6a23a5729",
+  "f01-07": "cd09b4530e45e1a31827447093b349c4c5d2b1fc1ba60d885780391e8ea954a3",
+  "f02-01": "4c7ef7070e1438412f0d8535ba02f3cc7bc4e2249323fc504e66018e4f78727f",
+  "f02-02": "72553045cfcfea4b0f5def5127334188fd33205e420d5faf93e9debaf3e0976c",
+  "f02-03": "2c7e9157eb8417af538cb42bea9d543e699874eab865bbca79a00503e7e9c071",
+  "f02-05": "15c1d268c43f7971b4aeeba73918edb9cebf0affd1361a0676eee96bb90f1a2b",
+  "starter": "9023e6a089796897d6ed661f26054d1b81b298e048a09a5df75d3b9cb5d3c6a9"
+ },
+ "stage": "spot"
+}
