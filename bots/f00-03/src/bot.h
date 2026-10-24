@@ -45,6 +45,7 @@ class Bot {
     int approach_shrink_ = 0;
     int capture_group_ = -1, capture_since_ = 0;
     int dynamic_until_ = 0;
+    int hold_start_ = 0, last_hold_ = -10;
     cambc::vec2 pos_{};                   // our position, refreshed before position-dependent planning
     std::vector<std::int16_t> camp_group_at_;  // tile -> group index of the camp spawned there, -1 if none
     int blocker_group_ = -1, blocker_since_ = 0;  // living camps walling us in: clear them
@@ -71,6 +72,7 @@ class Bot {
     int eta(int group) const;
     void farm(int group);
     void go_home();
+    bool hold_for_dash();
     float my_dps() const;
     float estimate_damage(int group, float dps) const;
     float remaining_hp(int group) const;

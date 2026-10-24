@@ -50,7 +50,7 @@ const cambc::bitboard& dash_walls_ally() {
         const auto& holes = cambc::map::holes();
         cambc::bitboard thin;
         thin.clear();
-        const int d[4][2] = {{1, 0}, {0, 1}, {1, 1}, {1, -1}};
+        const int d[2][2] = {{1, 0}, {0, 1}};  // straight jumps only: diagonal ones can be corner-blocked
         for (const auto& v : d) {
             const auto a = walkable.shift_right(v[0]).shift_up(v[1]);
             const auto b = walkable.shift_right(-v[0]).shift_up(-v[1]);

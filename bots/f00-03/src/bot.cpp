@@ -359,7 +359,7 @@ void Bot::buy_items() {
 // local grid or from a host field with its reached mask.
 bool Bot::try_dash(const Grid16* local, const cambc::distance_field* field, const cambc::bitboard* reached) {
     auto& me = cambc::self();
-    if (cast_ || !me.can_cast()) return false;
+    if (cast_ || !me.can_cast() || !fuel_ok(15000)) return false;
     auto value = [&](vec2 t) -> int {
         if (local) return local->at(t);
         if (!reached->is_set(t)) return unreached;
@@ -370,37 +370,42 @@ bool Bot::try_dash(const Grid16* local, const cambc::distance_field* field, cons
         const vec2 pos = me.position();
         const int here = value(pos);
         if (here >= unreached) return false;
-        vec2 best = pos;
-        int best_d = here - 1;  // must gain two steps
-        for (int dx = -2; dx <= 2; dx += 2)
-            for (int dy = -2; dy <= 2; dy += 2) {
-                if (!dx && !dy) continue;
+        // Landing tiles two steps away that gain at least two steps, best first.
+        std::array<std::pair<int, vec2>, 16> cands;
+        size_t n = 0;
+        for (int dx = -2; dx <= 2; ++dx)
+            for (int dy = -2; dy <= 2; ++dy) {
+                if (std::max(std::abs(dx), std::abs(dy)) != 2) continue;
                 const vec2 t{pos.x + dx, pos.y + dy};
-                const vec2 mid{pos.x + dx / 2, pos.y + dy / 2};
                 if (!in_bounds(t) || blocked_at(t)) continue;
-                if (hard_walls_local().at(mid) || view().lchamps.at(mid) || view().lcamps.at(mid)) continue;
-                if (dx && dy) {  // no cutting wall corners on either diagonal step
-                    const vec2 c1{pos.x + dx / 2, pos.y}, c2{pos.x, pos.y + dy / 2};
-                    const vec2 c3{t.x - dx / 2, t.y}, c4{t.x, t.y - dy / 2};
-                    if (hard_walls_local().at(c1) || hard_walls_local().at(c2) || hard_walls_local().at(c3) || hard_walls_local().at(c4)) continue;
-                }
+                // Some first step must be free of walls and units (holes may be jumped).
+                bool path = false;
+                for (int sx = -1; sx <= 1 && !path; ++sx)
+                    for (int sy = -1; sy <= 1 && !path; ++sy) {
+                        if (!sx && !sy) continue;
+                        const vec2 m{pos.x + sx, pos.y + sy};
+                        if (dist(m, t) != 1 || !in_bounds(m)) continue;
+                        if (hard_walls_local().at(m) || view().lchamps.at(m) || view().lcamps.at(m)) continue;
+                        path = true;
+                    }
+                if (!path) continue;
                 const int d = value(t);
-                if (d < best_d) { best_d = d; best = t; }
+                if (d <= here - 2) cands[n++] = {d, t};
             }
-        if (best == pos) return false;
-        if (!live()) return false;
-        cast_ = true;
-        bool ok = false;
-        try {
-            ok = ab.use(best);
-        } catch (const cambc::error&) {
-            // The engine's dash path rules are stricter than our check; give up dashing this turn.
-            move_failed_ = true;
-            return false;
+        std::sort(cands.begin(), cands.begin() + n, [](auto a, auto b) { return a.first < b.first; });
+        for (size_t i = 0; i < n && i < 4; ++i) {
+            if (!live()) return false;
+            try {
+                const bool ok = ab.use(cands[i].second);
+                cast_ = true;
+                invalidate_view();
+                if (!ok) move_failed_ = true;
+                return ok;
+            } catch (const cambc::error&) {
+                // The engine's dash path rules are stricter than ours: try the next landing tile.
+            }
         }
-        invalidate_view();
-        if (!ok) move_failed_ = true;
-        return ok;
+        return false;
     }
     return false;
 }
@@ -440,7 +445,7 @@ bool Bot::walk_field(const Grid16& field, bool allow_dash) {
         if (dasher_)
             for (auto d : dirs) {
                 const vec2 t{from.x + d.x, from.y + d.y};
-                if (in_bounds(t) && cambc::map::holes().is_set(t) && field.at(t) < field.at(from)) return true;
+                if (in_bounds(t) && cambc::map::holes().is_set(t) && field.at(t) < field.at(from)) return hold_for_dash();
             }
         dynamic_until_ = static_cast<int>(cambc::round_number()) + 12;
         return false;
@@ -524,7 +529,7 @@ bool Bot::step_to(const cambc::bitboard& goals_in, bool allow_dash) {
         if (dasher_)
             for (auto d : dirs) {
                 const vec2 t{from.x + d.x, from.y + d.y};
-                if (in_bounds(t) && cambc::map::holes().is_set(t) && reached.is_set(t) && field.get(t) < field.get(from)) return true;
+                if (in_bounds(t) && cambc::map::holes().is_set(t) && reached.is_set(t) && field.get(t) < field.get(from)) return hold_for_dash();
             }
         return false;
     }
@@ -534,6 +539,14 @@ bool Bot::step_to(const cambc::bitboard& goals_in, bool allow_dash) {
     invalidate_view();
     if (!ok) move_failed_ = true;
     return ok;
+}
+
+// Waiting for the dash to cross a hole; give up after a while in case the jump is impossible.
+bool Bot::hold_for_dash() {
+    const int now = static_cast<int>(cambc::round_number());
+    if (now != last_hold_ + 1) hold_start_ = now;
+    last_hold_ = now;
+    return now - hold_start_ < 12;
 }
 
 void Bot::go_home() {
