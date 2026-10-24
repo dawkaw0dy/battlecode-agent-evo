@@ -1096,7 +1096,7 @@ bool Bot::handle_tribute(int next_target, int next_wait) {
     const Report report = read_report();
     const bool danger = static_cast<int>(cambc::round_number()) - report.round <= 30 && in_bounds(report.where)
         && dist(report.where, pos) <= 16;
-    const bool go = gems >= 40 || next_target < 0 || next_wait > d_altar || d_altar <= 4
+    const bool go = gems >= 30 || next_target < 0 || next_wait > d_altar || d_altar <= 4
         || (gems >= 15 && d_altar <= 10) || (danger && gems >= 10) || late < d_altar + 30;
     if (!go) return false;
     if (best >= 0) {
