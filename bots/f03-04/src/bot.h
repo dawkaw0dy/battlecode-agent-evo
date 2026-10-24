@@ -65,6 +65,8 @@ class Bot {
     int shrink_ = 0, shrink_g_ = -1;    // approach closer when walls hide the camps from range
     std::vector<cambc::champion> others_;  // allied champions other than us
     Bits spawn_local_;                  // our spawn tiles
+    int fight_round_ = -100;            // last round we weighed a fight ...
+    bool fight_engaged_ = false;        // ... and whether we took it
     int chase_turns_ = 0, no_chase_until_ = -1;  // a chase that lands no hit is dropped
 
     // Per turn.

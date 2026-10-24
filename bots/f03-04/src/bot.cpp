@@ -27,7 +27,9 @@ void fp(const char* tag) {
     g_f0 = f;
 }
 constexpr float kShareTurns = 15.0f;
-constexpr int kChaseTurns = 5;  // approach turns without a hit before giving up a chase  // solo clear time above which allies may join a group
+constexpr int kChaseTurns = 5;      // approach turns without a hit before giving up a chase
+constexpr float kEngageBias = -150.0f;  // fight value needed to engage
+constexpr float kStick = 0.0f;       // fight value margin in favour of the last decision
 constexpr float kBossTurns = 8.0f;  // turns a champion must be able to tank a boss
 
 namespace {
@@ -1442,8 +1444,23 @@ bool Bot::retreat(const std::vector<Fighter>& theirs, int dmin) {
             }
     if (moved_ || move_failed_ || !me.can_move() || !live()) return true;
     const Bits& sp = spawn_local_;
+    // Awake camps keep hitting whoever is nearest within their reach: stay out of it too.
+    std::array<std::pair<vec2, CampSpec>, 24> hot;
+    size_t n_hot = 0;
+    if (!awake_.is_empty())
+        for (auto p : awake_.positions()) {
+            if (cheb(p, pos_) > 7 || n_hot >= hot.size()) continue;
+            const int gi = group_at_[static_cast<size_t>(tidx(p))];
+            const int ci = camp_at_[static_cast<size_t>(tidx(p))];
+            if (gi < 0 || ci < 0) continue;
+            const auto cs = camp_spec(g_[gi].kinds[static_cast<size_t>(ci)]);
+            if (cs.str > 0) hot[n_hot++] = {p, cs};
+        }
     auto score = [&](vec2 t) {
-        float s = threat_at(t, theirs) * 4.0f;
+        float s = threat_at(t, theirs);
+        for (size_t i = 0; i < n_hot; ++i)
+            if (cheb(t, hot[i].first) <= hot[i].second.range) s += hot[i].second.str * taken_;
+        s *= 4.0f;
         if (sp.at(t)) s *= 0.1f;
         const int hd = home_.at(t);
         s += static_cast<float>(hd >= kFar ? 200 : hd);
@@ -1711,15 +1728,30 @@ bool Bot::enemies() {
         for (const auto& e : theirs)
             if (cheb(e.pos, pos_) <= reach && e.hp <= mine * 0.85f && view().lvis.at(e.pos)) kill_now = true;
     }
-    bool engage = fight.value > 0 && !(fight.me_dies && fight.their_deaths == 0);
+    // Stick with the last decision when the odds barely changed: flip-flopping takes hits and lands none.
+    float need = kEngageBias;
+    if (now - fight_round_ <= 2) need += fight_engaged_ ? -kStick : kStick;
+    bool engage = fight.value > need && !(fight.me_dies && fight.their_deaths == 0);
     // Carrying a big bag: only clearly winning fights.
     if (engage && fight.me_dies && gems >= 40 && fight.value < 2.0f * gems) engage = false;
     if (!engage && (doomed_if_flee || kill_now) && !(fight.me_dies && gems >= 60 && !doomed_if_flee)) engage = true;
-    if (kTrace && now < 400)
-        std::cout << "fight r" << now << ' ' << cambc::to_string(me.champion_name()) << " hp " << hp << " n " << theirs.size()
-                  << '/' << ours.size() << " dmin " << dmin << " value " << fight.value << " die " << fight.me_dies
-                  << " k " << fight.their_deaths << " d " << fight.our_deaths << " flee " << flee_dmg << " engage " << engage << '\n';
+    if (kTrace) {
+        std::string line = "fight r" + std::to_string(now) + ' ' + cambc::to_string(me.champion_name()) + " v" + std::to_string(static_cast<int>(fight.value))
+            + " die" + std::to_string(fight.me_dies) + " k" + std::to_string(fight.their_deaths) + " d" + std::to_string(fight.our_deaths)
+            + " fl" + std::to_string(static_cast<int>(flee_dmg)) + " E" + std::to_string(engage) + " |";
+        auto add = [&](const Fighter& f) {
+            line += ' ' + std::to_string(f.pos.x) + ',' + std::to_string(f.pos.y) + ':' + std::to_string(static_cast<int>(f.hp)) + '/'
+                + std::to_string(static_cast<int>(f.sustain)) + '+' + std::to_string(static_cast<int>(f.burst)) + '@' + std::to_string(f.delay)
+                + (f.camp_in > 0 ? "c" : "") + (f.safe ? "s" : "");
+        };
+        for (const auto& f : ours) add(f);
+        line += " ||";
+        for (const auto& f : theirs) add(f);
+        std::cout << line << '\n';
+    }
 
+    fight_round_ = now;
+    fight_engaged_ = engage;
     if (!engage) {
         // Far enemies that are not about to reach us: carry on, but bank sooner (tribute checks sightings).
         bool reachable = false;
