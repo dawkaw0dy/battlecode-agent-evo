@@ -21,6 +21,7 @@ constexpr std::array<vec2, 8> dirs{vec2{0, 1}, vec2{1, 1}, vec2{1, 0}, vec2{1, -
 constexpr int unreached = 65535;
 constexpr bool DEBUG_LOG = false;
 constexpr bool STATE_LOG = false;
+constexpr bool STAGE = false;
 char g_state = '?';
 
 int dist(vec2 a, vec2 b) { return static_cast<int>(a.chebyshev_distance(b)); }
@@ -1014,7 +1015,7 @@ int Bot::choose_target() {
         if (k.state != Known::reward) {
             const float solo = estimate_damage(i, dps_);
             const bool heavy = solo > hp - margin;
-            if (help > 0) factor *= heavy ? 1.25f : 0.3f;  // join heavy fights, leave light ones
+            if (help > 0) factor *= heavy ? 1.0f : 0.5f;  // join heavy fights, leave light ones
             const float dps = dps_ * (1.0f + 0.85f * static_cast<float>(help));
             const float dmg = estimate_damage(i, dps);
             clear = (remaining_fight_hp(i) + g.soft_hp) / std::max(1.0f, dps) + 1;
@@ -1172,7 +1173,7 @@ void Bot::farm(int group) {
     for (const auto& a : allies_)
         if (a.alive && a.slot >= 0 && a.slot < 5 && ally_target_[static_cast<size_t>(a.slot)] == group
             && dist(a.pos, groups_[group].center) <= 20 && a.hp_frac > 0.5f) ++coming;
-    if (!awake && solo > me.health() * 0.7f && coming > 0 && squad_near(group) == 0) {
+    if (STAGE && !awake && solo > me.health() * 0.7f && coming > 0 && squad_near(group) == 0) {
         if (stage_group_ != group || stage_since_ < 0) { stage_group_ = group; stage_since_ = t; }
         if (t - stage_since_ < 12) {
             g_state = 's';
