@@ -23,8 +23,14 @@ std::uint64_t g_ph[24]{};
 int g_nph = 0;
 inline void ph() { if (g_nph < 24) g_ph[g_nph++] = cambc::fuel_remaining(); }
 const char* kModeNames[16] = {"dead", "chan", "fight", "hurt", "bank", "idle", "hit", "walk", "capture", "wait", "heal", "", "", "", "", ""};
+// Caught engine errors are only reported in debug builds: printing costs fuel.
 void warn(const char* where, const std::exception& e) {
-    if (++g_warns <= 40) std::cout << "warn: " << where << ": " << e.what() << '\n';
+    ++g_warns;
+    debug_block({
+        if (g_warns <= 40) std::cout << "warn: " << where << ": " << e.what() << '\n';
+    });
+    (void)where;
+    (void)e;
 }
 
 cambc::champion_type type_of(cambc::champion_draft d) {
@@ -917,7 +923,7 @@ bool Bot::fight() {
             std::cout << '\n';
         }
     });
-    const bool retreat = !killshot && (low ? ratio < 2.0f : ratio < (now_ <= fight_until_ ? 0.6f : 0.8f));
+    const bool retreat = !killshot && (low ? ratio < 2.0f : ratio < (now_ <= fight_until_ ? 0.45f : 0.65f));
     if (tgt && !retreat) {
         // Stand and hit what is in reach: spells, attack, reset and attack again.
         fight_until_ = now_ + 3;
