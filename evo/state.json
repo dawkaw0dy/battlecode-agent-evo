@@ -18063,13 +18063,19 @@
    "pushed_commit": "9f2dce6bbb6a1c0f31ad4de59e388eaa212abd49",
    "results_commit": "fe5b0dc3d11ebcb81347a85d74848cff543046e4",
    "retries": 0,
+   "spotcheck": {
+    "games": 16,
+    "job": "g07-A-spot",
+    "pushed_at": 1792833029,
+    "pushed_commit": "42465fd85e7c33385c2f6f080387a7ccbc3bbfb4",
+    "status": "pending"
+   },
    "stage": "A",
    "status": "arrived"
   }
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-23T16:59:43Z g02 g02-B: verified, 1632 rows, spot-check 33 OK",
   "2026-10-23T16:59:56Z g02 phase SELECTED: final: e02-01, e02-05, e02-02, e02-06, e02-03, e01-01, e00-01, e02-04, e02-07, starter",
   "2026-10-23T17:00:07Z g02 survivors ['e02-01', 'e02-05'], hall of fame ['e00-01', 'e01-01', 'e02-01']",
   "2026-10-23T17:00:07Z g02 PAUSED: generation 02 selected; max_generations=3 reached",
@@ -18268,7 +18274,8 @@
   "2026-10-24T09:06:46Z g07 e07-07: admitted (db4af9d46182)",
   "2026-10-24T09:06:55Z g07 phase EVAL_A_PENDING",
   "2026-10-24T09:07:04Z g07 g07-A: pushed 9f2dce6bbb with 24 shards",
-  "2026-10-24T09:10:20Z g07 phase EVAL_A_DONE: results for g07-A"
+  "2026-10-24T09:10:20Z g07 phase EVAL_A_DONE: results for g07-A",
+  "2026-10-24T09:10:29Z g07 g07-A-spot: pushed 42465fd85e (16 sampled games, 11 shards)"
  ],
  "paused": null,
  "phase": "EVAL_A_DONE",
