@@ -52,6 +52,11 @@ class Bot {
     std::vector<Field> gf_;               // walking distance to each group's camps
     std::vector<std::uint8_t> gf_tried_;
     Field home_, altar_;
+    bool altar_plugged_ = false;
+    std::vector<vec2> altar_plug_tiles_;  // camp tiles that are the only way next to an altar
+    int raid_cand_ = -1;                  // boss group the team raids once strong enough
+    bool raid_on_ = false;
+    std::vector<int> d_home_;             // walking distance from our spawn to each group
     Bits terrain_, campspawn_, spawn_, hard_;
     cambc::bitboard walls_camps_;         // static walls + all camp spawn tiles
     std::vector<vec2> altars_;
@@ -108,6 +113,8 @@ class Bot {
     void spells_on_foe(const Unit& u, bool before_move);
     void defensive_spells(float incoming);
     void heal_allies();
+    void update_raid();
+    bool raid_ready() const;
 
     float dps() const;
     float incoming_camp_damage() const;

@@ -123,6 +123,34 @@ void Bot::initialise() {
         cambc::bitboard visited;
         f.compute(walls_camps_, roots, visited);
         altar_.load(f);
+        // Altars closed in by camps: plan through them (the plug gets cleared on the way).
+        const auto sp = cambc::map::spawn_region(team::ally).positions();
+        if (!sp.empty() && altar_.at(sp[0]) >= kFar) {
+            // Camp tiles beside an altar become tribute spots once their camp is dead.
+            for (auto a : altars_)
+                for (auto d : kDirs) {
+                    const vec2 q{a.x + d.x, a.y + d.y};
+                    if (inside(q) && !terrain_.at(q) && campspawn_.at(q)) { roots.set(q); altar_plug_tiles_.push_back(q); }
+                }
+            f.compute(terrain, roots, visited);
+            altar_.load(f);
+            altar_plugged_ = true;
+        }
+    }
+    // The boss the team raids: the altar's plug, the draft's boss, else the nearest monolith.
+    if (!altar_plug_tiles_.empty()) raid_cand_ = group_at_[static_cast<size_t>(tidx(altar_plug_tiles_[0]))];
+    else if (plan_ == kBoss && boss_ >= 0 && boss_ < static_cast<int>(ng)) raid_cand_ = boss_;
+    d_home_.assign(ng, kFar);
+    for (size_t i = 0; i < ng; ++i)
+        for (auto t : g_[i].tiles)
+            for (auto d : kDirs) {
+                const int v = home_.at(vec2{t.x + d.x, t.y + d.y});
+                if (v < kFar && v + 1 < d_home_[i]) d_home_[i] = v + 1;
+            }
+    if (raid_cand_ < 0) {
+        int bd = kFar;
+        for (size_t i = 0; i < ng; ++i)
+            if (g_[i].monolith && d_home_[i] < bd) { bd = d_home_[i]; raid_cand_ = static_cast<int>(i); }
     }
 
     const auto mine = static_cast<cambc::handle_champion_t>(me);
@@ -156,6 +184,7 @@ void Bot::initialise() {
     gf_.assign(ng, Field{});
     gf_tried_.assign(ng, 0);
     if (kTable && type_ == cambc::champion_type::vendetta) {
+        for (auto a : altars_) std::cout << "altar " << a.x << ',' << a.y << " home=" << home_.at(a) << " fld=" << altar_.at(vec2{a.x, a.y + 1}) << ',' << altar_.at(vec2{a.x, a.y - 1}) << '\n';
         std::cout << "plan=" << int(plan_) << " slot=" << slot_ << " bodies=" << bodies_ << " altars=" << altars_.size() << " ng=" << ng << '\n';
     }
 }
@@ -1015,12 +1044,34 @@ bool Bot::tribute() {
     const int gems = static_cast<int>(me.gem_count());
     if (gems <= 0) return false;
     const int da = here(altar_);
+    debug_block({
+        if (type_ == cambc::champion_type::vendetta && now_ == 50) {
+            std::cout << "range=" << cambc::constants::submit_gems_range << " da=" << da << "\n";
+            for (auto a : altars_) for (int dy=-2; dy<=2; ++dy) { for (int dx=-2; dx<=2; ++dx) { vec2 q{a.x+dx,a.y+dy}; std::cout << (cambc::map::walls().is_set(q)?'#':cambc::map::holes().is_set(q)?'o':campspawn_.at(q)?'c':cambc::map::altars().is_set(q)?'A':'.'); } std::cout << '\n'; }
+        }
+    });
     if (da >= kFar) return false;
     const int total = static_cast<int>(cambc::global_submitted_gems(team::ally));
     const bool endgame = now_ + da + (gems + 9) / 10 + 12 >= 2000;
     bool want = gems >= 45 || (gems >= 20 && da <= 8) || (gems >= 8 && da <= 2) || endgame
         || total + gems >= 1000 || (gems >= 10 && !foes_.empty());
+    debug_block({
+        if (type_ == cambc::champion_type::vendetta && now_ % 10 == 0)
+            std::cout << "trib r" << now_ << " pos=" << pos_.x << ',' << pos_.y << " gems=" << gems << " da=" << da << " want=" << want << " plugged=" << altar_plugged_ << '\n';
+    });
     if (!want) return false;
+    if (altar_plugged_) {
+        // Only once the camp on a tribute spot is dead (as last seen).
+        bool open = false;
+        for (auto t : altar_plug_tiles_) {
+            const int pg = group_at_[static_cast<size_t>(tidx(t))];
+            if (pg < 0) continue;
+            if (k_[static_cast<size_t>(pg)].st != Known::alive) { open = true; continue; }
+            for (size_t c = 0; c < g_[static_cast<size_t>(pg)].tiles.size(); ++c)
+                if (g_[static_cast<size_t>(pg)].tiles[c] == t && chp_[static_cast<size_t>(goff_[static_cast<size_t>(pg)]) + c] <= 0) open = true;
+        }
+        if (!open) return false;
+    }
     if (da == 0) {
         for (auto a : altars_) {
             if (cheb(a, pos_) > 1) continue;
@@ -1035,6 +1086,43 @@ bool Bot::tribute() {
     try_dash(altar_);
     step(altar_, 0);
     return true;
+}
+
+// ---------------------------------------------------------------- boss raids
+
+// Judged on our own stats as a stand-in for the team: can everyone together outlast the boss?
+bool Bot::raid_ready() const {
+    if (raid_cand_ < 0 || now_ < 150) return false;
+    const auto& me = cambc::self();
+    const auto& G = g_[static_cast<size_t>(raid_cand_)];
+    const float rem = group_remaining(raid_cand_);
+    const float str = std::max(1.0f, G.str * taken_);
+    const float pool = me.max_health() * bodies_ * 0.75f;
+    const float turns = pool / str;
+    const float team = dps() * bodies_ * 0.8f;
+    return team * turns >= rem * 1.1f;
+}
+
+void Bot::update_raid() {
+    raid_on_ = false;
+    if (raid_cand_ < 0) return;
+    std::uint8_t v = 0;
+    try { cambc::shared_memory.read(sm::raid, std::span<std::uint8_t>{&v, 1}); } catch (const std::exception&) { return; }
+    const auto& k = k_[static_cast<size_t>(raid_cand_)];
+    if (v == raid_cand_ + 1) {
+        if (k.st == Known::respawning) {
+            const std::uint8_t z = 0;
+            try { cambc::shared_memory.write(sm::raid, std::span<const std::uint8_t>{&z, 1}); } catch (const std::exception&) {}
+            return;
+        }
+        raid_on_ = true;
+        return;
+    }
+    if (squad_ == 0 && leader() && k.st == Known::alive && raid_ready()) {
+        const std::uint8_t w = static_cast<std::uint8_t>(raid_cand_ + 1);
+        try { cambc::shared_memory.write(sm::raid, std::span<const std::uint8_t>{&w, 1}); } catch (const std::exception&) {}
+        raid_on_ = true;
+    }
 }
 
 // ---------------------------------------------------------------- farming
@@ -1054,6 +1142,7 @@ int Bot::choose(int& eta_out) {
         const auto& k = k_[gi];
         if (G.tiles.empty() || k.fail > now_) continue;
         if (G.monolith && !(plan_ == kBoss && g == boss_)) continue;
+        if (g == raid_cand_ && G.boss && !raid_on_ && !(plan_ == kBoss && g == boss_)) continue;
         const int d = dist_to_group(g);
         if (d >= kFar) continue;
         float wait = 0;
@@ -1062,9 +1151,12 @@ int Bot::choose(int& eta_out) {
         const float rem = k.st == Known::alive ? group_remaining(g) : (k.st == Known::respawning ? G.hp : 0.0f);
         const float clear = rem / team;
         // Damage the squad would take, against what it can absorb.
-        const float hits = G.str * taken_ * clear;
+        // Big groups cannot all reach one champion: count at most ~6 attackers' worth.
+        const float reach_str = std::min(G.str, 6.0f * G.str / std::max<size_t>(1, G.tiles.size()) + 120.0f);
+        const float hits = reach_str * taken_ * clear;
         const float trips = std::floor(hits / std::max(200.0f, team_hp * 0.6f));
-        if (trips > 3) continue;
+        if (trips > 10) continue;
+        const float trip_cost = std::min(d_home_[gi], 60) + 10.0f;
         debug_block({
             if (type_ == cambc::champion_type::vendetta && now_ >= 13 && now_ <= 16 && (g == 38 || g == 44))
                 std::cout << "cand r" << now_ << " g=" << g << " d=" << d << " st=" << int(k.st) << " rem=" << rem << " team=" << team << " trips=" << trips << " fail=" << k.fail << '\n';
@@ -1076,7 +1168,7 @@ int Bot::choose(int& eta_out) {
         else if (own == 255) f = 0.8f;
         else f = 0.6f;
         if (G.d_enemy < G.d_ally) f *= 0.85f;
-        const float score = value * f / (d + wait + clear + 5.0f + trips * 30.0f + 6.0f);
+        const float score = value * f / (d + wait + clear + 5.0f + trips * trip_cost + 6.0f);
         if (g == target_) cur = score;
         if (score > bs) { bs = score; best = g; eta_out = d; }
     }
@@ -1093,8 +1185,9 @@ void Bot::farm() {
     int eta = kFar;
     int g = -1;
     const bool lead = leader();
-    if (!lead) g = read_target();
-    if (g >= 0 && k_[static_cast<size_t>(g)].fail > now_) g = -1;
+    if (raid_on_) g = raid_cand_;
+    else if (!lead) g = read_target();
+    if (g >= 0 && k_[static_cast<size_t>(g)].fail > now_ && !raid_on_) g = -1;
     if (g < 0) {
         g = choose(eta);
         if (lead) write_target(g);
@@ -1110,7 +1203,7 @@ void Bot::farm() {
     // Give up on a target we cannot get closer to.
     const int d = dist_to_group(g);
     if (d < last_dist_ || attacked_) { last_dist_ = d; target_since_ = now_; }
-    else if (now_ - target_since_ > 25 && now_ - last_hit_round_ > 25) {
+    else if (now_ - target_since_ > 25 && now_ - last_hit_round_ > 25 && !raid_on_) {
         k_[static_cast<size_t>(g)].fail = now_ + 60;
         target_ = -1;
         if (lead) write_target(-1);
@@ -1133,12 +1226,13 @@ void Bot::farm() {
                 try { me.recall(); g_mode = 3; return; } catch (const std::exception& e) { warn("healrecall", e); }
             }
             int near = 1;
+            const bool raid = raid_on_ && g == raid_cand_;
             for (const auto& fr : friends_) {
-                if (fr.squad != squad_ || fr.recalling) continue;
-                if (cheb(fr.pos, pos_) <= 4) ++near;
+                if ((fr.squad != squad_ && !raid) || fr.recalling) continue;
+                if (cheb(fr.pos, pos_) <= (raid ? 6 : 4)) ++near;
             }
-            const int need = needed(g, squad_n_);
-            if (near < need && gather_ < 12) {
+            const int need = raid ? std::max(2, bodies_ - 1) : needed(g, squad_n_);
+            if (near < need && gather_ < (raid ? 25 : 12)) {
                 if (d > G.range + 1) { try_dash(f); step(f, G.range + 1); }
                 else ++gather_;
                 g_mode = 9;
@@ -1180,6 +1274,7 @@ void Bot::turn() {
     observe();
     if (me.is_recalling() || me.is_submitting_gems() || me.is_teleporting()) { g_mode = 1; return; }
     read_units();
+    update_raid();
     taken_ = 1.0f;
     dealt_ = 1.0f;
     try {
