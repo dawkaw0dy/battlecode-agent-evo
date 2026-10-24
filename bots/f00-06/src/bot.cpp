@@ -1258,7 +1258,8 @@ void Bot::play_turn() {
     c.pos = me.position();
     c.ranged = me.attack_range() > 1;
     c.at_spawn = cambc::map::spawn_region(team::ally).is_set(c.pos);
-    if (c.at_spawn) shop();
+    // Tavi shops anywhere; everyone else on spawn.
+    if (c.at_spawn || me.passive() == cambc::passive_type::remote_shop) shop();
 
     // Leadership: keep it while fresh, claim it when stale.
     const bool fresh = c.sm.leader() != 0 && ((c.round - c.sm.hb()) & 0xFF) <= 2;
