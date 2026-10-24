@@ -11,6 +11,7 @@
 #include <variant>
 
 constexpr bool kDebugMap = false;
+constexpr bool kStats = false;  // activity counters and positions in stdout
 constexpr bool kTrace = false;
 std::uint64_t g_f0 = 0;
 const char* g_phase_tag = "";
@@ -38,7 +39,7 @@ struct ModeCount {
     ~ModeCount() {
         ++g_modes[static_cast<size_t>(g_mode)];
         const int r = static_cast<int>(cambc::round_number());
-        if (r % 200 == 0) {
+        if (kStats && r % 200 == 0) {
             std::cout << "stat r" << r << ' ' << cambc::to_string(cambc::self().champion_name());
             for (int i = 0; i < 16; ++i) if (g_modes[static_cast<size_t>(i)]) std::cout << ' ' << kModeNames[i] << '=' << g_modes[static_cast<size_t>(i)];
             std::cout << '\n';
@@ -535,7 +536,7 @@ bool Bot::go(const cambc::bitboard& goals_in, bool dash) {
             if (next == at) break;
             const int gi = group_at_[static_cast<size_t>(tidx(next))];
             if (gi >= 0 && camp_block_.is_set(next)) {
-                if (plug_ != gi) { plug_ = gi; plug_since_ = static_cast<int>(cambc::round_number()); }
+                if (plug_ != gi) { plug_ = gi; plug_since_ = static_cast<int>(cambc::round_number()); plug_altar_ = false; }
                 return false;
             }
             at = next;
@@ -973,10 +974,12 @@ bool Bot::tribute() {
     }
     if ((goal & ~camp_block_).is_empty()) {
         // Every spot is under a living camp (a boss beside the only altar): clear it first.
+        if (now < altar_wait_until_) return false;
         for (auto t : (goal & camp_block_).positions()) {
             const int gi = group_at_[static_cast<size_t>(tidx(t))];
             if (gi >= 0) {
                 if (plug_ != gi) { plug_ = gi; plug_since_ = now; }
+                plug_altar_ = true;
                 break;
             }
         }
@@ -1228,6 +1231,8 @@ void Bot::turn() {
         fill_fields(30000);
         return;
     }
+    // Stunned: nothing to do this turn.
+    if (!me.can_move() && !me.can_attack() && !me.can_cast()) return;
     measure();
     fp("measure");
     rebuild_camp_block();
@@ -1270,11 +1275,16 @@ void Bot::turn() {
         float hits = 0;
         for (size_t c = 0; c < g_[plug_].kinds.size(); ++c)
             if (k_[plug_].hp[c] > 0) hits += camp_spec(g_[plug_].kinds[c]).str;
-        if (g_[plug_].boss && target_ >= 0 && (max_hp - 100 - 0.1f * max_hp) / std::max(1.0f, hits * taken_) < kBossTurns) {
-            k_[target_].blocked_until = now + 60;
-            target_ = -1;
+        // A boss beside the only altar guards every carried gem: raid it sooner than a boss in the way.
+        const float need = plug_altar_ ? kBossTurns / 2 : kBossTurns;
+        if (g_[plug_].boss && (max_hp - 100 - 0.1f * max_hp) / std::max(1.0f, hits * taken_) < need) {
+            if (plug_altar_) altar_wait_until_ = now + 25;  // farm and shop meanwhile
+            else if (target_ >= 0) {
+                k_[target_].blocked_until = now + 60;
+                target_ = -1;
+            }
             plug_ = -1;
-            return;
+            if (!plug_altar_) return;
         }
         const auto st = k_[plug_].state;
         if (st == Known::respawning || st == Known::reward || now - plug_since_ > 40 || remaining(plug_) <= 0) plug_ = -1;
@@ -1324,7 +1334,7 @@ void Bot::turn() {
             return;
         }
     }
-    if (now % 100 == 0)
+    if (kStats && now % 100 == 0)
         std::cout << "dbg r" << now << ' ' << cambc::to_string(me.champion_name()) << " pos " << pos_.x << ',' << pos_.y
                   << " t " << t << " eta " << eta(t) << " st " << int(k_[t].state) << " plug " << plug_
                   << " ctr " << g_[t].center.x << ',' << g_[t].center.y << " hp " << hp << '\n';
