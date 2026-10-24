@@ -1,0 +1,27 @@
+{
+ "agent": "f02-06",
+ "task_sha256": "b6b5a98ef34c33bb1739b75d050e66b6e8abadca598be3acc39ffe5127411b74",
+ "base_commit": "e64ed4997ace0131444bfcb3d1ecab238ef7b94a",
+ "session_id": "cse_01DiamW9ysr8ga5WAUk2JabT",
+ "bot_dir": "bots/f02-06",
+ "self_eval": {
+  "vs": "f00-03",
+  "games": 40,
+  "wins": 13
+ },
+ "games_played": 894,
+ "summary": "Big-game hunter: claimed solo farming, team golem/monolith raids with staging and tank rotation, pack mode after enemy sightings",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "54eb070b451545432474025de1d9caf3a5088efc5c73bd5cae48adeb56c738fa",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 22.57,
+  "remote": "true",
+  "session_id": "cse_01DiamW9ysr8ga5WAUk2JabT",
+  "effort_level": "high",
+  "model": null
+ }
+}
