@@ -192,15 +192,18 @@
   },
   "f00-05": {
    "archetype": "early-aggression",
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evolution-f00-05-msb4b5",
+   "commit": "f23a65bd9f3b5b5756748c222de518cc5200893f",
    "deadline_minutes": 180,
+   "done_at": 1792850029,
+   "effort_level": "high",
    "evidence": [],
    "failed_ideas": [],
    "focus": null,
    "generation": 0,
    "id": "f00-05",
    "kind": "immigrant",
+   "model": null,
    "nudged": [
     "session_01Pbae7zDNdBYNjteJNfVcaE"
    ],
@@ -222,20 +225,23 @@
    ],
    "slot": 5,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "c97c0dd12b53028c0948a16e4f0263df4f424d2138cff9458c282fb08917f6b4"
   },
   "f00-06": {
    "archetype": "deathball",
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evolution-f00-06-8re18e",
+   "commit": "53d745d9c2699bcc1e77a38b79d7bf4212fd7bdf",
    "deadline_minutes": 180,
+   "done_at": 1792850032,
+   "effort_level": "high",
    "evidence": [],
    "failed_ideas": [],
    "focus": null,
    "generation": 0,
    "id": "f00-06",
    "kind": "immigrant",
+   "model": null,
    "nudged": [
     "session_01VHvYpc3yCmgYkTggAmmLqp"
    ],
@@ -257,7 +263,7 @@
    ],
    "slot": 6,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "02700e5185e6b5b4994d54b99a29cf61dc090c76e27175585025ea0cb1d5a7d1"
   },
   "f00-07": {
@@ -336,7 +342,9 @@
   "2026-10-24T13:52:21Z g00 f00-01: done on origin/claude/evolution-f00-01-2pdgqp at 396f42f900",
   "2026-10-24T13:52:24Z g00 f00-02: done on origin/claude/evolution-agent-f00-02-jjfh8u at 27b346cf0d",
   "2026-10-24T13:52:26Z g00 f00-03: done on origin/claude/evolution-agent-f00-03-mi28rz at 9573ad6edf",
-  "2026-10-24T13:52:29Z g00 f00-04: done on origin/claude/evolution-agent-f00-04-t313o8 at ad0cee69ab"
+  "2026-10-24T13:52:29Z g00 f00-04: done on origin/claude/evolution-agent-f00-04-t313o8 at ad0cee69ab",
+  "2026-10-24T13:53:49Z g00 f00-05: done on origin/claude/evolution-f00-05-msb4b5 at f23a65bd9f",
+  "2026-10-24T13:53:52Z g00 f00-06: done on origin/claude/evolution-f00-06-8re18e at 53d745d9c2"
  ],
  "paused": null,
  "phase": "RUNNING",
