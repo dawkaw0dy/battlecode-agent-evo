@@ -221,10 +221,11 @@
  "launch_errors_in_a_row": 0,
  "log": [
   "2026-10-24T11:08:03Z g00 initialised generation 0 with 8 immigrants",
-  "2026-10-24T11:08:21Z g00 phase TASKS_PUSHED: 8 task files"
+  "2026-10-24T11:08:21Z g00 phase TASKS_PUSHED: 8 task files",
+  "2026-10-24T11:08:37Z g00 phase RUNNING"
  ],
  "paused": null,
- "phase": "TASKS_PUSHED",
+ "phase": "RUNNING",
  "sessions_launched": 0,
  "version": 1
 }
