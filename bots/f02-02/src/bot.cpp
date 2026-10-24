@@ -386,6 +386,26 @@ void Bot::measure() {
     exit_steps_ = 0;
     const auto& v = view();
     awake_ = cambc::vision::awake_camp_tiles();
+    // Camps see (and hit) through bushes that hide them from us: remember awake camps for a few rounds
+    // after they drop out of sight, or we would recall (and keep being hit) right beside them.
+    {
+        const int now = static_cast<int>(cambc::round_number());
+        if (!awake_.is_empty())
+            for (auto p : awake_.positions()) {
+                bool found = false;
+                for (auto& m : awake_mem_)
+                    if (m.first == p) { m.second = now; found = true; break; }
+                if (!found) awake_mem_.push_back({p, now});
+            }
+        std::erase_if(awake_mem_, [&](const std::pair<vec2, int>& m) {
+            if (now - m.second > 3 || v.lvis.at(m.first)) return now != m.second;
+            const int gi = group_at_[static_cast<size_t>(tidx(m.first))];
+            const int ci = camp_at_[static_cast<size_t>(tidx(m.first))];
+            return gi < 0 || ci < 0 || k_[gi].hp[static_cast<size_t>(ci)] <= 0;
+        });
+        for (const auto& m : awake_mem_)
+            if (m.second != now) awake_.set(m.first);
+    }
     if (!awake_.is_empty())
         for (auto p : awake_.positions()) {
             const int d = cheb(p, pos_);

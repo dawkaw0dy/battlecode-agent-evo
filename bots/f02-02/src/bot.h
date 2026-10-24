@@ -43,7 +43,8 @@ class Bot {
     bool block_dirty_ = true;
     std::vector<std::uint8_t> block_buf_;
     std::vector<int> reach_;            // largest distance from a group's centre to its camps
-    cambc::bitboard awake_;             // awake camps in view this turn
+    cambc::bitboard awake_;             // awake camps in view this turn, and ones seen awake lately
+    std::vector<std::pair<vec2, int>> awake_mem_;  // awake camp tile, last round seen awake
     cambc::bitboard goal_;              // cached approach goal
     int goal_group_ = -1, goal_r_ = -1, goal_sig_ = 0;
     int plug_ = -1, plug_since_ = 0;    // a living group that closes our way: clear it

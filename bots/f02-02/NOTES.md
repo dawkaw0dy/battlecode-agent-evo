@@ -28,8 +28,12 @@ second one, and the claimers nearest a reward capture it (boss rewards split up 
   bank-distance cost, cached-field walking (fewer host BFS), local rally ring (bitboard dilations by a boss's
   reach cost ~50k fuel and exhausted turns).
 - Fixed the parent's solo boss raids (it assumed 2+ raiders: Marcella spent ~300 rounds alone on a golem).
-- Results (benchmark.py, 40 maps × 2 sides): vs f01-07 53/80 (+148 mean), vs f00-03 49/80 (parent 42/80),
-  vs starter 24/24 sampled (earlier version 80/80, 1114 mean rounds vs parent 1161). 0 bot errors in 160 games.
+- Awake camps are remembered for 3 rounds after they drop out of sight: camps see and hit through bushes, so a
+  champion retreating behind a bush row thought it was safe, recalled, and died (10 times a game on 01corridors).
+  On 13 camp-death-heavy maps vs f00-03: 20/26 wins (+439) vs 14/26 (+136) before, camp deaths 77 vs 121.
+- Results (benchmark.py, 40 maps × 2 sides) before the awake-memory fix: vs f01-07 53/80 (+148 mean), vs f00-03
+  49/80 (parent 42/80), vs starter 24/24 sampled (earlier version 80/80, 1114 mean rounds vs parent 1161).
+  0 bot errors in all runs (900 games).
 
 ## Tried and failed (keep entries from the parent's notes; add yours)
 - Fuel: host calls cost ~30–40 fuel, but every bitboard temporary (&, |, ~, shift) ~600 and a grow(r) ~4k·r;
@@ -49,5 +53,6 @@ second one, and the claimers nearest a reward capture it (boss rewards split up 
 ## Known weaknesses
 - Elk-pack-only maps (00stampede, 01starfish, 01elk-arena, 00pilgrimage) and 01hooks still lose to the parent
   often: the retreat rule (hp < incoming·(exit+2)+40) makes a pack's tank flee after a hit or two.
+- The final version (awake memory) was only checked on 28 games (budget spent); no full 80-game run of it.
 - Lone monolith regions hold one capturer: 200 gems on one champion, a 20-turn tribute.
 - No wards, altar locks or teleport crystals; fights are per champion (not changed this generation).
