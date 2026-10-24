@@ -91,6 +91,9 @@ int capture_turns = 0;     // turns spent waiting on a capture
 int next_choose = 0;       // earliest round for the next target search after a failed one
 int last_enemy_seen = -1000;
 int gather_turns = 0;      // turns spent waiting for the pack at a big camp
+int side_target = -1;      // harmless cluster group this champion farms alone on the way
+int side_turns = 0;
+constexpr int kSideRange = 3;     // harmless clusters within this distance are farmed alone
 constexpr float kBigRisk = 1.0f;  // golem/monolith: allowed camp damage as a share of team health
 bool acted = false;        // attacked this turn
 
@@ -788,6 +791,34 @@ void hunt(const std::vector<Foe>& camps, const std::vector<Ally>& allies) {
         }
         still_turns = 0;
     }
+    // Harmless clusters close by are taken alone; the pack keeps going.
+    if (side_target < 0 && cambc_enemies.empty()) {
+        int best_d = kSideRange + 1;
+        for (auto& c : camps) {
+            if (c.group < 0 || c.group == t || c.awake) continue;
+            const auto& sg = groups[c.group];
+            if (sg.str > 0 || sg.big || sg.gems + sg.gold == 0) continue;
+            int d = dist(c.pos, pos);
+            if (d < best_d) { best_d = d; side_target = c.group; side_turns = 0; }
+        }
+    }
+    if (side_target >= 0) {
+        auto& sg = groups[side_target];
+        ++side_turns;
+        std::vector<Foe> sf;
+        for (auto& c : camps) if (c.group == side_target) sf.push_back(c);
+        if (side_turns < 30 && cambc_enemies.empty()) {
+            if (!sf.empty()) {
+                fight(sf, false);
+                if (acted || moved) return;
+            } else if (sg.state == 2 && sg.state_round == now) {
+                if (sg.spawns.is_set(pos)) return;
+                if (step_to(sg.spawns)) return;
+            }
+        }
+        side_target = -1;
+    }
+
     if (t < 0) {
         // Nothing worth doing: bank gems or wait at spawn.
         if (me.gem_count() > 0) do_tribute();
