@@ -39,12 +39,14 @@ struct World {
     std::vector<int> ally_dist, enemy_dist;   // path distance from each spawn to each altar
     std::vector<GroupInfo> groups;
     std::vector<int> respawn_round;           // last known round the group is back
+    std::vector<int> skip_until;              // capture failed (contested region): avoid until then
     cambc::bitboard terrain;                  // walls | holes | altars
     cambc::bitboard ally_spawn, enemy_spawn;
     int team_size = 0;
 } world;
 
 // Per-turn scratch.
+const char* stage = "";
 bool moved = false;
 bool move_blocked = false;
 
@@ -388,6 +390,7 @@ void Bot::init() {
         world.groups.push_back(gi);
     }
     world.respawn_round.assign(world.groups.size(), 0);
+    world.skip_until.assign(world.groups.size(), 0);
 
     const auto allies = cambc::champions(team::ally);
     world.team_size = int(allies.size());
@@ -555,6 +558,7 @@ int Bot::choose_group() {
         float score = (3.0f * gi.gems + gi.gold) / (std::max(d, wait) + clear + 6.0f);
         if (dmg > me.max_health() * 0.7f) score *= 0.05f;
         if (helpers && gi.hp < 3000) score *= 0.5f;
+        if (world.skip_until[g] > now) score *= 0.01f;
         if (g == target_group) score *= 1.3f;
         if (score > best_score) { best_score = score; best = g; }
     }
@@ -573,13 +577,22 @@ void Bot::farm() {
             if ((world.groups[g].spawns & visible).is_empty()) continue;
             const auto st = groups[g].state();
             if (auto* r = std::get_if<cambc::map::camp_group_respawning>(&st))
-                world.respawn_round[g] = now + r->timer;
+                // A timer at zero means an occupied spawn tile blocks the respawn: look elsewhere.
+                world.respawn_round[g] = now + (r->timer > 0 ? r->timer : 60);
             else
                 world.respawn_round[g] = 0;
         }
     } catch (...) {
     }
 
+    // No gold, gems or damage dealt for a long time: the target is not working out.
+    const unsigned wealth = me.gold_count() * 1000 + me.gem_count();
+    if (wealth != last_wealth) { last_wealth = wealth; progress_round = now; }
+    if (target_group >= 0 && now - progress_round > 30) {
+        world.skip_until[target_group] = now + 150;
+        progress_round = now;
+        target_group = -1;
+    }
     if (target_group < 0 || now - retarget_round >= 8) {
         target_group = choose_group();
         retarget_round = now;
@@ -601,7 +614,7 @@ void Bot::farm() {
             try {
                 auto c = cambc::vision::camp_at(p);
                 if (!c.is_visible() || !c.is_alive()) continue;
-                const bool ours = target_group >= 0 && world.groups[target_group].spawns.is_set(c.spawn_position());
+                const bool ours = target_group >= 0 && world.groups[target_group].spawns.is_set(p);
                 if (!ours && !c.is_awake()) continue;
                 if (!tiles.is_set(p) && distance(pos, p) > 4) continue;
                 float hp = c.health() - (ours ? 0 : 0) + (tiles.is_set(p) ? 0 : 5000);
@@ -619,6 +632,7 @@ void Bot::farm() {
                 if (c2.is_visible() && c2.is_alive() && me.can_attack() && me.attack_tiles().is_set(best)) {
                     me.attack(c2);
                     acted = true;
+                    progress_round = now;
                     try_reset(nullptr);
                     if (me.can_attack() && cambc::vision::has_camp(best)) {
                         auto c3 = cambc::vision::camp_at(best);
@@ -636,6 +650,8 @@ void Bot::farm() {
     if (target_group < 0) return;
     const auto& gi = world.groups[target_group];
     const bool respawning = world.respawn_round[target_group] > now;
+
+
     if (respawning) {
         // Never stand on spawn tiles of a respawning group: that delays the respawn.
         cambc::bitboard around = empty_board();
@@ -645,9 +661,18 @@ void Bot::farm() {
         step_towards(around);
         return;
     }
-    if (gi.spawns.is_set(me.position()) && cambc::vision::camp_tiles().is_empty()) return;  // capturing
-    auto goals = gi.spawns;
-    if (step_towards(goals)) attack_camp();
+    const cambc::bitboard live = cambc::vision::camp_tiles() & gi.spawns;
+    if (gi.spawns.is_set(me.position()) && live.is_empty()) {
+        // Capturing; a capture that never completes is contested elsewhere in the region.
+        if (++capture_wait <= 12) return;
+        world.skip_until[target_group] = now + 150;
+        capture_wait = 0;
+        target_group = choose_group();
+        retarget_round = now;
+        return;
+    }
+    capture_wait = 0;
+    if (step_towards(live.is_empty() ? gi.spawns : live)) attack_camp();
 }
 
 // Warden: keep a lock, wait beside the enemy's altar, lock it when they tribute.
@@ -706,10 +731,20 @@ bool Bot::warden_turn() {
 }
 
 void Bot::play_turn() {
+    try {
+        turn();
+    } catch (const std::exception& e) {
+        std::cout << "dbg exc " << stage << " r" << cambc::round_number() << " " << e.what() << '\n';
+    }
+}
+
+void Bot::turn() {
     moved = false;
     move_blocked = false;
     auto& me = cambc::self();
+    stage = "init";
     if (!initialised) init();
+    stage = "pre";
 
     if (!me.is_alive()) {
         buy_items();
@@ -756,12 +791,16 @@ void Bot::play_turn() {
         }
     }
 
-    if (cambc::round_number() % 50 == 1)
+    if (cambc::round_number() % 50 == 2)
         std::cout << "dbg r" << cambc::round_number() << " i" << my_index << " w" << warden << " pos " << me.position().x
                   << "," << me.position().y << " tg " << target_group << " gems " << me.gem_count() << " gold "
                   << me.gold_count() << '\n';
+    stage = "warden";
     if (warden && warden_turn()) return;
+    stage = "fight";
     if (fight()) return;
+    stage = "bank";
     if (bank_gems()) return;
+    stage = "farm";
     farm();
 }

@@ -11,7 +11,9 @@ class Bot {
     int retarget_round = -1000;
     float last_health = 0;
     int last_hit_round = -1000;
-    int recall_for_lock = 0;
+    int capture_wait = 0;
+    int progress_round = 0;
+    unsigned last_wealth = 0;
 
     void init();
     void buy_items();
@@ -21,6 +23,7 @@ class Bot {
     bool warden_turn();
     void farm();
     int choose_group();
+    void turn();
 
 public:
     void play_turn();
