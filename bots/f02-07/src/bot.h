@@ -36,6 +36,7 @@ class Bot {
     Dist home_, altar_;
     cambc::bitboard spots_, goal_, close_, bushgoal_, post_;
     int nohit_ = 0;
+    int trib_best_ = kFar, trib_since_ = 0, trib_at_ = -100, trib_block_until_ = -1;
     int goal_g_ = -1, goal_r_ = -1, goal_sig_ = 0;
     std::vector<int> fill_order_;
 

@@ -15,7 +15,7 @@ namespace {
 
 using it = cambc::item_type;
 constexpr bool kLog = true;
-constexpr int kLogFrom = 1, kLogTo = 0;
+constexpr int kLogFrom = 100, kLogTo = 300;
 constexpr float kFightRatio = 1.0f;
 constexpr float kHuntRatio = 1.6f;
 constexpr float kStuckBonus = 1.3f;
@@ -264,9 +264,19 @@ void Bot::initialise() {
         spots |= grow(one, cambc::constants::submit_gems_range);
     }
     spots &= ~g_ww;
-    spots_ = spots;
-    f.compute(g_ww, spots, seen);
+    // Camp tiles are not tribute spots (a boss beside the altar), unless nothing else is left.
+    auto free_spots = spots;
+    for (const auto& g : g_) free_spots &= ~g.spawn;
+    f.compute(g_ww, free_spots, seen);
     altar_.load(f);
+    const vec2 home_tile = cambc::map::spawn_region(team::ally).positions()[0];
+    if (altar_.at(home_tile) >= kFar) {
+        f.compute(g_ww, spots, seen);
+        altar_.load(f);
+    } else {
+        spots = free_spots;
+    }
+    spots_ = spots;
 
     // The altar the enemy is most likely to bank at, among those we can reach in reasonable time.
     int best = kFar;
@@ -781,6 +791,7 @@ bool Bot::tribute(bool force) {
     const bool want = force || endgame || gems >= 45 || (gems >= 20 && d <= 10) || (gems >= 10 && d <= 3)
         || (gems >= 10 && now() - last_enemy_seen_ < 40);
     if (!want) return false;
+    if (now() < trib_block_until_ && !endgame) return false;
     if (d == 0) {
         // Pick an adjacent altar without an enemy lock; otherwise break the lock.
         vec2 locked{-1, -1};
@@ -820,6 +831,14 @@ bool Bot::tribute(bool force) {
         goals |= grow(one, cambc::constants::submit_gems_range);
     }
     goals &= ~g_ww;
+    // No progress towards an altar for a while: farm (and clear what blocks the way) instead.
+    if (now() - trib_at_ > 3 || d < trib_best_) { trib_best_ = d; trib_since_ = now(); }
+    trib_at_ = now();
+    if (now() - trib_since_ > 12) {
+        trib_block_until_ = now() + 50;
+        trib_best_ = kFar;
+        return false;
+    }
     go(goals, true);
     return true;
 }
