@@ -1,25 +1,31 @@
 ## Strategy (≤10 lines)
-Defense-first: protect our score and carried gems, deny theirs. Kept from the parent (f02-02): movement, pathing,
-camp farming model and draft. New strategy layer on top (deny / tribute_under_fire / foe_damage in bot.cpp):
-- Every champion carries an altar lock (10 gold, bought on each spawn visit). An enemy seen channelling a tribute
-  within 9 tiles gets its altar locked (placing a lock cancels the channel), walking into lock range (2) when we
-  arrive before its channel ends.
-- Channelling enemies cannot act: they count ~0 in the fight odds and become prey (hunted even when far, hit first).
-- Tribute timing: a tribute starts only when we outlive ceil(gems/10)+1 turns of camp and enemy damage
-  (enemies walk one tile a turn into reach 4); when outnumbered next to an altar we bank instead of running.
+Defense-first: protect our score and carried gems, deny the enemy's. Kept from the parent (f02-02): movement,
+pathing, camp farming model and draft. New layer on top (lock_altars / deny / tribute_under_fire / foe_damage):
+- Our altar locks block only ENEMY tributes, so every champion carries one (10 gold, rebought at each spawn
+  visit) and locks every altar it comes within 8 tiles of; lineage bots skip locked altars, f00-03 must break them.
+- An enemy seen channelling a tribute gets its altar locked (placing a lock cancels the channel).
+- Channelling enemies cannot act: ~0 in the fight odds, and they are prey (hunted, hit and stunned first).
+- Tribute only when we outlive ceil(gems/10)+1 turns of camp + enemy damage; outnumbered beside an altar we bank
+  instead of running. Carriers avoid fights (need 1 + gems/50) and do not answer distant alarms.
 - PvP spells from f02-01's spell module (kill-shots, stuns on chasers and channels, walk+reset+hit for ranged).
-Why it beats the parent: 98% of the parent's deaths were PvP kills (1053 of 1079 in 80 games vs f02-01).
+Why: 98% of the parent's deaths were PvP kills, and nothing stopped enemies from banking.
 
 ## Key parameters
-- kLocks / kDeny / kPressureTribute switches at the top of bot.cpp; kLockRange = 2.
+- kLocks / kDeny / kPressureTribute / kLockAll switches at the top of bot.cpp; kLockRange = 2, kLockDetour = 8.
+- An altar counts as ours for 150 rounds after we last saw our lock on it; a detour gives up after 2·8+4 rounds.
 - Lock target: enemy channelling with ≥5 gems within 9; walk to lock only if (distance − 2) ≤ channel left + 1
   and hp ≥ 35%.
 - Fight odds: channelling enemy power ×0.2, recalling ×0.6; prey within 7 overrides "keep farming".
 - foe_damage(T): Σ power·(T − max(0, d − max(range, 4))) over visible non-channelling enemies.
 
 ## Changes this generation
-- v1 (defense layer only, parent camps and spells): vs f02-01 52/80 (+147 mean margin); parent 36/80 (−48).
-  Opponent gems lost on death 7240 → 10112 over the 80 games.
+All runs bench2.py, 40 maps × both sides, 0 faults / 0 bot errors throughout.
+- Parent copy vs f02-01: 36/80 (mean margin −48).
+- v1 deny + pressure tribute + channel-aware odds: 52/80 (+147).  v2 + f02-01 spell module: 53/80 (+210).
+- v3 + cautious carriers (need 1 + gems/50, alarms only below 15 gems): 54/80 (+230), our gems lost 9459 → 6863.
+- v4 + lock every altar within 8: vs f02-01 65/80 (+429), opponent banked 49k → 37k gems over the 80 games;
+  vs f00-03 70/80 (+567; parent 49/80); vs f01-07 (v6 = v4 + lock breaking) 69/80 (+556).
+- v6: break an enemy lock within 4 instead of rerouting (only matters against lock users).
 
 ## Tried and failed (keep entries from the parent's notes; add yours)
 - Fuel: host calls cost ~30–40 fuel, but every bitboard temporary (&, |, ~, shift) ~600 and a grow(r) ~4k·r;
@@ -35,7 +41,13 @@ Why it beats the parent: 98% of the parent's deaths were PvP kills (1053 of 1079
 - Games are chaotic: debug prints (fuel) alone moved 00lost-world B from 1069 to 524 rounds. Judge changes on
   full 80-game runs, never on single maps; rounds-to-win vs starter is a less noisy farming-speed metric.
 - iostream float printing costs 10–30k fuel per line: traces distort fuel profiles.
+- Lock detours of 14 tiles + idle champions running locks to far altars (≤40): 57/80 vs 65/80 at 8 tiles.
+- Hunting any enemy carrying ≥40 gems (prey even when far): 65/80 (+430), same as without; not kept.
 
 ## Known weaknesses
-- Fights are still per champion (square law over visible units); no grouping before contests.
+- Still loses 00eight (both sides, all three opponents: 17–20 deaths, heavy camp damage), 01elk-arena and
+  01concentrated-wealth A often; fights are still per champion (square law over visible units), no grouping.
+- Altars on the enemy's side are rarely locked (we only lock within 8 of where we already go), and nobody
+  guards our locks: f00-03 breaks them with five hits. A lock-using opponent can turn the trick on us; we
+  break enemy locks within 4 but otherwise route to the next altar as the parent did.
 - No wards or teleport crystals.
