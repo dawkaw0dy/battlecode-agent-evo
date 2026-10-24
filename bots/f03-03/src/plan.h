@@ -11,10 +11,13 @@ struct GroupInfo {
     int range = 0;                    // largest monster attack range
     bool boss = false;                // monolith or golem inside
     int d_ally = kFar, d_enemy = kFar;  // walking distance from each spawn
+    int d_dash = kFar;                // from our spawn when one-tile holes can be dashed over
 };
 
 // Static walls for our walking: terrain plus the enemy spawn.
 const cambc::bitboard& walk_walls();
+// walk_walls() without the holes a dash crosses (standable floor on both sides, straight across).
+cambc::bitboard dash_walls();
 std::vector<GroupInfo> analyse_map();
 
 // Champion picks in slot order for a team of `size`.

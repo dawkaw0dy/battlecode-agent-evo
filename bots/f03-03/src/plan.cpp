@@ -8,6 +8,14 @@ const cambc::bitboard& walk_walls() {
     return w;
 }
 
+cambc::bitboard dash_walls() {
+    const auto floor = ~walk_walls();
+    const auto holes = cambc::map::holes();
+    const auto jump = (holes & floor.shift_right(1) & floor.shift_right(-1))
+        | (holes & floor.shift_up(1) & floor.shift_up(-1));
+    return walk_walls() & ~jump;
+}
+
 namespace {
 int nearest(const cambc::distance_field& f, const cambc::bitboard& seen, const std::vector<vec2>& tiles) {
     int best = kFar;
@@ -37,19 +45,20 @@ void derive(GroupInfo& d) {
 }
 }  // namespace
 
-// Per group: camps, gems u16, gold u16, respawn, d_ally u16, d_enemy u16; per camp: x, y, kind.
+// Per group: camps, gems u16, gold u16, respawn, d_ally u16, d_enemy u16, d_dash u16; per camp: x, y, kind.
 size_t pack_groups(const std::vector<GroupInfo>& groups, std::byte* out, size_t cap) {
     size_t at = 0;
     auto put = [&](int v) { out[at++] = static_cast<std::byte>(v & 0xff); };
     auto put16 = [&](int v) { put(v); put(v >> 8); };
     for (const auto& g : groups) {
-        if (at + 10 + 3 * g.tiles.size() > cap || g.tiles.size() > 255) return 0;
+        if (at + 12 + 3 * g.tiles.size() > cap || g.tiles.size() > 255) return 0;
         put(static_cast<int>(g.tiles.size()));
         put16(std::clamp(g.gems, 0, 65535));
         put16(std::clamp(g.gold, 0, 65535));
         put(std::clamp(g.respawn, 0, 255));
         put16(std::clamp(g.d_ally, 0, kFar));
         put16(std::clamp(g.d_enemy, 0, kFar));
+        put16(std::clamp(g.d_dash, 0, kFar));
         for (size_t i = 0; i < g.tiles.size(); ++i) {
             put(g.tiles[i].x);
             put(g.tiles[i].y);
@@ -67,7 +76,7 @@ bool unpack_groups(const std::byte* in, size_t len, size_t n, std::vector<GroupI
     auto get = [&]() { return static_cast<int>(in[at++]); };
     auto get16 = [&]() { const int lo = get(); return lo | get() << 8; };
     for (size_t gi = 0; gi < n; ++gi) {
-        if (at + 10 > len) return false;
+        if (at + 12 > len) return false;
         GroupInfo d;
         const int camps = get();
         d.gems = get16();
@@ -75,6 +84,7 @@ bool unpack_groups(const std::byte* in, size_t len, size_t n, std::vector<GroupI
         d.respawn = get();
         d.d_ally = get16();
         d.d_enemy = get16();
+        d.d_dash = get16();
         if (at + 3 * static_cast<size_t>(camps) > len) return false;
         d.tiles.reserve(static_cast<size_t>(camps));
         d.kinds.reserve(static_cast<size_t>(camps));
@@ -96,10 +106,11 @@ std::vector<GroupInfo> analyse_map() {
     const auto groups = cambc::map::camp_groups();
     const auto walls_e = cambc::map::walls() | cambc::map::holes() | cambc::map::altars()
         | cambc::map::spawn_region(team::ally);
-    cambc::distance_field fa, fe;
-    cambc::bitboard sa, se;
+    cambc::distance_field fa, fe, fd;
+    cambc::bitboard sa, se, sd;
     fa.compute(walk_walls(), cambc::map::spawn_region(team::ally), sa);
     fe.compute(walls_e, cambc::map::spawn_region(team::enemy), se);
+    fd.compute(dash_walls(), cambc::map::spawn_region(team::ally), sd);
     for (const auto& g : groups) {
         GroupInfo d;
         for (const auto& c : g.camps()) {
@@ -112,6 +123,7 @@ std::vector<GroupInfo> analyse_map() {
         d.respawn = g.max_respawn_timer();
         d.d_ally = nearest(fa, sa, d.tiles);
         d.d_enemy = nearest(fe, se, d.tiles);
+        d.d_dash = std::min(d.d_ally, nearest(fd, sd, d.tiles));
         out.push_back(std::move(d));
     }
     return out;

@@ -244,13 +244,10 @@ void Bot::initialise() {
         if (sl.kind == cambc::ability_kind::dash) dasher_ = true;
     g_route_walls = walk_walls();
     if (dasher_) {
-        // Holes with standable floor on both sides, straight across.
-        const auto floor = ~walk_walls();
-        const auto holes = cambc::map::holes();
-        const auto jump = (holes & floor.shift_right(1) & floor.shift_right(-1))
-            | (holes & floor.shift_up(1) & floor.shift_up(-1));
-        g_route_walls = walk_walls() & ~jump;
-        g_holes_local.load(holes);
+        g_route_walls = dash_walls();
+        g_holes_local.load(cambc::map::holes());
+        // Our distances are dash routes: targets, the field order and the trip costs follow them.
+        for (auto& g : g_) g.d_ally = g.d_dash;
     }
 
     cambc::distance_field f;
