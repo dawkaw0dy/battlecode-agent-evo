@@ -267,6 +267,9 @@ void Bot::initialise() {
     f.compute(*walls_, beside, seen);
     altar_.load(f);
     altar_tiles_ = beside;
+    for (auto a : cambc::map::altars().positions()) altars_.push_back(a);
+    altar_field_.assign(altars_.size(), Grid16{});
+    locked_.assign(altars_.size(), false);
 
     // Fill group fields for our own region first, then nearest to home.
     for (size_t i = 0; i < groups_.size(); ++i) field_order_.push_back(static_cast<int>(i));
@@ -278,6 +281,17 @@ void Bot::initialise() {
 }
 
 void Bot::fill_fields(std::uint64_t reserve) {
+    for (size_t i = 0; i < altars_.size(); ++i) {
+        if (!altar_field_[i].empty()) continue;
+        if (!fuel_ok(reserve)) return;
+        auto roots = empty_board();
+        add_box(roots, altars_[i], cambc::constants::submit_gems_range);
+        roots &= altar_tiles_;
+        cambc::distance_field f;
+        cambc::bitboard seen;
+        f.compute(*walls_, roots, seen);
+        altar_field_[i].load(f);
+    }
     for (int i : field_order_) {
         if (!group_field_[i].empty()) continue;
         if (!fuel_ok(reserve)) return;
@@ -287,6 +301,28 @@ void Bot::fill_fields(std::uint64_t reserve) {
         cambc::bitboard seen;
         f.compute(*walls_, roots, seen);
         group_field_[i].load(f);
+    }
+}
+
+// Enemy locks on altars, remembered and shared: an altar we cannot see keeps its last known state.
+void Bot::update_locks() {
+    std::array<std::uint8_t, 2> buf{};
+    cambc::shared_memory.read(6, std::span<std::uint8_t>{buf.data(), buf.size()});
+    std::uint16_t bits = static_cast<std::uint16_t>(buf[0] | (buf[1] << 8));
+    const std::uint16_t before = bits;
+    const auto locks = cambc::vision::altar_lock_tiles(team::enemy);
+    for (size_t i = 0; i < altars_.size(); ++i) {
+        const bool seen = view().vis.at(altars_[i]);
+        if (i < 16 && seen) {
+            if (locks.is_set(altars_[i])) bits = static_cast<std::uint16_t>(bits | (1u << i));
+            else bits = static_cast<std::uint16_t>(bits & ~(1u << i));
+        }
+        locked_[i] = i < 16 ? ((bits >> i) & 1) != 0 : (seen && locks.is_set(altars_[i]));
+    }
+    if (bits != before) {
+        buf[0] = static_cast<std::uint8_t>(bits & 0xff);
+        buf[1] = static_cast<std::uint8_t>(bits >> 8);
+        cambc::shared_memory.write(6, std::span<const std::uint8_t>{buf.data(), buf.size()});
     }
 }
 
@@ -1016,19 +1052,37 @@ bool Bot::handle_tribute(int next_target, int next_wait) {
             return true;
         }
     }
-    // Beside an enemy-locked altar: break the lock with basic attacks.
+    // An enemy lock within reach: break it with basic attacks (an attack reset gives a second swing).
     if (!enemy_locks.is_empty() && me.can_attack() && live())
         for (auto a : enemy_locks.positions())
-            if (dist(a, pos) <= std::min(cambc::constants::submit_gems_range, me.attack_range())) {
+            if (dist(a, pos) <= me.attack_range()) {
                 try {
                     me.attack(cambc::vision::altar_lock_at(a));
                     attacked_ = true;
+                    invalidate_view();
+                    if (!cast_ && !me.can_attack() && me.can_cast() && fuel_ok(8000))
+                        for (const auto& ab : me.abilities())
+                            if (ab.is_attack_reset() && ab.is_ready()) {
+                                cast_ = true;
+                                safe_use(ab);
+                                if (me.can_attack() && cambc::vision::has_altar_lock(a)) me.attack(cambc::vision::altar_lock_at(a));
+                                break;
+                            }
                     return true;
                 } catch (const cambc::error&) {
                 }
                 break;
             }
-    const int d_altar = altar_.at(pos);
+    // Nearest altar by walking distance; one we know is locked costs the time to break the lock.
+    constexpr int lock_penalty = 15;
+    int best = -1, d_altar = unreached;
+    for (size_t i = 0; i < altars_.size(); ++i) {
+        const int d = altar_field_[i].at(pos);
+        if (d >= unreached) continue;
+        const int cost = d + (locked_[i] ? lock_penalty : 0);
+        if (cost < d_altar) { d_altar = cost; best = static_cast<int>(i); }
+    }
+    if (best < 0) d_altar = altar_.at(pos);  // altar fields not computed yet
     if (d_altar >= unreached) return false;
     const int late = static_cast<int>(cambc::constants::max_rounds) - static_cast<int>(cambc::round_number());
     // Bank sooner when enemies are about: carried gems go to whoever kills us.
@@ -1038,6 +1092,15 @@ bool Bot::handle_tribute(int next_target, int next_wait) {
     const bool go = gems >= 40 || next_target < 0 || next_wait > d_altar || d_altar <= 4
         || (gems >= 15 && d_altar <= 10) || (danger && gems >= 10) || late < d_altar + 30;
     if (!go) return false;
+    if (best >= 0) {
+        if (walk_field(altar_field_[best], true)) return true;
+        // Beside a locked altar without a swing left this turn: stay and keep hitting the lock.
+        if (altar_field_[best].at(me.position()) == 0) return locked_[best];
+        auto goal = empty_board();
+        add_box(goal, altars_[best], cambc::constants::submit_gems_range);
+        goal &= altar_tiles_;
+        return step_to(goal, true);
+    }
     if (enemy_locks.is_empty() && walk_field(altar_, true)) return true;
     auto goal = altar_tiles_;
     for (auto a : enemy_locks.positions()) {
@@ -1110,6 +1173,7 @@ void Bot::play_turn() {
     }
     (void)view();
     update_knowledge();
+    update_locks();
     const bool at_spawn = cambc::map::spawn_region(team::ally).is_set(me.position());
     if (at_spawn || me.champion_name() == cambc::champion_type::tavi) buy_items();
     if (me.is_recalling() || me.is_submitting_gems() || me.is_teleporting()) {

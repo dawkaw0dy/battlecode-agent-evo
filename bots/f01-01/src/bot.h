@@ -41,6 +41,9 @@ class Bot {
     std::vector<int> field_order_;
     Grid16 home_, altar_;
     cambc::bitboard altar_tiles_;          // where we can stand to tribute
+    std::vector<cambc::vec2> altars_;
+    std::vector<Grid16> altar_field_;      // walking distance to the tribute tiles of each altar, filled lazily
+    std::vector<bool> locked_;             // an enemy lock was last seen on this altar (shared memory bytes 6-7)
     int target_ = -1, target_wait_ = 0, last_choice_ = -100;
     int approach_shrink_ = 0;
     int capture_group_ = -1, capture_since_ = 0;
@@ -64,6 +67,7 @@ class Bot {
     void initialise();
     void fill_fields(std::uint64_t reserve);
     void update_knowledge();
+    void update_locks();
     void buy_items();
     bool walk_field(const Grid16& field, bool allow_dash);
     bool step_to(const cambc::bitboard& goals, bool allow_dash);
