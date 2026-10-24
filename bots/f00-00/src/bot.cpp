@@ -738,15 +738,16 @@ void Bot::play_turn() {
     try_spells();
     basic_attack();
 
-    // Even fight: hold ground, do not walk into the enemy's reach.
-    avoid_active = fight == Fight::hold;
+    // Even fight: ranged hold ground outside the enemy's reach; melee must close in to matter.
+    const bool press = !ranged && fight == Fight::hold && weakest && cheb(weakest->pos, pos) <= 4;
+    avoid_active = fight == Fight::hold && !press;
     if (avoid_active) {
         avoid.clear();
         for (const auto& e : enemies) add_square(avoid, e.pos, 3);
     }
     bool chased = false;
     const int now = static_cast<int>(cambc::round_number());
-    if (fight == Fight::engage && weakest && me.can_move() && !cast_exclusive && !walked_fail
+    if ((fight == Fight::engage || press) && weakest && me.can_move() && !cast_exclusive && !walked_fail
         && cheb(weakest->pos, pos) > me.attack_range() && now >= no_chase_until) {
         try {
             chased = me.move_towards(weakest->pos);
