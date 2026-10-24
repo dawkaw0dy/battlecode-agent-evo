@@ -369,10 +369,11 @@
   "2026-10-24T16:33:32Z g00 f00-04: admitted (fda4a3c12160)",
   "2026-10-24T16:33:36Z g00 f00-05: admitted (782c99518e91)",
   "2026-10-24T16:33:41Z g00 f00-06: admitted (f10b647e7b19)",
-  "2026-10-24T16:33:45Z g00 f00-07: admitted (91df02ae7b34)"
+  "2026-10-24T16:33:45Z g00 f00-07: admitted (91df02ae7b34)",
+  "2026-10-24T16:33:52Z g00 phase EVAL_A_PENDING"
  ],
  "paused": null,
- "phase": "ADMITTED",
+ "phase": "EVAL_A_PENDING",
  "sessions_launched": 8,
  "version": 1
 }
