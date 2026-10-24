@@ -17,6 +17,7 @@ using cambc::bitboard;
 namespace {
 
 int W = 0, H = 0;
+int now = 0;
 
 int dist(vec2 a, vec2 b) { return static_cast<int>(a.chebyshev_distance(b)); }
 
@@ -62,6 +63,7 @@ struct Group {
     int state = 0;      // last seen: 0 unknown, 1 alive, 2 reward available, 3 respawning
     int state_round = -1;
     int bad_until = 0;  // unreachable or stuck: skip until this round
+    int side_ban = 0;   // solo farming of this group failed: skip it until this round
 };
 
 std::vector<cambc::map::camp_group> handles;
@@ -81,7 +83,6 @@ int tribute_fail = 0;
 // Per-turn state.
 bool moved = false;        // walked or dashed this turn
 bool move_failed = false;  // a move returned false (hidden unit): no more walking this turn
-int now = 0;
 
 // Stuck detection while travelling to the pack target.
 vec2 last_pos{-1, -1};
@@ -93,13 +94,17 @@ int last_enemy_seen = -1000;
 int gather_turns = 0;      // turns spent waiting for the pack at a big camp
 int side_target = -1;      // harmless cluster group this champion farms alone on the way
 int side_turns = 0;
+int side_idle = 0;         // side-farming turns without an attack
 constexpr float kRetreat = 0.35f;       // health share that sends a champion home
 constexpr float kRetreatEnemy = 0.5f;   // the same with an enemy champion within 5 tiles
 constexpr int kSideRange = 3;     // harmless clusters within this distance are farmed alone
 constexpr float kBigRisk = 1.0f;  // golem/monolith: allowed camp damage as a share of team health
 bool acted = false;        // attacked this turn
 
-// Shared memory: [0] target group + 1, [1] spare, [2..7] three (group + 1, avail / 16) notes.
+// Shared memory: [0] target group + 1, [1..3] escort, [4..7] two (group + 1, avail / 16) notes.
+constexpr int kNoteBase = 4;
+constexpr int kNotes = 2;
+constexpr int kEscortGems = 60;  // a carried haul this big gets the pack as escort
 // Five-champion teams farm as two squads; big camps pull both squads to the same target.
 constexpr bool kSquads = false;
 int squad = 0;
@@ -118,25 +123,41 @@ void write_target(int g) {
         cambc::shared_memory[1 - squad] = static_cast<std::uint8_t>(g + 1);
 }
 
+// [1..3] escort: a champion carrying a big haul writes (x + 1, y + 1, round) every turn and the
+// pack walks with it until the tribute is done.
+void write_escort(vec2 p) {
+    cambc::shared_memory[1] = static_cast<std::uint8_t>(p.x + 1);
+    cambc::shared_memory[2] = static_cast<std::uint8_t>(p.y + 1);
+    cambc::shared_memory[3] = static_cast<std::uint8_t>(now & 0xFF);
+}
+std::optional<vec2> read_escort() {
+    int x = static_cast<std::uint8_t>(cambc::shared_memory[1]);
+    int y = static_cast<std::uint8_t>(cambc::shared_memory[2]);
+    int r = static_cast<std::uint8_t>(cambc::shared_memory[3]);
+    if (x == 0 || y == 0) return std::nullopt;
+    if (((now - r) & 0xFF) > 2) return std::nullopt;
+    return vec2{x - 1, y - 1};
+}
+
 void read_notes() {
-    for (int i = 0; i < 3; ++i) {
-        int g = static_cast<int>(static_cast<std::uint8_t>(cambc::shared_memory[2 + 2 * i])) - 1;
-        int a = static_cast<std::uint8_t>(cambc::shared_memory[3 + 2 * i]) * 16;
+    for (int i = 0; i < kNotes; ++i) {
+        int g = static_cast<int>(static_cast<std::uint8_t>(cambc::shared_memory[kNoteBase + 2 * i])) - 1;
+        int a = static_cast<std::uint8_t>(cambc::shared_memory[kNoteBase + 1 + 2 * i]) * 16;
         if (g >= 0 && g < static_cast<int>(groups.size())) groups[g].avail = std::max(groups[g].avail, a);
     }
 }
 void write_note(int g, int avail) {
     int slot = -1, oldest = 1 << 30;
-    for (int i = 0; i < 3; ++i) {
-        int gi = static_cast<int>(static_cast<std::uint8_t>(cambc::shared_memory[2 + 2 * i])) - 1;
-        int a = static_cast<std::uint8_t>(cambc::shared_memory[3 + 2 * i]) * 16;
+    for (int i = 0; i < kNotes; ++i) {
+        int gi = static_cast<int>(static_cast<std::uint8_t>(cambc::shared_memory[kNoteBase + 2 * i])) - 1;
+        int a = static_cast<std::uint8_t>(cambc::shared_memory[kNoteBase + 1 + 2 * i]) * 16;
         if (gi == g) { slot = i; break; }
         if (gi < 0) a = -1;
         if (a < oldest) { oldest = a; slot = i; }
     }
     if (slot < 0) return;
-    cambc::shared_memory[2 + 2 * slot] = static_cast<std::uint8_t>(g + 1);
-    cambc::shared_memory[3 + 2 * slot] = static_cast<std::uint8_t>(std::min(255, (avail + 15) / 16));
+    cambc::shared_memory[kNoteBase + 2 * slot] = static_cast<std::uint8_t>(g + 1);
+    cambc::shared_memory[kNoteBase + 1 + 2 * slot] = static_cast<std::uint8_t>(std::min(255, (avail + 15) / 16));
 }
 
 // Camps never move: remember where living camps stand even when they are out of sight, so paths
@@ -799,7 +820,7 @@ void hunt(const std::vector<Foe>& camps, const std::vector<Ally>& allies) {
         for (auto& c : camps) {
             if (c.group < 0 || c.group == t || c.awake) continue;
             const auto& sg = groups[c.group];
-            if (sg.str > 0 || sg.big || sg.gems + sg.gold == 0) continue;
+            if (sg.str > 0 || sg.big || sg.gems + sg.gold == 0 || sg.side_ban > now) continue;
             int d = dist(c.pos, pos);
             if (d < best_d) { best_d = d; side_target = c.group; side_turns = 0; }
         }
@@ -809,16 +830,19 @@ void hunt(const std::vector<Foe>& camps, const std::vector<Ally>& allies) {
         ++side_turns;
         std::vector<Foe> sf;
         for (auto& c : camps) if (c.group == side_target) sf.push_back(c);
-        if (side_turns < 30 && cambc_enemies.empty()) {
+        if (side_turns < 25 && cambc_enemies.empty()) {
             if (!sf.empty()) {
                 fight(sf, false);
-                if (acted || moved) return;
+                if (acted) side_idle = 0;
+                if ((acted || moved) && ++side_idle < 8) return;
             } else if (sg.state == 2 && sg.state_round == now) {
                 if (sg.spawns.is_set(pos)) return;
                 if (step_to(sg.spawns)) return;
             }
         }
+        if (sg.state != 3) sg.side_ban = now + 100;
         side_target = -1;
+        side_idle = 0;
     }
 
     if (t < 0) {
@@ -1075,6 +1099,7 @@ void Bot::play_turn() {
         buy_items();
         return;
     }
+    if (me.gem_count() >= kEscortGems) write_escort(me.position());
     if (me.is_recalling() || me.is_submitting_gems() || me.is_teleporting()) return;
     // Stunned: nothing to do this turn.
     {
@@ -1168,5 +1193,17 @@ void Bot::play_turn() {
         return;
     }
 
-    hunt(camps, allies);
+    // A team mate carries a big haul: walk with it.
+    if (gems < kEscortGems) {
+        if (auto c = read_escort()) {
+            const int d = dist(*c, pos);
+            if (d > 2 && d < 30 && step_to(square(*c, 2) & ~single(*c))) return;
+            if (d <= 2) return;
+        }
+    }
+    try {
+        hunt(camps, allies);
+    } catch (const std::exception& e) {
+        std::cout << "warn: hunt r" << now << " " << e.what() << '\n';
+    }
 }
