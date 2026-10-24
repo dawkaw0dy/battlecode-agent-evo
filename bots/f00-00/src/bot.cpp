@@ -451,8 +451,6 @@ bool Bot::basic_attack() {
 
 bool Bot::try_bank() {
     auto& me = cambc::self();
-
-
     const unsigned gems = me.gem_count();
     if (gems == 0) return false;
     const auto pos = me.position();
@@ -467,20 +465,24 @@ bool Bot::try_bank() {
 
     for (auto altar : cambc::map::altars().positions()) {
         if (cheb(pos, altar) > cambc::constants::submit_gems_range) continue;
-        if (cambc::vision::has_altar_lock(altar)) {
-            const auto lock = cambc::vision::altar_lock_at(altar);
-            if (lock.is_enemy()) {
-                if (me.can_attack() && cheb(pos, altar) <= me.attack_range()) {
-                    me.attack(lock);
-                    attacked = true;
-                    return true;
+        try {
+            if (cambc::vision::has_altar_lock(altar)) {
+                const auto lock = cambc::vision::altar_lock_at(altar);
+                if (lock.is_enemy()) {
+                    if (me.can_attack() && cheb(pos, altar) <= me.attack_range()) {
+                        me.attack(lock);
+                        attacked = true;
+                        return true;
+                    }
+                    continue;
                 }
-                continue;
             }
+            if (cast_exclusive) return true;
+            me.submit_gems(altar);
+            return true;
+        } catch (const std::exception& error) {
+            if (trace) std::cout << "warn bank r" << round << ": " << error.what() << '\n';
         }
-        if (cast_exclusive) return true;
-        me.submit_gems(altar);
-        return true;
     }
     step_along(altar_field);
     return true;

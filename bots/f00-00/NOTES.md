@@ -23,6 +23,7 @@ champion's target. Bank at altars, recall when hurt, shop eagerly, fight by loca
 - Bank threshold plan.bank_gems = clamp(20 + avg_dist/2, 25, 60); also when the altar is <= 2 (or <= 6 with 15+).
 - Shopping: walk home with >= 150 gold within 10 tiles, recall with >= 210 gold; Tavi shops anywhere.
 - Chases capped at 12 steps without a hit, then 30 rounds off.
+- Capture hold timeout: capture_time + 6 rounds on a region without payout marks it contested for 60 rounds (x0.1).
 
 ## Changes this generation
 - New bot (immigrant from starter infrastructure): plan.cpp/h (draft map reading), draft.cpp (plan-based
@@ -31,10 +32,13 @@ champion's target. Bank at altars, recall when hurt, shop eagerly, fight by loca
   detour is kept until arrival (fixes champions stuck next to altars with 200+ gems); detours drop goal
   tiles occupied by camps; champions never stand on a group's tiles unless capturing (blocks respawn).
 - Fuel: fields and bitboards are mirrored into wasm memory (export_linear_buffer) instead of per-tile host
-  calls (each ~1k fuel); worst sampled turn on 01big-world went from 12k to 56k fuel left.
+  calls (each ~1k fuel); worst sampled turn on 01big-world went from 12k to 56k fuel left. The draft's
+  map analysis uses the same mirrors.
+- Contested captures: a champion held a capture for 300+ rounds on a long region an enemy also stood on
+  (01yellow-brick-road lost 68-120 to starter); now times out and avoids the group for 60 rounds.
 - Results (benchmark.py, release, both sides): vs starter 79/79 valid on all 40 maps (+760 mean; the one
-  invalid game is a starter exception). vs e07-05 (run-1 champion) 27/40 on 20 maps; vs e03-07 12/12;
-  vs e00-01 16/16.
+  invalid game is a starter exception). vs e07-05 (run-1 champion) 27/40 on 20 maps (twice, +191 mean);
+  vs e03-07 12/12; vs e00-01 16/16; vs e06-04 3/8 on four fight-heavy maps. 0 bot errors of ours in ~870 games.
 
 ## Tried and failed (keep entries from the parent's notes; add yours)
 - Static fields with every camp tile as a wall: long detours (01shortcut 2/2 -> 0/2 vs e07-05). Use
@@ -48,6 +52,7 @@ champion's target. Bank at altars, recall when hurt, shop eagerly, fight by loca
 - Plain "0.6 x str x clear time" damage estimate: rated the 26-gem central groups infeasible on small maps.
 - Chasing with move_towards and marking the turn as moved on failure: froze all champions for 1500 rounds
   on 01gold-rush (unreachable enemy).
+- Charging the altar round trip (2 x altar distance x gems / bank_gems) in group time: 5/12 vs 6/12, reverted.
 
 ## Known weaknesses
 - Small fight maps vs strong bots are side-dependent: 00collision, 01starfish, 00gemfight, 00packs mostly lost
