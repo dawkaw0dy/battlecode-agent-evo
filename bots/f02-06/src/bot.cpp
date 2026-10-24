@@ -56,6 +56,7 @@ struct Group {
 
 std::vector<Group> G;
 std::vector<std::int16_t> g_tile_group;  // tile -> group index or -1
+std::vector<int> g_bad_until;            // tile -> round until which attacks there are skipped
 bitboard g_static;                       // walls, holes, altars, enemy spawn
 Bits L_static, L_enemy_spawn, L_ally_spawn;
 std::vector<vec2> g_altars;
@@ -100,6 +101,7 @@ bool init() {
         g_spawn_pos = cambc::map::spawn_region(team::ally).positions()[0];
         g_enemy_spawn_pos = cambc::map::spawn_region(team::enemy).positions()[0];
         g_tile_group.assign(static_cast<size_t>(g_w * g_h), -1);
+        g_bad_until.assign(static_cast<size_t>(g_w * g_h), 0);
         g_team = static_cast<int>(cambc::champions(team::ally).size());
         g_all_groups = cambc::map::camp_groups();
         G.reserve(g_all_groups.size());
@@ -238,7 +240,7 @@ void update_groups(vec2 me) {
         x.seen = now;
         if (alive > 0) {
             if (x.state != 0) { x.state = 0; x.hp = x.full; }
-            const bool near = cheb(x.center, me) <= 10 || static_cast<int>(gi) == target;
+            const bool near = static_cast<int>(gi) == target || x.min_dist(me) <= 2;
             for (size_t i = 0; i < x.tiles.size(); ++i) {
                 if (!LV_vis.at(x.tiles[i])) continue;
                 if (!LV_camps.at(x.tiles[i])) { x.hp[i] = 0; continue; }
@@ -472,6 +474,7 @@ bool attack_camp(int tgt, bool allow_big) {
         for (int dx = -r; dx <= r; ++dx) {
             const vec2 p{pos.x + dx, pos.y + dy};
             if (!LV_camps.at(p) || !LV_vis.at(p)) continue;
+            if (g_bad_until[static_cast<size_t>(tidx(p))] > static_cast<int>(g_round)) continue;
             const int gi = inside(p) ? g_tile_group[static_cast<size_t>(tidx(p))] : -1;
             const bool awake = LV_awake.at(p);
             if (gi != tgt && !awake) continue;
@@ -495,7 +498,10 @@ bool attack_camp(int tgt, bool allow_big) {
         attacked = true;
         if (live()) refresh_view();
         return true;
-    } catch (const cambc::error& e) { warn("attack camp", e); }
+    } catch (const cambc::error& e) {
+        warn("attack camp", e);
+        g_bad_until[static_cast<size_t>(tidx(best))] = static_cast<int>(g_round) + 20;
+    }
     return false;
 }
 
