@@ -34,6 +34,7 @@ constexpr float kBossTurns = 8.0f;  // turns a champion must be able to tank a b
 constexpr bool kLocks = true;       // carry an altar lock and drop it on enemy tributes
 constexpr bool kDeny = true;        // hunt enemies channelling a tribute or recall
 constexpr bool kPressureTribute = true;  // bank under enemy pressure when the channel outlasts their damage
+constexpr bool kLockRunner = true;  // one champion carries locks to far altars
 constexpr int kLockRange = 2;       // altar lock placement range
 constexpr bool kLockAll = true;     // lock every altar we pass: our locks block only enemy tributes
 constexpr int kLockDetour = 8;      // walk this far (Chebyshev) out of our way to lock an altar
@@ -1350,7 +1351,7 @@ bool Bot::deny() {
 // Our locks stop only enemy tributes: keep one on every altar we come near. The enemy then has to
 // break it (five hits) or walk to another altar, and a channel already running there is cancelled.
 // Returns true when the turn went into a detour towards an altar to lock.
-bool Bot::lock_altars(bool detour) {
+bool Bot::lock_altars(bool detour, int reach) {
     if (!kLockAll || altars_.empty() || !live()) return false;
     auto& me = cambc::self();
     const int now = static_cast<int>(cambc::round_number());
@@ -1358,11 +1359,14 @@ bool Bot::lock_altars(bool detour) {
     const auto& v = view();
     const auto ours = cambc::vision::altar_lock_tiles(team::ally);
     const auto any = cambc::vision::altar_lock_tiles();
+    const auto theirs = cambc::vision::altar_lock_tiles(team::enemy);
+    if (enemy_lock_.size() != altars_.size()) enemy_lock_.assign(altars_.size(), 0);
     for (size_t i = 0; i < altars_.size(); ++i) {
         const vec2 a = altars_[i];
         if (!v.lvis.at(a)) continue;
         if (ours.is_set(a)) lock_seen_[i] = now;
         else lock_seen_[i] = -1000;
+        enemy_lock_[i] = theirs.is_set(a) ? 1 : 0;
     }
     if (!has_lock()) return false;
     int best = -1, best_d = 99;
@@ -1382,13 +1386,22 @@ bool Bot::lock_altars(bool detour) {
         }
         if (d < best_d && !any.is_set(a)) { best_d = d; best = static_cast<int>(i); }
     }
-    if (!detour || best < 0 || best_d > kLockDetour || incoming_ > 0 || moved_) return false;
+    if (!detour || best < 0 || best_d > reach || incoming_ > 0 || moved_) return false;
     if (lock_try_g_ != best) { lock_try_g_ = best; lock_try_since_ = now; }
-    if (now - lock_try_since_ > 2 * kLockDetour + 4) { lock_seen_[static_cast<size_t>(best)] = now; return false; }  // cannot get there
+    if (now - lock_try_since_ > 2 * reach + 6) { lock_seen_[static_cast<size_t>(best)] = now; return false; }  // cannot get there
     auto goal = empty_board();
     goal.set(altars_[static_cast<size_t>(best)]);
     goal = grow(goal, kLockRange) & ~walk_walls();
     return go(goal, true);
+}
+
+// Some altar we have not seen our lock on lately (so a runner should fetch another lock).
+bool Bot::lock_needed() const {
+    const int now = static_cast<int>(cambc::round_number());
+    if (lock_seen_.size() != altars_.size()) return true;
+    for (size_t i = 0; i < altars_.size(); ++i)
+        if (lock_seen_[i] <= -1000 || now - lock_seen_[i] >= 150) return true;
+    return false;
 }
 
 // ---------------------------------------------------------------- gems
@@ -1444,6 +1457,25 @@ bool Bot::tribute() {
             if (!(hit & ~camp_block_).is_empty()) return go(hit & ~camp_block_, false);
         }
         goal &= ~grow(one, cambc::constants::submit_gems_range);
+    }
+    // Enemy locks we saw earlier (out of sight now): skip those altars, or break the nearest when all are locked.
+    if (enemy_lock_.size() == altars_.size()) {
+        int near = -1, near_d = 1 << 20;
+        bool all = !altars_.empty();
+        for (size_t i = 0; i < altars_.size(); ++i) {
+            if (!enemy_lock_[i]) { all = false; continue; }
+            auto one = empty_board();
+            one.set(altars_[i]);
+            goal &= ~grow(one, cambc::constants::submit_gems_range);
+            const int d = cheb(altars_[i], pos_);
+            if (d < near_d) { near_d = d; near = static_cast<int>(i); }
+        }
+        if (all && near >= 0) {
+            auto one = empty_board();
+            one.set(altars_[static_cast<size_t>(near)]);
+            const auto hit = grow(one, std::min(cambc::constants::submit_gems_range, std::max(1, me.attack_range()))) & ~walk_walls() & ~camp_block_;
+            if (!hit.is_empty()) return go(hit, true);
+        }
     }
     if ((goal & ~camp_block_).is_empty()) {
         // Every spot is under a living camp (a boss beside the only altar): clear it first.
@@ -1620,7 +1652,13 @@ void Bot::turn() {
     g_mode = 6;
     if (tribute()) return;
     fp("tribute");
-    if (lock_altars(true)) return;
+    // The last pick runs locks to altars nobody passes (the enemy's own banks), between fights.
+    const bool runner = kLockRunner && slot_ == size_ - 1 && size_ >= 3 && now < 1600
+        && me.gem_count() == 0 && hp > max_hp * 0.6f;
+    if (lock_altars(true, runner ? 60 : kLockDetour)) return;
+    if (runner && !has_lock() && !at_spawn && incoming_ == 0 && me.gold_count() >= 10 && lock_needed()) {
+        if (recall_or_walk(6)) return;
+    }
     g_mode = 7;
 
     const int t = target_;
