@@ -35,7 +35,7 @@
    ],
    "slot": 0,
    "src_sha256": "c8571e849420397f17d0f2b4227d9f705b32a0844a63acebff0136d8a80343ea",
-   "status": "admitted",
+   "status": "rated",
    "task_sha256": "c6a0ba567e4b837f41ecaaa893a7d88c4ed6f9b0a464a4323876be21be1cec6f"
   },
   "f00-01": {
@@ -73,7 +73,7 @@
    ],
    "slot": 1,
    "src_sha256": "898b63a6c17382cefb2d26a84a7d53f8d69104ea813dcccec42c37042019989b",
-   "status": "admitted",
+   "status": "rated",
    "task_sha256": "98a7ba6c7b0ba04ad413cef28201639f58b24f665584a8cd70c82fe5cecdd396"
   },
   "f00-02": {
@@ -111,7 +111,7 @@
    ],
    "slot": 2,
    "src_sha256": "c4d4337abffaaf2637152cf8db8188209edd2f3354c9c9877295958926845c93",
-   "status": "admitted",
+   "status": "rated",
    "task_sha256": "a76b566a75683369cf058863a162c7047fae73735475fd3932f8723caf0cdd0d"
   },
   "f00-03": {
@@ -187,7 +187,7 @@
    ],
    "slot": 4,
    "src_sha256": "fda4a3c1216007a1e5e19c349e3911d5090edabd2e811396d62888589a3ac9d1",
-   "status": "admitted",
+   "status": "rated",
    "task_sha256": "6634a10aaca2f7856d983aa0de49acc5987ce4b27fa0f37cd04fa41cfb304cd9"
   },
   "f00-05": {
@@ -225,7 +225,7 @@
    ],
    "slot": 5,
    "src_sha256": "782c99518e91f6210971ae8601a36ca48889c07c1d33ba14e145b1436dd50cb7",
-   "status": "admitted",
+   "status": "rated",
    "task_sha256": "c97c0dd12b53028c0948a16e4f0263df4f424d2138cff9458c282fb08917f6b4"
   },
   "f00-06": {
@@ -263,7 +263,7 @@
    ],
    "slot": 6,
    "src_sha256": "f10b647e7b196a007ac5db9c4405fab9277371decd1bda6397c4508e6fd7fcef",
-   "status": "admitted",
+   "status": "rated",
    "task_sha256": "02700e5185e6b5b4994d54b99a29cf61dc090c76e27175585025ea0cb1d5a7d1"
   },
   "f00-07": {
@@ -301,11 +301,417 @@
    ],
    "slot": 7,
    "src_sha256": "91df02ae7b3456b025eba636775a972090924c4d9ca668490c8910e3ff036f5b",
-   "status": "admitted",
+   "status": "rated",
    "task_sha256": "3c44aec145f16f27649f692ba87df819ce54273b566c25bf6f724303ad134f3f"
+  },
+  "f01-01": {
+   "archetype": null,
+   "branch": null,
+   "commit": null,
+   "deadline_minutes": 120,
+   "evidence": [
+    {
+     "gems_opponent": 1070,
+     "gems_parent": 4,
+     "map": "01broken-curve",
+     "opponent": "f00-01",
+     "rounds": 1988,
+     "side": "B"
+    },
+    {
+     "gems_opponent": 1117,
+     "gems_parent": 51,
+     "map": "01starfish",
+     "opponent": "f00-07",
+     "rounds": 1997,
+     "side": "B"
+    },
+    {
+     "gems_opponent": 1034,
+     "gems_parent": 15,
+     "map": "01yellow-brick-road",
+     "opponent": "f00-02",
+     "rounds": 974,
+     "side": "A"
+    }
+   ],
+   "failed_ideas": [
+    "f00-01: Starter step selection `field.get(tile) < field.get(step)` picks blocked/unreached tiles: only step to free tiles in `visited`.",
+    "f00-01: A bitboard computed before `distance_field::compute_to` no longer showed champions it had contained when read",
+    "f00-01: after the compute: recompute the blocked mask after the field. Allies hidden in bushes are still \"known",
+    "f00-01: occupied\": add every ally position from `champions(team::ally)` to the blocked mask.",
+    "f00-01: Standing on spawn tiles of a respawning group delays its respawn forever (we parked on them): wait 1-2 tiles away.",
+    "f00-01: 01yellow-brick-road: a 30-tile gold-cluster group spans both spawns, so its capture never completes; capture timeout",
+    "f00-01: and the no-progress rule fix it (0 -> +900 gems). Moving towards spawn tiles while standing on one never reached",
+    "f00-01: live camps of the same group: move to the live camp tiles instead.",
+    "f00-01: Banking by Chebyshev distance to altars: 00great-wall -182/-211 (altars behind the wall). Use path distance.",
+    "f00-01: Stuck rule counting respawn waits as \"no progress\": champions hopped between respawning groups (00great-wall).",
+    "f00-01: Second warden on 5-champion teams: 01corridors/00ambush/01fracture -200..-400 per map vs one warden.",
+    "f00-01: Recall at 35%/40%: about equal gems to 45%, one more loss on 01corridors; kept 45%.",
+    "f00-01: Shopping recall at 300 gold: -136 over 16 games vs 180. Leave spawn at 50% HP: -336 vs 70%.",
+    "f00-01: Bank threshold 40 vs 25: equal vs starter (6991 vs 7004); kept 25 (less to lose to kills).",
+    "f00-01: Chase radius 5 (vs 3): 7774 vs 7864 over the same 16 games; kept 3."
+   ],
+   "focus": "defense",
+   "generation": 1,
+   "id": "f01-01",
+   "kind": "child",
+   "nudged": [],
+   "operator": "tweak",
+   "parents": [
+    "f00-03"
+   ],
+   "reason": null,
+   "rng_key": "21376769:1:1",
+   "sessions": [],
+   "slot": 1,
+   "src_sha256": null,
+   "status": "planned",
+   "task_sha256": null
+  },
+  "f01-02": {
+   "archetype": null,
+   "branch": null,
+   "commit": null,
+   "deadline_minutes": 120,
+   "evidence": [
+    {
+     "gems_opponent": 1070,
+     "gems_parent": 4,
+     "map": "01broken-curve",
+     "opponent": "f00-01",
+     "rounds": 1988,
+     "side": "B"
+    },
+    {
+     "gems_opponent": 1117,
+     "gems_parent": 51,
+     "map": "01starfish",
+     "opponent": "f00-07",
+     "rounds": 1997,
+     "side": "B"
+    },
+    {
+     "gems_opponent": 1034,
+     "gems_parent": 15,
+     "map": "01yellow-brick-road",
+     "opponent": "f00-02",
+     "rounds": 974,
+     "side": "A"
+    }
+   ],
+   "failed_ideas": [
+    "f00-01: Starter step selection `field.get(tile) < field.get(step)` picks blocked/unreached tiles: only step to free tiles in `visited`.",
+    "f00-01: A bitboard computed before `distance_field::compute_to` no longer showed champions it had contained when read",
+    "f00-01: after the compute: recompute the blocked mask after the field. Allies hidden in bushes are still \"known",
+    "f00-01: occupied\": add every ally position from `champions(team::ally)` to the blocked mask.",
+    "f00-01: Standing on spawn tiles of a respawning group delays its respawn forever (we parked on them): wait 1-2 tiles away.",
+    "f00-01: 01yellow-brick-road: a 30-tile gold-cluster group spans both spawns, so its capture never completes; capture timeout",
+    "f00-01: and the no-progress rule fix it (0 -> +900 gems). Moving towards spawn tiles while standing on one never reached",
+    "f00-01: live camps of the same group: move to the live camp tiles instead.",
+    "f00-01: Banking by Chebyshev distance to altars: 00great-wall -182/-211 (altars behind the wall). Use path distance.",
+    "f00-01: Stuck rule counting respawn waits as \"no progress\": champions hopped between respawning groups (00great-wall).",
+    "f00-01: Second warden on 5-champion teams: 01corridors/00ambush/01fracture -200..-400 per map vs one warden.",
+    "f00-01: Recall at 35%/40%: about equal gems to 45%, one more loss on 01corridors; kept 45%.",
+    "f00-01: Shopping recall at 300 gold: -136 over 16 games vs 180. Leave spawn at 50% HP: -336 vs 70%.",
+    "f00-01: Bank threshold 40 vs 25: equal vs starter (6991 vs 7004); kept 25 (less to lose to kills).",
+    "f00-01: Chase radius 5 (vs 3): 7774 vs 7864 over the same 16 games; kept 3."
+   ],
+   "focus": "pathing",
+   "generation": 1,
+   "id": "f01-02",
+   "kind": "child",
+   "nudged": [],
+   "operator": "subsystem",
+   "parents": [
+    "f00-03"
+   ],
+   "reason": null,
+   "rng_key": "21376769:1:2",
+   "sessions": [],
+   "slot": 2,
+   "src_sha256": null,
+   "status": "planned",
+   "task_sha256": null
+  },
+  "f01-03": {
+   "archetype": null,
+   "branch": null,
+   "commit": null,
+   "deadline_minutes": 120,
+   "evidence": [
+    {
+     "gems_opponent": 1070,
+     "gems_parent": 4,
+     "map": "01broken-curve",
+     "opponent": "f00-01",
+     "rounds": 1988,
+     "side": "B"
+    },
+    {
+     "gems_opponent": 1117,
+     "gems_parent": 51,
+     "map": "01starfish",
+     "opponent": "f00-07",
+     "rounds": 1997,
+     "side": "B"
+    },
+    {
+     "gems_opponent": 1034,
+     "gems_parent": 15,
+     "map": "01yellow-brick-road",
+     "opponent": "f00-02",
+     "rounds": 974,
+     "side": "A"
+    }
+   ],
+   "failed_ideas": [
+    "f00-01: Starter step selection `field.get(tile) < field.get(step)` picks blocked/unreached tiles: only step to free tiles in `visited`.",
+    "f00-01: A bitboard computed before `distance_field::compute_to` no longer showed champions it had contained when read",
+    "f00-01: after the compute: recompute the blocked mask after the field. Allies hidden in bushes are still \"known",
+    "f00-01: occupied\": add every ally position from `champions(team::ally)` to the blocked mask.",
+    "f00-01: Standing on spawn tiles of a respawning group delays its respawn forever (we parked on them): wait 1-2 tiles away.",
+    "f00-01: 01yellow-brick-road: a 30-tile gold-cluster group spans both spawns, so its capture never completes; capture timeout",
+    "f00-01: and the no-progress rule fix it (0 -> +900 gems). Moving towards spawn tiles while standing on one never reached",
+    "f00-01: live camps of the same group: move to the live camp tiles instead.",
+    "f00-01: Banking by Chebyshev distance to altars: 00great-wall -182/-211 (altars behind the wall). Use path distance.",
+    "f00-01: Stuck rule counting respawn waits as \"no progress\": champions hopped between respawning groups (00great-wall).",
+    "f00-01: Second warden on 5-champion teams: 01corridors/00ambush/01fracture -200..-400 per map vs one warden.",
+    "f00-01: Recall at 35%/40%: about equal gems to 45%, one more loss on 01corridors; kept 45%.",
+    "f00-01: Shopping recall at 300 gold: -136 over 16 games vs 180. Leave spawn at 50% HP: -336 vs 70%.",
+    "f00-01: Bank threshold 40 vs 25: equal vs starter (6991 vs 7004); kept 25 (less to lose to kills).",
+    "f00-01: Chase radius 5 (vs 3): 7774 vs 7864 over the same 16 games; kept 3."
+   ],
+   "focus": "combat",
+   "generation": 1,
+   "id": "f01-03",
+   "kind": "child",
+   "nudged": [],
+   "operator": "crossover",
+   "parents": [
+    "f00-03",
+    "f00-00"
+   ],
+   "reason": null,
+   "rng_key": "21376769:1:3",
+   "sessions": [],
+   "slot": 3,
+   "src_sha256": null,
+   "status": "planned",
+   "task_sha256": null
+  },
+  "f01-04": {
+   "archetype": null,
+   "branch": null,
+   "commit": null,
+   "deadline_minutes": 120,
+   "evidence": [
+    {
+     "gems_opponent": 1060,
+     "gems_parent": 30,
+     "map": "h-1b5c",
+     "opponent": "f00-07",
+     "rounds": 1874,
+     "side": "B"
+    },
+    {
+     "gems_opponent": 1067,
+     "gems_parent": 53,
+     "map": "00stampede",
+     "opponent": "f00-03",
+     "rounds": 1931,
+     "side": "B"
+    },
+    {
+     "gems_opponent": 1017,
+     "gems_parent": 17,
+     "map": "00eight",
+     "opponent": "f00-07",
+     "rounds": 1743,
+     "side": "B"
+    }
+   ],
+   "failed_ideas": [
+    "f00-01: Starter step selection `field.get(tile) < field.get(step)` picks blocked/unreached tiles: only step to free tiles in `visited`.",
+    "f00-01: A bitboard computed before `distance_field::compute_to` no longer showed champions it had contained when read",
+    "f00-01: after the compute: recompute the blocked mask after the field. Allies hidden in bushes are still \"known",
+    "f00-01: occupied\": add every ally position from `champions(team::ally)` to the blocked mask.",
+    "f00-01: Standing on spawn tiles of a respawning group delays its respawn forever (we parked on them): wait 1-2 tiles away.",
+    "f00-01: 01yellow-brick-road: a 30-tile gold-cluster group spans both spawns, so its capture never completes; capture timeout",
+    "f00-01: and the no-progress rule fix it (0 -> +900 gems). Moving towards spawn tiles while standing on one never reached",
+    "f00-01: live camps of the same group: move to the live camp tiles instead.",
+    "f00-01: Banking by Chebyshev distance to altars: 00great-wall -182/-211 (altars behind the wall). Use path distance.",
+    "f00-01: Stuck rule counting respawn waits as \"no progress\": champions hopped between respawning groups (00great-wall).",
+    "f00-01: Second warden on 5-champion teams: 01corridors/00ambush/01fracture -200..-400 per map vs one warden.",
+    "f00-01: Recall at 35%/40%: about equal gems to 45%, one more loss on 01corridors; kept 45%.",
+    "f00-01: Shopping recall at 300 gold: -136 over 16 games vs 180. Leave spawn at 50% HP: -336 vs 70%.",
+    "f00-01: Bank threshold 40 vs 25: equal vs starter (6991 vs 7004); kept 25 (less to lose to kills).",
+    "f00-01: Chase radius 5 (vs 3): 7774 vs 7864 over the same 16 games; kept 3."
+   ],
+   "focus": "pathing",
+   "generation": 1,
+   "id": "f01-04",
+   "kind": "child",
+   "nudged": [],
+   "operator": "tweak",
+   "parents": [
+    "f00-00"
+   ],
+   "reason": null,
+   "rng_key": "21376769:1:4",
+   "sessions": [],
+   "slot": 4,
+   "src_sha256": null,
+   "status": "planned",
+   "task_sha256": null
+  },
+  "f01-05": {
+   "archetype": null,
+   "branch": null,
+   "commit": null,
+   "deadline_minutes": 120,
+   "evidence": [
+    {
+     "gems_opponent": 1060,
+     "gems_parent": 30,
+     "map": "h-1b5c",
+     "opponent": "f00-07",
+     "rounds": 1874,
+     "side": "B"
+    },
+    {
+     "gems_opponent": 1067,
+     "gems_parent": 53,
+     "map": "00stampede",
+     "opponent": "f00-03",
+     "rounds": 1931,
+     "side": "B"
+    },
+    {
+     "gems_opponent": 1017,
+     "gems_parent": 17,
+     "map": "00eight",
+     "opponent": "f00-07",
+     "rounds": 1743,
+     "side": "B"
+    }
+   ],
+   "failed_ideas": [
+    "f00-01: Starter step selection `field.get(tile) < field.get(step)` picks blocked/unreached tiles: only step to free tiles in `visited`.",
+    "f00-01: A bitboard computed before `distance_field::compute_to` no longer showed champions it had contained when read",
+    "f00-01: after the compute: recompute the blocked mask after the field. Allies hidden in bushes are still \"known",
+    "f00-01: occupied\": add every ally position from `champions(team::ally)` to the blocked mask.",
+    "f00-01: Standing on spawn tiles of a respawning group delays its respawn forever (we parked on them): wait 1-2 tiles away.",
+    "f00-01: 01yellow-brick-road: a 30-tile gold-cluster group spans both spawns, so its capture never completes; capture timeout",
+    "f00-01: and the no-progress rule fix it (0 -> +900 gems). Moving towards spawn tiles while standing on one never reached",
+    "f00-01: live camps of the same group: move to the live camp tiles instead.",
+    "f00-01: Banking by Chebyshev distance to altars: 00great-wall -182/-211 (altars behind the wall). Use path distance.",
+    "f00-01: Stuck rule counting respawn waits as \"no progress\": champions hopped between respawning groups (00great-wall).",
+    "f00-01: Second warden on 5-champion teams: 01corridors/00ambush/01fracture -200..-400 per map vs one warden.",
+    "f00-01: Recall at 35%/40%: about equal gems to 45%, one more loss on 01corridors; kept 45%.",
+    "f00-01: Shopping recall at 300 gold: -136 over 16 games vs 180. Leave spawn at 50% HP: -336 vs 70%.",
+    "f00-01: Bank threshold 40 vs 25: equal vs starter (6991 vs 7004); kept 25 (less to lose to kills).",
+    "f00-01: Chase radius 5 (vs 3): 7774 vs 7864 over the same 16 games; kept 3."
+   ],
+   "focus": "camps",
+   "generation": 1,
+   "id": "f01-05",
+   "kind": "child",
+   "nudged": [],
+   "operator": "subsystem",
+   "parents": [
+    "f00-00"
+   ],
+   "reason": null,
+   "rng_key": "21376769:1:5",
+   "sessions": [],
+   "slot": 5,
+   "src_sha256": null,
+   "status": "planned",
+   "task_sha256": null
+  },
+  "f01-06": {
+   "archetype": "camp-sweep",
+   "branch": null,
+   "commit": null,
+   "deadline_minutes": 120,
+   "evidence": [],
+   "failed_ideas": [
+    "f00-01: Starter step selection `field.get(tile) < field.get(step)` picks blocked/unreached tiles: only step to free tiles in `visited`.",
+    "f00-01: A bitboard computed before `distance_field::compute_to` no longer showed champions it had contained when read",
+    "f00-01: after the compute: recompute the blocked mask after the field. Allies hidden in bushes are still \"known",
+    "f00-01: occupied\": add every ally position from `champions(team::ally)` to the blocked mask.",
+    "f00-01: Standing on spawn tiles of a respawning group delays its respawn forever (we parked on them): wait 1-2 tiles away.",
+    "f00-01: 01yellow-brick-road: a 30-tile gold-cluster group spans both spawns, so its capture never completes; capture timeout",
+    "f00-01: and the no-progress rule fix it (0 -> +900 gems). Moving towards spawn tiles while standing on one never reached",
+    "f00-01: live camps of the same group: move to the live camp tiles instead.",
+    "f00-01: Banking by Chebyshev distance to altars: 00great-wall -182/-211 (altars behind the wall). Use path distance.",
+    "f00-01: Stuck rule counting respawn waits as \"no progress\": champions hopped between respawning groups (00great-wall).",
+    "f00-01: Second warden on 5-champion teams: 01corridors/00ambush/01fracture -200..-400 per map vs one warden.",
+    "f00-01: Recall at 35%/40%: about equal gems to 45%, one more loss on 01corridors; kept 45%.",
+    "f00-01: Shopping recall at 300 gold: -136 over 16 games vs 180. Leave spawn at 50% HP: -336 vs 70%.",
+    "f00-01: Bank threshold 40 vs 25: equal vs starter (6991 vs 7004); kept 25 (less to lose to kills).",
+    "f00-01: Chase radius 5 (vs 3): 7774 vs 7864 over the same 16 games; kept 3."
+   ],
+   "focus": null,
+   "generation": 1,
+   "id": "f01-06",
+   "kind": "immigrant",
+   "nudged": [],
+   "operator": null,
+   "parents": [
+    "starter"
+   ],
+   "reason": null,
+   "rng_key": "21376769:1:6",
+   "sessions": [],
+   "slot": 6,
+   "src_sha256": null,
+   "status": "planned",
+   "task_sha256": null
+  },
+  "f01-07": {
+   "archetype": "scaling-economy",
+   "branch": null,
+   "commit": null,
+   "deadline_minutes": 120,
+   "evidence": [],
+   "failed_ideas": [
+    "f00-01: Starter step selection `field.get(tile) < field.get(step)` picks blocked/unreached tiles: only step to free tiles in `visited`.",
+    "f00-01: A bitboard computed before `distance_field::compute_to` no longer showed champions it had contained when read",
+    "f00-01: after the compute: recompute the blocked mask after the field. Allies hidden in bushes are still \"known",
+    "f00-01: occupied\": add every ally position from `champions(team::ally)` to the blocked mask.",
+    "f00-01: Standing on spawn tiles of a respawning group delays its respawn forever (we parked on them): wait 1-2 tiles away.",
+    "f00-01: 01yellow-brick-road: a 30-tile gold-cluster group spans both spawns, so its capture never completes; capture timeout",
+    "f00-01: and the no-progress rule fix it (0 -> +900 gems). Moving towards spawn tiles while standing on one never reached",
+    "f00-01: live camps of the same group: move to the live camp tiles instead.",
+    "f00-01: Banking by Chebyshev distance to altars: 00great-wall -182/-211 (altars behind the wall). Use path distance.",
+    "f00-01: Stuck rule counting respawn waits as \"no progress\": champions hopped between respawning groups (00great-wall).",
+    "f00-01: Second warden on 5-champion teams: 01corridors/00ambush/01fracture -200..-400 per map vs one warden.",
+    "f00-01: Recall at 35%/40%: about equal gems to 45%, one more loss on 01corridors; kept 45%.",
+    "f00-01: Shopping recall at 300 gold: -136 over 16 games vs 180. Leave spawn at 50% HP: -336 vs 70%.",
+    "f00-01: Bank threshold 40 vs 25: equal vs starter (6991 vs 7004); kept 25 (less to lose to kills).",
+    "f00-01: Chase radius 5 (vs 3): 7774 vs 7864 over the same 16 games; kept 3."
+   ],
+   "focus": null,
+   "generation": 1,
+   "id": "f01-07",
+   "kind": "immigrant",
+   "nudged": [],
+   "operator": null,
+   "parents": [
+    "starter"
+   ],
+   "reason": null,
+   "rng_key": "21376769:1:7",
+   "sessions": [],
+   "slot": 7,
+   "src_sha256": null,
+   "status": "planned",
+   "task_sha256": null
   }
  },
- "generation": 0,
+ "generation": 1,
  "generations": {
   "0": {
    "approval": null,
@@ -2237,6 +2643,8 @@
      "strength": -3.3788538133109145
     }
    },
+   "selection_done": true,
+   "similar_skipped": [],
    "slots": [
     "f00-00",
     "f00-01",
@@ -2251,15 +2659,43 @@
     "f00-00",
     "f00-07"
    ],
+   "survivors": [
+    "f00-03",
+    "f00-00"
+   ],
    "top": [
     "f00-03",
     "f00-00",
     "f00-06",
     "f00-07"
    ]
+  },
+  "1": {
+   "approval": null,
+   "elites": [
+    "f00-03"
+   ],
+   "env_failed": 0,
+   "jobs": {
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "slots": [
+    "f00-03",
+    "f01-01",
+    "f01-02",
+    "f01-03",
+    "f01-04",
+    "f01-05",
+    "f01-06",
+    "f01-07"
+   ]
   }
  },
- "hall_of_fame": [],
+ "hall_of_fame": [
+  "f00-03"
+ ],
  "halted": null,
  "jobs": {
   "r00-A": {
@@ -2374,10 +2810,12 @@
   "2026-10-24T16:46:21Z g00 phase EVAL_C_DONE: results for r00-C",
   "2026-10-24T16:46:32Z g00 r00-C-spot: pushed 4bd6b9818e (4 sampled games, 3 shards)",
   "2026-10-24T16:48:47Z g00 r00-C: verified, 48 rows, spot-check 4 OK",
-  "2026-10-24T16:48:55Z g00 phase SELECTED: final: f00-03, f00-00, f00-07, f00-06, f00-02, f00-04, f00-01, f00-05, starter"
+  "2026-10-24T16:48:55Z g00 phase SELECTED: final: f00-03, f00-00, f00-07, f00-06, f00-02, f00-04, f00-01, f00-05, starter",
+  "2026-10-24T16:49:01Z g00 survivors ['f00-03', 'f00-00'], hall of fame ['f00-03']",
+  "2026-10-24T16:49:01Z g01 phase PLANNED: 8 slots"
  ],
  "paused": null,
- "phase": "SELECTED",
+ "phase": "PLANNED",
  "sessions_launched": 8,
  "version": 1
 }
