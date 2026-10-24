@@ -8,7 +8,7 @@
 // A static path field toward a set of root tiles, with the tiles it reached.
 struct Field {
     cambc::distance_field dist;
-    cambc::bitboard seen;
+    cambc::bitboard seen, roots;
     int at(cambc::vec2 p) const;
 };
 
@@ -37,6 +37,9 @@ class Bot {
     Plan plan;
     std::vector<Group> groups;
     cambc::bitboard walls;
+    std::unique_ptr<Field> detour;
+    const Field* detour_for = nullptr;
+    int detour_until = -1;
     Field altar_field, home_field;
     int slot = 0, bodies = 1;
     int target = -1, chosen_round = -100;

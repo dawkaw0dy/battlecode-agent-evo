@@ -103,8 +103,10 @@ void Bot::init() {
                 const vec2 t{altar.x + dx, altar.y + dy};
                 if (in_bounds(t) && !walls.is_set(t)) altar_roots.set(t);
             }
+    altar_field.roots = altar_roots;
     altar_field.dist.compute(walls, altar_roots, altar_field.seen);
-    home_field.dist.compute(walls, cambc::map::spawn_region(team::ally), home_field.seen);
+    home_field.roots = cambc::map::spawn_region(team::ally);
+    home_field.dist.compute(walls, home_field.roots, home_field.seen);
 
     const auto team_list = cambc::champions(team::ally);
     bodies = static_cast<int>(team_list.size());
@@ -124,6 +126,7 @@ const Field& Bot::group_field(int index) {
     auto& g = groups[static_cast<std::size_t>(index)];
     if (!g.field) {
         g.field = std::make_unique<Field>();
+        g.field->roots = g.tiles;
         g.field->dist.compute(walls, g.tiles, g.field->seen);
     }
     return *g.field;
@@ -211,33 +214,49 @@ bool Bot::step_along(const Field& field) {
     auto& me = cambc::self();
     if (walked_fail || cast_exclusive || !me.can_move()) return false;
     const auto pos = me.position();
-    const int here = field.at(pos);
-    if (here == 0) return false;
-    const auto blocked = walls | cambc::vision::champion_tiles() | cambc::vision::camp_tiles() | cambc::vision::teleport_tiles();
-    vec2 best = pos;
-    int best_value = here;
-    bool unit_blocked = false;
-    for (auto d : directions) {
-        const vec2 q = pos + d;
-        if (!in_bounds(q)) continue;
-        const int v = field.at(q);
-        if (v >= best_value) continue;
-        if (blocked.is_set(q)) {
-            if (!walls.is_set(q)) unit_blocked = true;
-            continue;
+    if (field.at(pos) == 0) return false;
+    const int round = static_cast<int>(cambc::round_number());
+    const auto camps = cambc::vision::camp_tiles();
+    const auto blocked = walls | cambc::vision::champion_tiles() | camps | cambc::vision::teleport_tiles();
+
+    // Pick the best free neighbour on a field; report whether a unit or camp blocks a better one.
+    const auto pick = [&](const Field& f, bool& unit_blocked, bool& camp_blocked) {
+        vec2 best = pos;
+        int best_value = f.at(pos);
+        for (auto d : directions) {
+            const vec2 q = pos + d;
+            if (!in_bounds(q)) continue;
+            const int v = f.at(q);
+            if (v >= best_value) continue;
+            if (blocked.is_set(q)) {
+                if (!walls.is_set(q)) {
+                    unit_blocked = true;
+                    if (camps.is_set(q)) camp_blocked = true;
+                }
+                continue;
+            }
+            if (avoid_active && avoid.is_set(q) && !avoid.is_set(pos)) continue;
+            best = q;
+            best_value = v;
         }
-        if (avoid_active && avoid.is_set(q) && !avoid.is_set(pos)) continue;
-        best = q;
-        best_value = v;
-    }
-    if (best == pos && unit_blocked && here < far_away) {
-        // Sidestep around a unit standing on the path.
-        const int start = static_cast<int>(cambc::round_number() + slot) % 8;
-        for (int k = 0; k < 8; ++k) {
-            const vec2 q = pos + directions[static_cast<std::size_t>((start + k) % 8)];
-            if (!in_bounds(q) || blocked.is_set(q)) continue;
-            if (field.at(q) == here) { best = q; break; }
-        }
+        return best;
+    };
+
+    bool unit_blocked = false, camp_blocked = false;
+    const bool sticky = detour && detour_for == &field && round <= detour_until;
+    vec2 best = pick(sticky ? *detour : field, unit_blocked, camp_blocked);
+    if (best == pos && (unit_blocked || field.at(pos) >= far_away)) {
+        // Route around what we can see. Camps do not move, so a detour around them is kept
+        // until we arrive; a detour around champions only for a few turns.
+        if (!detour) detour = std::make_unique<Field>();
+        auto dyn_walls = (camp_blocked ? (walls | camps) : blocked) & ~field.roots;
+        dyn_walls.set(pos, false);
+        detour->roots = field.roots;
+        detour->dist.compute(dyn_walls, field.roots, detour->seen);
+        detour_for = &field;
+        detour_until = round + (camp_blocked ? 60 : 3);
+        bool ub = false, cb = false;
+        best = pick(*detour, ub, cb);
     }
     if (best == pos) return false;
     return walk(best);
@@ -407,6 +426,7 @@ bool Bot::basic_attack() {
 
 bool Bot::try_bank() {
     auto& me = cambc::self();
+
     const unsigned gems = me.gem_count();
     if (gems == 0) return false;
     const auto pos = me.position();
@@ -712,7 +732,7 @@ void Bot::play_turn() {
     if (trace && (cambc::round_number() % 25 == 0 || (!enemies.empty() && cambc::round_number() < 500)))
         std::cout << "r" << cambc::round_number() << " E" << enemies.size() << " A" << allies.size() << " s" << slot << " t" << target << " fight" << int(fight) << " hp"
                   << int(me.health()) << " gems " << me.gem_count() << " gold " << me.gold_count() << " at "
-                  << cambc::to_string(me.position()) << " fuel " << cambc::fuel_remaining();
+                  << cambc::to_string(me.position()) << " alt" << altar_field.at(me.position()) << " fuel " << cambc::fuel_remaining();
     if (trace && cambc::round_number() % 25 == 0 && target >= 0) {
         const auto& g = groups[static_cast<std::size_t>(target)];
         std::cout << " | g reward" << g.reward << " respawn" << g.respawn_at << " gems" << g.facts.gems << " tiles";
