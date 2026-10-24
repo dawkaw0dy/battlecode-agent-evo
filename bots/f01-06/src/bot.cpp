@@ -996,7 +996,7 @@ int Bot::choose_target() {
     for (int i = 0; i < static_cast<int>(groups_.size()); ++i) {
         const auto& g = groups_[i];
         const auto& k = known_[i];
-        if (g.boss || k.blocked_until > t) continue;
+        if (k.blocked_until > t) continue;
         float value = group_value(g);
         if (value <= 0) continue;
         if (pack && dist(g.center, report.where) <= 8) value *= 0.3f;
