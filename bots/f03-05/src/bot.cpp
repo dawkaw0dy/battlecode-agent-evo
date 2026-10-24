@@ -1421,12 +1421,13 @@ bool Bot::tribute() {
     }
     if (!locks.is_empty() && me.can_attack() && live())
         for (auto a : locks.positions())
-            if (cheb(a, pos_) <= std::min(cambc::constants::submit_gems_range, me.attack_range())) {
+            if (cheb(a, pos_) <= cambc::constants::submit_gems_range) {
+                // A tribute at a locked altar becomes an attack on its lock (attack() itself refuses locks).
                 try {
-                    me.attack(cambc::vision::altar_lock_at(a));
+                    me.submit_gems(a);
                     attacked_ = true;
                     return true;
-                } catch (const cambc::error& e) { warn("lock", e); }
+                } catch (const cambc::error& e) { warn("break lock", e); }
                 break;
             }
     const int d = altar_.at(pos_);
@@ -1453,7 +1454,7 @@ bool Bot::tribute() {
         one.set(a);
         // An enemy lock close by: break it (five hits) rather than walk away and back as it drops out of sight.
         if (cheb(a, pos_) <= 4) {
-            const auto hit = grow(one, std::min(cambc::constants::submit_gems_range, std::max(1, me.attack_range()))) & ~walk_walls();
+            const auto hit = grow(one, cambc::constants::submit_gems_range) & ~walk_walls();
             if (!(hit & ~camp_block_).is_empty()) return go(hit & ~camp_block_, false);
         }
         goal &= ~grow(one, cambc::constants::submit_gems_range);
@@ -1473,7 +1474,7 @@ bool Bot::tribute() {
         if (all && near >= 0) {
             auto one = empty_board();
             one.set(altars_[static_cast<size_t>(near)]);
-            const auto hit = grow(one, std::min(cambc::constants::submit_gems_range, std::max(1, me.attack_range()))) & ~walk_walls() & ~camp_block_;
+            const auto hit = grow(one, cambc::constants::submit_gems_range) & ~walk_walls() & ~camp_block_;
             if (!hit.is_empty()) return go(hit, true);
         }
     }
