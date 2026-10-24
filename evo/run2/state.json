@@ -1209,12 +1209,14 @@
  "halted": null,
  "jobs": {
   "r00-A": {
+   "arrived_at": 1792859776,
    "generation": 0,
    "pushed_at": 1792859642,
    "pushed_commit": "b76713dd146f9ed7e27b7c9d50c597b629243a26",
+   "results_commit": "f6386f4b2492963b7bacf926bf6ac2a462ecd7f1",
    "retries": 0,
    "stage": "A",
-   "status": "pending"
+   "status": "arrived"
   }
  },
  "launch_errors_in_a_row": 0,
@@ -1248,10 +1250,11 @@
   "2026-10-24T16:33:41Z g00 f00-06: admitted (f10b647e7b19)",
   "2026-10-24T16:33:45Z g00 f00-07: admitted (91df02ae7b34)",
   "2026-10-24T16:33:52Z g00 phase EVAL_A_PENDING",
-  "2026-10-24T16:34:02Z g00 r00-A: pushed b76713dd14 with 36 shards"
+  "2026-10-24T16:34:02Z g00 r00-A: pushed b76713dd14 with 36 shards",
+  "2026-10-24T16:36:16Z g00 phase EVAL_A_DONE: results for r00-A"
  ],
  "paused": null,
- "phase": "EVAL_A_PENDING",
+ "phase": "EVAL_A_DONE",
  "sessions_launched": 8,
  "version": 1
 }
