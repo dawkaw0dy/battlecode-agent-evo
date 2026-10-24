@@ -28,9 +28,11 @@ int distance(vec2 a, vec2 b) { return static_cast<int>(a.chebyshev_distance(b));
 
 struct GroupInfo {
     cambc::bitboard spawns;
+    vec2 rep{0, 0};   // one spawn tile, to test visibility cheaply
     vec2 center{0, 0};
     float gems = 0, gold = 0, hp = 0, str = 0;
     bool monolith = false;
+    bool reachable = true;
 };
 
 struct World {
@@ -38,6 +40,7 @@ struct World {
     std::vector<vec2> altars;
     std::vector<int> ally_dist, enemy_dist;   // path distance from each spawn to each altar
     std::vector<GroupInfo> groups;
+    std::vector<cambc::map::camp_group> handles;
     std::vector<int> respawn_round;           // last known round the group is back
     std::vector<int> skip_until;              // capture failed (contested region): avoid until then
     cambc::bitboard terrain;                  // walls | holes | altars
@@ -47,6 +50,13 @@ struct World {
 
 // Per-turn scratch.
 const char* stage = "";
+long long prof[8] = {0};
+struct Prof {
+    int slot;
+    long long start;
+    Prof(int s) : slot(s), start(cambc::fuel_remaining()) {}
+    ~Prof() { prof[slot] += start - (long long)cambc::fuel_remaining(); }
+};
 bool moved = false;
 bool move_blocked = false;
 
@@ -65,6 +75,10 @@ cambc::bitboard single(vec2 p) {
 // Tiles within radius, with our own bounds checks (draw_chebyshev can throw at the edge).
 cambc::bitboard ring(vec2 c, int r, int min_r = 0) {
     auto b = empty_board();
+    if (min_r == 0 && c.x - r >= 0 && c.y - r >= 0 && c.x + r < world.w && c.y + r < world.h) {
+        b.draw_chebyshev(c, r);
+        return b;
+    }
     for (int dx = -r; dx <= r; ++dx)
         for (int dy = -r; dy <= r; ++dy) {
             vec2 p{c.x + dx, c.y + dy};
@@ -75,7 +89,13 @@ cambc::bitboard ring(vec2 c, int r, int min_r = 0) {
     return b;
 }
 
+cambc::bitboard blocked_cache;
+int blocked_round = -1;
+vec2 blocked_pos{-1, -1};
 cambc::bitboard blocked_tiles() {
+    Prof pf(4);
+    const vec2 me_pos = cambc::self().position();
+    if (blocked_round == cambc::round_number() && blocked_pos == me_pos) return blocked_cache;
     auto blocked = world.terrain | world.enemy_spawn | cambc::vision::champion_tiles()
         | cambc::vision::camp_tiles() | cambc::vision::teleport_tiles();
     // Allies hidden in bushes are still known to the engine.
@@ -88,12 +108,16 @@ cambc::bitboard blocked_tiles() {
         }
     } catch (...) {
     }
-    blocked.set(cambc::self().position(), false);
+    blocked.set(me_pos, false);
+    blocked_cache = blocked;
+    blocked_round = cambc::round_number();
+    blocked_pos = me_pos;
     return blocked;
 }
 
 // One step towards the nearest goal tile, only onto free tiles the field reached.
 bool step_towards(cambc::bitboard goals) {
+    Prof pf(1);
     auto& me = cambc::self();
     if (move_blocked || moved || !me.can_move()) return false;
     const vec2 pos = me.position();
@@ -153,6 +177,7 @@ std::array<CachedField, 10> field_cache;
 int field_cache_next = 0;
 
 CachedField& cached_field(int key, const cambc::bitboard& goals) {
+    Prof pf(0);
     for (auto& c : field_cache)
         if (c.key == key) return c;
     auto& c = field_cache[field_cache_next];
@@ -199,10 +224,10 @@ bool step_cached(int key, const cambc::bitboard& goals, int near = 6) {
 }
 
 // Path distance field from one tile over terrain.
-void field_from(vec2 pos, cambc::distance_field& field, cambc::bitboard& visited) {
+void field_from(vec2 pos, cambc::distance_field& field, cambc::bitboard& visited, std::uint16_t max_d = 0xFFFF) {
     auto walls = world.terrain | world.enemy_spawn;
     walls.set(pos, false);
-    field.compute(walls, single(pos), visited);
+    field.compute(walls, single(pos), visited, max_d);
 }
 
 int altar_dist(const cambc::distance_field& field, const cambc::bitboard& visited, vec2 altar) {
@@ -248,6 +273,7 @@ struct Enemy {
 };
 
 std::vector<Enemy> visible_enemies() {
+    Prof pf(2);
     std::vector<Enemy> out;
     for (auto p : cambc::vision::champion_tiles(team::enemy).positions()) {
         try {
@@ -446,7 +472,10 @@ void Bot::init() {
             }
         }
         if (n) gi.center = vec2{sx / n, sy / n};
+        const auto tiles = gi.spawns.positions();
+        if (!tiles.empty()) gi.rep = tiles[tiles.size() / 2];
         world.groups.push_back(gi);
+        world.handles.push_back(group);
     }
     world.respawn_round.assign(world.groups.size(), 0);
     world.skip_until.assign(world.groups.size(), 0);
@@ -464,18 +493,13 @@ void Bot::init() {
     const int warden_index = vendetta >= 0 ? vendetta : world.team_size - 1;
     warden = world.team_size >= kWardenMinTeam && my_index == warden_index;
     last_health = me.health();
-    if (my_index == 0) {
+    {
         cambc::distance_field f;
         cambc::bitboard v;
-        field_from(me.position(), f, v);
-        int reach = 0;
-        for (auto& g : world.groups) if (group_dist(f, v, g) < (1 << 20)) ++reach;
-        std::cout << "dbg init pos " << me.position().x << "," << me.position().y << " groups " << world.groups.size()
-                  << " reach " << reach << " altars";
-        for (size_t i = 0; i < world.altars.size(); ++i)
-            std::cout << " (" << world.altars[i].x << "," << world.altars[i].y << " a" << world.ally_dist[i] << " e"
-                      << world.enemy_dist[i] << ")";
-        std::cout << '\n';
+        f.compute(world.terrain | world.enemy_spawn, world.ally_spawn, v);
+        int n = 0;
+        for (auto& g : world.groups) n += (g.reachable = group_dist(f, v, g) < (1 << 20));
+        (void)n;
     }
 }
 
@@ -593,12 +617,14 @@ bool Bot::bank_gems() {
 }
 
 int Bot::choose_group() {
+    Prof pf(3);
     auto& me = cambc::self();
     const vec2 pos = me.position();
     const int now = cambc::round_number();
     cambc::distance_field f;
     cambc::bitboard v;
-    field_from(pos, f, v);
+    constexpr int kScan = 36;
+    field_from(pos, f, v, kScan);
     std::array<std::uint8_t, 8> claims{};
     read_claims(claims);
     const float dps = std::max(20.0f, me.strength());
@@ -606,9 +632,10 @@ int Bot::choose_group() {
     float best_score = 0;
     for (int g = 0; g < int(world.groups.size()); ++g) {
         const auto& gi = world.groups[g];
-        if (gi.monolith || gi.spawns.is_empty()) continue;
-        const int d = group_dist(f, v, gi);
-        if (d >= (1 << 20)) continue;
+        if (gi.monolith || gi.spawns.is_empty() || !gi.reachable) continue;
+        const int cheb = distance(pos, gi.rep);
+        int d = cheb <= kScan ? group_dist(f, v, gi) : 1 << 20;
+        if (d >= (1 << 20)) d = std::max(kScan, cheb * 3 / 2);   // beyond the scan: estimate
         int helpers = 0;
         for (int i = 0; i < world.team_size && i < 8; ++i)
             if (i != my_index && claims[i] == g + 1) ++helpers;
@@ -627,16 +654,16 @@ int Bot::choose_group() {
 }
 
 void Bot::farm() {
+    Prof pf(5);
     auto& me = cambc::self();
     const int now = cambc::round_number();
     const auto visible = cambc::vision::visible_tiles();
 
     // Track respawn timers of visible groups.
     if (now % 3 == 0) try {
-        const auto groups = cambc::map::camp_groups();
-        for (int g = 0; g < int(groups.size()) && g < int(world.groups.size()); ++g) {
-            if ((world.groups[g].spawns & visible).is_empty()) continue;
-            const auto st = groups[g].state();
+        for (int g = 0; g < int(world.handles.size()); ++g) {
+            if (!visible.is_set(world.groups[g].rep)) continue;
+            const auto st = world.handles[g].state();
             if (auto* r = std::get_if<cambc::map::camp_group_respawning>(&st))
                 // A timer at zero means an occupied spawn tile blocks the respawn: look elsewhere.
                 world.respawn_round[g] = now + (r->timer > 0 ? r->timer : 60);
@@ -671,7 +698,7 @@ void Bot::farm() {
         vec2 best{-1, -1};
         float best_hp = 1e9f;
         const vec2 pos = me.position();
-        for (auto p : cambc::vision::camp_tiles().positions()) {
+        for (auto p : (cambc::vision::camp_tiles() & ring(pos, 4)).positions()) {
             try {
                 auto c = cambc::vision::camp_at(p);
                 if (!c.is_visible() || !c.is_alive()) continue;
@@ -800,9 +827,15 @@ void Bot::play_turn() {
         std::cout << "dbg exc " << stage << " r" << cambc::round_number() << " " << e.what() << '\n';
     }
     if (cambc::round_number() % 25 == 3) std::cout << "dbg endfuel " << cambc::fuel_remaining() << '\n';
+    if (cambc::round_number() == 1000) {
+        std::cout << "dbg prof";
+        for (auto v : prof) std::cout << ' ' << v;
+        std::cout << '\n';
+    }
 }
 
 void Bot::turn() {
+    Prof pf(6);
     moved = false;
     move_blocked = false;
     auto& me = cambc::self();
