@@ -74,6 +74,9 @@ cambc::champion_type my_type;
 bool is_melee = true;
 bool is_tank = false;
 int build_step = 0;
+bool altar_open = true;     // some altar has a free approach tile reachable from our spawn
+int no_tribute_until = 0;   // tribute walks failed: farm instead until this round
+int tribute_fail = 0;
 
 // Per-turn state.
 bool moved = false;        // walked or dashed this turn
@@ -628,6 +631,7 @@ int choose_target() {
         if (taken > 0.55f * ehp) continue;
         float gem_w = now < 300 ? 1.5f : 3.0f;
         float gold_w = now < 1200 ? 0.5f : 0.2f;
+        if (!altar_open) { gem_w = 0.05f; gold_w = 1.0f; }
         float value = g.gems * gem_w + g.gold * gold_w;
         float risk = 1.0f + taken / ehp;
         float score = value / ((eta + wait + kill + 6.0f) * risk);
@@ -694,7 +698,12 @@ bool do_tribute() {
     int ai = nearest_altar(pos, true);
     if (ai < 0) ai = nearest_altar(pos, false);
     if (ai < 0) return false;
-    step_to(square(altars[ai], cambc::constants::submit_gems_range));
+    if (step_to(square(altars[ai], cambc::constants::submit_gems_range))) {
+        tribute_fail = 0;
+    } else if (!move_failed && ++tribute_fail > 5) {
+        no_tribute_until = now + 60;
+        tribute_fail = 0;
+    }
     return true;
 }
 
@@ -868,6 +877,23 @@ void init() {
         if (g.tiles.empty()) g.tiles = g.spawns.positions();
         groups.push_back(g);
     }
+    {
+        // Can we ever tribute without killing a camp first?
+        bitboard camp_tiles;
+        camp_tiles.clear();
+        for (auto& g : groups) camp_tiles |= g.spawns;
+        cambc::distance_field f;
+        bitboard visited;
+        visited.clear();
+        f.compute(terrain | camp_tiles, ally_spawn, visited);
+        altar_open = false;
+        for (auto a : altars)
+            for (int dy = -1; dy <= 1; ++dy)
+                for (int dx = -1; dx <= 1; ++dx) {
+                    vec2 q{a.x + dx, a.y + dy};
+                    if (in_bounds(q) && visited.is_set(q)) altar_open = true;
+                }
+    }
     cambc::draft_memory_buffer dm;
     if (!dm.is_empty() && dm.size() > 0) {
         int n = static_cast<int>(static_cast<std::uint8_t>(dm[0]));
@@ -997,7 +1023,7 @@ void Bot::play_turn() {
 
     // Bank gems when carrying a lot, late in the game, or when an altar is close.
     const int gems = static_cast<int>(me.gem_count());
-    if (gems > 0) {
+    if (gems > 0 && altar_open && now >= no_tribute_until) {
         int ai = nearest_altar(pos, true);
         int ad = ai >= 0 ? dist(pos, altars[ai]) : 1000;
         int ours = static_cast<int>(cambc::global_submitted_gems(team::ally));
