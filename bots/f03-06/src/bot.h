@@ -21,6 +21,8 @@ struct Unit {
     bool recalling, tributing, on_spawn;
     std::uint32_t gems;
     int slot = -1, squad = -1;
+    bool fresh = true;  // in sight this turn (else remembered)
+    int seen = -1000;
 };
 
 // One ability slot, read once from the engine.
@@ -72,7 +74,8 @@ class Bot {
     int now_ = 0;
     bool moved_ = false, attacked_ = false, cast_ = false, excl_cast_ = false, move_failed_ = false;
     Bits vis_, campocc_, champocc_;
-    std::vector<Unit> foes_, friends_;
+    std::vector<Unit> foes_, friends_, ally_mem_;
+    int fight_until_ = -1;
     float taken_ = 1.0f, dealt_ = 1.0f;
 
     void initialise();

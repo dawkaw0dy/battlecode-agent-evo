@@ -256,10 +256,11 @@ void Bot::read_units() {
             } catch (const cambc::error&) {}
         }
     } catch (const std::exception& e) { warn("foes", e); }
+    if (ally_mem_.size() != allies_.size()) ally_mem_.assign(allies_.size(), Unit{});
     for (size_t ai = 0; ai < allies_.size(); ++ai) {
         const auto& a = allies_[ai];
         try {
-            if (!a.is_alive()) continue;
+            if (!a.is_alive()) { ally_mem_[ai].seen = -1000; continue; }
             Unit u{};
             u.slot = ally_slot_[ai];
             u.squad = ally_squad_[ai];
@@ -274,8 +275,16 @@ void Bot::read_units() {
             u.recalling = a.is_recalling();
             u.tributing = a.is_submitting_gems();
             u.on_spawn = spawn_.at(u.pos);
-            friends_.push_back(u);
+            u.seen = now_;
+            ally_mem_[ai] = u;
         } catch (const cambc::error&) {}
+    }
+    // Allies seen in the last two rounds still count (vision of them flickers).
+    for (const auto& u : ally_mem_) {
+        if (u.seen < now_ - 2) continue;
+        Unit v = u;
+        v.fresh = u.seen == now_;
+        friends_.push_back(v);
     }
 }
 
@@ -770,7 +779,7 @@ void Bot::heal_allies() {
             const Unit* best = nullptr;
             float miss = amount * 0.6f;
             for (const auto& f : friends_) {
-                if (f.recalling || f.on_spawn) continue;
+                if (f.recalling || f.on_spawn || !f.fresh) continue;
                 if (cheb(f.pos, pos_) > static_cast<int>(sl.range)) continue;
                 if (f.max_hp - f.hp > miss) { miss = f.max_hp - f.hp; best = &f; }
             }
@@ -830,86 +839,133 @@ void Bot::spells_on_foe(const Unit& u, bool before_move) {
 bool Bot::fight() {
     auto& me = cambc::self();
     if (foes_.empty()) return false;
-    const float my_hp = me.health();
+    const float my_hp = me.health(), my_max = me.max_health();
     const float my_power = 1.1f * me.strength() + 0.3f * me.focus();
+    const int my_range = me.attack_range();
     float ours = my_hp * my_power, theirs = 0;
-    int nearest = 99;
     for (const auto& f : friends_)
-        if (cheb(f.pos, pos_) <= 6 && !f.recalling) ours += f.hp * f.power;
+        if (cheb(f.pos, pos_) <= 5 && !f.recalling) ours += f.hp * f.power;
     std::vector<vec2> threats;
     std::vector<int> ranges;
+    float threat_dmg = 0;
+    std::vector<const Unit*> reach;  // foes we can hit now
     for (const auto& u : foes_) {
         const int d = cheb(u.pos, pos_);
-        if (d > 9) continue;
-        if (u.on_spawn && d > u.range) continue;
+        if (d > 8) continue;
+        if (u.on_spawn && d > my_range) continue;
         theirs += u.hp * u.power;
-        nearest = std::min(nearest, d);
-        threats.push_back(u.pos);
-        ranges.push_back(u.range);
+        if (d <= u.range + 1) { threats.push_back(u.pos); ranges.push_back(u.range); threat_dmg += u.power; }
+        if (d <= my_range) reach.push_back(&u);
     }
-    if (threats.empty()) return false;
-    const bool carrying = me.gem_count() >= 20;
-    const float need = carrying ? 1.6f : 1.25f;
-    if (ours >= need * theirs) {
-        // Pick the easiest kill within reach, else the closest.
-        const Unit* tgt = nullptr;
-        float bs = -1e9f;
-        for (const auto& u : foes_) {
-            const int d = cheb(u.pos, pos_);
-            if (d > 7 || u.on_spawn) continue;
-            float s = -u.hp - 60.0f * d;
-            if (u.recalling || u.tributing) s += 400;
-            if (s > bs) { bs = s; tgt = &u; }
+    if (theirs <= 0) return false;
+    const float ratio = ours / theirs;
+    const bool low = my_hp < my_max * 0.3f || (threat_dmg > 0 && my_hp < threat_dmg * 2.5f);
+    // A foe we can finish this turn is always worth the swing.
+    float burst = me.strength() * (reset_slot_ >= 0 ? 2.0f : 1.0f);
+    for (int i = 0; i < 2; ++i)
+        if (kit_[i].used && kit_[i].kind == cambc::ability_kind::damage) burst += kit_[i].mod * me.focus();
+    const Unit* tgt = nullptr;
+    float bs = -1e9f;
+    for (const Unit* u : reach) {
+        float s = -u->hp;
+        if (u->hp <= burst * 0.9f) s += 5000;
+        if (u->recalling || u->tributing) s += 300;
+        if (s > bs) { bs = s; tgt = u; }
+    }
+    const bool killshot = tgt && tgt->hp <= burst * 0.9f;
+    debug_block({
+        if (now_ < 400) {
+            std::cout << "fight r" << now_ << ' ' << cambc::to_string(type_) << " pos=" << pos_.x << ',' << pos_.y << " hp=" << my_hp << " ratio=" << ratio << " low=" << low << " reach=" << reach.size() << " threats=" << threats.size() << " foes:";
+            for (const auto& u : foes_) std::cout << " (" << u.pos.x << ',' << u.pos.y << " hp=" << u.hp << " pw=" << u.power << " r=" << u.range << ")";
+            std::cout << " friends:";
+            for (const auto& u : friends_) std::cout << " (" << u.pos.x << ',' << u.pos.y << " hp=" << u.hp << (u.fresh ? "" : "*") << ")";
+            std::cout << '\n';
         }
-        if (!tgt) return false;
-        const int d = cheb(tgt->pos, pos_);
-        if (d <= me.attack_range()) {
-            spells_on_foe(*tgt, true);
-            if (attack_foe(*tgt)) after_attack(-1, tgt);
-            spells_on_foe(*tgt, false);
-            chase_ = 0;
-            return true;
-        }
-        if (++chase_ > 12) return false;
-        // Close in: field-free greedy step towards the target.
+    });
+    const bool retreat = !killshot && (low ? ratio < 2.0f : ratio < (now_ <= fight_until_ ? 0.6f : 0.8f));
+    if (tgt && !retreat) {
+        // Stand and hit what is in reach: spells, attack, reset and attack again.
+        fight_until_ = now_ + 3;
         spells_on_foe(*tgt, true);
-        if (!excl_cast_) {
-            Field dummy;
-            vec2 best{-1, -1};
-            int bd = d;
-            for (auto dd : kDirs) {
-                const vec2 q{pos_.x + dd.x, pos_.y + dd.y};
-                if (!free_tile(q)) continue;
-                const int v = cheb(q, tgt->pos);
-                if (v < bd) { bd = v; best = q; }
-            }
-            if (best.x >= 0 && me.can_move()) {
-                try {
-                    if (me.move_absolute(best)) { pos_ = best; moved_ = true; }
-                    else move_failed_ = true;
-                } catch (const std::exception& e) { warn("chase", e); move_failed_ = true; }
-            }
-        }
         if (attack_foe(*tgt)) after_attack(-1, tgt);
         spells_on_foe(*tgt, false);
+        chase_ = 0;
         return true;
     }
-    chase_ = 0;
-    // Outnumbered: get out of reach, hitting back when it is free.
-    bool danger = false;
-    for (size_t i = 0; i < threats.size(); ++i)
-        if (cheb(threats[i], pos_) <= ranges[i] + 2) danger = true;
-    if (!danger && !(carrying && nearest <= 6)) return false;
-    flee_until_ = now_ + 6;
-    for (const auto& u : foes_)
-        if (cheb(u.pos, pos_) <= me.attack_range() && me.attack_range() <= 1) {
-            if (attack_foe(u)) break;
+    if (!tgt && !retreat && !low && ratio >= 1.3f) {
+        // Nobody in reach: step in only on a target one or two steps away.
+        const Unit* near = nullptr;
+        int nd = 99;
+        for (const auto& u : foes_) {
+            const int d = cheb(u.pos, pos_);
+            if (u.on_spawn || d > my_range + 2) continue;
+            if (d < nd || (d == nd && near && u.hp < near->hp)) { nd = d; near = &u; }
         }
-    spells_on_foe(foes_[0], true);
-    if (!step_away(threats, ranges)) {
-        // Cornered: fight back.
-        for (const auto& u : foes_)
-            if (attack_foe(u)) break;
+        if (near && ++chase_ <= 4) {
+            fight_until_ = now_ + 3;
+            if (dash_slot_ >= 0 && !cast_ && nd - my_range == 2) {
+                try {
+                    const auto ab = me.abilities()[static_cast<size_t>(dash_slot_)];
+                    if (ab.is_ready() && me.can_cast()) {
+                        vec2 best{-1, -1};
+                        int bd = nd;
+                        for (int dy = -2; dy <= 2; ++dy)
+                            for (int dx = -2; dx <= 2; ++dx) {
+                                const vec2 q{pos_.x + dx, pos_.y + dy};
+                                if ((dx == 0 && dy == 0) || !free_tile(q)) continue;
+                                const vec2 mid{pos_.x + dx / 2, pos_.y + dy / 2};
+                                if (mid != pos_ && hard_.at(mid)) continue;
+                                const int v = cheb(q, near->pos);
+                                if (v < bd) { bd = v; best = q; }
+                            }
+                        if (best.x >= 0 && ab.use(best)) { cast_ = true; pos_ = best; }
+                    }
+                } catch (const std::exception& e) { warn("chasedash", e); }
+            }
+            if (cheb(near->pos, pos_) > my_range && me.can_move() && !moved_ && !move_failed_) {
+                vec2 best{-1, -1};
+                int bd = cheb(near->pos, pos_);
+                for (auto dd : kDirs) {
+                    const vec2 q{pos_.x + dd.x, pos_.y + dd.y};
+                    if (!free_tile(q)) continue;
+                    const int v = cheb(q, near->pos);
+                    if (v < bd) { bd = v; best = q; }
+                }
+                if (best.x >= 0) {
+                    try {
+                        if (me.move_absolute(best)) { pos_ = best; moved_ = true; }
+                        else move_failed_ = true;
+                    } catch (const std::exception& e) { warn("chase", e); move_failed_ = true; }
+                }
+            }
+            if (attack_foe(*near)) after_attack(-1, near);
+            else if (my_range >= 3 && reset_slot_ >= 0 && cheb(near->pos, pos_) <= my_range && !cast_) {
+                try {
+                    const auto ab = me.abilities()[static_cast<size_t>(reset_slot_)];
+                    if (ab.is_ready() && me.can_cast() && !me.can_attack() && ab.use()) {
+                        cast_ = true;
+                        attack_foe(*near);
+                    }
+                } catch (const std::exception& e) { warn("chasereset", e); }
+            }
+            spells_on_foe(*near, false);
+            return true;
+        }
+        return false;
+    }
+    if (threats.empty() && !(retreat && me.gem_count() >= 20)) {
+        if (!retreat) chase_ = 0;
+        return false;
+    }
+    // Losing or low: back off towards home, hitting back when it is free.
+    fight_until_ = -1;
+    flee_until_ = now_ + 4;
+    if (tgt && my_range <= 1 && attack_foe(*tgt)) after_attack(-1, tgt);
+    for (const auto& u : foes_)
+        if (cheb(u.pos, pos_) <= 4) { spells_on_foe(u, true); break; }
+    if (!step_away(threats.empty() ? std::vector<vec2>{foes_[0].pos} : threats,
+                   ranges.empty() ? std::vector<int>{foes_[0].range} : ranges)) {
+        if (tgt && attack_foe(*tgt)) after_attack(-1, tgt);  // cornered: fight back
     }
     return true;
 }
@@ -1076,13 +1132,12 @@ void Bot::farm() {
             if (me.health() < me.max_health() * 0.5f && foes_.empty() && here(home_) > 6 && !me.is_recalling()) {
                 try { me.recall(); g_mode = 3; return; } catch (const std::exception& e) { warn("healrecall", e); }
             }
-            int coming = 1, near = 1;
+            int near = 1;
             for (const auto& fr : friends_) {
                 if (fr.squad != squad_ || fr.recalling) continue;
-                ++coming;
                 if (cheb(fr.pos, pos_) <= 4) ++near;
             }
-            const int need = needed(g, coming);
+            const int need = needed(g, squad_n_);
             if (near < need && gather_ < 12) {
                 if (d > G.range + 1) { try_dash(f); step(f, G.range + 1); }
                 else ++gather_;
