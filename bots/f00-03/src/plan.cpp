@@ -164,7 +164,7 @@ bool is_dash_map(const std::vector<GroupData>& groups) {
 
 std::vector<cambc::champion_draft> preferred_picks(int team_size, bool dash_map) {
     using cd = cambc::champion_draft;
-    std::vector<cd> all{cd::vendetta, cd::marcella, cd::vesper_vale, cd::tavi, cd::ryth, cd::varg};
+    std::vector<cd> all{cd::vendetta, cd::marcella, cd::vesper_vale, cd::tavi, cd::varg, cd::ryth};
     // Most camps behind one-tile holes: take the champions that can dash over them.
     if (dash_map) all = {cd::vendetta, cd::vesper_vale, cd::heart_of_ruin, cd::ren, cd::marcella, cd::tavi};
     all.resize(std::min<size_t>(all.size(), std::max(team_size, 1)));

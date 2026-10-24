@@ -363,9 +363,18 @@ void Bot::buy_items() {
             ++needed[e];
             if (static_cast<int>(counts[s.emblem]) < needed[e]) { next = &s; break; }
         }
-        if (!next) return;
-        if (!live() || !me.can_buy(next->shard, 1)) return;
-        me.buy(next->shard, 1);
+        // Past the plan: alternate strength and health shards.
+        const it extra = (counts[it::power_shard_of_strength] + counts[it::power_emblem_of_strength] * 5
+                          <= counts[it::power_shard_of_health] + counts[it::power_emblem_of_health] * 5)
+            ? it::power_shard_of_strength : it::power_shard_of_health;
+        const it shard = next ? next->shard : extra;
+        if (!live()) return;
+        if (!me.can_buy(shard, 1)) {
+            cant_spend_ = true;
+            return;
+        }
+        me.buy(shard, 1);
+        cant_spend_ = false;
     }
 }
 
@@ -1049,6 +1058,7 @@ void Bot::farm(int group) {
 static std::uint64_t g_fuel_max = 0, g_fuel_sum = 0, g_fuel_n = 0, g_over = 0;
 static std::uint64_t P[12]; static std::uint64_t Pprev; static int Pn;
 #define PM(i) do { auto r_ = cambc::fuel_remaining(); P[i] += Pprev - r_; Pprev = r_; } while (0)
+static int g_act[14];
 void Bot::play_turn() {
     Pprev = cambc::fuel_remaining(); if (ready_) ++Pn;
     if (cambc::round_number() % 500 == 0 && slot_ == 0) { std::cout << "PROF"; for (auto x : P) std::cout << " " << x / std::max(1, Pn); std::cout << "\n"; }
@@ -1064,7 +1074,9 @@ void Bot::play_turn() {
     moved_ = attacked_ = cast_ = move_failed_ = false;
     invalidate_view();
 
+    if (cambc::round_number() % 250 == 0) { std::cout << "ACT r" << cambc::round_number() << " s" << slot_; for (int k = 0; k < 14; ++k) std::cout << " " << g_act[k]; std::cout << "\n"; }
     if (!me.is_alive()) {
+        ++g_act[0];
         buy_items();
         fill_fields(40000);
         return;
@@ -1078,6 +1090,7 @@ void Bot::play_turn() {
     const bool at_spawn = cambc::map::spawn_region(team::ally).is_set(me.position());
     if (at_spawn || me.champion_name() == cambc::champion_type::tavi) buy_items();
     if (me.is_recalling() || me.is_submitting_gems() || me.is_teleporting()) {
+        ++g_act[me.is_recalling() ? 1 : 2];
         fill_fields(40000);
         return;
     }
@@ -1112,17 +1125,18 @@ void Bot::play_turn() {
     }
 
     PM(4);
-    if (handle_enemies()) return;
+    if (handle_enemies()) { ++g_act[3]; return; }
     PM(5);
-    if (!fuel_ok(30000)) return;
+    if (!fuel_ok(30000)) { ++g_act[4]; return; }
 
     const float hp = me.health(), max_hp = me.max_health();
     // Just arrived home hurt: stay this turn, spawn heals at turn end.
-    if (at_spawn && hp < max_hp * 0.95f) return;
+    if (at_spawn && hp < max_hp * 0.95f) { ++g_act[5]; return; }
     // Badly hurt: leave camp range, then recall.
     if (!at_spawn && (hp < max_hp * 0.2f || (incoming_ > 0 && hp < incoming_ * taken_mult_ * (exit_steps_ + 2) + 40))) {
-        if (disengage_from_camps()) return;
+        if (disengage_from_camps()) { ++g_act[6]; return; }
         if (incoming_ == 0 && !moved_) {
+            ++g_act[6];
             if (live()) me.recall();
             return;
         }
@@ -1148,38 +1162,52 @@ void Bot::play_turn() {
         // Living camps stand between us and where we want to go: cut through them.
         if (known_[blocker_group_].state != Known::alive || now - blocker_since_ > 40) blocker_group_ = -1;
         else {
+            ++g_act[7];
             farm(blocker_group_);
             return;
         }
     }
     PM(8);
-    if (handle_tribute(target, wait)) return;
+    if (handle_tribute(target, wait)) { ++g_act[8]; return; }
     PM(9);
 
     const int home_d = home_.at(me.position());
     if (target < 0 || wait > 12) {
         // Nothing worth doing soon: go shop and heal.
         if (!at_spawn && (me.gold_count() >= 60 || hp < max_hp * 0.8f) && incoming_ == 0 && me.gem_count() == 0) {
+            ++g_act[9];
             if (home_d <= 5) go_home();
             else if (!moved_ && live()) me.recall();
             return;
         }
         if (target < 0) {
+            ++g_act[10];
             if (!at_spawn && hp < max_hp * 0.9f && incoming_ == 0 && !moved_ && live()) me.recall();
             fill_fields(40000);
             return;
         }
     }
+    // A full purse is wasted in the field: go home and spend it (Tavi shops anywhere).
+    if (!at_spawn && me.gold_count() >= 250 && me.gem_count() == 0 && incoming_ == 0 && !cant_spend_
+        && me.champion_name() != cambc::champion_type::tavi
+        && (known_[target].state != Known::alive || eta(target) > 6) && remaining_hp(target) >= groups_[target].hp * 0.99f) {
+        ++g_act[9];
+        if (home_d <= 8) go_home();
+        else if (!moved_ && live()) me.recall();
+        return;
+    }
     // Heal before a fight we cannot finish at this health.
     if (!at_spawn && hp < max_hp * 0.5f && incoming_ == 0 && known_[target].state != Known::reward) {
         const float dmg = estimate_damage(target, dps_);
         if (dmg > hp - 100) {
+            ++g_act[11];
             if (home_d <= 5) go_home();
             else if (!moved_ && live()) me.recall();
             return;
         }
     }
     farm(target);
+    ++g_act[attacked_ ? 12 : 13];
     PM(10);
     fill_fields(50000);
 }
