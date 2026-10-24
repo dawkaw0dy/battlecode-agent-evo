@@ -478,9 +478,13 @@ void Bot::shop() {
     static constexpr std::array ryth_plan{it::jungle_shard_of_health, it::monster_shard_of_strength,
         it::power_shard_of_health, it::power_shard_of_strength};
     const bool is_ryth = me.champion_name() == cambc::champion_type::ryth;
+    // Close-quarters maps are decided by fights: raw strength before camp bonuses.
+    static constexpr std::array fight_plan{it::power_shard_of_strength, it::power_shard_of_health,
+        it::power_shard_of_strength, it::power_shard_of_strength};
     for (int guard = 0; guard < 30; ++guard) {
         const std::size_t stage = std::min<std::size_t>(static_cast<std::size_t>(purchases / 5), 3);
-        const auto item = ranged ? ranged_plan[stage] : (is_ryth ? ryth_plan[stage] : melee_plan[stage]);
+        const auto item = plan.mode == mode_skirmish ? fight_plan[stage]
+            : ranged ? ranged_plan[stage] : (is_ryth ? ryth_plan[stage] : melee_plan[stage]);
         if (!me.can_buy(item, 1)) return;
         me.buy(item, 1);
         ++purchases;
@@ -595,11 +599,12 @@ bool Bot::shopping_trip(Fight fight) {
     const unsigned gold = me.gold_count();
     const auto pos = me.position();
     const int home = home_field.at(pos);
-    if (gold >= 120 && home <= 6) {
+    // Shards are the main power curve: spend gold soon after earning it.
+    if (gold >= 150 && home <= 10) {
         step_along(home_field);
         return true;
     }
-    if (gold >= 270 && home > 12 && cambc::vision::awake_camp_tiles().is_empty()) {
+    if (gold >= 210 && home > 10 && cambc::vision::awake_camp_tiles().is_empty()) {
         recall();
         return true;
     }
