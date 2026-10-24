@@ -115,6 +115,7 @@ class Bot {
     void defensive_spells(float incoming);
     void heal_allies();
     void update_raid();
+    float plug_hp() const;  // health left on the camps that sit on tribute spots
     bool raid_ready() const;
 
     float dps() const;

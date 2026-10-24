@@ -624,6 +624,9 @@ bool Bot::hit_group(int g) {
             const auto spec = camp_spec(camp.kind());
             float s = spec.str > 0 ? 1000.0f * spec.str / hp : 0.0f;
             s -= hp * 0.001f;
+            if (altar_plugged_ && g == raid_cand_)
+                for (auto t : altar_plug_tiles_)
+                    if (t == sp) s += 1e6f;
             if (s > bs) { bs = s; best = &camp; }
         } catch (const cambc::error&) {}
     }
@@ -1099,6 +1102,17 @@ bool Bot::tribute() {
 // ---------------------------------------------------------------- boss raids
 
 // Judged on our own stats as a stand-in for the team: can everyone together outlast the boss?
+float Bot::plug_hp() const {
+    float s = 0;
+    for (auto t : altar_plug_tiles_) {
+        const int pg = group_at_[static_cast<size_t>(tidx(t))];
+        if (pg < 0) continue;
+        for (size_t c = 0; c < g_[static_cast<size_t>(pg)].tiles.size(); ++c)
+            if (g_[static_cast<size_t>(pg)].tiles[c] == t) s += chp_[static_cast<size_t>(goff_[static_cast<size_t>(pg)]) + c];
+    }
+    return s;
+}
+
 bool Bot::raid_ready() const {
     if (raid_cand_ < 0 || now_ < 150) return false;
     const auto& me = cambc::self();
@@ -1295,6 +1309,11 @@ void Bot::turn() {
     read_units();
     ph();
     update_raid();
+    debug_block({
+        if (altar_plugged_ && now_ % 20 == 0)
+            std::cout << "RAID r" << now_ << ' ' << cambc::to_string(type_) << " on=" << raid_on_ << " ready=" << raid_ready() << " plug=" << plug_hp()
+                      << " gems=" << me.gem_count() << " pos=" << pos_.x << ',' << pos_.y << " hp=" << me.health() << " mode=" << g_mode << '\n';
+    });
     taken_ = 1.0f;
     dealt_ = 1.0f;
     try {
