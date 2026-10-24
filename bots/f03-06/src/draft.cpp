@@ -133,6 +133,8 @@ void write_plan() {
         if (acc >= wsum * 0.5f) { squad_size = k; break; }
     }
     squad_size = std::clamp(squad_size, 2, std::max(2, nb));  // nobody farms alone: lone champions get picked off
+    // Large maps: travel dominates, so cover more ground with pairs.
+    if (cambc::map::width() * cambc::map::height() >= 55 * 55) squad_size = std::min(squad_size, 2);
     int nsq = std::clamp(nb / squad_size, 1, 4);
     // Small maps are fought over: split squads get caught alone, so move as one team.
     const int area = cambc::map::width() * cambc::map::height();
