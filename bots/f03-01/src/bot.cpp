@@ -31,6 +31,7 @@ constexpr bool kHysteresis = false;
 constexpr int kChaseTurns = 5;  // approach turns without a hit before giving up a chase  // solo clear time above which allies may join a group
 constexpr float kBossTurns = 8.0f;  // turns a champion must be able to tank a boss
 constexpr int kFoeZone = 4;         // no chasing enemies this close to their spawn
+constexpr float kChaseHp = 0.5f;    // chase only above this share of health
 
 namespace {
 // Debug: turns spent per activity, printed every 200 rounds.
@@ -730,7 +731,7 @@ bool Bot::enemies() {
     if (!live()) return true;
     if (fight_spells(list)) { chase_turns_ = 0; return true; }
     if (cast_ && me.attack_range() > 1) return true;
-    if (me.health() > me.max_health() * 0.3f) {
+    if (me.health() > me.max_health() * kChaseHp) {
         if (++chase_turns_ > kChaseTurns) {
             chase_turns_ = 0;
             no_chase_until_ = now + 15;
