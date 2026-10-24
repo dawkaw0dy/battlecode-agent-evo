@@ -715,8 +715,8 @@ void Bot::play_turn_inner() {
     const bool engaged = camp_threat_at(pos);
     if (gems > 0 && !capturing && !engaged) {
         const int adist = altar_field.get(pos);
-        if (adist <= 3 + static_cast<int>(gems) / 4 || gems >= 30 || now - last_enemy_round < 12
-            || now > 1900) {
+        const bool threatened = now - last_enemy_round < 12 && (gems >= 10 || adist <= 8);
+        if (adist <= 3 + static_cast<int>(gems) / 4 || gems >= 30 || threatened || now > 1900) {
             act = 8;
             go_bank();
             return;
