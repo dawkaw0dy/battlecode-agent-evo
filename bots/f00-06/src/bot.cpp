@@ -161,6 +161,9 @@ void progress_fields(std::uint64_t reserve) {
     }
 }
 
+// A field on a 100x100 map costs most of a turn: only start one with room to finish it.
+std::uint64_t field_reserve() { return std::min<std::uint64_t>(85000, 25000 + static_cast<std::uint64_t>(W * H) * 5); }
+
 int group_distance(const Group& g, vec2 p) {
     if (g.ready && g.reach.is_set(p)) return g.field.get(p);
     return dist(g.center, p) * 3 / 2 + 2;
@@ -1251,7 +1254,7 @@ void Bot::play_turn() {
         }
         shop();
         g_solo_recall = false;
-        progress_fields(30000);
+        progress_fields(field_reserve());
         return;
     }
 
@@ -1307,5 +1310,5 @@ void Bot::play_turn() {
             write_shared(c.sm);
         }
     }
-    progress_fields(30000);
+    progress_fields(field_reserve());
 }
