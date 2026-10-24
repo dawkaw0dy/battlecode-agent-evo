@@ -9,7 +9,6 @@
 #include <span>
 #include <variant>
 #include <vector>
-#include <iostream>
 
 using cambc::vec2;
 using cambc::team;
@@ -245,12 +244,6 @@ void Bot::initialise() {
     altar_.load(f);
     altar_tiles_ = beside;
 
-    {
-        int reach = 0, mine_n = 0;
-        for (size_t i = 0; i < groups_.size(); ++i) { reach += groups_[i].dist_ally < 9999; mine_n += owner_[i] == slot_; }
-        if (slot_ == 0) for (size_t i = 0; i < groups_.size(); ++i) std::cout << "G " << i << " at " << groups_[i].center.x << "," << groups_[i].center.y << " n " << groups_[i].tiles.size() << " gems " << groups_[i].gems << " gold " << groups_[i].gold << " dps " << groups_[i].dps << " hp " << groups_[i].hp << " dA " << groups_[i].dist_ally << " dE " << groups_[i].dist_enemy << " own " << int(owner_[i]) << "\n";
-        std::cout << "INIT slot " << slot_ << " type " << static_cast<int>(me.champion_name()) << " groups " << groups_.size() << " reach " << reach << " mine " << mine_n << " altars " << cambc::map::altars().count() << " altar_d " << altar_.at(me.position()) << "\n";
-    }
     // Fill group fields for our own region first, then nearest to home.
     for (size_t i = 0; i < groups_.size(); ++i) field_order_.push_back(static_cast<int>(i));
     std::stable_sort(field_order_.begin(), field_order_.end(), [&](int a, int b) {
@@ -990,18 +983,14 @@ bool Bot::handle_tribute(int next_target, int next_wait) {
     const bool go = gems >= 40 || next_target < 0 || next_wait > d_altar || d_altar <= 4
         || (gems >= 15 && d_altar <= 10) || (danger && gems >= 10) || late < d_altar + 30;
     if (!go) return false;
-    const bool dbg = slot_ == 0 && cambc::round_number() >= 400 && cambc::round_number() < 408;
-    if (dbg) { std::cout << "TR r" << cambc::round_number() << " fuel " << cambc::fuel_remaining() << " pos " << cambc::to_string(pos) << " d " << d_altar << " dyn " << dynamic_until_ << " nb"; for (auto d : dirs) { vec2 t{pos.x + d.x, pos.y + d.y}; std::cout << " " << altar_.at(t) << (blocked_at(t) ? "b" : ""); } std::cout << "\n"; }
-    if (enemy_locks.is_empty() && walk_field(altar_, true)) { if (dbg) std::cout << "TR walk -> " << cambc::to_string(me.position()) << "\n"; return true; }
+    if (enemy_locks.is_empty() && walk_field(altar_, true)) return true;
     auto goal = altar_tiles_;
     for (auto a : enemy_locks.positions()) {
         auto locked = empty_board();
         add_box(locked, a, cambc::constants::submit_gems_range);
         goal &= ~locked;
     }
-    const bool r = step_to(goal, true);
-    if (dbg) std::cout << "TR step " << r << " -> " << cambc::to_string(me.position()) << " goals " << goal.count() << "\n";
-    return r;
+    return step_to(goal, true);
 }
 
 void Bot::farm(int group) {
@@ -1057,48 +1046,27 @@ void Bot::farm(int group) {
 }
 
 
-#include <iostream>
-static std::uint64_t g_fuel_max = 0, g_fuel_sum = 0, g_fuel_n = 0, g_over = 0;
-static std::uint64_t P[12]; static std::uint64_t Pprev; static int Pn;
-#define PM(i) do { auto r_ = cambc::fuel_remaining(); P[i] += Pprev - r_; Pprev = r_; } while (0)
-static int g_act[14];
 void Bot::play_turn() {
-    Pprev = cambc::fuel_remaining(); if (ready_) ++Pn;
-    if (cambc::round_number() % 500 == 0 && slot_ == 0) { std::cout << "PROF"; for (auto x : P) std::cout << " " << x / std::max(1, Pn); std::cout << "\n"; }
-    struct Report { std::uint64_t s = cambc::fuel_remaining(); bool first; ~Report() {
-        const auto used = s - cambc::fuel_remaining();
-        if (!first) { g_fuel_max = std::max(g_fuel_max, used); g_fuel_sum += used; ++g_fuel_n; if (used > 90000) ++g_over; }
-        if (cambc::round_number() == 1500) std::cout << "FUEL max " << g_fuel_max << " avg " << g_fuel_sum / std::max<std::uint64_t>(1, g_fuel_n) << " over90k " << g_over << "\n";
-    } } report{cambc::fuel_remaining(), !ready_};
     g_turn_round = cambc::round_number();
     pos_ = cambc::self().position();
-    if (!ready_) { initialise(); Pprev = cambc::fuel_remaining(); }
+    if (!ready_) initialise();
     auto& me = cambc::self();
     moved_ = attacked_ = cast_ = move_failed_ = false;
     invalidate_view();
 
-    if (cambc::round_number() % 250 == 0) { std::cout << "ACT r" << cambc::round_number() << " s" << slot_; for (int k = 0; k < 14; ++k) std::cout << " " << g_act[k]; std::cout << "\n"; }
     if (!me.is_alive()) {
-        ++g_act[0];
         buy_items();
         fill_fields(40000);
         return;
     }
-    if (cambc::round_number() % 100 == 0) std::cout << "T r" << cambc::round_number() << " s" << slot_ << " pos " << cambc::to_string(me.position()) << " hp " << me.health() << " rec " << me.is_recalling() << " sub " << me.is_submitting_gems() << " gems " << me.gem_count() << " enemies " << cambc::vision::champion_tiles(team::enemy).count() << "\n";
-    PM(0);
     (void)view();
-    PM(11);
     update_knowledge();
-    PM(1);
     const bool at_spawn = cambc::map::spawn_region(team::ally).is_set(me.position());
     if (at_spawn || me.champion_name() == cambc::champion_type::tavi) buy_items();
     if (me.is_recalling() || me.is_submitting_gems() || me.is_teleporting()) {
-        ++g_act[me.is_recalling() ? 1 : 2];
         fill_fields(40000);
         return;
     }
-
-    PM(2);
     // Strength of awake camps that can reach us.
     incoming_ = 0;
     exit_steps_ = 0;
@@ -1114,7 +1082,6 @@ void Bot::play_turn() {
             }
         } catch (const std::exception&) {}
     }
-    PM(3);
     {
         const auto counts = me.item_count();
         taken_mult_ = 1.0f;
@@ -1126,20 +1093,17 @@ void Bot::play_turn() {
         if (counts[cambc::item_type::monster_emblem_of_strength] + counts[cambc::item_type::monster_emblem_of_health]
             + counts[cambc::item_type::monster_emblem_of_focus] > 0) dps_ *= 1.1f;
     }
-
-    PM(4);
-    if (handle_enemies()) { ++g_act[3]; return; }
-    PM(5);
-    if (!fuel_ok(30000)) { ++g_act[4]; return; }
+    if (handle_enemies()) { return; }
+    if (!fuel_ok(30000)) { return; }
 
     const float hp = me.health(), max_hp = me.max_health();
     // Just arrived home hurt: stay this turn, spawn heals at turn end.
-    if (at_spawn && hp < max_hp * 0.95f) { ++g_act[5]; return; }
+    if (!at_spawn) spawn_wait_ = 0;
+    else if (hp < max_hp * 0.95f && spawn_wait_ < 2) { ++spawn_wait_; return; }
     // Badly hurt: leave camp range, then recall.
     if (!at_spawn && (hp < max_hp * 0.2f || (incoming_ > 0 && hp < incoming_ * taken_mult_ * (exit_steps_ + 2) + 40))) {
-        if (disengage_from_camps()) { ++g_act[6]; return; }
+        if (disengage_from_camps()) { return; }
         if (incoming_ == 0 && !moved_) {
-            ++g_act[6];
             if (live()) me.recall();
             return;
         }
@@ -1148,10 +1112,8 @@ void Bot::play_turn() {
     const int now = static_cast<int>(cambc::round_number());
     if (target_ < 0 || now - last_choice_ >= 3 || known_[target_].state == Known::respawning) {
         int wait = 0;
-        PM(6);
         pos_ = me.position();
         const int target = choose_target(wait);
-        PM(7);
         if (target != target_) approach_shrink_ = 0;
         target_ = target;
         target_wait_ = wait;
@@ -1159,32 +1121,26 @@ void Bot::play_turn() {
     }
     const int target = target_;
     const int wait = target_wait_;
-    if (now % 100 == 0) std::cout << "ST r" << now << " slot " << slot_ << " pos " << cambc::to_string(me.position()) << " hp " << hp << "/" << max_hp << " gems " << me.gem_count() << " gold " << me.gold_count() << " tgt " << target << " wait " << wait << " st " << (target >= 0 ? int(known_[target].state) : -1) << " eta " << (target >= 0 ? eta(target) : -1) << " dps " << dps_ << " fuel " << cambc::fuel_remaining() << " inc " << incoming_ << "\n";
 
     if (blocker_group_ >= 0) {
         // Living camps stand between us and where we want to go: cut through them.
         if (known_[blocker_group_].state != Known::alive || now - blocker_since_ > 40) blocker_group_ = -1;
         else {
-            ++g_act[7];
             farm(blocker_group_);
             return;
         }
     }
-    PM(8);
-    if (handle_tribute(target, wait)) { ++g_act[8]; return; }
-    PM(9);
+    if (handle_tribute(target, wait)) { return; }
 
     const int home_d = home_.at(me.position());
     if (target < 0 || wait > 12) {
         // Nothing worth doing soon: go shop and heal.
         if (!at_spawn && (me.gold_count() >= 60 || hp < max_hp * 0.8f) && incoming_ == 0 && me.gem_count() == 0) {
-            ++g_act[9];
             if (home_d <= 5) go_home();
             else if (!moved_ && live()) me.recall();
             return;
         }
         if (target < 0) {
-            ++g_act[10];
             if (!at_spawn && hp < max_hp * 0.9f && incoming_ == 0 && !moved_ && live()) me.recall();
             fill_fields(40000);
             return;
@@ -1194,7 +1150,6 @@ void Bot::play_turn() {
     if (!at_spawn && me.gold_count() >= 250 && me.gem_count() == 0 && incoming_ == 0 && !cant_spend_
         && me.champion_name() != cambc::champion_type::tavi
         && (known_[target].state != Known::alive || eta(target) > 6) && remaining_hp(target) >= groups_[target].hp * 0.99f) {
-        ++g_act[9];
         if (home_d <= 8) go_home();
         else if (!moved_ && live()) me.recall();
         return;
@@ -1203,14 +1158,11 @@ void Bot::play_turn() {
     if (!at_spawn && hp < max_hp * 0.5f && incoming_ == 0 && known_[target].state != Known::reward) {
         const float dmg = estimate_damage(target, dps_);
         if (dmg > hp - 100) {
-            ++g_act[11];
             if (home_d <= 5) go_home();
             else if (!moved_ && live()) me.recall();
             return;
         }
     }
     farm(target);
-    ++g_act[attacked_ ? 12 : 13];
-    PM(10);
     fill_fields(50000);
 }
