@@ -1680,7 +1680,7 @@ bool Bot::enemies() {
     if (theirs.empty()) {
         // Help an ally who reported an invader close by.
         const auto s = read_sighting();
-        if (s.ok && s.age <= 4 && cheb(s.where, pos_) <= 10 && me.health() > me.max_health() * 0.6f
+        if (s.ok && s.age <= 4 && cheb(s.where, pos_) <= 14 && me.health() > me.max_health() * 0.6f
             && me.gem_count() < 30 && incoming_ == 0) {
             auto goal = empty_board();
             goal.set(s.where);
