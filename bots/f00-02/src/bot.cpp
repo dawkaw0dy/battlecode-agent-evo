@@ -647,7 +647,20 @@ void Bot::play_turn_inner() {
 
     const auto enemies = visible_champions(team::enemy);
     const auto allies = visible_champions(team::ally);
-    if (!enemies.empty()) last_enemy_round = now;
+    if (!enemies.empty()) {
+        last_enemy_round = now;
+        // Share the sighting (bytes 6..7: round / 8, coarse 7-tile cell).
+        const vec2 e = enemies[0].pos;
+        std::array<std::uint8_t, 2> msg{static_cast<std::uint8_t>(std::min(255, now / 8)),
+            static_cast<std::uint8_t>(std::min(14, e.x / 7) * 15 + std::min(14, e.y / 7))};
+        cambc::shared_memory.write(6, std::span{msg});
+    }
+    {
+        std::array<std::uint8_t, 2> msg{};
+        cambc::shared_memory.read(6, std::span{msg});
+        team_enemy_round = msg[0] == 0 ? -1000 : msg[0] * 8;
+        team_enemy_pos = vec2{(msg[1] / 15) * 7 + 3, (msg[1] % 15) * 7 + 3};
+    }
     use_support_spells();
 
     const float hp = me.health(), max_hp = me.max_health();
@@ -715,8 +728,9 @@ void Bot::play_turn_inner() {
     const bool engaged = camp_threat_at(pos);
     if (gems > 0 && !capturing && !engaged) {
         const int adist = altar_field.get(pos);
-        const bool threatened = now - last_enemy_round < 12 && (gems >= 10 || adist <= 8);
-        if (adist <= 3 + static_cast<int>(gems) / 4 || gems >= 30 || threatened || now > 1900) {
+        const bool threatened = (now - last_enemy_round < 12 && (gems >= 10 || adist <= 8))
+            || (now - team_enemy_round < 40 && gems >= 8);
+        if (adist <= 3 + static_cast<int>(gems) / 4 || gems >= 24 || threatened || now > 1900) {
             act = 8;
             go_bank();
             return;
