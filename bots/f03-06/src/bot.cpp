@@ -876,7 +876,7 @@ bool Bot::fight() {
     const int my_range = me.attack_range();
     float ours = my_hp * my_power, theirs = 0;
     for (const auto& f : friends_)
-        if (cheb(f.pos, pos_) <= 5 && !f.recalling) ours += f.hp * f.power;
+        if (cheb(f.pos, pos_) <= 7 && !f.recalling) ours += f.hp * f.power;
     std::vector<vec2> threats;
     std::vector<int> ranges;
     float threat_dmg = 0;
@@ -930,10 +930,15 @@ bool Bot::fight() {
         int nd = 99;
         for (const auto& u : foes_) {
             const int d = cheb(u.pos, pos_);
-            if (u.on_spawn || d > my_range + 2) continue;
+            if (u.on_spawn) continue;
+            // Reach out further for a foe that is on one of our champions.
+            bool on_friend = false;
+            for (const auto& f : friends_)
+                if (!f.recalling && cheb(f.pos, u.pos) <= std::max(u.range, 2) + 1) on_friend = true;
+            if (d > my_range + (on_friend ? 6 : 2)) continue;
             if (d < nd || (d == nd && near && u.hp < near->hp)) { nd = d; near = &u; }
         }
-        if (near && ++chase_ <= 4) {
+        if (near && ++chase_ <= 8) {
             fight_until_ = now_ + 3;
             if (dash_slot_ >= 0 && !cast_ && nd - my_range == 2) {
                 try {
