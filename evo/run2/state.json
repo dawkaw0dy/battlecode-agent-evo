@@ -810,9 +810,11 @@
   },
   "f02-01": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evolution-agent-f02-01-xc7p7z",
+   "commit": "959c7c67a1d13304eff4a95f312341ecee83b83d",
    "deadline_minutes": 120,
+   "done_at": 1792876544,
+   "effort_level": "high",
    "evidence": [
     {
      "gems_opponent": 1012,
@@ -860,6 +862,7 @@
    "generation": 2,
    "id": "f02-01",
    "kind": "child",
+   "model": null,
    "nudged": [
     "session_01NtrBKtUusbaUXQvL8fLYPy"
    ],
@@ -881,14 +884,16 @@
    ],
    "slot": 1,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "c5ff07c414d97638d314a458a5fa0064e902487fd01a91dd930d8a38055b80a7"
   },
   "f02-02": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evolution-agent-f02-02-95plho",
+   "commit": "7e13f21db8589e0658121d3b1af5288dfe6011dd",
    "deadline_minutes": 120,
+   "done_at": 1792876547,
+   "effort_level": "high",
    "evidence": [
     {
      "gems_opponent": 1012,
@@ -936,6 +941,7 @@
    "generation": 2,
    "id": "f02-02",
    "kind": "child",
+   "model": null,
    "nudged": [
     "session_01YKp1nZ54113g9Dxx8rnJ6F"
    ],
@@ -957,7 +963,7 @@
    ],
    "slot": 2,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "4ac03586af185919b3ca7a3f1c4806f33dca8614fb27fe565c0f8ec789c48e59"
   },
   "f02-03": {
@@ -1012,7 +1018,9 @@
    "generation": 2,
    "id": "f02-03",
    "kind": "child",
-   "nudged": [],
+   "nudged": [
+    "session_01SKqAdwQhhAfbSnvF9igfYB"
+   ],
    "operator": "crossover",
    "parents": [
     "f01-07",
@@ -1087,7 +1095,9 @@
    "generation": 2,
    "id": "f02-04",
    "kind": "child",
-   "nudged": [],
+   "nudged": [
+    "session_01R2kzXhb2YyvTtks6xPZUH3"
+   ],
    "operator": "radical",
    "parents": [
     "f01-03"
@@ -1161,7 +1171,9 @@
    "generation": 2,
    "id": "f02-05",
    "kind": "child",
-   "nudged": [],
+   "nudged": [
+    "session_01To5NTLxbCaht3Vw6AofF83"
+   ],
    "operator": "tweak",
    "parents": [
     "f01-03"
@@ -1210,7 +1222,9 @@
    "generation": 2,
    "id": "f02-06",
    "kind": "immigrant",
-   "nudged": [],
+   "nudged": [
+    "session_01DiamW9ysr8ga5WAUk2JabT"
+   ],
    "operator": null,
    "parents": [
     "starter"
@@ -1259,7 +1273,9 @@
    "generation": 2,
    "id": "f02-07",
    "kind": "immigrant",
-   "nudged": [],
+   "nudged": [
+    "session_014eLzVvrS56XeWP3C5bNsmt"
+   ],
    "operator": null,
    "parents": [
     "starter"
@@ -5685,7 +5701,9 @@
   "2026-10-24T19:34:37Z g02 f02-04: launched session_01R2kzXhb2YyvTtks6xPZUH3",
   "2026-10-24T19:34:54Z g02 f02-05: launched session_01To5NTLxbCaht3Vw6AofF83",
   "2026-10-24T19:35:06Z g02 f02-06: launched session_01DiamW9ysr8ga5WAUk2JabT",
-  "2026-10-24T19:35:19Z g02 f02-07: launched session_014eLzVvrS56XeWP3C5bNsmt"
+  "2026-10-24T19:35:19Z g02 f02-07: launched session_014eLzVvrS56XeWP3C5bNsmt",
+  "2026-10-24T21:15:44Z g02 f02-01: done on origin/claude/evolution-agent-f02-01-xc7p7z at 959c7c67a1",
+  "2026-10-24T21:15:47Z g02 f02-02: done on origin/claude/evolution-agent-f02-02-95plho at 7e13f21db8"
  ],
  "paused": null,
  "phase": "RUNNING",
