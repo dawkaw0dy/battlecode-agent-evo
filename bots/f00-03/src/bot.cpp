@@ -960,7 +960,10 @@ bool Bot::handle_tribute(int next_target, int next_wait) {
     const auto enemy_locks = cambc::vision::altar_lock_tiles(team::enemy);
     // Tribute when standing beside an altar.
     for (auto a : cambc::map::altars().positions()) {
-        if (dist(a, pos) <= cambc::constants::submit_gems_range && !enemy_locks.is_set(a) && incoming_ == 0) {
+        // Damage does not interrupt a tribute; just make sure we live through it.
+        const float turns = std::ceil(gems / 10.0f) + 1;
+        if (dist(a, pos) <= cambc::constants::submit_gems_range && !enemy_locks.is_set(a)
+            && me.health() > incoming_ * taken_mult_ * turns + 50) {
             if (live()) me.submit_gems(a);
             return true;
         }
