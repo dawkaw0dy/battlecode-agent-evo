@@ -21,6 +21,8 @@ namespace {
 int dbg_reason = 0;
 int W = 0, H = 0;
 constexpr float DANGER = 0.75f;
+constexpr int THREAT_R = 5;
+constexpr float OUTMATCH = 1.1f;
 constexpr std::uint16_t UNR = distance_field::unreachable;
 constexpr std::array<vec2, 8> DIRS{vec2{0, 1}, vec2{1, 1}, vec2{1, 0}, vec2{1, -1},
                                    vec2{0, -1}, vec2{-1, -1}, vec2{-1, 0}, vec2{-1, 1}};
@@ -605,17 +607,34 @@ bool Bot::fight_group() {
     return true;
 }
 
+static int act = 0;
+static int act_count[16];
 void Bot::play_turn() {
+    act = 12;
+    play_turn_inner();
+    act_count[act]++;
+    if (cambc::round_number() == 800) {
+        std::cout << "ACT " << cambc::to_string(cambc::self().champion_name());
+        for (int i = 0; i < 13; ++i) std::cout << " " << i << ":" << act_count[i];
+        std::cout << std::endl;
+    }
+}
+
+void Bot::play_turn_inner() {
     if (!initialised) init();
     moved = false;
     cast_lock = false;
     auto& me = cambc::self();
     if (!me.is_alive()) {
+        act = 0;
         buy_items();
         return;
     }
+    act = me.is_recalling() ? 1 : 2;
     if (me.is_recalling() || me.is_submitting_gems() || me.is_teleporting()) return;
+    act = 3;
     if (me.buffs().has_stun()) return;
+    act = 4;
     update_groups();
 
     const int now = static_cast<int>(cambc::round_number());
@@ -639,14 +658,14 @@ void Bot::play_turn() {
             if (cheb(a.pos, pos) <= 6) ours += a.hp * std::max(a.str, 1.0f);
         std::vector<vec2> threats;
         for (const auto& e : enemies)
-            if (cheb(e.pos, pos) <= 7) { theirs += e.hp * std::max(e.str, 1.0f); threats.push_back(e.pos); }
+            if (cheb(e.pos, pos) <= THREAT_R) { theirs += e.hp * std::max(e.str, 1.0f); threats.push_back(e.pos); }
         if (!threats.empty()) {
             const auto atk = me.attack_tiles();
             const Seen* weakest = nullptr;
             for (const auto& e : enemies)
                 if (atk.is_set(e.pos) && (!weakest || e.hp < weakest->hp)) weakest = &e;
             const bool kill_shot = weakest && weakest->hp <= my_str * 1.05f;
-            const bool outmatched = theirs > 0.75f * ours || (gems > 0 && theirs > 0.4f * ours)
+            const bool outmatched = theirs > OUTMATCH * ours || (gems >= 10 && theirs > 0.7f * ours)
                 || hp < 0.3f * max_hp;
             if (kill_shot && me.can_attack()) {
                 auto c = champion_here(weakest->pos);
@@ -667,6 +686,7 @@ void Bot::play_turn() {
         }
     }
 
+    act = 5;
     // Low health: get out of camp range, then recall.
     if (!at_spawn && hp < 0.35f * max_hp) {
         if (camp_threat_at(pos)) {
@@ -678,7 +698,9 @@ void Bot::play_turn() {
         if (gems > 0 && altar_field.get(pos) <= 1 && go_bank()) return;
         if (!camp_threat_at(pos)) { me.recall(); return; }
     }
+    act = 6;
     if (at_spawn && hp < 0.9f * max_hp && enemies.empty()) return;
+    act = 7;
 
     // Recall early to shop and heal.
     if (!at_spawn && gems == 0 && hp < 0.6f * max_hp && me.gold_count() >= 120
@@ -695,10 +717,12 @@ void Bot::play_turn() {
         const int adist = altar_field.get(pos);
         if (adist <= 3 + static_cast<int>(gems) / 4 || gems >= 30 || now - last_enemy_round < 12
             || now > 1900) {
+            act = 8;
             go_bank();
             return;
         }
     }
+    act = 12;
 
     // Farming.
     distance_field from_me;
@@ -722,6 +746,7 @@ void Bot::play_turn() {
         if (target >= 0) fight_group();
     }
     write_claim(target);
+    act = target < 0 ? 12 : (!me.can_attack() && me.attack_range() > 1) || (me.attack_range() == 1 && !me.can_attack()) ? 10 : moved ? 9 : 11;
     if (now % 25 == 0) std::cout << "DBG r" << now << " " << cambc::to_string(me.champion_name()) << " idx=" << my_index << " tgt=" << target << " pos=" << pos.x << "," << pos.y << " hp=" << hp << " wait=" << wait_turns << " moved=" << moved << " why=" << dbg_reason << std::endl;
     if (target < 0 && gems > 0) go_bank();
 }

@@ -43,4 +43,5 @@ class Bot {
 
 public:
     void play_turn();
+    void play_turn_inner();
 };
