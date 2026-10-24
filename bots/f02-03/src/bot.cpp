@@ -30,6 +30,7 @@ constexpr bool kEagerShield = true;   // shield as soon as camps hit us
 constexpr int kReserveRounds = 8;     // keep camp spells for enemies seen this recently (0: never)
 constexpr bool kReserveResets = false;
 constexpr bool kKiteCast = true;      // cast while fleeing when standing still costs no hit
+constexpr bool kKiteAttack = false;   // ranged: and basic attacks (worse: kills 642/593 vs 706/466)
 
 constexpr bool kSpellStats = false;
 std::array<int, 10> g_casts{};
@@ -1188,6 +1189,8 @@ bool Bot::enemies() {
             for (const auto& e : threats)
                 if (cheb(e.pos, pos_) <= (e.range <= 1 ? 2 : e.range)) safe = false;
             if (safe && home_.at(pos_) > 2 && fight_spells(threats, burst, false, true)) return true;
+            // Ranged: a basic attack costs the same step.
+            if (kKiteAttack && safe && me.attack_range() > 1 && home_.at(pos_) > 2 && fight_attack(threats, burst)) return true;
         }
         // A shield that does not stop us walking is free while running.
         if (hit_anyway) shield_on_the_run();
