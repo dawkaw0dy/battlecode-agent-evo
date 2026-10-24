@@ -9,11 +9,9 @@
 #include <array>
 #include <cstdlib>
 #include <cstdint>
-#include <iostream>
 #include <memory>
 #include <utility>
 #include <span>
-#include <string>
 #include <variant>
 #include <vector>
 
@@ -239,7 +237,6 @@ int g_still_rounds = 0;
 int g_bank_stuck = 0;
 int g_dyn_until = -1;
 int g_bank_block = -1;
-int g_bank_branch = 0;
 
 void collect(Ctx& c) {
     auto& w = *world;
@@ -740,13 +737,14 @@ void shop() {
 int choose_target(Ctx& c) {
     auto& w = *world;
     const int bodies = 1 + static_cast<int>(c.allies.size());
+    static const int team_bodies = static_cast<int>(cambc::champions(team::ally).size());
     const float dps = 45.f * std::max(3, bodies);
     int best = -1;
     float best_score = 0;
     for (std::size_t i = 0; i < w.groups.size(); ++i) {
         const auto& g = w.groups[i];
         if (g.tiles.empty() || !g.reachable) continue;
-        if (g.mono && (c.round < kMonoRound || bodies < 4)) continue;
+        if (g.mono && (c.round < kMonoRound || bodies < std::min(4, team_bodies))) continue;
         if (g.golem && c.round < kGolemRound) continue;
         if (g.skip_until > c.round) continue;
         const int d = group_distance(g, c.pos);
@@ -985,7 +983,6 @@ void bank(Ctx& c) {
                         me.attack(lock);
                         c.attacked = true;
                     }
-                    g_bank_branch = 5;
                     g_bank_stuck = 0;
                     return;
                 }
@@ -994,15 +991,12 @@ void bank(Ctx& c) {
             }
         }
         try {
-            g_bank_branch = 1;
             me.submit_gems(a);
             g_bank_stuck = 0;
         } catch (...) {
-            g_bank_branch = 9;
         }
         return;
     }
-    g_bank_branch = 2;
     if (c.round >= g_dyn_until && w.altar_ready && step_field(c, w.altar_field, w.altar_reach, 0)) {
         g_bank_stuck = 0;
         return;
@@ -1028,7 +1022,6 @@ void bank(Ctx& c) {
             if (in_bounds(p)) goals.set(p);
         }
     }
-    g_bank_branch = 3;
     if (step_dynamic(c, goals)) {
         // Keep the detour for a few turns, or the static field walks us straight back.
         if (c.round >= g_dyn_until) g_dyn_until = c.round + 6;
@@ -1036,7 +1029,6 @@ void bank(Ctx& c) {
         return;
     }
     ++g_bank_stuck;
-    g_bank_branch = 4;
 }
 
 // Move into attack range of the target group's nearest living camp.
@@ -1230,11 +1222,6 @@ void act(Ctx& c) {
         attack_reset(c);
     }
     cast_spell(c, false);
-    if (false && !c.enemies.empty()) {
-        std::string d = "F r" + std::to_string(c.round) + " id" + std::to_string(c.my_id) + " t" + std::to_string(static_cast<int>(me.champion_name())) + " hp" + std::to_string(static_cast<int>(me.health())) + " @" + std::to_string(c.pos.x) + "," + std::to_string(c.pos.y) + " m" + std::to_string(mode) + " al" + std::to_string(c.allies.size()) + " atk" + std::to_string(c.attacked) + " cast" + std::to_string(c.cast) + " mv" + std::to_string(c.moved) + " |";
-        for (const auto& e : c.enemies) d += " " + std::to_string(e.pos.x) + "," + std::to_string(e.pos.y) + ":" + std::to_string(static_cast<int>(e.hp));
-        std::cout << d << std::endl;
-    }
 }
 
 }  // namespace
@@ -1287,11 +1274,6 @@ void Bot::play_turn() {
     }
     if (c.leader) {
         if (!channeling) leader_plan(c);
-        if (c.round % 20 == 0)
-            std::cout << "L r" << c.round << " id" << c.my_id << " pos " << c.pos.x << "," << c.pos.y << " mode "
-                      << c.sm.mode() << " tgt " << c.sm.target() << " gems " << me.gem_count() << " gold "
-                      << me.gold_count() << " hp " << me.health() << " allies " << c.allies.size() << " camps "
-                      << c.camps.size() << " fuel " << cambc::fuel_remaining() << " ch" << channeling << " rec" << me.is_recalling() << " still" << g_still_rounds << " bs" << g_bank_stuck << " br" << g_bank_branch << " v" << (world->altar_reach.is_set(c.pos) ? world->altar_field.get(c.pos) : -1) << " dyn" << g_dyn_until << " en" << c.enemies.size() << std::endl;
         c.sm.b[0] = static_cast<std::uint8_t>(c.my_id);
         c.sm.b[1] = static_cast<std::uint8_t>(c.pos.x);
         c.sm.b[2] = static_cast<std::uint8_t>(c.pos.y);
