@@ -48,6 +48,8 @@ home and recalls instead of fighting alone. Dash champions plan through one-tile
 - Tavi standing on spawn did not heal for us; never wait on spawn more than two turns.
 - Altar tiles occupied by camps (boss beside the only altar) must not be planned as tribute spots.
 - Raising the tribute threshold (25 gems within 8) was neutral; kept the lower one for safety.
+- Region weight for another champion's sector: 0.6 was clearly slower (+5% rounds on 8 maps), 0.3 slightly
+  slower; 0.45 kept — the split itself pays.
 
 ## Known weaknesses
 - Lone champions still lose to a grouped enemy that catches them; only basic fight/flee rules, untested
