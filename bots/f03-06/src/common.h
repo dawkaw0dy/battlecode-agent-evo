@@ -31,6 +31,14 @@ inline cambc::bitboard empty_board() {
     return b;
 }
 
+// Chebyshev growth by whole-board shifts (a few host calls per step).
+inline cambc::bitboard grow(const cambc::bitboard& b, int r) {
+    cambc::bitboard out = b;
+    for (int i = 0; i < r; ++i) out = out | out.shift_right(1) | out.shift_right(-1);
+    for (int i = 0; i < r; ++i) out = out | out.shift_up(1) | out.shift_up(-1);
+    return out;
+}
+
 // Local bit-packed copy of a board: host queries in loops are expensive.
 struct Bits {
     std::vector<std::uint8_t> v;
@@ -49,6 +57,11 @@ struct Bits {
         v[static_cast<size_t>(i >> 3)] |= static_cast<std::uint8_t>(1u << (i & 7));
     }
     void clear_bits() { for (auto& b : v) b = 0; }
+    cambc::bitboard board() const {
+        cambc::bitboard b;
+        b.import_linear_buffer(std::span<const std::uint8_t>{v});
+        return b;
+    }
     void resize() { v.assign(cambc::bitboard::linear_buffer_size(), 0); }
 };
 

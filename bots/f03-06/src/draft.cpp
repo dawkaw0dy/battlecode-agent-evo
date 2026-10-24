@@ -132,7 +132,7 @@ void write_plan() {
         acc += w;
         if (acc >= wsum * 0.5f) { squad_size = k; break; }
     }
-    squad_size = std::clamp(squad_size, 1, nb);
+    squad_size = std::clamp(squad_size, 2, std::max(2, nb));  // nobody farms alone: lone champions get picked off
     const int nsq = std::clamp(nb / squad_size, 1, 4);
     const auto squads = assign_squads(g_picks, nsq);
     const auto owner = assign_owners(groups, nsq);

@@ -19,6 +19,9 @@ constexpr bool kStats = true;   // one activity line per champion every 250 roun
 constexpr bool kTable = false;  // group table at the start (costs fuel)
 int g_mode = 0;
 int g_modes[16]{};
+std::uint64_t g_ph[24]{};
+int g_nph = 0;
+inline void ph() { if (g_nph < 24) g_ph[g_nph++] = cambc::fuel_remaining(); }
 const char* kModeNames[16] = {"dead", "chan", "fight", "hurt", "bank", "idle", "hit", "walk", "capture", "wait", "heal", "", "", "", "", ""};
 void warn(const char* where, const std::exception& e) {
     if (++g_warns <= 40) std::cout << "warn: " << where << ": " << e.what() << '\n';
@@ -86,13 +89,13 @@ void Bot::initialise() {
     chp_.clear();
     for (size_t i = 0; i < ng; ++i) {
         goff_.push_back(static_cast<int>(chp_.size()));
-    cawake_.assign(chp_.size(), 0);
         for (size_t c = 0; c < g_[i].tiles.size(); ++c) {
             chp_.push_back(camp_spec(g_[i].kinds[c]).hp);
             group_at_[static_cast<size_t>(tidx(g_[i].tiles[c]))] = static_cast<std::int16_t>(i);
         }
     }
     goff_.push_back(static_cast<int>(chp_.size()));
+    cawake_.assign(chp_.size(), 0);
 
     const auto terrain = static_walls();
     terrain_.load(terrain);
@@ -752,22 +755,22 @@ void Bot::engage(int g) {
     compute_group_field(g);
     const auto& f = gf_[static_cast<size_t>(g)];
     const int d = here(f);
+    ph();
     if (d <= range + 3) {
-        // Close: aim at the living camps around allies and dead tiles.
-        auto roots = empty_board();
+        // Close: aim at tiles from which a living camp is within reach.
+        auto alive = empty_board();
         bool any = false;
         for (size_t c = 0; c < g_[static_cast<size_t>(g)].tiles.size(); ++c) {
             const vec2 t = g_[static_cast<size_t>(g)].tiles[c];
-            if (chp_[static_cast<size_t>(goff_[static_cast<size_t>(g)]) + c] > 0) {
-                // Tiles from which we could hit this camp.
-                for (int dy = -range; dy <= range; ++dy)
-                    for (int dx = -range; dx <= range; ++dx) {
-                        const vec2 q{t.x + dx, t.y + dy};
-                        if (inside(q) && !terrain_.at(q)) { roots.set(q); any = true; }
-                    }
-            }
+            if (chp_[static_cast<size_t>(goff_[static_cast<size_t>(g)]) + c] <= 0 || cheb(t, pos_) > range + 8) continue;
+            alive.set(t);
+            any = true;
         }
+        const auto roots = any && cambc::fuel_remaining() > 40000 ? grow(alive, range) & ~cambc::map::walls() : empty_board();
+        any = any && cambc::fuel_remaining() > 40000;
+        ph();
         if (any) step_dynamic(roots);
+        ph();
     }
     if (!moved_) {
         try_dash(f);
@@ -1157,10 +1160,6 @@ int Bot::choose(int& eta_out) {
         const float trips = std::floor(hits / std::max(200.0f, team_hp * 0.6f));
         if (trips > 10) continue;
         const float trip_cost = std::min(d_home_[gi], 60) + 10.0f;
-        debug_block({
-            if (type_ == cambc::champion_type::vendetta && now_ >= 13 && now_ <= 16 && (g == 38 || g == 44))
-                std::cout << "cand r" << now_ << " g=" << g << " d=" << d << " st=" << int(k.st) << " rem=" << rem << " team=" << team << " trips=" << trips << " fail=" << k.fail << '\n';
-        });
         const float value = G.gems + gold_w * G.gold;
         float f = 1.0f;
         const auto own = owner_[gi];
@@ -1172,10 +1171,6 @@ int Bot::choose(int& eta_out) {
         if (g == target_) cur = score;
         if (score > bs) { bs = score; best = g; eta_out = d; }
     }
-    debug_block({
-        if (type_ == cambc::champion_type::vendetta && now_ >= 13 && now_ <= 16)
-            std::cout << "choose r" << now_ << " target_=" << target_ << " cur=" << cur << " best=" << best << " bs=" << bs << '\n';
-    });
     // Commit: switch only for a clearly better target.
     if (cur > 0 && bs < cur * 1.4f) return target_;
     return best;
@@ -1188,16 +1183,19 @@ void Bot::farm() {
     if (raid_on_) g = raid_cand_;
     else if (!lead) g = read_target();
     if (g >= 0 && k_[static_cast<size_t>(g)].fail > now_ && !raid_on_) g = -1;
+    ph();
     if (g < 0) {
         g = choose(eta);
         if (lead) write_target(g);
     }
+    ph();
     if (g != target_) { target_ = g; target_since_ = now_; last_dist_ = kFar; gather_ = 0; }
     if (g < 0) {
         step(home_, 2);
         return;
     }
     compute_group_field(g);
+    ph();
     const auto& k = k_[static_cast<size_t>(g)];
     const auto& f = gf_[static_cast<size_t>(g)];
     // Give up on a target we cannot get closer to.
@@ -1271,9 +1269,12 @@ void Bot::turn() {
     }
     pos_ = me.position();
     if (!inside(pos_)) return;
+    ph();
     observe();
+    ph();
     if (me.is_recalling() || me.is_submitting_gems() || me.is_teleporting()) { g_mode = 1; return; }
     read_units();
+    ph();
     update_raid();
     taken_ = 1.0f;
     dealt_ = 1.0f;
@@ -1286,11 +1287,15 @@ void Bot::turn() {
     if (spawn_.at(pos_) || type_ == cambc::champion_type::tavi) shop();
     if (!live()) return;
     heal_allies();
+    ph();
     if (fight()) { g_mode = 2; return; }
+    ph();
     if (!live()) return;
     if (hurt()) { g_mode = 3; return; }
     if (!live()) return;
+    ph();
     if (tribute()) { g_mode = 4; return; }
+    ph();
     if (!live()) return;
     farm();
 }
@@ -1308,8 +1313,24 @@ void Bot::play_turn() {
     g_round = cambc::round_number();
     now_ = static_cast<int>(g_round);
     moved_ = attacked_ = cast_ = excl_cast_ = move_failed_ = false;
-    if (!init_) initialise();
+    if (!init_) {
+        // The first turn's double fuel goes to the static fields; acting waits a round.
+        initialise();
+        return;
+    }
+    const std::uint64_t fuel0 = cambc::fuel_remaining();
+    g_nph = 0;
     turn();
+    ph();
+    debug_block({
+        const std::uint64_t f1 = cambc::fuel_remaining();
+        if (!live() || fuel0 - f1 > 70000)
+        {
+            std::cout << "FUEL r" << now_ << ' ' << cambc::to_string(type_) << " used=" << (live() ? fuel0 - f1 : 999999) << " mode=" << g_mode << " tgt=" << target_ << " ph:";
+            for (int i = 1; i < g_nph; ++i) std::cout << ' ' << (g_ph[i - 1] - g_ph[i]);
+            std::cout << '\n';
+        }
+    });
     if (kTable && type_ == cambc::champion_type::vendetta && now_ >= 2 && now_ < 2 + static_cast<int>(g_.size())) {
         const size_t i = static_cast<size_t>(now_ - 2);
         std::cout << "g" << i << " c=" << g_[i].center.x << ',' << g_[i].center.y << " n=" << g_[i].tiles.size() << " gems=" << g_[i].gems
@@ -1327,7 +1348,11 @@ void Bot::play_turn() {
                     if (d < bd) { bd = d; best = static_cast<int>(g); }
                 }
             if (best < 0) break;
+            const std::uint64_t fb = cambc::fuel_remaining();
             compute_group_field(best);
+            debug_block({
+                if (!live() || fb - cambc::fuel_remaining() > 30000) std::cout << "FIELD r" << now_ << " g=" << best << " cost=" << (live() ? fb - cambc::fuel_remaining() : 999999) << '\n';
+            });
         }
     }
 }
