@@ -795,4 +795,10 @@ void Bot::play_turn_inner() {
     act = target < 0 ? 12 : (!me.can_attack() && me.attack_range() > 1) || (me.attack_range() == 1 && !me.can_attack()) ? 10 : moved ? 9 : 11;
     if (now % 25 == 0) std::cout << "DBG r" << now << " " << cambc::to_string(me.champion_name()) << " idx=" << my_index << " tgt=" << target << " pos=" << pos.x << "," << pos.y << " hp=" << hp << " wait=" << wait_turns << " moved=" << moved << " why=" << dbg_reason << std::endl;
     if (target < 0 && gems > 0) go_bank();
+    if (target < 0 && gems == 0 && !moved) {
+        // Nothing to farm (e.g. every camp is tied to a monolith): gather in the middle as a
+        // team; a single kill decides a 0-0 game on lifetime gold.
+        const vec2 mid{W / 2, H / 2};
+        step_to(square(mid, 3) & ~static_walls);
+    }
 }
