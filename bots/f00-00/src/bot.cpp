@@ -226,6 +226,7 @@ bool Bot::step_along(const Field& field) {
             if (!walls.is_set(q)) unit_blocked = true;
             continue;
         }
+        if (avoid_active && avoid.is_set(q) && !avoid.is_set(pos)) continue;
         best = q;
         best_value = v;
     }
@@ -477,8 +478,8 @@ Fight Bot::assess_fight(const Seen** weakest) const {
         if (cheb(s.pos, pos) <= 6) ours += s.hp * std::max(s.str, 20.0f);
     const float ratio = ours / theirs;
     const bool finishable = low && low->hp <= me.strength() * 2.5f && cheb(low->pos, pos) <= 4;
-    if (ratio >= 1.25f || (finishable && ratio >= 0.7f)) return plan.chase || ratio >= 1.6f ? Fight::engage : Fight::hold;
-    if (ratio < 0.7f) return Fight::retreat;
+    if (ratio >= 1.3f || (finishable && ratio >= 0.8f)) return plan.chase || ratio >= 1.6f ? Fight::engage : Fight::hold;
+    if (ratio < 0.85f) return Fight::retreat;
     return Fight::hold;
 }
 
@@ -536,7 +537,7 @@ int Bot::choose_target(float keep_bonus) {
         else if (need > 0 && k >= need) score *= 1.3f;
         if (g.reward && k > 0) score *= 0.2f;
         if (plan.mode == mode_spread && g.zone >= zone_lo && g.zone < zone_hi) score *= 1.6f;
-        if (plan.mode != mode_spread && static_cast<int>(i) == leader_target) score *= 2.5f;
+        if (plan.mode != mode_spread && static_cast<int>(i) == leader_target) score *= 4.0f;
         if (static_cast<int>(i) == target) score *= keep_bonus;
         if ((g.flags & group_enemy_side) && !plan.gemless) score *= g.facts.gems > 0 ? 0.5f : 0.25f;
         if (support && static_cast<int>(i) == follow) score *= 6.0f;
@@ -625,6 +626,7 @@ void Bot::play_turn() {
     auto& me = cambc::self();
     if (!ready) init();
     walked_fail = false;
+    avoid_active = false;
     cast_exclusive = false;
     attacked = false;
 
@@ -682,6 +684,12 @@ void Bot::play_turn() {
     try_spells();
     basic_attack();
 
+    // Even fight: hold ground, do not walk into the enemy's reach.
+    avoid_active = fight == Fight::hold;
+    if (avoid_active) {
+        avoid.clear();
+        for (const auto& e : enemies) add_square(avoid, e.pos, 3);
+    }
     bool chased = false;
     if (fight == Fight::engage && weakest && me.can_move() && !cast_exclusive && !walked_fail
         && cheb(weakest->pos, pos) > me.attack_range()) {

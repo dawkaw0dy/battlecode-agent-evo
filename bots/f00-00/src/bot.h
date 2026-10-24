@@ -41,7 +41,8 @@ class Bot {
     int slot = 0, bodies = 1;
     int target = -1, chosen_round = -100;
     bool ranged = false, tank = false;
-    bool walked_fail = false, cast_exclusive = false, attacked = false;
+    bool walked_fail = false, cast_exclusive = false, attacked = false, avoid_active = false;
+    cambc::bitboard avoid;
     int purchases = 0;
 
     std::vector<Seen> enemies, allies;
