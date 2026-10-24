@@ -129,6 +129,9 @@ class Bot {
     // Defense (gem safety, altar locks).
     std::vector<vec2> altars_;
     bool deny();
+    bool lock_altars(bool detour);
+    std::vector<int> lock_seen_;        // per altar: last round we saw our lock on it
+    int lock_try_g_ = -1, lock_try_since_ = 0;
     float foe_damage(float turns);
     bool tribute_under_fire();
 

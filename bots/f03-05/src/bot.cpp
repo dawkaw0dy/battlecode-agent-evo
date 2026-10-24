@@ -34,7 +34,9 @@ constexpr float kBossTurns = 8.0f;  // turns a champion must be able to tank a b
 constexpr bool kLocks = true;       // carry an altar lock and drop it on enemy tributes
 constexpr bool kDeny = true;        // hunt enemies channelling a tribute or recall
 constexpr bool kPressureTribute = true;
-constexpr int kLockRange = 2;       // altar lock placement range  // bank under enemy pressure when the channel outlasts their damage
+constexpr int kLockRange = 2;       // altar lock placement range
+constexpr bool kLockAll = true;     // lock every altar we pass: our locks block only enemy tributes
+constexpr int kLockDetour = 8;      // walk this far (Chebyshev) out of our way to lock an altar  // bank under enemy pressure when the channel outlasts their damage
 
 namespace {
 // Debug: turns spent per activity, printed every 200 rounds.
@@ -1149,7 +1151,7 @@ bool Bot::enemies() {
         // Help an ally who reported an invader close by.
         const auto s = read_sighting();
         if (s.ok && s.age <= 4 && cheb(s.where, pos_) <= 10 && me.health() > me.max_health() * 0.6f
-            && me.gem_count() < 30 && incoming_ == 0) {
+            && me.gem_count() < 15 && incoming_ == 0) {
             auto goal = empty_board();
             goal.set(s.where);
             goal = grow(goal, 2) & ~walk_walls();
@@ -1212,7 +1214,7 @@ bool Bot::enemies() {
     if (home_d <= 3) ratio *= 1.5f;  // spawn heals us
     const bool home = cambc::map::spawn_region(team::ally).is_set(pos_);
     const int gems = static_cast<int>(me.gem_count());
-    float need = (kHysteresis ? 1.1f : 1.0f) + std::min(0.5f, gems / 100.0f);
+    float need = (kHysteresis ? 1.1f : 1.0f) + std::min(1.0f, gems / 50.0f);  // carriers stay out of fights
     // Hysteresis: stick with the last decision unless the odds clearly changed.
     if (kHysteresis && flee_until_ >= now) need = 1.5f;
     else if (kHysteresis && fight_until_ >= now) need = 0.7f;
@@ -1343,6 +1345,50 @@ bool Bot::deny() {
         } catch (const cambc::error& e) { warn("lock2", e); }
     }
     return true;
+}
+
+// Our locks stop only enemy tributes: keep one on every altar we come near. The enemy then has to
+// break it (five hits) or walk to another altar, and a channel already running there is cancelled.
+// Returns true when the turn went into a detour towards an altar to lock.
+bool Bot::lock_altars(bool detour) {
+    if (!kLockAll || altars_.empty() || !live()) return false;
+    auto& me = cambc::self();
+    const int now = static_cast<int>(cambc::round_number());
+    if (lock_seen_.size() != altars_.size()) lock_seen_.assign(altars_.size(), -1000);
+    const auto& v = view();
+    const auto ours = cambc::vision::altar_lock_tiles(team::ally);
+    const auto any = cambc::vision::altar_lock_tiles();
+    for (size_t i = 0; i < altars_.size(); ++i) {
+        const vec2 a = altars_[i];
+        if (!v.lvis.at(a)) continue;
+        if (ours.is_set(a)) lock_seen_[i] = now;
+        else lock_seen_[i] = -1000;
+    }
+    if (!has_lock()) return false;
+    int best = -1, best_d = 99;
+    for (size_t i = 0; i < altars_.size(); ++i) {
+        const vec2 a = altars_[i];
+        if (lock_seen_[i] > -1000 && now - lock_seen_[i] < 150) continue;  // ours, as far as we know
+        const int d = cheb(a, pos_);
+        if (d <= kLockRange && v.lvis.at(a) && !any.is_set(a)) {
+            try {
+                if (me.consumables()[cambc::consumable_type::altar_lock].use(a)) {
+                    lock_seen_[i] = now;
+                    invalidate();
+                    return false;
+                }
+            } catch (const cambc::error& e) { warn("lock altar", e); lock_seen_[i] = now; }
+            return false;
+        }
+        if (d < best_d && !any.is_set(a)) { best_d = d; best = static_cast<int>(i); }
+    }
+    if (!detour || best < 0 || best_d > kLockDetour || incoming_ > 0 || moved_) return false;
+    if (lock_try_g_ != best) { lock_try_g_ = best; lock_try_since_ = now; }
+    if (now - lock_try_since_ > 2 * kLockDetour + 4) { lock_seen_[static_cast<size_t>(best)] = now; return false; }  // cannot get there
+    auto goal = empty_board();
+    goal.set(altars_[static_cast<size_t>(best)]);
+    goal = grow(goal, kLockRange) & ~walk_walls();
+    return go(goal, true);
 }
 
 // ---------------------------------------------------------------- gems
@@ -1512,6 +1558,7 @@ void Bot::turn() {
     g_mode = 2;
     try {
         if (deny()) return;
+        lock_altars(false);
         if (enemies()) return;
         fp("enemies");
     } catch (const cambc::error& e) { warn("enemies", e); }
@@ -1568,6 +1615,7 @@ void Bot::turn() {
     g_mode = 6;
     if (tribute()) return;
     fp("tribute");
+    if (lock_altars(true)) return;
     g_mode = 7;
 
     const int t = target_;
