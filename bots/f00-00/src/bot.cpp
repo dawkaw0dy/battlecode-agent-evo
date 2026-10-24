@@ -130,6 +130,7 @@ void Bot::init() {
     for (std::size_t i = 0; i < team_list.size(); ++i)
         if (team_list[i] == me) slot = static_cast<int>(i);
 
+    boss = plan_ok && plan.boss_group < groups.size() ? static_cast<int>(plan.boss_group) : -1;
     ranged = me.attack_range() > 1;
     tank = !ranged && me.max_health() >= 1000;
     ready = true;
@@ -457,6 +458,25 @@ bool Bot::try_bank() {
     const int round = static_cast<int>(cambc::round_number());
     const int to_altar = altar_field.at(pos);
     if (to_altar >= far_away) return false;
+    const int round_now = static_cast<int>(cambc::round_number());
+    if (boss >= 0) {
+        // The only altar approach is the boss's tile: bank only while it is dead.
+        const auto& b = groups[static_cast<std::size_t>(boss)];
+        const bool boss_down = b.reward || b.respawn_at > round_now;
+        if (!boss_down) return false;
+        if (!attacked || gems >= plan.bank_gems) {
+            step_along(altar_field);
+            for (auto altar : cambc::map::altars().positions())
+                if (cheb(me.position(), altar) <= cambc::constants::submit_gems_range && !cast_exclusive) {
+                    try {
+                        me.submit_gems(altar);
+                    } catch (const std::exception&) {
+                    }
+                    return true;
+                }
+            return true;
+        }
+    }
     const bool endgame = round + to_altar + static_cast<int>(gems / 10) + 8 >= static_cast<int>(cambc::constants::max_rounds);
     const bool full = gems >= plan.bank_gems;
     const bool close = to_altar <= 2 || (gems >= 15 && to_altar <= 6);
@@ -537,6 +557,7 @@ Fight Bot::assess_fight(const Seen** weakest) const {
 
 int Bot::choose_target(float keep_bonus) {
     auto& me = cambc::self();
+    constexpr int boss_start = 400;
     const auto pos = me.position();
     const int round = static_cast<int>(cambc::round_number());
 
@@ -567,7 +588,9 @@ int Bot::choose_target(float keep_bonus) {
     float best_score = 0;
     for (std::size_t i = 0; i < groups.size(); ++i) {
         const auto& g = groups[i];
-        if (!(g.flags & group_reachable) || g.facts.monolith || (g.facts.gems <= 0 && g.facts.gold <= 0)) continue;
+        const bool is_boss = static_cast<int>(i) == boss;
+        if (is_boss && round < boss_start) continue;
+        if (!(g.flags & group_reachable) || (g.facts.monolith && !is_boss) || (g.facts.gems <= 0 && g.facts.gold <= 0)) continue;
         int d = far_away;
         for (auto t : g.facts.tiles) d = std::min(d, from_me.at(t));
         if (d >= far_away) continue;
@@ -601,6 +624,11 @@ int Bot::choose_target(float keep_bonus) {
         if (plan.mode == mode_spread && g.zone >= zone_lo && g.zone < zone_hi) score *= 1.6f;
         if (plan.mode != mode_spread && static_cast<int>(i) == leader_target) score *= 4.0f;
         if (static_cast<int>(i) == target) score *= keep_bonus;
+        // The altar guard: the whole team chips it down, then everyone banks.
+        if (is_boss) {
+            if (wait > 0) continue; // respawning: farm elsewhere meanwhile
+            score = 100.0f / static_cast<float>(d + 10);
+        }
         if (g.contested_until > round) score *= 0.1f;
         if ((g.flags & group_enemy_side) && !plan.gemless) score *= g.facts.gems > 0 ? 0.5f : 0.25f;
         if (support && static_cast<int>(i) == follow) score *= 6.0f;

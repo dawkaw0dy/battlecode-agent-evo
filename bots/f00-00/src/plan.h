@@ -30,6 +30,7 @@ struct Plan {
     std::uint8_t golem_dps = 255;  // team dps (x10) needed before golem groups are hunted
     std::uint8_t altar_far = 0;    // spawn-to-altar distance
     std::uint8_t gemless = 0;      // 1: no reachable gems outside a monolith; play for gold
+    std::uint8_t boss_group = 255; // camp group standing on every altar approach (255: none)
     std::uint16_t checksum = 0;    // sum of group gem values, to detect a mismatched layout
     std::uint16_t spawn_gap = 0;   // walking distance between the two spawns
     std::uint8_t flags[max_groups] = {};

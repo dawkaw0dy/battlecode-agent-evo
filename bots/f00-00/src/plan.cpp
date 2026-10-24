@@ -128,6 +128,31 @@ void build_plan(Plan& plan) {
             }
 
     struct Entry { int index; double angle; };
+    // Tile -> group index, to see which camps stand on altar approaches.
+    std::vector<int> camp_owner(static_cast<std::size_t>(width * height), -1);
+    for (int i = 0; i < ngroups; ++i)
+        for (const auto& member : groups[i].camps()) {
+            const auto p = member.spawn_position();
+            camp_owner[static_cast<std::size_t>(p.y * width + p.x)] = i;
+        }
+    // If every walkable approach of every altar is a camp spawn tile, banking needs that group dead.
+    {
+        const auto blocked = cambc::map::walls() | cambc::map::holes() | cambc::map::altars();
+        const auto altars = cambc::map::altars().positions();
+        bool any_free = altars.empty();
+        int blocker = -1;
+        for (auto altar : altars)
+            for (int dx = -1; dx <= 1; ++dx)
+                for (int dy = -1; dy <= 1; ++dy) {
+                    const vec2 t{altar.x + dx, altar.y + dy};
+                    if (!cambc::map::is_in_bounds(t) || blocked.is_set(t)) continue;
+                    const int owner = camp_owner[static_cast<std::size_t>(t.y * width + t.x)];
+                    if (owner >= 0) blocker = owner;
+                    else if (spawn_dist.at(t) < 9999) any_free = true;
+                }
+        if (!any_free && blocker >= 0) plan.boss_group = static_cast<std::uint8_t>(blocker);
+    }
+
     std::vector<Entry> reachable;
     int easy = 0, reachable_count = 0, total_gems = 0;
     long dist_sum = 0;

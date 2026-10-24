@@ -60,6 +60,7 @@ class Bot {
     int detour_until = -1;
     Field altar_field, home_field;
     int slot = 0, bodies = 1;
+    int boss = -1; // group guarding every altar approach
     int target = -1, chosen_round = -100;
     bool ranged = false, tank = false;
     bool walked_fail = false, cast_exclusive = false, attacked = false, avoid_active = false;

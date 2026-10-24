@@ -6,6 +6,8 @@ From those numbers it picks one of three modes and the matching draft order:
 - skirmish (spawn gap <= 32 and area <= 1600): Vesper, Ryth, Tavi, ...; strength shards; chase on sight;
 - spread (>= 3 reachable groups per champion, area >= 1800): solo farmers, each champion gets a zone bonus;
 - pack (otherwise): Vesper, Ryth, Vendetta, Willow, ...; followers favour slot 0's target (x4).
+- boss plan (any mode): if every walkable altar approach is a camp spawn tile (01boss-battle: monoliths), no
+  banking while that group lives; from round 400 the whole team chips it down, captures it, then banks.
 Champions score camp groups by value / (travel + respawn wait + clear time + capture + health-trip cost),
 with a kill-order damage model to decide how many helpers a group needs; shared memory holds each
 champion's target. Bank at altars, recall when hurt, shop eagerly, fight by local HP x strength ratio.
@@ -24,6 +26,7 @@ champion's target. Bank at altars, recall when hurt, shop eagerly, fight by loca
 - Shopping: walk home with >= 150 gold within 10 tiles, recall with >= 210 gold; Tavi shops anywhere.
 - Chases capped at 12 steps without a hit, then 30 rounds off.
 - Capture hold timeout: capture_time + 6 rounds on a region without payout marks it contested for 60 rounds (x0.1).
+- Boss plan: boss_start = 400; boss score 100 / (distance + 10) while alive, skipped while respawning.
 
 ## Changes this generation
 - New bot (immigrant from starter infrastructure): plan.cpp/h (draft map reading), draft.cpp (plan-based
@@ -34,6 +37,8 @@ champion's target. Bank at altars, recall when hurt, shop eagerly, fight by loca
 - Fuel: fields and bitboards are mirrored into wasm memory (export_linear_buffer) instead of per-tile host
   calls (each ~1k fuel); worst sampled turn on 01big-world went from 12k to 56k fuel left. The draft's
   map analysis uses the same mirrors.
+- Boss-guarded altars (draft detection + boss phase): 01boss-battle vs e02-07 -827/+427 -> +940/+955,
+  vs starter 0-0 ties -> +993/+1171. Other maps unchanged (deterministic replays identical).
 - Contested captures: a champion held a capture for 300+ rounds on a long region an enemy also stood on
   (01yellow-brick-road lost 68-120 to starter); now times out and avoids the group for 60 rounds.
 - Results (benchmark.py, release, both sides): vs starter 79/79 valid on all 40 maps (+760 mean; the one
@@ -59,4 +64,5 @@ champion's target. Bank at altars, recall when hurt, shop eagerly, fight by loca
   to e07-05 / e06-04 (we die carrying gems; enemy champions out-earn us in gold).
 - Spread mode walks to far contested groups (01starfish side B) and loses carried gems on the way back.
 - No dash, no wards, no teleport crystals, no altar locks of our own; groups unreachable by walking are ignored.
+- Boss plan only covers camps on altar approaches; altars reachable only by dash/teleport are not handled.
 - Willow as support follows slot 0 and dies often on 01elk-arena.
