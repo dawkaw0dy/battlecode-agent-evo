@@ -116,7 +116,13 @@ void Bot::init() {
     ready = true;
     if (trace)
         std::cout << "init slot " << slot << "/" << bodies << " mode " << int(plan.mode) << " groups " << groups.size()
-                  << " fuel " << cambc::fuel_remaining() << '\n';
+                  << " fuel " << cambc::fuel_remaining();
+    if (trace && cambc::round_number() % 25 == 0 && target >= 0) {
+        const auto& g = groups[static_cast<std::size_t>(target)];
+        std::cout << " | g reward" << g.reward << " respawn" << g.respawn_at << " gems" << g.facts.gems << " tiles";
+        for (auto t : g.facts.tiles) std::cout << cambc::to_string(t);
+    }
+    if (trace && (cambc::round_number() % 25 == 0 || (!enemies.empty() && cambc::round_number() < 500))) std::cout << '\n';
 }
 
 const Field& Bot::group_field(int index) {
@@ -161,7 +167,7 @@ void Bot::observe_units() {
             try {
                 const auto c = cambc::vision::champion_at(p);
                 if (!c.is_visible()) continue;
-                Seen s{p, c.health(), c.max_health()};
+                Seen s{p, c.health(), c.max_health(), c.strength()};
                 (side == team::enemy ? enemies : allies).push_back(s);
             } catch (const std::exception&) {
             }
@@ -190,6 +196,20 @@ cambc::bitboard Bot::threat_tiles() const {
     }
     for (const auto& e : enemies) add_square(threat, e.pos, 4);
     return threat;
+}
+
+bool Bot::walk(vec2 destination) {
+    auto& me = cambc::self();
+    bool ok = false;
+    try {
+        ok = me.move_absolute(destination);
+    } catch (const std::exception& error) {
+        if (trace)
+            std::cout << "warn move r" << cambc::round_number() << " " << cambc::to_string(me.position()) << " -> "
+                      << cambc::to_string(destination) << ": " << error.what() << '\n';
+    }
+    if (!ok) walked_fail = true;
+    return ok;
 }
 
 bool Bot::step_along(const Field& field) {
@@ -224,9 +244,7 @@ bool Bot::step_along(const Field& field) {
         }
     }
     if (best == pos) return false;
-    const bool ok = me.move_absolute(best);
-    if (!ok) walked_fail = true;
-    return ok;
+    return walk(best);
 }
 
 bool Bot::step_away(const cambc::bitboard& threat) {
@@ -243,9 +261,7 @@ bool Bot::step_away(const cambc::bitboard& threat) {
         if (cost < best_cost) { best = q; best_cost = cost; }
     }
     if (best == pos) return false;
-    const bool ok = me.move_absolute(best);
-    if (!ok) walked_fail = true;
-    return ok;
+    return walk(best);
 }
 
 bool Bot::step_off(const cambc::bitboard& avoid) {
@@ -256,9 +272,7 @@ bool Bot::step_off(const cambc::bitboard& avoid) {
     for (auto d : directions) {
         const vec2 q = pos + d;
         if (!in_bounds(q) || blocked.is_set(q)) continue;
-        const bool ok = me.move_absolute(q);
-        if (!ok) walked_fail = true;
-        return ok;
+        return walk(q);
     }
     return false;
 }
@@ -293,7 +307,7 @@ bool Bot::try_spells() {
                 vec2 chosen{-1, -1};
                 float chosen_hp = 0;
                 for (auto p : camp_positions) {
-                    if (cheb(p, pos) > r || !is_monster_tile(groups, p)) continue;
+                    if (cheb(p, pos) > r || !is_monster_tile(groups, p) || !cambc::vision::has_camp(p)) continue;
                     const auto c = cambc::vision::camp_at(p);
                     const float hp = c.health();
                     if (chosen.x < 0 || hp > chosen_hp) { chosen = p; chosen_hp = hp; }
@@ -359,7 +373,7 @@ bool Bot::basic_attack() {
             vec2 chosen{-1, -1};
             float chosen_score = 0;
             for (auto p : mask.positions()) {
-                if (cheb(p, pos) > range) continue;
+                if (cheb(p, pos) > range || !cambc::vision::has_camp(p)) continue;
                 const auto c = cambc::vision::camp_at(p);
                 const float hp = c.health();
                 if (hp <= 0) continue;
@@ -450,7 +464,30 @@ void Bot::shop() {
     }
 }
 
-int Bot::choose_target() {
+Fight Bot::assess_fight(const Seen** weakest) const {
+    auto& me = cambc::self();
+    const auto pos = me.position();
+    float theirs = 0;
+    const Seen* low = nullptr;
+    for (const auto& e : enemies) {
+        if (cheb(e.pos, pos) > 7) continue;
+        theirs += e.hp * std::max(e.str, 20.0f);
+        if (cambc::map::spawn_region(team::enemy).is_set(e.pos)) continue;
+        if (!low || e.hp < low->hp) low = &e;
+    }
+    *weakest = low;
+    if (theirs <= 0) return Fight::none;
+    float ours = me.health() * me.strength();
+    for (const auto& s : allies)
+        if (cheb(s.pos, pos) <= 6) ours += s.hp * std::max(s.str, 20.0f);
+    const float ratio = ours / theirs;
+    const bool finishable = low && low->hp <= me.strength() * 2.5f && cheb(low->pos, pos) <= 4;
+    if (ratio >= 1.25f || (finishable && ratio >= 0.7f)) return plan.chase || ratio >= 1.6f ? Fight::engage : Fight::hold;
+    if (ratio < 0.7f) return Fight::retreat;
+    return Fight::hold;
+}
+
+int Bot::choose_target(float keep_bonus) {
     auto& me = cambc::self();
     const auto pos = me.position();
     const int round = static_cast<int>(cambc::round_number());
@@ -469,6 +506,8 @@ int Bot::choose_target() {
     const int leader_target = slot != 0 ? static_cast<int>(read_shared(0)) - 1 : -1;
 
     const float dps = std::max(20.0f, my_dps());
+    // Gold matters early (shards) and decides gem-less maps on the tiebreak.
+    const float gold_weight = plan.gemless ? 1.0f : (round < 600 ? 0.25f : 0.12f);
     const float hp_now = me.health();
     const int zone_lo = slot * 256 / std::max(1, bodies), zone_hi = (slot + 1) * 256 / std::max(1, bodies);
 
@@ -476,12 +515,12 @@ int Bot::choose_target() {
     float best_score = 0;
     for (std::size_t i = 0; i < groups.size(); ++i) {
         const auto& g = groups[i];
-        if (!(g.flags & group_reachable) || g.facts.monolith || g.facts.gems <= 0) continue;
+        if (!(g.flags & group_reachable) || g.facts.monolith || (g.facts.gems <= 0 && g.facts.gold <= 0)) continue;
         int d = far_away;
         for (auto t : g.facts.tiles) d = std::min(d, from_me.at(t));
         if (d >= far_away) continue;
         const int k = claims[i];
-        const float value = static_cast<float>(g.facts.gems) + 0.2f * static_cast<float>(g.facts.gold);
+        const float value = static_cast<float>(g.facts.gems) + gold_weight * static_cast<float>(g.facts.gold);
         const int wait = std::max(0, g.respawn_at - round);
         // Helpers needed so the front-liner survives the clear.
         const auto damage_with = [&](int helpers) {
@@ -501,10 +540,35 @@ int Bot::choose_target() {
         if (g.reward && k > 0) score *= 0.2f;
         if (plan.mode == mode_spread && g.zone >= zone_lo && g.zone < zone_hi) score *= 1.6f;
         if (plan.mode != mode_spread && static_cast<int>(i) == leader_target) score *= 2.5f;
-        if (static_cast<int>(i) == target) score *= 1.15f;
+        if (static_cast<int>(i) == target) score *= keep_bonus;
         if (score > best_score) { best_score = score; best = static_cast<int>(i); }
     }
     return best;
+}
+
+void Bot::recall() {
+    try {
+        cambc::self().recall();
+    } catch (const std::exception& error) {
+        if (trace) std::cout << "warn recall r" << cambc::round_number() << ": " << error.what() << '\n';
+    }
+}
+
+bool Bot::shopping_trip(Fight fight) {
+    auto& me = cambc::self();
+    if (me.champion_name() == cambc::champion_type::tavi || fight != Fight::none || attacked) return false;
+    const unsigned gold = me.gold_count();
+    const auto pos = me.position();
+    const int home = home_field.at(pos);
+    if (gold >= 120 && home <= 6) {
+        step_along(home_field);
+        return true;
+    }
+    if (gold >= 270 && home > 12 && cambc::vision::awake_camp_tiles().is_empty()) {
+        recall();
+        return true;
+    }
+    return false;
 }
 
 bool Bot::farm() {
@@ -526,7 +590,8 @@ bool Bot::farm() {
         const bool capturing = target >= 0 && groups[static_cast<std::size_t>(target)].reward
             && groups[static_cast<std::size_t>(target)].tiles.is_set(pos);
         if (!capturing) {
-            target = choose_target();
+            const bool valid = target >= 0 && groups[static_cast<std::size_t>(target)].respawn_at <= round + 6;
+            target = choose_target(valid ? 1.5f : 1.0f);
             chosen_round = round;
         }
     }
@@ -549,6 +614,8 @@ bool Bot::farm() {
     if (!members.is_empty()) {
         for (auto p : members.positions())
             if (cheb(p, pos) <= me.attack_range()) return true;
+    } else if (field.at(pos) <= 1 && g.respawn_at > 0) {
+        return true; // wait beside the region for the respawn
     }
     step_along(field);
     return true;
@@ -583,40 +650,49 @@ void Bot::play_turn() {
     }
 
     // Retreat when badly hurt: step out of reach, then recall.
+    const Seen* weakest = nullptr;
+    const Fight fight = assess_fight(&weakest);
     const float hp_frac = me.health() / me.max_health();
-    const float retreat_at = enemies.empty() ? 0.3f : 0.4f;
-    if (!at_spawn && hp_frac < retreat_at) {
+    const float retreat_at = fight == Fight::none ? 0.3f : 0.45f;
+    if (!at_spawn && (hp_frac < retreat_at || (fight == Fight::retreat && hp_frac < 0.75f))) {
         const auto threat = threat_tiles();
         if (me.gem_count() >= 10 && altar_field.at(pos) <= 1 && try_bank()) return;
         if (!threat.is_set(pos)) {
-            me.recall();
+            recall();
             return;
         }
-        if (!step_away(threat)) basic_attack();
+        if (!step_away(threat)) {
+            try_spells();
+            basic_attack();
+        } else if (me.can_attack()) {
+            observe_units();
+            basic_attack();
+        }
         return;
+    }
+    if (fight == Fight::retreat) {
+        // Outmatched but healthy: back off without starting anything.
+        const auto threat = threat_tiles();
+        if (threat.is_set(pos) && step_away(threat)) {
+            if (me.can_attack()) { observe_units(); basic_attack(); }
+            return;
+        }
     }
 
     try_spells();
     basic_attack();
 
-    if (!try_bank()) {
-        // Chase a visible enemy when we have the numbers.
-        bool chased = false;
-        if (plan.chase && !enemies.empty() && hp_frac >= 0.5f && me.can_move() && !cast_exclusive && !walked_fail) {
-            const Seen* nearest = nullptr;
-            for (const auto& e : enemies)
-                if (!nearest || cheb(e.pos, pos) < cheb(nearest->pos, pos)) nearest = &e;
-            int ours = 1, theirs = 0;
-            for (const auto& s : allies) ours += cheb(s.pos, pos) <= 6 ? 1 : 0;
-            for (const auto& e : enemies) theirs += cheb(e.pos, pos) <= 6 ? 1 : 0;
-            if (nearest && cheb(nearest->pos, pos) <= 6 && cheb(nearest->pos, pos) > me.attack_range() && ours >= theirs
-                && !cambc::map::spawn_region(team::enemy).is_set(nearest->pos)) {
-                chased = me.move_towards(nearest->pos);
-                if (!chased) walked_fail = true;
-            }
+    bool chased = false;
+    if (fight == Fight::engage && weakest && me.can_move() && !cast_exclusive && !walked_fail
+        && cheb(weakest->pos, pos) > me.attack_range()) {
+        try {
+            chased = me.move_towards(weakest->pos);
+        } catch (const std::exception& error) {
+            if (trace) std::cout << "warn chase r" << cambc::round_number() << ": " << error.what() << '\n';
         }
-        if (!chased) farm();
+        if (!chased) walked_fail = true;
     }
+    if (!chased && !try_bank() && !shopping_trip(fight)) farm();
 
     // Strike after moving if the allowance remains.
     if (me.can_attack()) {
@@ -625,7 +701,14 @@ void Bot::play_turn() {
     }
 
     if (slot < 8) cambc::shared_memory[static_cast<std::size_t>(slot)] = static_cast<std::uint8_t>(target + 1);
-    if (trace && cambc::round_number() % 100 == 0)
-        std::cout << "r" << cambc::round_number() << " slot " << slot << " target " << target << " gems " << me.gem_count()
-                  << " fuel " << cambc::fuel_remaining() << '\n';
+    if (trace && (cambc::round_number() % 25 == 0 || (!enemies.empty() && cambc::round_number() < 500)))
+        std::cout << "r" << cambc::round_number() << " E" << enemies.size() << " A" << allies.size() << " s" << slot << " t" << target << " fight" << int(fight) << " hp"
+                  << int(me.health()) << " gems " << me.gem_count() << " gold " << me.gold_count() << " at "
+                  << cambc::to_string(me.position()) << " fuel " << cambc::fuel_remaining();
+    if (trace && cambc::round_number() % 25 == 0 && target >= 0) {
+        const auto& g = groups[static_cast<std::size_t>(target)];
+        std::cout << " | g reward" << g.reward << " respawn" << g.respawn_at << " gems" << g.facts.gems << " tiles";
+        for (auto t : g.facts.tiles) std::cout << cambc::to_string(t);
+    }
+    if (trace && (cambc::round_number() % 25 == 0 || (!enemies.empty() && cambc::round_number() < 500))) std::cout << '\n';
 }

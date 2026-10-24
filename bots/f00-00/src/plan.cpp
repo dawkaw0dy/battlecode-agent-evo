@@ -160,6 +160,7 @@ void build_plan(Plan& plan) {
     plan.bank_gems = static_cast<std::uint8_t>(std::clamp(20 + avg_dist / 2, 25, 60));
     // Golems need a strong team (x10 dps); starved maps lower the bar.
     plan.golem_dps = total_gems < 150 ? 22 : 30;
+    plan.gemless = total_gems == 0 ? 1 : 0;
 }
 
 const Plan& the_plan() {

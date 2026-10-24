@@ -26,8 +26,10 @@ struct Group {
 // A visible unit captured at turn start.
 struct Seen {
     cambc::vec2 pos;
-    float hp = 0, max_hp = 1;
+    float hp = 0, max_hp = 1, str = 0;
 };
+
+enum class Fight { none, engage, hold, retreat };
 
 // Per-champion state survives between turns.
 class Bot {
@@ -48,8 +50,11 @@ class Bot {
     void update_groups();
     void observe_units();
     const Field& group_field(int index);
-    int choose_target();
+    int choose_target(float keep_bonus);
+    bool shopping_trip(Fight fight);
+    void recall();
     float my_dps() const;
+    bool walk(cambc::vec2 destination);
     bool step_along(const Field& field);
     bool step_away(const cambc::bitboard& threat);
     bool step_off(const cambc::bitboard& avoid);
@@ -59,6 +64,7 @@ class Bot {
     void shop();
     cambc::bitboard threat_tiles() const;
     bool farm();
+    Fight assess_fight(const Seen** weakest) const;
 
 public:
     void play_turn();

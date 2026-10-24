@@ -27,7 +27,8 @@ struct Plan {
     std::uint8_t bank_gems = 40;   // carry threshold before walking to an altar
     std::uint8_t chase = 0;        // 1: chase visible enemies when we have the numbers
     std::uint8_t golem_dps = 255;  // team dps (x10) needed before golem groups are hunted
-    std::uint8_t altar_far = 0;    // spawn-to-altar distance class
+    std::uint8_t altar_far = 0;    // spawn-to-altar distance
+    std::uint8_t gemless = 0;      // 1: no reachable gems outside a monolith; play for gold
     std::uint16_t checksum = 0;    // sum of group gem values, to detect a mismatched layout
     std::uint16_t spawn_gap = 0;   // walking distance between the two spawns
     std::uint8_t flags[max_groups] = {};
