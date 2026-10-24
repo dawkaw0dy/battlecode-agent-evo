@@ -6,6 +6,7 @@
 #include <array>
 #include <cmath>
 #include <cstdint>
+#include <cstdlib>
 #include <iostream>
 #include <memory>
 #include <optional>
@@ -28,6 +29,9 @@ constexpr std::array<vec2, 8> kDirs{vec2{0, 1}, vec2{1, 1}, vec2{1, 0}, vec2{1, 
 // Shared memory layout (8 bytes):
 //   0..2 enemy sighting x, y, round & 0xff     3 flags: bits 0-2 enemy count, bit 3 weak/isolated, bit 4 at altar
 //   4..6 call to arms x, y, round & 0xff        7 team camp group index (0xff none)
+float kTeamBonus = 2.5f;  // set per map in init_static
+constexpr float kHealRecall = 0.5f;
+constexpr float kGoldWeight = 0.3f;
 constexpr int kSightX = 0, kSightY = 1, kSightR = 2, kSightF = 3, kCallX = 4, kCallY = 5, kCallR = 6, kTeamGroup = 7;
 
 int W = 0, H = 0, ROUND = 0;
@@ -62,6 +66,7 @@ struct Group {
     int ready_round = 0;       // estimated round when the group is alive or claimable again
     int enemy_seen = -1000;    // last round an enemy champion was seen near the group
     int ban_until = 0;         // unreachable for now (blocked path)
+    int capture_turns = 0;     // turns spent standing on a claimable group (contested if this grows)
     Field field;
 };
 
@@ -91,6 +96,9 @@ std::vector<Seen> g_enemies, g_allies;
 int g_target_group = -1;
 int g_item_step = 0;
 vec2 g_last_pos{-1, -1};
+int g_progress_round = 0;  // last round our income rose or our target changed
+int g_last_income = 0;
+int g_last_target = -2;
 int g_still = 0;           // consecutive turns without changing tile
 
 // Living camps only: camp_tiles() also reports dead camps awaiting capture or respawn.
@@ -102,6 +110,8 @@ void init_static() {
     g_phase = "init_static";
     W = M::width();
     H = M::height();
+    // Small maps: farm as a pack (fights are frequent); large maps: spread out to farm in parallel.
+    kTeamBonus = W * H <= 2500 ? 2.5f : 1.2f;
     g_static_walls = M::walls() | M::holes() | M::altars() | M::spawn_region(team::enemy);
     g_bushes = M::bushes();
     {
@@ -526,25 +536,21 @@ void cast_support() {
     });
 }
 
-// Attack reset only right after our own basic attack this turn.
-void try_reset_and_attack(const cambc::unit* target_champion_or_camp, vec2 p, bool is_champion) {
+// Attack reset only right after our own basic attack this turn; re-check the same handle afterwards.
+void try_reset_and_attack(float hp_before, const cambc::unit& target) {
     g_phase = "try_reset_and_attack";
     auto& me = cambc::self();
     if (!g_attacked || g_cast || me.can_attack() || !me.can_cast()) return;
-    (void)target_champion_or_camp;
+    // The first hit may have killed the target.
+    if (hp_before <= me.strength() * 2.5f) return;
     for_ability([&](const cambc::ability& ab) {
         if (g_cast || !ab.is_attack_reset() || !ab.is_ready()) return;
-        if (is_champion ? !V::has_champion(p) : !V::has_camp(p)) return;
+        if (!target.is_visible() || target.health() <= 0) return;
         if (ab.use()) {
             g_cast = true;
-            if (!me.can_attack() || !me.attack_tiles().is_set(p)) return;
-            if (is_champion) {
-                auto c = V::champion_at(p);
-                if (c.is_visible() && c.health() > 0) me.attack(c);
-            } else {
-                auto c = V::camp_at(p);
-                if (c.is_visible() && c.health() > 0) me.attack(c);
-            }
+            if (!me.can_attack() || !target.is_visible() || target.health() <= 0) return;
+            if (!me.attack_tiles().is_set(target.position())) return;
+            me.attack(target);
         }
     });
 }
@@ -558,7 +564,7 @@ bool attack_enemy(const Seen& t) {
     if (!c.is_visible()) return false;
     me.attack(c);
     g_attacked = true;
-    try_reset_and_attack(nullptr, t.p, true);
+    try_reset_and_attack(t.hp, c);
     return true;
 }
 
@@ -567,6 +573,9 @@ const Seen* pick_target(vec2 from, int max_d) {
     float bestv = 1e9f;
     auto& me = cambc::self();
     const float my_dmg = std::max(1.f, me.strength());
+    const int cx = cambc::shared_memory[kCallX];
+    const int cy = cambc::shared_memory[kCallY];
+    const bool call_fresh = cx != 0xff && round_age(cambc::shared_memory[kCallR]) <= 1;
     for (const auto& e : g_enemies) {
         const int d = dist(from, e.p);
         if (d > max_d) continue;
@@ -576,6 +585,7 @@ const Seen* pick_target(vec2 from, int max_d) {
         float v = e.hp / my_dmg + std::max(0, d - me.attack_range()) * 1.5f;
         if (e.stunned) v -= 3;
         if (at_altar) v -= 4;
+        if (call_fresh && dist(e.p, vec2{cx, cy}) <= 1) v -= 3;  // focus the teammates' target
         if (v < bestv) bestv = v, best = &e;
     }
     return best;
@@ -701,7 +711,7 @@ void place_ward(vec2 focus_point) {
     float bestv = -1e9f;
     const auto own = me.ward_positions();
     for (auto p : tiles.positions()) {
-        if (g_static_walls.is_set(p) && !M::spawn_region(team::enemy).is_set(p)) continue;
+        if (g_static_walls.is_set(p)) continue;
         if (std::find(own.begin(), own.end(), p) != own.end() || V::has_ward(p)) continue;
         // Teammates' wards are invisible to us: each champion type owns its own tile class (13 types).
         if (((p.x + 5 * p.y) % 13 + 13) % 13 != static_cast<int>(me.champion_name())) continue;
@@ -759,8 +769,11 @@ bool bank_gems(bool urgent) {
 
 // ---- farming ------------------------------------------------------------------------------------
 int group_distance(Group& G, vec2 pos) {
-    const int d = G.field.get(pos);
-    if (d >= 0) return d;
+    if (!G.field.ready) ensure_group_field(G);
+    if (G.field.ready) {
+        const int d = G.field.get(pos);
+        return d >= 0 ? d : 100000;  // unreachable on foot (island)
+    }
     return dist(pos, G.center) * 5 / 4 + 1;
 }
 
@@ -779,7 +792,7 @@ int choose_group() {
     for (auto& G : g_groups) {
         if (G.boss || G.ban_until > ROUND) continue;
         const int d = group_distance(G, pos);
-        if (d >= 1000) continue;
+        if (d >= 100000) continue;
         const int wait = std::max(0, G.ready_round - ROUND);
         if (wait > 30) continue;
         const float n = static_cast<float>(helpers) + (G.index == team_group ? 1.f : 0.f);
@@ -787,10 +800,10 @@ int choose_group() {
         // Damage the tank takes while clearing.
         const float dmg = G.str * clear * 0.8f;
         const float budget = me.health() * 0.85f;
-        float value = G.gems + 0.15f * G.gold;
+        float value = G.gems + kGoldWeight * G.gold;
         if (dmg > budget) value *= std::max(0.2f, budget / dmg);
         float score = value / (std::max(static_cast<float>(d), static_cast<float>(wait)) + clear + 8.f);
-        if (G.index == team_group) score *= 1.5f;
+        if (G.index == team_group) score *= kTeamBonus;
         if (G.index == g_target_group) score *= 1.25f;  // hysteresis
         if (ROUND - G.enemy_seen < 20) score *= 0.75f;
         if (score > bestv) bestv = score, best = G.index;
@@ -818,10 +831,10 @@ bool attack_camp_in_range(const Group* G) {
     if (g_enemies.empty() && !g_cast) cast_at_camp(best);
     if (!me.can_attack() || !V::has_camp(best)) return true;
     auto c = V::camp_at(best);
-    if (!c.is_visible()) return true;
+    if (!c.is_visible() || c.health() <= 0) return true;
     me.attack(c);
     g_attacked = true;
-    try_reset_and_attack(nullptr, best, false);
+    try_reset_and_attack(besthp, c);
     return true;
 }
 
@@ -830,6 +843,19 @@ void farm() {
     auto& me = cambc::self();
     const vec2 pos = me.position();
     g_target_group = choose_group();
+    {
+        // No income for a long time on the same target: something blocks it (contest, path); drop it for a while.
+        const int income = static_cast<int>(me.gold_count() + me.gem_count()) + static_cast<int>(g_item_step) * 30;
+        if (income > g_last_income || g_target_group != g_last_target) g_progress_round = ROUND;
+        g_last_income = income;
+        g_last_target = g_target_group;
+        if (g_target_group >= 0 && ROUND - g_progress_round > 90) {
+            g_groups[g_target_group].ban_until = ROUND + 100;
+            g_progress_round = ROUND;
+            g_target_group = choose_group();
+            g_last_target = g_target_group;
+        }
+    }
     if (g_target_group < 0) {
         // Nothing worth farming: ambush at the altar the enemy uses most recently, else wait near spawn side.
         int best = -1, bestr = -1000;
@@ -843,6 +869,8 @@ void farm() {
     }
     Group& G = g_groups[g_target_group];
     ensure_group_field(G);
+    for (auto& O : g_groups)
+        if (O.index != G.index) O.capture_turns = 0;
     // Advertise our target so teammates converge on it.
     const int team_group = cambc::shared_memory[kTeamGroup];
     if (team_group != G.index && dist(pos, G.center) <= 6) cambc::shared_memory[kTeamGroup] = static_cast<std::uint8_t>(G.index);
@@ -854,6 +882,11 @@ void farm() {
         if (std::holds_alternative<M::camp_group_reward_available>(st)) {
             // Capture: stand on a free spawn tile.
             if (G.spawns.is_set(pos)) {
+                // Capture takes 5 rounds; much longer means an enemy contests the region out of sight.
+                if (++G.capture_turns > 9) {
+                    G.capture_turns = 0;
+                    G.ban_until = ROUND + 40;
+                }
                 place_ward(G.center);
                 return;
             }
@@ -890,8 +923,8 @@ void farm() {
         bitboard goals;
         for (auto p : alive.positions()) square(goals, p, me.attack_range());
         goals &= ~g_static_walls;
-        if (dist(pos, G.center) <= 10) step_dynamic(goals, 16, true);
-        else go_to(&G.field, G.spawns, G.center, true);
+        const bool near_tgt = G.field.get(pos) >= 0 && G.field.get(pos) <= 14;
+        if (!(near_tgt && step_dynamic(goals, 30, true)) && G.field.get(pos) > 0) go_to(&G.field, G.spawns, G.center, true);
         attack_camp_in_range(&G);
         return;
     }
@@ -913,7 +946,7 @@ void farm() {
                 return;
             }
         }
-        if (step_dynamic(G.spawns, 60, false)) return;
+        if (cambc::fuel_remaining() > 40000 && step_dynamic(G.spawns, 40, false)) return;
         G.ban_until = ROUND + 40;
         return;
     }
@@ -1042,7 +1075,7 @@ void Bot::play_turn() {
         for (auto p : V::awake_camp_tiles().positions())
             if (dist(p, pos) <= 5) camp_threat = true;
         const int gold = static_cast<int>(me.gold_count());
-        if (!camp_threat && (gold >= 400 || (gold >= 150 && hp < maxhp * 0.6f))) {
+        if (!camp_threat && (gold >= 400 || (gold >= 150 && hp < maxhp * 0.6f) || hp < maxhp * kHealRecall)) {
             me.recall();
             return;
         }
