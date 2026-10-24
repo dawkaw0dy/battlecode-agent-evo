@@ -397,8 +397,9 @@ bool Bot::basic_attack() {
                 const auto c = cambc::vision::camp_at(p);
                 const float hp = c.health();
                 if (hp <= 0) continue;
-                // Monsters first (they hit back), lowest health first to finish kills.
-                const float score = (is_monster_tile(groups, p) ? 100000.0f : 0.0f) - hp + (awake.is_set(p) ? 50000.0f : 0.0f);
+                // Monsters first (they hit back), most damage removed per health spent first.
+                const float score = (is_monster_tile(groups, p) ? 100000.0f + 10000.0f * c.strength() / hp : -hp)
+                    + (awake.is_set(p) ? 50000.0f : 0.0f);
                 if (chosen.x < 0 || score > chosen_score) { chosen = p; chosen_score = score; }
             }
             if (chosen.x < 0) return false;
@@ -548,17 +549,22 @@ int Bot::choose_target(float keep_bonus) {
         const int wait = std::max(0, g.respawn_at - round);
         // Helpers needed so the front-liner survives the clear.
         const auto damage_with = [&](int helpers) {
-            return g.facts.str * (g.facts.hp / (dps + 50.0f * static_cast<float>(helpers))) * 0.6f;
+            return clear_damage(g.facts, dps + 50.0f * static_cast<float>(helpers)) * 0.8f;
+        };
+        // With helpers the front-liner is usually a sturdier ally than us.
+        const auto survivable = [&](int helpers) {
+            const float hp_ref = helpers > 0 ? std::max(hp_now, 1100.0f) : hp_now;
+            return damage_with(helpers) <= hp_ref * 0.9f + 100.0f;
         };
         int need = 0;
-        while (need < bodies - 1 && damage_with(need) > hp_now * 0.85f + 100.0f) ++need;
+        while (need < bodies - 1 && !survivable(need)) ++need;
         const int helpers = plan.mode == mode_spread ? k : std::max(k, need);
         const float team_dps = dps + 50.0f * static_cast<float>(helpers);
         if (g.facts.golem && team_dps < plan.golem_dps * 10.0f) continue;
         const float clear = g.reward ? 0.0f : g.facts.hp / team_dps;
         const float time = static_cast<float>(std::max(d, wait)) + clear + 6.0f;
         float score = value / time;
-        if (damage_with(helpers) > hp_now * 0.85f + 100.0f) score *= 0.03f;
+        if (!survivable(helpers)) score *= 0.03f;
         if (k > need) score *= std::pow(0.55f, static_cast<float>(k - need));
         else if (need > 0 && k >= need) score *= 1.3f;
         if (g.reward && k > 0) score *= 0.2f;
@@ -567,6 +573,9 @@ int Bot::choose_target(float keep_bonus) {
         if (static_cast<int>(i) == target) score *= keep_bonus;
         if ((g.flags & group_enemy_side) && !plan.gemless) score *= g.facts.gems > 0 ? 0.5f : 0.25f;
         if (support && static_cast<int>(i) == follow) score *= 6.0f;
+        if (trace && slot == 0 && round < 160)
+            std::cout << "  cand r" << round << " g" << i << " d" << d << " wait" << wait << " gems" << g.facts.gems
+                      << " gold" << g.facts.gold << " hp" << g.facts.hp << " k" << k << " need" << need << " s" << score << '\n';
         if (score > best_score) { best_score = score; best = static_cast<int>(i); }
     }
     return best;

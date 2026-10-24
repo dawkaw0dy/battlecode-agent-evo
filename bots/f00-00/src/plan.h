@@ -47,7 +47,11 @@ struct GroupFacts {
     int range = 0;       // largest attack range
     bool golem = false, monolith = false;
     cambc::vec2 center{};
+    std::vector<std::pair<float, float>> monsters; // (health, strength), best kill order first
 };
+
+// Damage the front-liner takes while a team with `dps` clears the group in kill order.
+float clear_damage(const GroupFacts& facts, float dps);
 
 GroupFacts group_facts(const cambc::map::camp_group& group);
 // Walls for static pathing: terrain, altars and the enemy spawn.

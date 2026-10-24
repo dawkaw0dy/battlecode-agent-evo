@@ -38,7 +38,10 @@ GroupFacts group_facts(const cambc::map::camp_group& group) {
     for (const auto& member : group.camps()) {
         const auto s = spec(member.kind());
         facts.hp += s.hp;
-        if (s.str > 0) facts.monster_hp += s.hp;
+        if (s.str > 0) {
+            facts.monster_hp += s.hp;
+            facts.monsters.emplace_back(s.hp, s.str);
+        }
         facts.str += s.str;
         facts.range = std::max(facts.range, s.range);
         if (member.kind() == cambc::camp_type::golem) facts.golem = true;
@@ -48,10 +51,22 @@ GroupFacts group_facts(const cambc::map::camp_group& group) {
         sx += p.x;
         sy += p.y;
     }
+    // Kill the most damage per health first: that order minimises damage taken.
+    std::sort(facts.monsters.begin(), facts.monsters.end(),
+        [](const auto& a, const auto& b) { return a.second / a.first > b.second / b.first; });
     if (!facts.tiles.empty())
         facts.center = {static_cast<int>(sx / static_cast<long>(facts.tiles.size())),
             static_cast<int>(sy / static_cast<long>(facts.tiles.size()))};
     return facts;
+}
+
+float clear_damage(const GroupFacts& facts, float dps) {
+    float elapsed = 0, damage = 0;
+    for (const auto& [hp, str] : facts.monsters) {
+        elapsed += hp / dps;
+        damage += str * elapsed;
+    }
+    return damage;
 }
 
 cambc::bitboard static_walls() {
