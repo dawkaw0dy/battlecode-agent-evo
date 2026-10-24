@@ -23,8 +23,8 @@ constexpr bool kTradeWhenDoomed = false;  // trade when home is out of reach any
 constexpr bool kFleeStep = true;      // threat-aware flee steps instead of the home path
 constexpr bool kAvoidSpawnCampers = true;  // keep out of reach of enemies on their spawn
 // Spell tuning switches.
-constexpr bool kSpellFocusCamp = false;  // single-target camp spells on the basic-attack target
-constexpr bool kShieldEarly = false;     // shield as soon as something can hit us
+constexpr bool kSpellFocusCamp = true;  // single-target camp spells on the basic-attack target
+constexpr bool kShieldEarly = true;     // shield as soon as something can hit us
 constexpr bool kStunFlee = false;        // ranged stunners stun the nearest chaser instead of stepping
 constexpr bool kStunChannel = false;     // stun/damage spells prefer enemies channeling a tribute or recall
 
