@@ -18,7 +18,7 @@ namespace {
 constexpr int far_away = 9999;
 constexpr bool trace = false;
 constexpr bool dash_travel = true; // dash down travel fields when no enemy is in sight
-constexpr int dash_min = 4;        // only dash with at least this many steps left
+constexpr int dash_min = 2;        // only dash with at least this many steps left
 constexpr bool dash_escape = false; // dash out of threat when retreating
 constexpr bool block_allies = true; // treat all ally positions as occupied when stepping
 
