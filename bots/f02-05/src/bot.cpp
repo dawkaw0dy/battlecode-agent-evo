@@ -27,6 +27,7 @@ constexpr bool kSpellFocusCamp = true;  // single-target camp spells on the basi
 constexpr bool kShieldEarly = true;     // shield as soon as something can hit us
 constexpr bool kStunFlee = false;        // ranged stunners stun the nearest chaser instead of stepping
 constexpr bool kStunChannel = false;     // stun/damage spells prefer enemies channeling a tribute or recall
+constexpr bool kShieldFlee = false;      // shield while running away
 
 
 namespace {
@@ -1184,6 +1185,10 @@ bool Bot::handle_enemies() {
             fight_attack(threats, burst);
             return true;
         }
+        // A shield does not stop us walking: raise it before running.
+        if (kShieldFlee && !cast_ && live() && me.can_cast() && (hit_anyway || hp_frac < 0.9f))
+            for (const auto& ab : me.abilities())
+                if (ab.is_shield() && ab.is_ready()) { cast_ = true; safe_use(ab); break; }
         // Ranged stunner: stun the nearest chaser and shoot instead of stepping; it loses its turn.
         if (kStunFlee && me.attack_range() > 1 && !moved_ && !cast_ && me.can_cast() && home_.at(pos) > 2) {
             for (const auto& ab : me.abilities()) {
