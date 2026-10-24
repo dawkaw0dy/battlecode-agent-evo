@@ -111,7 +111,7 @@ const View& view() {
     return g_view;
 }
 
-Bits g_walls_local, g_hard_local;  // filled in initialise()
+Bits g_walls_local, g_hard_local, g_holes_local;  // filled in initialise() (holes: dashers only)
 const Bits& walls_local() { return g_walls_local; }
 const Bits& hard_local() { return g_hard_local; }  // what a dash cannot cross
 
@@ -122,9 +122,13 @@ bool free_tile(vec2 p) {
     return !walls_local().at(p) && !v.lcamps.at(p) && !v.lchamps.at(p) && !v.ltele.at(p);
 }
 
+// Walls for routing: a dasher's routes may cross one-tile holes (step_on dashes over them).
+cambc::bitboard g_route_walls;
+const cambc::bitboard& route_walls() { return g_route_walls; }
+
 cambc::bitboard blocked_now(const cambc::bitboard& camps) {
     const auto& v = view();
-    auto b = walk_walls() | camps | v.camps | v.champs | v.tele;
+    auto b = route_walls() | camps | v.camps | v.champs | v.tele;
     b.set(cambc::self().position(), false);
     return b;
 }
@@ -238,10 +242,20 @@ void Bot::initialise() {
     }
     for (const auto& sl : kit_)
         if (sl.kind == cambc::ability_kind::dash) dasher_ = true;
+    g_route_walls = walk_walls();
+    if (dasher_) {
+        // Holes with standable floor on both sides, straight across.
+        const auto floor = ~walk_walls();
+        const auto holes = cambc::map::holes();
+        const auto jump = (holes & floor.shift_right(1) & floor.shift_right(-1))
+            | (holes & floor.shift_up(1) & floor.shift_up(-1));
+        g_route_walls = walk_walls() & ~jump;
+        g_holes_local.load(holes);
+    }
 
     cambc::distance_field f;
     cambc::bitboard seen;
-    f.compute(walk_walls(), cambc::map::spawn_region(team::ally), seen);
+    f.compute(route_walls(), cambc::map::spawn_region(team::ally), seen);
     home_.load(f);
     auto spots = empty_board();
     for (auto a : cambc::map::altars().positions()) {
@@ -250,7 +264,7 @@ void Bot::initialise() {
         spots |= grow(one, cambc::constants::submit_gems_range);
     }
     spots &= ~walk_walls();
-    f.compute(walk_walls(), spots, seen);
+    f.compute(route_walls(), spots, seen);
     altar_.load(f);
     altar_spots_ = spots;
 
@@ -270,7 +284,7 @@ void Bot::fill_fields(std::uint64_t reserve) {
         const auto f0 = cambc::fuel_remaining();
         cambc::distance_field f;
         cambc::bitboard seen;
-        f.compute(walk_walls(), gtiles_[i], seen);
+        f.compute(route_walls(), gtiles_[i], seen);
         gfield_[i].load(f);
         const auto f1 = cambc::fuel_remaining();
         if (live() && f0 > f1) field_cost_ = std::max(field_cost_, f0 - f1);
@@ -511,7 +525,12 @@ bool Bot::step_on(const cambc::distance_field& f, const cambc::bitboard& seen, c
     const vec2 pos = me.position();
     fp("go-dash");
     if (!live() || !inside(pos)) return false;
-    if (dash && f.get(pos) >= 3 && try_dash(f, seen)) {
+    // A hole on the way can only be crossed by a dash, however close the goal is.
+    bool hole_next = false;
+    if (dasher_)
+        for (auto d : kDirs)
+            if (g_holes_local.at(vec2{pos.x + d.x, pos.y + d.y})) { hole_next = true; break; }
+    if ((dash || hole_next) && f.get(pos) >= (hole_next ? 2 : 3) && try_dash(f, seen)) {
         fp("go-dashed");
         moved_ = true;
         if (move_failed_ || !me.can_move()) return true;
