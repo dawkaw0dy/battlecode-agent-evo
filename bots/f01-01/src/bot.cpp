@@ -52,7 +52,9 @@ bool fuel_ok(std::uint64_t need) { return cambc::fuel_remaining() > need; }
 
 // A turn that runs out of fuel resumes next round on stale data: act only in the round we started.
 std::uint32_t g_turn_round = 0;
-bool live() { return cambc::round_number() == g_turn_round; }
+bool live() {
+    try { return cambc::round_number() == g_turn_round; } catch (const std::exception&) { return false; }
+}
 
 // Channel and self-cast actions can still be refused (a stun, a lock we cannot see): never let that end the turn.
 void safe_recall() {
@@ -1159,7 +1161,10 @@ void Bot::farm(int group) {
     // Living (or unseen) camp tiles of the group, grown by our range.
     const auto living = group_tiles_[group] & ~(view().visb & ~view().camps);
     auto goal = dilate(living, r) & ~static_walls_ally();
-    if (goal.is_set(me.position()) && approach_shrink_ < me.attack_range() - 1) ++approach_shrink_;
+    // A turn resumed after running out of fuel can see a stale or invalid position.
+    if (!live()) return;
+    const vec2 here = me.position();
+    if (in_bounds(here) && goal.is_set(here) && approach_shrink_ < me.attack_range() - 1) ++approach_shrink_;
     step_to(goal, e > 3);
     if (me.attack_range() <= 1 && attack_group(group)) reset_and_hit(group);
 }
