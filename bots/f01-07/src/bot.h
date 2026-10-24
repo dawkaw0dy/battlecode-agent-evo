@@ -39,11 +39,18 @@ class Bot {
     bool cant_buy_ = false;
     int last_enemy_seen_ = -1000;
     cambc::bitboard camp_block_;        // tiles of camps we believe alive, seen or not
+    bool block_dirty_ = true;
+    std::vector<std::uint8_t> block_buf_;
+    std::vector<int> reach_;            // largest distance from a group's centre to its camps
+    cambc::bitboard awake_;             // awake camps in view this turn
+    cambc::bitboard goal_;              // cached approach goal
+    int goal_group_ = -1, goal_r_ = -1, goal_sig_ = 0;
     int plug_ = -1, plug_since_ = 0;
     int shrink_ = 0, shrink_g_ = -1;
     struct Seen { vec2 pos{}; float hp = 0, power = 0; int round = -1000; };
     std::vector<Seen> foe_mem_;         // last sighting of each enemy champion
-    int fight_until_ = -1, flee_until_ = -1;    // approach closer when walls hide the camps from range    // a living group that closes our way: clear it
+    int fight_until_ = -1, flee_until_ = -1;
+    int chase_turns_ = 0, no_chase_until_ = -1;    // approach closer when walls hide the camps from range    // a living group that closes our way: clear it
 
     // Per turn.
     vec2 pos_{};
@@ -53,6 +60,7 @@ class Bot {
     float taken_ = 1.0f;        // camp damage multiplier on us
     float dps_ = 50.0f;         // our damage per turn against camps
 
+    void turn();
     void initialise();
     void fill_fields(std::uint64_t reserve);
     void observe();
@@ -63,6 +71,8 @@ class Bot {
     int claimed_by_other(int group) const;
 
     bool go(const cambc::bitboard& goals, bool dash);
+    bool step_on(const cambc::distance_field& f, const cambc::bitboard& seen, const cambc::bitboard& goals,
+                 const cambc::bitboard& blocked, bool dash);
     bool try_dash(const cambc::distance_field& f, const cambc::bitboard& seen);
     void go_home();
     bool recall_or_walk(int walk_limit);
@@ -78,6 +88,7 @@ class Bot {
 
     float estimate_damage(int group) const;
     float remaining(int group) const;
+    const cambc::bitboard& approach_goal(int group, int r);
     int eta(int group) const;
 
 public:

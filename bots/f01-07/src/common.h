@@ -12,11 +12,17 @@ constexpr int kFar = 65535;  // unreached distance
 constexpr std::array<vec2, 8> kDirs{vec2{0, 1}, vec2{1, 1}, vec2{1, 0}, vec2{1, -1},
     vec2{0, -1}, vec2{-1, -1}, vec2{-1, 0}, vec2{-1, 1}};
 
-inline int cheb(vec2 a, vec2 b) { return static_cast<int>(a.chebyshev_distance(b)); }
-inline int map_w() { static const int w = cambc::map::width(); return w; }
-inline int map_h() { static const int h = cambc::map::height(); return h; }
-inline bool inside(vec2 p) { return p.x >= 0 && p.y >= 0 && p.x < map_w() && p.y < map_h(); }
-inline int tidx(vec2 p) { return p.y * map_w() + p.x; }
+inline int cheb(vec2 a, vec2 b) {
+    const int dx = a.x > b.x ? a.x - b.x : b.x - a.x, dy = a.y > b.y ? a.y - b.y : b.y - a.y;
+    return dx > dy ? dx : dy;
+}
+// Map size, set once by init_dims(): function-local statics cost a guard check per call.
+inline int g_map_w = 0, g_map_h = 0;
+inline void init_dims() { g_map_w = cambc::map::width(); g_map_h = cambc::map::height(); }
+inline int map_w() { return g_map_w; }
+inline int map_h() { return g_map_h; }
+inline bool inside(vec2 p) { return p.x >= 0 && p.y >= 0 && p.x < g_map_w && p.y < g_map_h; }
+inline int tidx(vec2 p) { return p.y * g_map_w + p.x; }
 
 inline cambc::bitboard empty_board() {
     cambc::bitboard b;
@@ -42,7 +48,7 @@ struct Bits {
     bool at(vec2 p) const {
         if (!inside(p) || v.empty()) return false;
         const int i = tidx(p);
-        return (v[static_cast<size_t>(i >> 3)] >> (i & 7)) & 1;
+        return (v.data()[i >> 3] >> (i & 7)) & 1;
     }
 };
 
@@ -55,7 +61,7 @@ struct Dist {
     }
     int at(vec2 p) const {
         if (!inside(p) || v.empty()) return kFar;
-        return v[static_cast<size_t>(tidx(p))];
+        return v.data()[tidx(p)];
     }
     bool empty() const { return v.empty(); }
 };

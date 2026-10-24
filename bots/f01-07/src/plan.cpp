@@ -18,6 +18,7 @@ int nearest(const cambc::distance_field& f, const cambc::bitboard& seen, const s
 }  // namespace
 
 std::vector<GroupInfo> analyse_map() {
+    init_dims();
     std::vector<GroupInfo> out;
     const auto groups = cambc::map::camp_groups();
     const auto walls_e = cambc::map::walls() | cambc::map::holes() | cambc::map::altars()
