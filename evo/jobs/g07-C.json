@@ -1,0 +1,163 @@
+{
+ "env_manifest_sha256": "8225c1d38b5a90c91456d4d0b6d77f40901d162fdd30888c6a2d6aba7c249335",
+ "generation": 7,
+ "heldout_repo": "dawkaw0dy/battlecode-agent-evo-heldout",
+ "job_id": "g07-C",
+ "map_sha256": {
+  "h-1b5a": "369bde5de45171d62f7a4628a93a88bee18bf1b410fb41dfa2f5121b3a938678",
+  "h-1cea": "0b16829d8987fefc580849704961b7f776e39a1ca621fb0051f6fcda8f692ede",
+  "h-1ceb": "d2fbfff4f56275b736f8869045ec1d2f753e9b6bb761d27a6a8ba549f857a59f",
+  "h-1cec": "cd7bbee79257e81d33e3eda06ab17a960aa94e8d922a453b42739bc6dae8c261",
+  "h-1e78": "759985b04766d669cdee5f6ca49283c945be4044bcefa20ceaeba0f73baaa199",
+  "h-1e7b": "cc6e124455e6096d7b1ad999300fff96db6be35015c186f09544fa5c7c9427f5",
+  "h-1e7d": "30de071943beda86486c5b987fbd8a7fd88544429fe64ee5927da08a6d9143fd",
+  "h-1e7f": "dace9c8d9aa07a19ac1406edabe52a4e52bb17875afc453584e057a9a3bcc798"
+ },
+ "runner_version": "cambc==3.0.5",
+ "shards": [
+  {
+   "a": "e07-04",
+   "b": "e07-01",
+   "heldout": true,
+   "maps": [
+    "h-1b5a",
+    "h-1cea",
+    "h-1ceb",
+    "h-1cec",
+    "h-1e78",
+    "h-1e7b",
+    "h-1e7d",
+    "h-1e7f"
+   ]
+  },
+  {
+   "a": "e07-04",
+   "b": "starter",
+   "heldout": true,
+   "maps": [
+    "h-1b5a",
+    "h-1cea",
+    "h-1ceb",
+    "h-1cec",
+    "h-1e78",
+    "h-1e7b",
+    "h-1e7d",
+    "h-1e7f"
+   ]
+  },
+  {
+   "a": "e07-04",
+   "b": "e04-06",
+   "heldout": true,
+   "maps": [
+    "h-1b5a",
+    "h-1cea",
+    "h-1ceb",
+    "h-1cec",
+    "h-1e78",
+    "h-1e7b",
+    "h-1e7d",
+    "h-1e7f"
+   ]
+  },
+  {
+   "a": "e07-04",
+   "b": "e05-05",
+   "heldout": true,
+   "maps": [
+    "h-1b5a",
+    "h-1cea",
+    "h-1ceb",
+    "h-1cec",
+    "h-1e78",
+    "h-1e7b",
+    "h-1e7d",
+    "h-1e7f"
+   ]
+  },
+  {
+   "a": "e07-04",
+   "b": "e06-05",
+   "heldout": true,
+   "maps": [
+    "h-1b5a",
+    "h-1cea",
+    "h-1ceb",
+    "h-1cec",
+    "h-1e78",
+    "h-1e7b",
+    "h-1e7d",
+    "h-1e7f"
+   ]
+  },
+  {
+   "a": "e07-01",
+   "b": "starter",
+   "heldout": true,
+   "maps": [
+    "h-1b5a",
+    "h-1cea",
+    "h-1ceb",
+    "h-1cec",
+    "h-1e78",
+    "h-1e7b",
+    "h-1e7d",
+    "h-1e7f"
+   ]
+  },
+  {
+   "a": "e07-01",
+   "b": "e04-06",
+   "heldout": true,
+   "maps": [
+    "h-1b5a",
+    "h-1cea",
+    "h-1ceb",
+    "h-1cec",
+    "h-1e78",
+    "h-1e7b",
+    "h-1e7d",
+    "h-1e7f"
+   ]
+  },
+  {
+   "a": "e07-01",
+   "b": "e05-05",
+   "heldout": true,
+   "maps": [
+    "h-1b5a",
+    "h-1cea",
+    "h-1ceb",
+    "h-1cec",
+    "h-1e78",
+    "h-1e7b",
+    "h-1e7d",
+    "h-1e7f"
+   ]
+  },
+  {
+   "a": "e07-01",
+   "b": "e06-05",
+   "heldout": true,
+   "maps": [
+    "h-1b5a",
+    "h-1cea",
+    "h-1ceb",
+    "h-1cec",
+    "h-1e78",
+    "h-1e7b",
+    "h-1e7d",
+    "h-1e7f"
+   ]
+  }
+ ],
+ "src_sha256": {
+  "e04-06": "6b321650e9c7d222c5e37bac34674e49a9951632f7f0dc9390402cafffdf657b",
+  "e05-05": "3ce2a5119a2f7799aa27e6b6c28bcf5b76bbe5e92c22d2a0c4686df83e3cb754",
+  "e06-05": "24a06b4e553a288a5fdb22cd6aa06dec2ead35a30e494525f2d710abb1791e68",
+  "e07-01": "b9799c010d67cf4913ea6f147516790b80abb72638d7caceaf8e3f71657cd680",
+  "e07-04": "161e372b73650ebc95143efbc17a72e5d7a7627a2516386ee504b333e1d4f70a",
+  "starter": "9023e6a089796897d6ed661f26054d1b81b298e048a09a5df75d3b9cb5d3c6a9"
+ },
+ "stage": "C"
+}
