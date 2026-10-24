@@ -35,6 +35,10 @@ bool inb(vec2 p) { return p.x >= 0 && p.y >= 0 && p.x < W && p.y < H; }
 bitboard square(vec2 c, int r) {
     bitboard b;
     b.clear();
+    if (c.x - r >= 0 && c.y - r >= 0 && c.x + r < W && c.y + r < H) {
+        b.draw_chebyshev(c, static_cast<float>(r));
+        return b;
+    }
     for (int dy = -r; dy <= r; ++dy)
         for (int dx = -r; dx <= r; ++dx) {
             const vec2 p{c.x + dx, c.y + dy};
@@ -195,6 +199,7 @@ void Bot::init() {
             adist = std::min<int>(adist, altar_field.get(t));
         }
         info.altar_dist = adist;
+        for (auto t : info.tiles) info.radius = std::max(info.radius, cheb(t, info.tiles[0]));
         all_spawns |= info.spawns;
         groups.push_back(std::move(info));
     }
@@ -250,10 +255,12 @@ void Bot::update_groups() {
     const auto vis = cambc::vision::visible_tiles();
     const int now = static_cast<int>(cambc::round_number());
     auto& handles = group_handles();
+    const vec2 pos = cambc::self().position();
     for (std::size_t i = 0; i < groups.size(); ++i) {
+        if (cheb(groups[i].tiles[0], pos) > 8 + groups[i].radius) continue;   // out of sight anyway
         bool seen = false;
         for (auto t : groups[i].tiles)
-            if (vis.is_set(t)) { seen = true; break; }
+            if (cheb(t, pos) <= 8 && vis.is_set(t)) { seen = true; break; }
         if (!seen) continue;
         const auto state = handles[i].state();
         if (const auto* r = std::get_if<cambc::map::camp_group_respawning>(&state))
@@ -263,10 +270,31 @@ void Bot::update_groups() {
     }
 }
 
-bool Bot::step_to(const bitboard& goals) {
+bool Bot::step_to(const bitboard& goals, const distance_field* far_field) {
     auto& me = cambc::self();
     if (moved || cast_lock || !me.can_move()) return false;
     const vec2 pos = me.position();
+    if (far_field) {
+        // Far from the goal: follow a precomputed terrain field and only dodge units next to us.
+        const auto cur = far_field->get(pos);
+        if (cur != UNR && cur > 8) {
+            vec2 best = pos;
+            std::uint16_t bestd = cur;
+            for (auto d : DIRS) {
+                const vec2 t{pos.x + d.x, pos.y + d.y};
+                if (!inb(t) || static_walls.is_set(t)) continue;
+                const auto fd = far_field->get(t);
+                if (fd >= bestd) continue;
+                if (cambc::vision::has_champion(t) || cambc::vision::has_camp(t)) continue;
+                bestd = fd;
+                best = t;
+            }
+            if (best != pos) {
+                moved = true;
+                return safe_move(best);
+            }
+        }
+    }
     bitboard blocked = static_walls | occupied();
     blocked.set(pos, false);
     bitboard roots = goals & ~blocked;
@@ -283,7 +311,7 @@ bool Bot::step_to(const bitboard& goals) {
         walls.set(pos, false);
         roots = goals & ~walls;
         if (roots.is_empty()) return false;
-        field.compute_to(walls, roots, square(pos, 0), visited);
+        field.compute_to(walls, roots, square(pos, 0), visited, 30);
         if (!visited.is_set(pos)) return false;
     }
     const auto cur = field.get(pos);
@@ -369,8 +397,10 @@ bool Bot::go_bank() {
     }
     free_goals &= approach;
     // A lock takes a few hits to break; only detour when a free altar is not much farther.
-    if (!free_goals.is_empty() && near_free <= near_locked + 8 && step_to(free_goals)) return true;
-    if (!moved) step_to(goals);
+    const bool no_locks = near_locked == 999;
+    if (!free_goals.is_empty() && near_free <= near_locked + 8
+        && step_to(free_goals, no_locks ? &altar_field : nullptr)) return true;
+    if (!moved) step_to(goals, &altar_field);
     return true;
 }
 
@@ -461,8 +491,8 @@ void Bot::choose_target(const distance_field& from_me, const bitboard& reach) {
         if (g.monster_hp >= 20000) continue;          // monoliths are not worth the risk
         if (g.gems == 0 && g.gold == 0) continue;
         int dist = UNR;
-        for (auto t : g.tiles)
-            if (reach.is_set(t)) dist = std::min<int>(dist, from_me.get(t));
+        for (std::size_t k = 0; k < g.tiles.size() && k < 3; ++k)
+            dist = std::min<int>(dist, from_me.get(g.tiles[k]));
         if (dist >= UNR) continue;
         const int wait = std::max(0, ready_round[i] - now);
         const int arrival = std::max(dist, wait);
@@ -523,7 +553,12 @@ bool Bot::fight_group() {
             goals &= ~static_walls;
             if (goals.is_set(pos)) goals &= cambc::map::bushes();
         }
-        if (!step_to(goals) && !moved) {
+        if (nav_key != target * 4 + 1 && cheb(pos, g.tiles[0]) > 10) {
+            bitboard walls = static_walls, visited;
+            nav_field.compute(walls, goals, visited);
+            nav_key = target * 4 + 1;
+        }
+        if (!step_to(goals, nav_key == target * 4 + 1 ? &nav_field : nullptr) && !moved) {
             if (++wait_turns > 6) {
                 banned_until[target] = now + 60;
                 target = -1;
@@ -651,11 +686,23 @@ bool Bot::fight_group() {
 }
 
 static int act = 0;
+static std::uint64_t prof[8], prof_max[8];
+#define PROF_BEGIN(i) const auto _pf##i = cambc::fuel_remaining();
+#define PROF_END(i) { const auto d = _pf##i - cambc::fuel_remaining(); prof[i] += d; prof_max[i] = std::max(prof_max[i], d); }
 static int act_count[16];
 void Bot::play_turn() {
     act = 12;
     play_turn_inner();
     act_count[act]++;
+    static std::uint64_t min_fuel = 1u << 30;
+    static int low_turns = 0;
+    const auto fr = cambc::fuel_remaining();
+    if (cambc::round_number() > 2) { min_fuel = std::min<std::uint64_t>(min_fuel, fr); if (fr < 20000) ++low_turns; }
+    if (cambc::round_number() % 400 == 0) {
+        std::cout << "FUEL r" << cambc::round_number() << " min=" << min_fuel << " low=" << low_turns;
+        for (int i = 0; i < 5; ++i) std::cout << " p" << i << "=" << prof[i] / cambc::round_number() << "/" << prof_max[i];
+        std::cout << std::endl;
+    }
     if (cambc::round_number() == 800) {
         std::cout << "ACT " << cambc::to_string(cambc::self().champion_name());
         for (int i = 0; i < 13; ++i) std::cout << " " << i << ":" << act_count[i];
@@ -678,15 +725,19 @@ void Bot::play_turn_inner() {
     act = 3;
     if (me.buffs().has_stun()) return;
     act = 4;
+    PROF_BEGIN(0)
     update_groups();
+    PROF_END(0)
 
     const int now = static_cast<int>(cambc::round_number());
     const vec2 pos = me.position();
     const bool at_spawn = own_spawn.is_set(pos);
     if (at_spawn) buy_items();
 
+    PROF_BEGIN(1)
     const auto enemies = visible_champions(team::enemy);
     const auto allies = visible_champions(team::ally);
+    PROF_END(1)
     if (!enemies.empty()) {
         last_enemy_round = now;
         // Share the sighting (bytes 6..7: round / 8, coarse 7-tile cell).
@@ -740,16 +791,19 @@ void Bot::play_turn_inner() {
     }
 
     act = 5;
+    PROF_BEGIN(2)
+    const bool threat_here = camp_threat_at(pos);
+    PROF_END(2)
     // Low health: get out of camp range, then recall.
     if (!at_spawn && hp < 0.35f * max_hp) {
-        if (camp_threat_at(pos)) {
+        if (threat_here) {
             std::vector<vec2> threats;
             for (auto p : cambc::vision::camp_tiles().positions())
                 if (cheb(p, pos) <= 5) threats.push_back(p);
             if (flee(threats)) return;
         }
         if (gems > 0 && altar_field.get(pos) <= 1 && go_bank()) return;
-        if (!camp_threat_at(pos)) { me.recall(); return; }
+        if (!threat_here) { me.recall(); return; }
     }
     act = 6;
     if (at_spawn && hp < 0.9f * max_hp && enemies.empty()) return;
@@ -757,7 +811,7 @@ void Bot::play_turn_inner() {
 
     // Recall early to shop and heal.
     if (!at_spawn && gems < 10 && (me.gold_count() >= SHOP_GOLD || (hp < 0.6f * max_hp && me.gold_count() >= 90))
-        && spawn_field.get(pos) > 6 && !camp_threat_at(pos) && enemies.empty()) {
+        && spawn_field.get(pos) > 6 && !threat_here && enemies.empty()) {
         me.recall();
         return;
     }
@@ -765,7 +819,7 @@ void Bot::play_turn_inner() {
     // Banking: tribute when an altar is close, the bag is big, or enemies were seen recently.
     bool capturing = false;
     if (target >= 0 && groups[target].spawns.is_set(pos)) capturing = true;
-    const bool engaged = camp_threat_at(pos);
+    const bool engaged = threat_here;
     if (gems > 0 && !capturing && !engaged) {
         const int adist = altar_field.get(pos);
         const bool threatened = (now - last_enemy_round < 12 && (gems >= 12 || adist <= 6))
@@ -781,11 +835,18 @@ void Bot::play_turn_inner() {
     // Farming.
     distance_field from_me;
     bitboard reach;
-    {
-        bitboard walls = static_walls;
-        from_me.compute(walls, square(pos, 0), reach);
-    }
-    if (target < 0 || (now % 5 == 0 && !engaged && !capturing)) choose_target(from_me, reach);
+    bool have_field = false;
+    auto rechoose = [&] {
+        if (!have_field) {
+            bitboard walls = static_walls;
+            from_me.compute(walls, square(pos, 0), reach);
+            have_field = true;
+        }
+        choose_target(from_me, reach);
+    };
+    PROF_BEGIN(3)
+    if (target < 0 || (now % 8 == 0 && !engaged && !capturing)) rechoose();
+    PROF_END(3)
     if (all_spawns.is_set(pos) && !capturing && !engaged) {
         // Never block a camp group's respawn by idling on its spawn tiles.
         bool needed = false;
@@ -795,10 +856,12 @@ void Bot::play_turn_inner() {
         }
         if (!needed) step_to(square(pos, 2) & ~all_spawns & ~static_walls);
     }
+    PROF_BEGIN(4)
     for (int tries = 0; tries < 4 && target >= 0 && !fight_group(); ++tries) {
         if (target >= 0) banned_until[target] = std::max(banned_until[target], now + 1);
-        choose_target(from_me, reach);
+        rechoose();
     }
+    PROF_END(4)
     // No move, attack or cast while farming: count towards giving the group up.
     const bool idle_turn = target >= 0 && !moved && !cast_lock && me.can_attack()
         && !(target >= 0 && groups[target].spawns.is_set(pos));

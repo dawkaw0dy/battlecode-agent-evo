@@ -12,6 +12,7 @@ struct GroupInfo {
     float monster_hp = 0, cluster_hp = 0, strength = 0;
     int max_range = 0, monsters = 0, respawn = 0;
     int altar_dist = 0;                  // path distance from the group to the nearest altar
+    int radius = 0;                      // Chebyshev extent from tiles[0]
 };
 
 // A visible champion snapshot.
@@ -33,13 +34,14 @@ class Bot {
     cambc::vec2 team_enemy_pos{};
     bool moved = false, cast_lock = false;
     cambc::bitboard static_walls, approach, own_spawn, all_spawns;
-    cambc::distance_field spawn_field, altar_field;
+    cambc::distance_field spawn_field, altar_field, nav_field;
+    int nav_key = -1;
 
     void init();
     void buy_items();
     void update_groups();
     void choose_target(const cambc::distance_field& from_me, const cambc::bitboard& reach);
-    bool step_to(const cambc::bitboard& goals);
+    bool step_to(const cambc::bitboard& goals, const cambc::distance_field* far_field = nullptr);
     bool flee(const std::vector<cambc::vec2>& threats);
     bool go_bank();
     bool fight_group();
