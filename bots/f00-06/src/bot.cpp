@@ -33,6 +33,7 @@ constexpr int kGatherDist = 3;
 constexpr int kGatherWait = 8;
 constexpr int kLeadAhead = 3;
 constexpr int kGolemRound = 400;
+constexpr int kMonoRound = 700;
 constexpr int kStallRounds = 90;
 constexpr float kSoloRecallHp = 0.25f;
 
@@ -675,7 +676,8 @@ int choose_target(Ctx& c) {
     float best_score = 0;
     for (std::size_t i = 0; i < w.groups.size(); ++i) {
         const auto& g = w.groups[i];
-        if (g.tiles.empty() || g.mono || !g.reachable) continue;
+        if (g.tiles.empty() || !g.reachable) continue;
+        if (g.mono && (c.round < kMonoRound || bodies < 4)) continue;
         if (g.golem && c.round < kGolemRound) continue;
         if (g.skip_until > c.round) continue;
         const int d = group_distance(g, c.pos);
