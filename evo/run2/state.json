@@ -40,15 +40,18 @@
   },
   "f00-01": {
    "archetype": "altar-control",
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evolution-f00-01-2pdgqp",
+   "commit": "396f42f9002b1cd6e9957afe4bfe79c0b549321c",
    "deadline_minutes": 180,
+   "done_at": 1792849941,
+   "effort_level": "high",
    "evidence": [],
    "failed_ideas": [],
    "focus": null,
    "generation": 0,
    "id": "f00-01",
    "kind": "immigrant",
+   "model": null,
    "nudged": [
     "session_01X7GNKk3dxUxVcVBoNxDdiS"
    ],
@@ -70,20 +73,23 @@
    ],
    "slot": 1,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "98a7ba6c7b0ba04ad413cef28201639f58b24f665584a8cd70c82fe5cecdd396"
   },
   "f00-02": {
    "archetype": "safe-banker",
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evolution-agent-f00-02-jjfh8u",
+   "commit": "27b346cf0d80fdfced75cbd9cda07a52a93599ce",
    "deadline_minutes": 180,
+   "done_at": 1792849944,
+   "effort_level": "high",
    "evidence": [],
    "failed_ideas": [],
    "focus": null,
    "generation": 0,
    "id": "f00-02",
    "kind": "immigrant",
+   "model": null,
    "nudged": [
     "session_01T9a4DEaRx34LkbgiQJuigb"
    ],
@@ -105,20 +111,23 @@
    ],
    "slot": 2,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "a76b566a75683369cf058863a162c7047fae73735475fd3932f8723caf0cdd0d"
   },
   "f00-03": {
    "archetype": "split-farm",
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evolution-agent-f00-03-mi28rz",
+   "commit": "9573ad6edf74c3141d3216e12ef5b2c879992c99",
    "deadline_minutes": 180,
+   "done_at": 1792849946,
+   "effort_level": "high",
    "evidence": [],
    "failed_ideas": [],
    "focus": null,
    "generation": 0,
    "id": "f00-03",
    "kind": "immigrant",
+   "model": null,
    "nudged": [
     "session_01CmUtKuVJa7srUhBwvFaHEe"
    ],
@@ -140,20 +149,23 @@
    ],
    "slot": 3,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "1b2a65e1ebf9d6179ceca784b7b947d7c17f7b1e6ade73cb65836ff72dd51bda"
   },
   "f00-04": {
    "archetype": "big-game-hunter",
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evolution-agent-f00-04-t313o8",
+   "commit": "ad0cee69abaa4d9a2f926e396b454199d76b57f8",
    "deadline_minutes": 180,
+   "done_at": 1792849949,
+   "effort_level": "high",
    "evidence": [],
    "failed_ideas": [],
    "focus": null,
    "generation": 0,
    "id": "f00-04",
    "kind": "immigrant",
+   "model": null,
    "nudged": [
     "session_01773fjh1VqQ7vQjUYyYCXpz"
    ],
@@ -175,7 +187,7 @@
    ],
    "slot": 4,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "6634a10aaca2f7856d983aa0de49acc5987ce4b27fa0f37cd04fa41cfb304cd9"
   },
   "f00-05": {
@@ -224,7 +236,9 @@
    "generation": 0,
    "id": "f00-06",
    "kind": "immigrant",
-   "nudged": [],
+   "nudged": [
+    "session_01VHvYpc3yCmgYkTggAmmLqp"
+   ],
    "operator": null,
    "parents": [
     "starter"
@@ -318,7 +332,11 @@
   "2026-10-24T11:10:24Z g00 f00-05: launched session_01Pbae7zDNdBYNjteJNfVcaE",
   "2026-10-24T11:10:40Z g00 f00-06: launched session_01VHvYpc3yCmgYkTggAmmLqp",
   "2026-10-24T13:50:33Z g00 f00-00: done on origin/claude/evolution-f00-00-2lrewg at 010960f4c3",
-  "2026-10-24T13:51:09Z g00 f00-07: launched session_01JezuLUfbCXZ6xG6xtgPh4u"
+  "2026-10-24T13:51:09Z g00 f00-07: launched session_01JezuLUfbCXZ6xG6xtgPh4u",
+  "2026-10-24T13:52:21Z g00 f00-01: done on origin/claude/evolution-f00-01-2pdgqp at 396f42f900",
+  "2026-10-24T13:52:24Z g00 f00-02: done on origin/claude/evolution-agent-f00-02-jjfh8u at 27b346cf0d",
+  "2026-10-24T13:52:26Z g00 f00-03: done on origin/claude/evolution-agent-f00-03-mi28rz at 9573ad6edf",
+  "2026-10-24T13:52:29Z g00 f00-04: done on origin/claude/evolution-agent-f00-04-t313o8 at ad0cee69ab"
  ],
  "paused": null,
  "phase": "RUNNING",
