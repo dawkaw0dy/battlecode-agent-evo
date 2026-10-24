@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <iostream>
 #include <optional>
+#include <string>
 #include <variant>
 #include <vector>
 
@@ -58,6 +59,8 @@ struct Group {
     std::vector<vec2> tiles;
     int gems = 0, gold = 0, hp = 0, str = 0, range = 0, big = 0;
     int avail = 0;      // first round we expect the group to be alive again
+    int state = 0;      // last seen: 0 unknown, 1 alive, 2 reward available, 3 respawning
+    int state_round = -1;
     int bad_until = 0;  // unreachable or stuck: skip until this round
 };
 
@@ -109,9 +112,21 @@ void write_note(int g, int avail) {
     cambc::shared_memory[3 + 2 * slot] = static_cast<std::uint8_t>(std::min(255, (avail + 15) / 16));
 }
 
+// Camps never move: remember where living camps stand even when they are out of sight, so paths
+// do not flip between "through the camp" and "around it" as vision changes.
+bitboard remembered_camps() {
+    bitboard b;
+    b.clear();
+    for (auto& g : groups)
+        if (!(g.state == 2 || (g.state == 3 && g.avail > now))) b |= g.spawns;
+    const auto vis = cambc::vision::visible_tiles();
+    b &= ~vis;
+    b |= cambc::vision::camp_tiles();
+    return b;
+}
+
 bitboard blocked_now() {
-    auto b = terrain | cambc::vision::champion_tiles() | cambc::vision::camp_tiles()
-        | cambc::vision::teleport_tiles();
+    auto b = terrain | cambc::vision::champion_tiles() | remembered_camps() | cambc::vision::teleport_tiles();
     b.set(cambc::self().position(), false);
     return b;
 }
@@ -525,15 +540,22 @@ void observe_groups() {
             if (handles[i] == vg) { gi = i; break; }
         if (gi < 0) continue;
         auto& g = groups[gi];
-        if (!(camps & g.spawns).is_empty()) { g.avail = std::min(g.avail, now); continue; }
+        g.state_round = now;
+        if (!(camps & g.spawns).is_empty()) { g.avail = std::min(g.avail, now); g.state = 1; continue; }
         try {
             auto st = vg.state();
             if (auto r = std::get_if<cambc::map::camp_group_respawning>(&st)) {
-                int a = now + std::max(1, static_cast<int>(r->timer));
+                // Timer zero: respawn is blocked by someone standing on a spawn tile.
+                int a = now + std::max(3, static_cast<int>(r->timer));
                 if (a > g.avail + 2) write_note(gi, a);
                 g.avail = a;
+                g.state = 3;
+            } else if (std::holds_alternative<cambc::map::camp_group_reward_available>(st)) {
+                g.avail = std::min(g.avail, now);
+                g.state = 2;
             } else {
                 g.avail = std::min(g.avail, now);
+                g.state = 1;
             }
         } catch (const std::exception&) {
         }
@@ -593,6 +615,7 @@ bool target_valid(int t) {
     auto& g = groups[t];
     if (g.bad_until > now) return false;
     int d = dist(cambc::self().position(), g.tiles[0]);
+    if (g.state == 3 && g.avail > now + d) return false;
     return g.avail <= now + d + 15;
 }
 
@@ -718,9 +741,15 @@ void hunt(const std::vector<Foe>& camps, const std::vector<Ally>& allies) {
     // No living camp in sight. Is the target in vision?
     bool seen = !(cambc::vision::visible_tiles() & g.spawns).is_empty();
     if (seen) {
-        if (g.avail > now + 1) {
-            // Respawning: pick another target next turn.
+        if (g.state == 3 && g.state_round == now) {
+            // Respawning: pick another target, and get off its spawn tiles so it can respawn.
             write_target(-1);
+            int nt = choose_target();
+            if (nt >= 0 && nt != t) write_target(nt);
+            if (g.spawns.is_set(pos)) {
+                std::vector<vec2> th{pos};
+                step_away(th);
+            }
             return;
         }
         // Reward available (or about to be): stand on a free spawn tile of the group.
@@ -811,6 +840,9 @@ void Bot::play_turn() {
     const vec2 pos = me.position();
     const bool at_spawn = ally_spawn.is_set(pos);
     if (at_spawn) buy_items();
+    if (now % 50 == 0)
+        std::cout << "st r" << now << " " << static_cast<int>(my_type) << " p" << pos.x << "," << pos.y << " hp" << me.health()
+                  << " gems" << me.gem_count() << " gold" << me.gold_count() << " t" << read_target() << '\n';
 
     read_notes();
     observe_groups();
@@ -872,7 +904,7 @@ void Bot::play_turn() {
         bool late = now >= 1850;
         if (gems >= 40 || win_now || late || (ad <= 8 && gems >= 8) || (ad <= 3)) {
             bool fighting_awake = false;
-            for (auto& c : camps) if (c.awake && dist(c.pos, pos) <= c.range + 1) fighting_awake = true;
+            for (auto& c : camps) if (c.awake && c.str > 0 && dist(c.pos, pos) <= c.range) fighting_awake = true;
             if (!fighting_awake || win_now) {
                 if (do_tribute()) return;
             }
