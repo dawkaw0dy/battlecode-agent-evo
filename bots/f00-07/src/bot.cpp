@@ -1008,6 +1008,17 @@ bool respond_to_call() {
     const int sy = cambc::shared_memory[kSightY];
     const int sr = cambc::shared_memory[kSightR];
     const int sf = cambc::shared_memory[kSightF];
+    // An enemy tributing at an altar is channelling with a full bag: the best ambush there is.
+    if (sx != 0xff && round_age(sr) <= 2 && (sf & 16) && (sf & 7) <= 2) {
+        const vec2 s{sx, sy};
+        const int d = dist(s, pos);
+        if (d > 2 && d <= 16 && !g_enemy_spawn_zone.is_set(s)) {
+            bitboard goals;
+            square(goals, s, 2);
+            goals &= ~g_static_walls;
+            if (step_dynamic(goals, 24, false)) return true;
+        }
+    }
     if (sx != 0xff && round_age(sr) <= 2 && (sf & 8) && (sf & 7) <= 1) {
         const vec2 s{sx, sy};
         const int d = dist(s, pos);
