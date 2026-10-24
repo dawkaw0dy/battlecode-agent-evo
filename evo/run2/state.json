@@ -306,9 +306,11 @@
   },
   "f01-01": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evolution-f01-01-o4wv8s",
+   "commit": "2562344868aac5a1bae022b691a15517384b2f55",
    "deadline_minutes": 120,
+   "done_at": 1792866693,
+   "effort_level": "high",
    "evidence": [
     {
      "gems_opponent": 1070,
@@ -356,6 +358,7 @@
    "generation": 1,
    "id": "f01-01",
    "kind": "child",
+   "model": null,
    "nudged": [
     "session_01UW9jv8Ju7GyWXuJLMR4Adr"
    ],
@@ -377,7 +380,7 @@
    ],
    "slot": 1,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "71e9bf8f5477840d05147934a4856003abbdd66ae14693b5cedf00f7c43deb9c"
   },
   "f01-02": {
@@ -432,7 +435,9 @@
    "generation": 1,
    "id": "f01-02",
    "kind": "child",
-   "nudged": [],
+   "nudged": [
+    "session_01Gh66GxLLXpcTC7PEVC9uML"
+   ],
    "operator": "subsystem",
    "parents": [
     "f00-03"
@@ -506,7 +511,9 @@
    "generation": 1,
    "id": "f01-03",
    "kind": "child",
-   "nudged": [],
+   "nudged": [
+    "session_014UdZb764jesDfpmhBqiQdD"
+   ],
    "operator": "crossover",
    "parents": [
     "f00-03",
@@ -581,7 +588,9 @@
    "generation": 1,
    "id": "f01-04",
    "kind": "child",
-   "nudged": [],
+   "nudged": [
+    "session_01PwnWUfngPqCzR2CyUmAr2V"
+   ],
    "operator": "tweak",
    "parents": [
     "f00-00"
@@ -655,7 +664,9 @@
    "generation": 1,
    "id": "f01-05",
    "kind": "child",
-   "nudged": [],
+   "nudged": [
+    "session_01ECvaF6hVGChQiz6YU3N1Cn"
+   ],
    "operator": "subsystem",
    "parents": [
     "f00-00"
@@ -704,7 +715,9 @@
    "generation": 1,
    "id": "f01-06",
    "kind": "immigrant",
-   "nudged": [],
+   "nudged": [
+    "session_01EkEwfGNeT65esUX5cBiMA1"
+   ],
    "operator": null,
    "parents": [
     "starter"
@@ -753,7 +766,9 @@
    "generation": 1,
    "id": "f01-07",
    "kind": "immigrant",
-   "nudged": [],
+   "nudged": [
+    "session_01LZ2GPZrdTvTuN8tVN5UV1Z"
+   ],
    "operator": null,
    "parents": [
     "starter"
@@ -2886,7 +2901,8 @@
   "2026-10-24T16:50:06Z g01 f01-04: launched session_01PwnWUfngPqCzR2CyUmAr2V",
   "2026-10-24T16:50:16Z g01 f01-05: launched session_01ECvaF6hVGChQiz6YU3N1Cn",
   "2026-10-24T16:50:27Z g01 f01-06: launched session_01EkEwfGNeT65esUX5cBiMA1",
-  "2026-10-24T16:50:36Z g01 f01-07: launched session_01LZ2GPZrdTvTuN8tVN5UV1Z"
+  "2026-10-24T16:50:36Z g01 f01-07: launched session_01LZ2GPZrdTvTuN8tVN5UV1Z",
+  "2026-10-24T18:31:33Z g01 f01-01: done on origin/claude/evolution-f01-01-o4wv8s at 2562344868"
  ],
  "paused": null,
  "phase": "RUNNING",
