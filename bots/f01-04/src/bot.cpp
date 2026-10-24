@@ -19,6 +19,7 @@ constexpr int far_away = 9999;
 constexpr bool trace = false;
 constexpr bool dash_travel = true; // dash down travel fields when no enemy is in sight
 constexpr int dash_min = 2;        // only dash with at least this many steps left
+constexpr int dash_enemy_clear = 6; // no travel dash with an enemy this close (Chebyshev)
 constexpr bool dash_escape = false; // dash out of threat when retreating
 constexpr bool block_allies = true; // treat all ally positions as occupied when stepping
 constexpr bool dash_chase = false;  // melee dash next to a chased enemy
@@ -309,7 +310,9 @@ bool Bot::step_along(const Field& field, bool roots_are_targets) {
     {
         const bool sticky_now = detour && detour_for == &field && round <= detour_until;
         const Field& f = sticky_now ? *detour : field;
-        if (dash_travel && enemies.empty() && f.at(me.position()) >= dash_min)
+        bool enemy_near = false;
+        for (const auto& e : enemies) enemy_near |= cheb(e.pos, me.position()) <= dash_enemy_clear;
+        if (dash_travel && !enemy_near && f.at(me.position()) >= dash_min)
             try_dash([&](vec2 t) { return f.at(t); }, 2, blocked_bits);
         if (walked_fail || !me.can_move()) return false;
     }
