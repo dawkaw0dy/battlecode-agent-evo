@@ -18,6 +18,8 @@ using cambc::team;
 constexpr bool kUseMemo = false;      // count enemies seen in the last rounds
 constexpr bool kFleeHpGate = true;    // keep retreating out of sight only while hurt
 constexpr bool kTradeAlways = false;  // trade blows whenever fleeing cannot avoid them
+constexpr int kHelpRadius = 12, kHelpCount = 2;  // answer ally reports of this many enemies this close
+constexpr bool kTradeWhenDoomed = false;  // trade when home is out of reach anyway
 constexpr bool kFleeStep = true;      // threat-aware flee steps instead of the home path
 constexpr bool kAvoidSpawnCampers = true;  // keep out of reach of enemies on their spawn
 
@@ -1056,8 +1058,8 @@ bool Bot::handle_enemies() {
         }
         // Answer an ally's report of an invader nearby.
         const Report r = read_report();
-        if (r.round > -1000 && r.slot != slot_ && now - r.round <= 3 && in_bounds(r.where) && dist(r.where, pos) <= 12
-            && hp_frac > 0.6f && me.gem_count() < 40 && r.count <= 2 && incoming_ == 0) {
+        if (r.round > -1000 && r.slot != slot_ && now - r.round <= 3 && in_bounds(r.where) && dist(r.where, pos) <= kHelpRadius
+            && hp_frac > 0.6f && me.gem_count() < 40 && r.count <= kHelpCount && incoming_ == 0) {
             auto goal = empty_board();
             add_box(goal, r.where, 2);
             goal &= ~static_walls_ally();
@@ -1153,7 +1155,10 @@ bool Bot::handle_enemies() {
         const float victim_hp = v >= 0 ? threats[static_cast<size_t>(v)].hp : 1e9f;
         const float to_kill = 1 + std::max(0.0f, victim_hp - burst) / std::max(1.0f, me.strength());
         const float to_die = me.health() / std::max(1.0f, incoming);
-        if (in_range && hit_anyway && (kTradeAlways ? hp_frac >= 0.12f : to_kill <= to_die + 0.5f) && home_.at(pos) > 2) {
+        // Home too far to reach alive: running only wastes the damage we could still deal.
+        const int escape = home_walk_.at(pos) >= unreached ? 99 : home_walk_.at(pos);
+        const bool doomed = kTradeWhenDoomed && escape > to_die + 1;
+        if (in_range && hit_anyway && (kTradeAlways ? hp_frac >= 0.12f : (to_kill <= to_die + 0.5f || doomed)) && home_.at(pos) > 2) {
             fight_spells(threats, burst);
             fight_attack(threats, burst);
             return true;
