@@ -1,0 +1,168 @@
+{
+ "env_manifest_sha256": "54eb070b451545432474025de1d9caf3a5088efc5c73bd5cae48adeb56c738fa",
+ "generation": 1,
+ "heldout_repo": "dawkaw0dy/battlecode-agent-evo-heldout",
+ "job_id": "r01-B-spot",
+ "map_sha256": {
+  "00fragment": "46512bf4fe1fc57d1651b15d44c283cac69cfce1914a5000d19fab979f5b8bbb",
+  "00gemfight": "1dfe5669ebcdf39e7769b5abf933c707804ee4a216881f89178e75e3dbc27239",
+  "00lanes": "8ca26ed2ea65c7d80ceb9604a7431ca1dc056922912b4e2f46cad06051e4886a",
+  "00lost-world": "566697c98eace1c84152f571e9e1fa0b54ec64e038e4695305c874bd3dc2bc6e",
+  "00rows": "6a4203ae1bfe86ad0f6b083f390cfd8e2f5e45f7e4102f6a2f27205d5333e701",
+  "01boss-battle": "53086e249294aed6f427fe647d578303589a081e953c62a0ff8f20cade9993fa",
+  "01broken-curve": "1763423b171f3b61128b2a913a10f46ba550e7a2e79ae27dd89e915c952b5117",
+  "01fracture": "f82a1b99a7a70f8ab21f275dc8e22fbad6a71030f09fdd224d61977fe55dd914",
+  "01gold-rush": "6e564fdf09fdf67a4182a909d6985737b488742e64f2c3e164204e78bc64c898",
+  "01shortcut": "f77db387292e66a8aad7e912c179787db0c41b6632ee841a21593dfc279ecb3a",
+  "01the-farm": "5cca9ed6eaaf6ef15a170a4ea78488237fda7b256e182a2e3360a14b485e09c3",
+  "h-1b5d": "5807dc75e0b71b41a1dc927fa5bc564988d4289782b56ba872aecc28a8b61885",
+  "h-1cea": "0b16829d8987fefc580849704961b7f776e39a1ca621fb0051f6fcda8f692ede",
+  "h-1e78": "759985b04766d669cdee5f6ca49283c945be4044bcefa20ceaeba0f73baaa199",
+  "h-1e7a": "770ec046edcf0c02690086c001ca3e681601d290f83f4f18a10dd4128116eecb",
+  "h-1e7e": "a1f7ddbf8cd539ca85a063e7f7b4a4761277aee24b88ecf8b942a1fa24ee0e40"
+ },
+ "runner_version": "cambc==3.0.5",
+ "runs_on": "ubuntu-22.04",
+ "shards": [
+  {
+   "a": "f01-01",
+   "b": "f00-03",
+   "maps": [
+    "01broken-curve"
+   ]
+  },
+  {
+   "a": "f01-01",
+   "b": "f00-03",
+   "heldout": true,
+   "maps": [
+    "h-1e7a"
+   ]
+  },
+  {
+   "a": "f01-01",
+   "b": "f01-02",
+   "maps": [
+    "00rows",
+    "01the-farm"
+   ]
+  },
+  {
+   "a": "f01-01",
+   "b": "f01-07",
+   "maps": [
+    "00fragment"
+   ]
+  },
+  {
+   "a": "f01-01",
+   "b": "starter",
+   "maps": [
+    "00lost-world",
+    "01gold-rush"
+   ]
+  },
+  {
+   "a": "f01-01",
+   "b": "starter",
+   "heldout": true,
+   "maps": [
+    "h-1b5d",
+    "h-1e78"
+   ]
+  },
+  {
+   "a": "f01-02",
+   "b": "starter",
+   "heldout": true,
+   "maps": [
+    "h-1e7e"
+   ]
+  },
+  {
+   "a": "f01-03",
+   "b": "f00-03",
+   "maps": [
+    "01fracture",
+    "01gold-rush"
+   ]
+  },
+  {
+   "a": "f01-03",
+   "b": "f01-01",
+   "maps": [
+    "00gemfight",
+    "01the-farm"
+   ]
+  },
+  {
+   "a": "f01-03",
+   "b": "f01-02",
+   "maps": [
+    "01boss-battle"
+   ]
+  },
+  {
+   "a": "f01-03",
+   "b": "f01-02",
+   "heldout": true,
+   "maps": [
+    "h-1e78"
+   ]
+  },
+  {
+   "a": "f01-03",
+   "b": "f01-07",
+   "maps": [
+    "00lanes"
+   ]
+  },
+  {
+   "a": "f01-03",
+   "b": "f01-07",
+   "heldout": true,
+   "maps": [
+    "h-1b5d"
+   ]
+  },
+  {
+   "a": "f01-03",
+   "b": "starter",
+   "maps": [
+    "00fragment"
+   ]
+  },
+  {
+   "a": "f01-07",
+   "b": "f00-03",
+   "maps": [
+    "01shortcut"
+   ]
+  },
+  {
+   "a": "f01-07",
+   "b": "f00-03",
+   "heldout": true,
+   "maps": [
+    "h-1cea"
+   ]
+  },
+  {
+   "a": "f01-07",
+   "b": "f01-02",
+   "heldout": true,
+   "maps": [
+    "h-1e7e"
+   ]
+  }
+ ],
+ "src_sha256": {
+  "f00-03": "e82e392a93a87be2051fbcc9deac0f5041cca7518abbb32d291e19f6a23a5729",
+  "f01-01": "09b7c43dffaa3c843180378ea688cd9e9f7746a55047058ce085620f58841249",
+  "f01-02": "f798bbb8a86bfc5e801b2604e4634a12c51741d11e20da270675801ff7d60df9",
+  "f01-03": "625e676d2b48d7ae2ad7777e7a1d29d848f4826ca348bdeb690dfc750a6e548e",
+  "f01-07": "cd09b4530e45e1a31827447093b349c4c5d2b1fc1ba60d885780391e8ea954a3",
+  "starter": "9023e6a089796897d6ed661f26054d1b81b298e048a09a5df75d3b9cb5d3c6a9"
+ },
+ "stage": "spot"
+}
