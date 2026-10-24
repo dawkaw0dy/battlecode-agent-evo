@@ -813,7 +813,7 @@ int choose_group() {
         // Damage the tank takes while clearing.
         const float dmg = G.str * clear * 0.8f;
         const float budget = me.health() * 0.85f;
-        float value = G.gems + kGoldWeight * G.gold;
+        float value = G.gems + std::min(kGoldWeight * G.gold, 60.f);  // gold roads must not outweigh gems
         if (G.boss) {
             // Monolith: only with a strong pack; its damage moves to the next champion as each one retreats.
             if (helpers < 3 || dmg > 0.6f * helpers * me.health()) continue;
