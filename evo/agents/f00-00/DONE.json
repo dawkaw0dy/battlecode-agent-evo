@@ -1,0 +1,27 @@
+{
+ "agent": "f00-00",
+ "task_sha256": "c6a0ba567e4b837f41ecaaa893a7d88c4ed6f9b0a464a4323876be21be1cec6f",
+ "base_commit": "cacbd3f5f84121b4ea87abe77ce09a17deed0df3",
+ "session_id": "cse_018eCFz8qxksWFM1NFYphzjz",
+ "bot_dir": "bots/f00-00",
+ "self_eval": {
+  "vs": "starter",
+  "games": 80,
+  "wins": 79
+ },
+ "games_played": 890,
+ "summary": "Map-reader: draft-time plan (spread/pack/skirmish + boss-guarded altar) in draft memory; kill-order group scoring, camp-aware detours, fight ratio; 79/79 valid vs starter on 40 maps, 27/40 vs run-1 champion e07-05.",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "8225c1d38b5a90c91456d4d0b6d77f40901d162fdd30888c6a2d6aba7c249335",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 27.12,
+  "remote": "true",
+  "session_id": "cse_018eCFz8qxksWFM1NFYphzjz",
+  "effort_level": "high",
+  "model": null
+ }
+}
