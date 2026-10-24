@@ -48,7 +48,9 @@ class Bot {
     int hold_start_ = 0, last_hold_ = -10;
     bool cant_spend_ = false;             // the shop refused our last purchase
     int spawn_wait_ = 0;                  // turns spent waiting on spawn to heal
+    int gap_start_ = 0, gap_last_ = -10;  // waiting for a champion to clear a gap
     cambc::vec2 pos_{};                   // our position, refreshed before position-dependent planning
+    std::vector<cambc::bitboard> group_tiles_;   // camp spawn tiles per group
     std::vector<std::int16_t> camp_group_at_;  // tile -> group index of the camp spawned there, -1 if none
     int blocker_group_ = -1, blocker_since_ = 0;  // living camps walling us in: clear them
 

@@ -34,6 +34,14 @@ void add_box(cambc::bitboard& board, vec2 c, int r) {
         }
 }
 
+// Chebyshev dilation with whole-board shifts: a few host calls instead of one per tile.
+cambc::bitboard dilate(const cambc::bitboard& board, int r) {
+    cambc::bitboard out = board;
+    for (int i = 0; i < r; ++i) out = out | out.shift_right(1) | out.shift_right(-1);
+    for (int i = 0; i < r; ++i) out = out | out.shift_up(1) | out.shift_up(-1);
+    return out;
+}
+
 cambc::bitboard empty_board() {
     cambc::bitboard b;
     b.clear();
@@ -57,7 +65,7 @@ const Grid8& hard_walls_local() {  // walls and altars: what a dash cannot pass
 
 // Vision snapshot, refreshed after anything that changes what we see.
 struct View {
-    cambc::bitboard camps, champs, teleports;
+    cambc::bitboard visb, camps, champs, teleports;
     Grid8 vis, lcamps, lchamps, ltele;
     bool valid = false;
 };
@@ -67,7 +75,8 @@ std::vector<std::pair<vec2, float>> g_camp_hp;
 void invalidate_view() { g_view.valid = false; g_camp_hp.clear(); }
 const View& view() {
     if (!g_view.valid) {
-        g_view.vis.load(cambc::vision::visible_tiles());
+        g_view.visb = cambc::vision::visible_tiles();
+        g_view.vis.load(g_view.visb);
         g_view.camps = cambc::vision::camp_tiles();
         g_view.champs = cambc::vision::champion_tiles();
         g_view.teleports = cambc::vision::teleport_tiles();
@@ -204,6 +213,7 @@ void Bot::initialise() {
         for (const auto& c : handles_[i].camps()) known_[i].hp.push_back(camp_max_hp(c.kind()));
     group_field_.assign(groups_.size(), Grid16{});
     camp_group_at_.assign(static_cast<size_t>(map_w() * map_h()), -1);
+    for (size_t i = 0; i < groups_.size(); ++i) group_tiles_.push_back(handles_[i].spawn_tiles());
     for (size_t i = 0; i < groups_.size(); ++i)
         for (auto t : groups_[i].tiles) camp_group_at_[static_cast<size_t>(tile_index(t))] = static_cast<std::int16_t>(i);
 
@@ -508,7 +518,14 @@ bool Bot::step_to(const cambc::bitboard& goals_in, bool allow_dash) {
                     }
                     return false;
                 }
-                if (view().lchamps.at(t)) return true;  // a champion in the gap: wait for it to move
+                if (view().lchamps.at(t)) {
+                    // A champion in the gap: wait a little for it to move, then go round.
+                    const int now = static_cast<int>(cambc::round_number());
+                    if (now != gap_last_ + 1) gap_start_ = now;
+                    gap_last_ = now;
+                    if (now - gap_start_ < 5) return true;
+                    break;
+                }
             }
             if (dyn >= unreached) {
                 field = plain;
@@ -721,18 +738,23 @@ void Bot::cast_spells(int group) {
 
 bool Bot::disengage_from_camps() {
     auto& me = cambc::self();
-    auto danger = empty_board();
+    std::array<cambc::bitboard, 6> by_range;
+    for (auto& b : by_range) b.clear();
     bool any = false;
     for (auto p : view().camps.positions()) {
         if (dist(p, me.position()) > 6) continue;
         try {
             auto c = cambc::vision::camp_at(p);
             if (!c.is_awake()) continue;
-            add_box(danger, p, camp_range(c.kind()));
+            by_range[static_cast<size_t>(std::clamp(camp_range(c.kind()), 0, 5))].set(p);
             any = true;
         } catch (const std::exception&) {}
     }
-    if (!any || !danger.is_set(me.position())) return false;
+    if (!any) return false;
+    auto danger = empty_board();
+    for (int r = 1; r <= 5; ++r)
+        if (!by_range[static_cast<size_t>(r)].is_empty()) danger |= dilate(by_range[static_cast<size_t>(r)], r);
+    if (!danger.is_set(me.position())) return false;
     auto safe = empty_board();
     safe.fill();
     safe &= ~danger;
@@ -1003,8 +1025,7 @@ void Bot::farm(int group) {
 
     if (k.state == Known::reward) {
         // Stand on a spawn tile until the capture completes.
-        auto spawns = empty_board();
-        for (auto t : groups_[group].tiles) spawns.set(t);
+        const auto& spawns = group_tiles_[group];
         const int now = static_cast<int>(cambc::round_number());
         if (spawns.is_set(me.position())) {
             if (capture_group_ != group) { capture_group_ = group; capture_since_ = now; }
@@ -1019,9 +1040,7 @@ void Bot::farm(int group) {
     }
     if (k.state == Known::respawning) {
         // Wait nearby without standing on the spawn tiles (that would delay the respawn).
-        auto near = empty_board();
-        for (auto t : groups_[group].tiles) add_box(near, t, 2);
-        for (auto t : groups_[group].tiles) near.set(t, false);
+        auto near = dilate(group_tiles_[group], 2) & ~group_tiles_[group];
         near &= ~static_walls_ally();
         if (!near.is_set(me.position())) step_to(near, true);
         return;
@@ -1034,12 +1053,9 @@ void Bot::farm(int group) {
     }
     // Approach: tiles within attack range of any living camp in the group.
     const int r = std::max(1, me.attack_range() - approach_shrink_);
-    auto goal = empty_board();
-    for (auto t : groups_[group].tiles) {
-        if (view().vis.at(t) && !view().lcamps.at(t)) continue;
-        add_box(goal, t, r);
-    }
-    goal &= ~static_walls_ally();
+    // Living (or unseen) camp tiles of the group, grown by our range.
+    const auto living = group_tiles_[group] & ~(view().visb & ~view().camps);
+    auto goal = dilate(living, r) & ~static_walls_ally();
     if (goal.is_set(me.position()) && approach_shrink_ < me.attack_range() - 1) ++approach_shrink_;
     step_to(goal, e > 3);
     if (me.attack_range() <= 1 && attack_group(group)) reset_and_hit(group);
