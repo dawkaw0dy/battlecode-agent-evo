@@ -4644,12 +4644,14 @@
    "status": "verified"
   },
   "r01-B": {
+   "arrived_at": 1792867388,
    "generation": 1,
    "pushed_at": 1792867247,
    "pushed_commit": "34fedf16e59450b3ea08ffc7b782fe526f52c607",
+   "results_commit": "08488ed19b9b38e64d6dd0af40e6b733c4a889e8",
    "retries": 0,
    "stage": "B",
-   "status": "pending"
+   "status": "arrived"
   }
  },
  "launch_errors_in_a_row": 0,
@@ -4730,10 +4732,11 @@
   "2026-10-24T18:37:50Z g01 r01-A-spot: pushed 2337bb258a (23 sampled games, 17 shards)",
   "2026-10-24T18:40:13Z g01 r01-A: verified, 1120 rows, spot-check 23 OK",
   "2026-10-24T18:40:25Z g01 phase EVAL_B_PENDING: stage A ranked: f01-03, f01-01, f01-07, f01-02, f01-04, f00-03, f01-06, f01-05, starter",
-  "2026-10-24T18:40:47Z g01 r01-B: pushed 34fedf16e5 with 28 shards"
+  "2026-10-24T18:40:47Z g01 r01-B: pushed 34fedf16e5 with 28 shards",
+  "2026-10-24T18:43:08Z g01 phase EVAL_B_DONE: results for r01-B"
  ],
  "paused": null,
- "phase": "EVAL_B_PENDING",
+ "phase": "EVAL_B_DONE",
  "sessions_launched": 15,
  "version": 1
 }
