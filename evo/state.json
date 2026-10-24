@@ -17713,6 +17713,120 @@
      ]
     ]
    ],
+   "ranking_A": [
+    "e07-05",
+    "e07-01",
+    "e06-05",
+    "e07-04",
+    "e07-07",
+    "e05-05",
+    "e07-02",
+    "e07-06",
+    "e04-06",
+    "starter"
+   ],
+   "ratings_A": {
+    "e04-06": {
+     "disqualified": false,
+     "fault_rate": 0.0,
+     "interval": [
+      -1.798428058147287,
+      -0.9376314444883218
+     ],
+     "mean_margin": -259.14732142857144,
+     "strength": -1.2964066778581145
+    },
+    "e05-05": {
+     "disqualified": false,
+     "fault_rate": 0.0,
+     "interval": [
+      -0.08224664817028844,
+      0.4572192548425651
+     ],
+     "mean_margin": -39.47767857142857,
+     "strength": 0.18725933210259718
+    },
+    "e06-05": {
+     "disqualified": false,
+     "fault_rate": 0.0,
+     "interval": [
+      0.3940223423538507,
+      0.8380147545802028
+     ],
+     "mean_margin": 117.96875,
+     "strength": 0.5885362341084559
+    },
+    "e07-01": {
+     "disqualified": false,
+     "fault_rate": 0.0,
+     "interval": [
+      0.39518944377025894,
+      0.8741286623844708
+     ],
+     "mean_margin": 240.703125,
+     "strength": 0.6208798432734792
+    },
+    "e07-02": {
+     "disqualified": false,
+     "fault_rate": 0.0,
+     "interval": [
+      -0.32940184391159066,
+      0.2634150955032443
+     ],
+     "mean_margin": 208.5546875,
+     "strength": -0.020621162210771416
+    },
+    "e07-04": {
+     "disqualified": false,
+     "fault_rate": 0.0,
+     "interval": [
+      0.20932546635037497,
+      0.8665990627572532
+     ],
+     "mean_margin": 265.0234375,
+     "strength": 0.5245551658534708
+    },
+    "e07-05": {
+     "disqualified": false,
+     "fault_rate": 0.0,
+     "interval": [
+      0.6139282005187238,
+      1.4031205540884906
+     ],
+     "mean_margin": 221.9921875,
+     "strength": 0.981008607827176
+    },
+    "e07-06": {
+     "disqualified": false,
+     "fault_rate": 0.0,
+     "interval": [
+      -0.3677761434735046,
+      0.25315868886842086
+     ],
+     "mean_margin": 160.9296875,
+     "strength": -0.020621162210771416
+    },
+    "e07-07": {
+     "disqualified": false,
+     "fault_rate": 0.0,
+     "interval": [
+      -0.04780035185368915,
+      0.49155680899554216
+     ],
+     "mean_margin": 206.09375,
+     "strength": 0.20159357404288603
+    },
+    "starter": {
+     "disqualified": false,
+     "fault_rate": 0.0,
+     "interval": [
+      -5.101858584703653,
+      -1.938696603694251
+     ],
+     "mean_margin": -597.7901785714286,
+     "strength": -2.9519358293885323
+    }
+   },
    "slots": [
     "e06-05",
     "e07-01",
@@ -18064,20 +18178,23 @@
    "results_commit": "fe5b0dc3d11ebcb81347a85d74848cff543046e4",
    "retries": 0,
    "spotcheck": {
+    "arrived_at": 1792833175,
     "games": 16,
     "job": "g07-A-spot",
+    "mismatches": [],
+    "missing": 0,
     "pushed_at": 1792833029,
     "pushed_commit": "42465fd85e7c33385c2f6f080387a7ccbc3bbfb4",
-    "status": "pending"
+    "results_commit": "472c5a24b0c3f7570237f009c9ac61fcf66ed3a9",
+    "runner": "ubuntu-22.04",
+    "status": "done"
    },
    "stage": "A",
-   "status": "arrived"
+   "status": "verified"
   }
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-23T16:59:56Z g02 phase SELECTED: final: e02-01, e02-05, e02-02, e02-06, e02-03, e01-01, e00-01, e02-04, e02-07, starter",
-  "2026-10-23T17:00:07Z g02 survivors ['e02-01', 'e02-05'], hall of fame ['e00-01', 'e01-01', 'e02-01']",
   "2026-10-23T17:00:07Z g02 PAUSED: generation 02 selected; max_generations=3 reached",
   "2026-10-23T18:34:54Z g02 resumed (max_generations is now 5 in evo/config.toml); was paused: generation 02 selected; max_generations=3 reached",
   "2026-10-23T18:34:59Z g03 phase PLANNED: 8 slots",
@@ -18275,10 +18392,12 @@
   "2026-10-24T09:06:55Z g07 phase EVAL_A_PENDING",
   "2026-10-24T09:07:04Z g07 g07-A: pushed 9f2dce6bbb with 24 shards",
   "2026-10-24T09:10:20Z g07 phase EVAL_A_DONE: results for g07-A",
-  "2026-10-24T09:10:29Z g07 g07-A-spot: pushed 42465fd85e (16 sampled games, 11 shards)"
+  "2026-10-24T09:10:29Z g07 g07-A-spot: pushed 42465fd85e (16 sampled games, 11 shards)",
+  "2026-10-24T09:12:57Z g07 g07-A: verified, 768 rows, spot-check 16 OK",
+  "2026-10-24T09:13:06Z g07 phase EVAL_B_PENDING: stage A ranked: e07-05, e07-01, e06-05, e07-04, e07-07, e05-05, e07-02, e07-06, e04-06, starter"
  ],
  "paused": null,
- "phase": "EVAL_A_DONE",
+ "phase": "EVAL_B_PENDING",
  "sessions_launched": 49,
  "version": 1
 }
