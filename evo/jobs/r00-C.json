@@ -1,0 +1,70 @@
+{
+ "env_manifest_sha256": "f247aa3d11f80362ff69f212df761ab6c6b89ffd123f9e6d0ad41e2e5f0fc916",
+ "generation": 0,
+ "heldout_repo": "dawkaw0dy/battlecode-agent-evo-heldout",
+ "job_id": "r00-C",
+ "map_sha256": {
+  "h-1b58": "87693b47f19c186e0a2f9605d90c89032b8877ff5216b9f18829095fe198cba6",
+  "h-1b5b": "9a6c2084d609d27cf7b9eb183eb5e46f16a442caa7b187646540329a951b3502",
+  "h-1b5f": "8cbf98310de6c013efa1dfc4a8b8221606ff5a9ad65cd6975e1fc0c0abe0ca32",
+  "h-1ce9": "85704f93950c1337beac4efbe03e7bebe4fcd9c4789cacbf998edae5941797a5",
+  "h-1ceb": "d2fbfff4f56275b736f8869045ec1d2f753e9b6bb761d27a6a8ba549f857a59f",
+  "h-1cee": "2d11b8799b0f5e8a5ad84efa95b71e982c6c47ce93d108877996d77e4f27d57c",
+  "h-1cef": "1024c41f6d1d2d491d883e9acbc7d48ec73beedfc45fa7e31bdd076d407dbd42",
+  "h-1e7b": "cc6e124455e6096d7b1ad999300fff96db6be35015c186f09544fa5c7c9427f5"
+ },
+ "runner_version": "cambc==3.0.5",
+ "shards": [
+  {
+   "a": "f00-00",
+   "b": "f00-07",
+   "heldout": true,
+   "maps": [
+    "h-1b58",
+    "h-1b5b",
+    "h-1b5f",
+    "h-1ce9",
+    "h-1ceb",
+    "h-1cee",
+    "h-1cef",
+    "h-1e7b"
+   ]
+  },
+  {
+   "a": "f00-00",
+   "b": "starter",
+   "heldout": true,
+   "maps": [
+    "h-1b58",
+    "h-1b5b",
+    "h-1b5f",
+    "h-1ce9",
+    "h-1ceb",
+    "h-1cee",
+    "h-1cef",
+    "h-1e7b"
+   ]
+  },
+  {
+   "a": "f00-07",
+   "b": "starter",
+   "heldout": true,
+   "maps": [
+    "h-1b58",
+    "h-1b5b",
+    "h-1b5f",
+    "h-1ce9",
+    "h-1ceb",
+    "h-1cee",
+    "h-1cef",
+    "h-1e7b"
+   ]
+  }
+ ],
+ "src_sha256": {
+  "f00-00": "c8571e849420397f17d0f2b4227d9f705b32a0844a63acebff0136d8a80343ea",
+  "f00-07": "91df02ae7b3456b025eba636775a972090924c4d9ca668490c8910e3ff036f5b",
+  "starter": "9023e6a089796897d6ed661f26054d1b81b298e048a09a5df75d3b9cb5d3c6a9"
+ },
+ "stage": "C"
+}
