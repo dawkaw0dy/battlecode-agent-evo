@@ -21,7 +21,7 @@ namespace {
 constexpr int kSecondWardenTeam = 99; // a second warden with this many champions
 constexpr int kWardenMinTeam = 3;     // warden only with at least this many champions
 constexpr float kRecallHp = 0.45f;
-constexpr float kHealTo = 0.9f;
+constexpr float kHealTo = 0.7f;
 constexpr unsigned kBankGems = 25;
 constexpr unsigned kRecallGold = 180;
 constexpr int kChaseRadius = 3;
