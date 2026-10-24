@@ -9,6 +9,7 @@
 #include <span>
 #include <variant>
 #include <vector>
+#include <iostream>
 
 using cambc::vec2;
 using cambc::team;
@@ -41,6 +42,10 @@ cambc::bitboard empty_board() {
 }
 
 bool fuel_ok(std::uint64_t need) { return cambc::fuel_remaining() > need; }
+
+// A turn that runs out of fuel resumes next round on stale data: act only in the round we started.
+std::uint32_t g_turn_round = 0;
+bool live() { return cambc::round_number() == g_turn_round; }
 
 const Grid8& walls_local() {
     static const Grid8 g = [] { Grid8 x; x.load(static_walls_ally()); return x; }();
@@ -82,9 +87,9 @@ bool blocked_at(vec2 p) {
     return walls_local().at(p) || v.lcamps.at(p) || v.lchamps.at(p) || v.ltele.at(p);
 }
 
-cambc::bitboard blocked_board() {
+cambc::bitboard blocked_board(const cambc::bitboard& walls) {
     const auto& v = view();
-    auto blocked = static_walls_ally() | v.champs | v.camps | v.teleports;
+    auto blocked = walls | v.champs | v.camps | v.teleports;
     blocked.set(cambc::self().position(), false);
     return blocked;
 }
@@ -195,9 +200,13 @@ void Bot::initialise() {
         if (count == groups_.size() && layout::regions + count <= size)
             for (size_t i = 0; i < count; ++i) owner_.push_back(static_cast<std::uint8_t>(mem[layout::regions + i]));
     }
+    for (const auto& ab : me.abilities())
+        if (ab.is_dash()) dasher_ = true;
+    walls_ = dasher_ ? &dash_walls_ally() : &static_walls_ally();
     if (owner_.size() != groups_.size()) {
-        const auto picks = preferred_picks(static_cast<int>(cambc::champions(team::ally).size()));
-        owner_ = split_regions(groups_, static_cast<int>(picks.size()));
+        const bool dash_map = is_dash_map(groups_);
+        const auto picks = preferred_picks(static_cast<int>(cambc::champions(team::ally).size()), dash_map);
+        owner_ = split_regions(groups_, static_cast<int>(picks.size()), dash_map);
         for (size_t i = 0; i < picks.size(); ++i)
             if (static_cast<int>(picks[i]) == mine) slot_ = static_cast<int>(i);
     }
@@ -205,14 +214,20 @@ void Bot::initialise() {
     // Distances to home and to the tiles beside any altar.
     cambc::distance_field f;
     cambc::bitboard seen;
-    f.compute(static_walls_ally(), cambc::map::spawn_region(team::ally), seen);
+    f.compute(*walls_, cambc::map::spawn_region(team::ally), seen);
     home_.load(f);
     auto beside = empty_board();
     for (auto a : cambc::map::altars().positions()) add_box(beside, a, cambc::constants::submit_gems_range);
     beside &= ~static_walls_ally();
-    f.compute(static_walls_ally(), beside, seen);
+    f.compute(*walls_, beside, seen);
     altar_.load(f);
 
+    {
+        int reach = 0, mine_n = 0;
+        for (size_t i = 0; i < groups_.size(); ++i) { reach += groups_[i].dist_ally < 9999; mine_n += owner_[i] == slot_; }
+        if (slot_ == 0) for (size_t i = 0; i < groups_.size(); ++i) std::cout << "G " << i << " at " << groups_[i].center.x << "," << groups_[i].center.y << " n " << groups_[i].tiles.size() << " gems " << groups_[i].gems << " gold " << groups_[i].gold << " dps " << groups_[i].dps << " hp " << groups_[i].hp << " dA " << groups_[i].dist_ally << " dE " << groups_[i].dist_enemy << " own " << int(owner_[i]) << "\n";
+        std::cout << "INIT slot " << slot_ << " type " << static_cast<int>(me.champion_name()) << " groups " << groups_.size() << " reach " << reach << " mine " << mine_n << " altars " << cambc::map::altars().count() << " altar_d " << altar_.at(me.position()) << "\n";
+    }
     // Fill group fields for our own region first, then nearest to home.
     for (size_t i = 0; i < groups_.size(); ++i) field_order_.push_back(static_cast<int>(i));
     std::stable_sort(field_order_.begin(), field_order_.end(), [&](int a, int b) {
@@ -230,7 +245,7 @@ void Bot::fill_fields(std::uint64_t reserve) {
         for (auto t : groups_[i].tiles) roots.set(t);
         cambc::distance_field f;
         cambc::bitboard seen;
-        f.compute(static_walls_ally(), roots, seen);
+        f.compute(*walls_, roots, seen);
         group_field_[i].load(f);
     }
 }
@@ -241,7 +256,7 @@ int Bot::eta(int group) const {
         const int d = group_field_[group].at(pos);
         return d >= unreached ? 9999 : d;
     }
-    if (groups_[group].dist_ally >= 9999) return 9999;
+    if ((dasher_ ? groups_[group].dist_ally_dash : groups_[group].dist_ally) >= 9999) return 9999;
     return dist(pos, groups_[group].center) * 5 / 4 + 2;
 }
 
@@ -300,7 +315,7 @@ void Bot::buy_items() {
             if (static_cast<int>(counts[s.emblem]) < needed[e]) { next = &s; break; }
         }
         if (!next) return;
-        if (!me.can_buy(next->shard, 1)) return;
+        if (!live() || !me.can_buy(next->shard, 1)) return;
         me.buy(next->shard, 1);
     }
 }
@@ -329,12 +344,25 @@ bool Bot::try_dash(const Grid16* local, const cambc::distance_field* field, cons
                 const vec2 mid{pos.x + dx / 2, pos.y + dy / 2};
                 if (!in_bounds(t) || blocked_at(t)) continue;
                 if (hard_walls_local().at(mid) || view().lchamps.at(mid) || view().lcamps.at(mid)) continue;
+                if (dx && dy) {  // no cutting wall corners on either diagonal step
+                    const vec2 c1{pos.x + dx / 2, pos.y}, c2{pos.x, pos.y + dy / 2};
+                    const vec2 c3{t.x - dx / 2, t.y}, c4{t.x, t.y - dy / 2};
+                    if (hard_walls_local().at(c1) || hard_walls_local().at(c2) || hard_walls_local().at(c3) || hard_walls_local().at(c4)) continue;
+                }
                 const int d = value(t);
                 if (d < best_d) { best_d = d; best = t; }
             }
         if (best == pos) return false;
+        if (!live()) return false;
         cast_ = true;
-        const bool ok = ab.use(best);
+        bool ok = false;
+        try {
+            ok = ab.use(best);
+        } catch (const cambc::error&) {
+            // The engine's dash path rules are stricter than our check; give up dashing this turn.
+            move_failed_ = true;
+            return false;
+        }
         invalidate_view();
         if (!ok) move_failed_ = true;
         return ok;
@@ -349,20 +377,27 @@ bool Bot::walk_field(const Grid16& field, bool allow_dash) {
     const vec2 pos = me.position();
     const int here = field.at(pos);
     if (here >= unreached || here == 0) return false;
-    if (allow_dash && here >= 4 && try_dash(&field, nullptr, nullptr)) {
-        moved_ = true;
-        if (move_failed_ || !me.can_move()) return true;
+    auto best_walk = [&](vec2 from) {
+        vec2 best = from;
+        int best_d = field.at(from);
+        for (auto d : dirs) {
+            const vec2 t{from.x + d.x, from.y + d.y};
+            if (blocked_at(t)) continue;
+            const int fd = field.at(t);
+            if (fd < best_d) { best_d = fd; best = t; }
+        }
+        return best;
+    };
+    vec2 best = best_walk(pos);
+    if ((allow_dash && here >= 4) || (dasher_ && best == pos)) {
+        if (try_dash(&field, nullptr, nullptr)) {
+            moved_ = true;
+            if (move_failed_ || !me.can_move()) return true;
+            best = best_walk(me.position());
+        }
     }
     const vec2 from = me.position();
-    vec2 best = from;
-    int best_d = field.at(from);
-    for (auto d : dirs) {
-        const vec2 t{from.x + d.x, from.y + d.y};
-        if (blocked_at(t)) continue;
-        const int fd = field.at(t);
-        if (fd < best_d) { best_d = fd; best = t; }
-    }
-    if (best == from) return moved_;
+    if (best == from || !live()) return moved_;
     moved_ = true;
     const bool ok = me.move_absolute(best);
     invalidate_view();
@@ -374,9 +409,9 @@ bool Bot::walk_field(const Grid16& field, bool allow_dash) {
 bool Bot::step_to(const cambc::bitboard& goals_in, bool allow_dash) {
     auto& me = cambc::self();
     if (moved_ || move_failed_ || !me.can_move()) return false;
-    if (!fuel_ok(20000)) return false;
+    if (!fuel_ok(35000)) return false;
     const vec2 pos = me.position();
-    auto blocked = blocked_board();
+    auto blocked = blocked_board(*walls_);
     auto goals = goals_in & ~blocked;
     if (goals.is_empty() || goals.is_set(pos)) return false;
     cambc::distance_field field;
@@ -386,24 +421,32 @@ bool Bot::step_to(const cambc::bitboard& goals_in, bool allow_dash) {
     field.compute_to(blocked, goals, here, reached);
     if (!reached.is_set(pos)) {
         // Units block every path: head the static way and step around them.
-        field.compute_to(static_walls_ally(), goals, here, reached);
+        field.compute_to(*walls_, goals, here, reached);
         if (!reached.is_set(pos)) return false;
     }
-    if (allow_dash && field.get(pos) >= 4 && try_dash(nullptr, &field, &reached)) {
-        moved_ = true;
-        if (move_failed_ || !me.can_move()) return true;
+    auto best_walk = [&](vec2 from, int& best_d) {
+        vec2 best = from;
+        best_d = reached.is_set(from) ? field.get(from) : unreached;
+        for (auto d : dirs) {
+            const vec2 t{from.x + d.x, from.y + d.y};
+            if (blocked_at(t) || !reached.is_set(t)) continue;
+            const int fd = field.get(t);
+            if (fd < best_d) { best_d = fd; best = t; }
+        }
+        return best;
+    };
+    int walk_d = unreached;
+    vec2 best = best_walk(pos, walk_d);
+    if ((allow_dash && field.get(pos) >= 4) || (dasher_ && best == pos)) {
+        if (try_dash(nullptr, &field, &reached)) {
+            moved_ = true;
+            if (move_failed_ || !me.can_move()) return true;
+            if (goals.is_set(me.position())) return true;
+            best = best_walk(me.position(), walk_d);
+        }
     }
     const vec2 from = me.position();
-    if (goals.is_set(from)) return true;
-    vec2 best = from;
-    int best_d = reached.is_set(from) ? field.get(from) : unreached;
-    for (auto d : dirs) {
-        const vec2 t{from.x + d.x, from.y + d.y};
-        if (blocked_at(t) || !reached.is_set(t)) continue;
-        const int fd = field.get(t);
-        if (fd < best_d) { best_d = fd; best = t; }
-    }
-    if (best == from) return moved_;
+    if (best == from || !live()) return moved_;
     moved_ = true;
     const bool ok = me.move_absolute(best);
     invalidate_view();
@@ -475,7 +518,7 @@ bool Bot::attack_group(int group) {
         if (hp <= str) score += 10000;
         if (score > best_score) { best_score = score; best_pos = p; found = true; }
     }
-    if (!found) return false;
+    if (!found || !live()) return false;
     try {
         auto c = cambc::vision::camp_at(best_pos);
         me.attack(c);
@@ -490,7 +533,7 @@ bool Bot::attack_group(int group) {
 // After our own basic attack, an attack reset lets us swing again.
 bool Bot::reset_and_hit(int group) {
     auto& me = cambc::self();
-    if (!attacked_ || cast_ || !fuel_ok(8000) || me.can_attack() || !me.can_cast()) return false;
+    if (!attacked_ || cast_ || !fuel_ok(8000) || !live() || me.can_attack() || !me.can_cast()) return false;
     for (const auto& ab : me.abilities()) {
         if (!ab.is_attack_reset() || !ab.is_ready()) continue;
         cast_ = true;
@@ -504,7 +547,7 @@ bool Bot::reset_and_hit(int group) {
 // Damage spells on the group we are clearing; shields while under fire. Cast before walking.
 void Bot::cast_spells(int group) {
     auto& me = cambc::self();
-    if (cast_ || moved_ || !me.can_cast()) return;
+    if (cast_ || moved_ || !live() || !me.can_cast()) return;
     for (const auto& ab : me.abilities()) {
         if (!ab.is_ready()) continue;
         if (ab.is_shield()) {
@@ -630,7 +673,7 @@ bool Bot::handle_enemies() {
     if (!stronger && (me.health() < me.max_health() * 0.9f || near >= 2 || ours < their * 0.8f)) {
         // Run home; recall once out of reach.
         if (dmin >= 6 && !moved_ && incoming_ == 0 && me.gem_count() > 0) {
-            me.recall();
+            if (live()) me.recall();
             return true;
         }
         go_home();
@@ -642,6 +685,7 @@ bool Bot::handle_enemies() {
     const Sighting* best = nullptr;
     for (const auto& e : enemies)
         if (dist(e.pos, pos) <= range && view().vis.at(e.pos) && (!best || e.hp < best->hp)) best = &e;
+    if (!live()) return true;
     if (best && me.can_attack()) {
         try {
             auto c = cambc::vision::champion_at(best->pos);
@@ -664,7 +708,7 @@ bool Bot::handle_enemies() {
         return true;
     }
     // Damage or stun spell on the nearest enemy.
-    if (!cast_ && !moved_ && me.can_cast()) {
+    if (!cast_ && !moved_ && live() && me.can_cast()) {
         for (const auto& ab : me.abilities()) {
             if (!ab.is_ready() || !(ab.is_damage() || ab.is_cc()) || !ab.can_target_enemies()) continue;
             for (const auto& e : enemies) {
@@ -685,7 +729,7 @@ bool Bot::handle_enemies() {
         for (const auto& e : enemies) add_box(goal, e.pos, range);
         goal &= ~static_walls_ally();
         step_to(goal, false);
-        if (range <= 1 && !attacked_ && me.can_attack()) {
+        if (range <= 1 && !attacked_ && live() && me.can_attack()) {
             for (const auto& e : enemies)
                 if (dist(e.pos, me.position()) <= 1 && cambc::vision::has_champion(e.pos)) {
                     try {
@@ -748,7 +792,7 @@ bool Bot::handle_tribute(int next_target, int next_wait) {
     // Tribute when standing beside an altar.
     for (auto a : cambc::map::altars().positions()) {
         if (dist(a, pos) <= cambc::constants::submit_gems_range && !enemy_locks.is_set(a) && incoming_ == 0) {
-            me.submit_gems(a);
+            if (live()) me.submit_gems(a);
             return true;
         }
     }
@@ -809,6 +853,7 @@ void Bot::farm(int group) {
     if (me.attack_range() <= 1 && attack_group(group)) reset_and_hit(group);
 }
 
+
 #include <iostream>
 static std::uint64_t g_fuel_max = 0, g_fuel_sum = 0, g_fuel_n = 0, g_over = 0;
 void Bot::play_turn() {
@@ -817,6 +862,7 @@ void Bot::play_turn() {
         if (!first) { g_fuel_max = std::max(g_fuel_max, used); g_fuel_sum += used; ++g_fuel_n; if (used > 90000) ++g_over; }
         if (cambc::round_number() == 1500) std::cout << "FUEL max " << g_fuel_max << " avg " << g_fuel_sum / std::max<std::uint64_t>(1, g_fuel_n) << " over90k " << g_over << "\n";
     } } report{cambc::fuel_remaining(), !ready_};
+    g_turn_round = cambc::round_number();
     if (!ready_) initialise();
     auto& me = cambc::self();
     moved_ = attacked_ = cast_ = move_failed_ = false;
@@ -864,7 +910,7 @@ void Bot::play_turn() {
     if (!at_spawn && (hp < max_hp * 0.25f || (incoming_ > 0 && hp < incoming_ * 4))) {
         if (disengage_from_camps()) return;
         if (incoming_ == 0 && !moved_) {
-            me.recall();
+            if (live()) me.recall();
             return;
         }
     }
@@ -888,11 +934,11 @@ void Bot::play_turn() {
         // Nothing worth doing soon: go shop and heal.
         if (!at_spawn && (me.gold_count() >= 60 || hp < max_hp * 0.8f) && incoming_ == 0 && me.gem_count() == 0) {
             if (home_d <= 5) go_home();
-            else if (!moved_) me.recall();
+            else if (!moved_ && live()) me.recall();
             return;
         }
         if (target < 0) {
-            if (!at_spawn && hp < max_hp * 0.9f && incoming_ == 0 && !moved_) me.recall();
+            if (!at_spawn && hp < max_hp * 0.9f && incoming_ == 0 && !moved_ && live()) me.recall();
             fill_fields(40000);
             return;
         }
@@ -902,10 +948,10 @@ void Bot::play_turn() {
         const float dmg = estimate_damage(target, dps_);
         if (dmg > hp - 100) {
             if (home_d <= 5) go_home();
-            else if (!moved_) me.recall();
+            else if (!moved_ && live()) me.recall();
             return;
         }
     }
     farm(target);
-    fill_fields(45000);
+    fill_fields(50000);
 }

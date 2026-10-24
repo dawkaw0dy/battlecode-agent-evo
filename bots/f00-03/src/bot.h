@@ -28,6 +28,8 @@ struct Grid16 {
 class Bot {
     bool ready_ = false;
     int slot_ = -1;                       // index into the draft's pick order, -1 if unknown
+    bool dasher_ = false;                 // has a dash: one-tile holes are passable
+    const cambc::bitboard* walls_ = nullptr;
     std::vector<GroupData> groups_;
     std::vector<cambc::map::camp_group> handles_;
     std::vector<std::uint8_t> owner_;

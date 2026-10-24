@@ -44,15 +44,33 @@ const cambc::bitboard& static_walls_ally() {
     return walls;
 }
 
+const cambc::bitboard& dash_walls_ally() {
+    static const cambc::bitboard walls = [] {
+        const auto walkable = ~static_walls_ally();
+        const auto& holes = cambc::map::holes();
+        cambc::bitboard thin;
+        thin.clear();
+        const int d[4][2] = {{1, 0}, {0, 1}, {1, 1}, {1, -1}};
+        for (const auto& v : d) {
+            const auto a = walkable.shift_right(v[0]).shift_up(v[1]);
+            const auto b = walkable.shift_right(-v[0]).shift_up(-v[1]);
+            thin |= holes & a & b;
+        }
+        return static_walls_ally() & ~thin;
+    }();
+    return walls;
+}
+
 std::vector<GroupData> analyse_groups() {
     std::vector<GroupData> out;
     const auto groups = cambc::map::camp_groups();
     auto walls_a = static_walls_ally();
     auto walls_e = cambc::map::walls() | cambc::map::holes() | cambc::map::altars()
         | cambc::map::spawn_region(team::ally);
-    cambc::distance_field fa, fe;
-    cambc::bitboard va, ve;
+    cambc::distance_field fa, fe, fd;
+    cambc::bitboard va, ve, vd;
     fa.compute(walls_a, cambc::map::spawn_region(team::ally), va);
+    fd.compute(dash_walls_ally(), cambc::map::spawn_region(team::ally), vd);
     fe.compute(walls_e, cambc::map::spawn_region(team::enemy), ve);
     for (const auto& g : groups) {
         GroupData d;
@@ -74,12 +92,13 @@ std::vector<GroupData> analyse_groups() {
         d.respawn = g.max_respawn_timer();
         d.dist_ally = min_over(fa, va, d.tiles);
         d.dist_enemy = min_over(fe, ve, d.tiles);
+        d.dist_ally_dash = min_over(fd, vd, d.tiles);
         out.push_back(std::move(d));
     }
     return out;
 }
 
-std::vector<std::uint8_t> split_regions(const std::vector<GroupData>& groups, int slots) {
+std::vector<std::uint8_t> split_regions(const std::vector<GroupData>& groups, int slots, bool dash_map) {
     std::vector<std::uint8_t> owner(groups.size(), 255);
     if (slots <= 0 || groups.empty()) return owner;
     const vec2 home = region_center(cambc::map::spawn_region(team::ally));
@@ -91,8 +110,9 @@ std::vector<std::uint8_t> split_regions(const std::vector<GroupData>& groups, in
     for (int i = 0; i < static_cast<int>(groups.size()); ++i) {
         const auto& g = groups[i];
         if (g.has_monolith || g.dps >= 120) continue;
-        if (g.dist_ally >= 9999) continue;
-        if (g.dist_ally <= g.dist_enemy + 2) eligible.push_back(i);
+        const int da = dash_map ? g.dist_ally_dash : g.dist_ally;
+        if (da >= 9999) continue;
+        if (da <= g.dist_enemy + 2 || (dash_map && g.dist_enemy >= 9999)) eligible.push_back(i);
     }
     if (eligible.empty()) return owner;
 
@@ -132,9 +152,21 @@ std::vector<std::uint8_t> split_regions(const std::vector<GroupData>& groups, in
     return owner;
 }
 
-std::vector<cambc::champion_draft> preferred_picks(int team_size) {
+bool is_dash_map(const std::vector<GroupData>& groups) {
+    float walk = 0, dash = 0;
+    for (const auto& g : groups) {
+        const float v = g.gems + 0.3f * g.gold;
+        if (g.dist_ally < 9999) walk += v;
+        if (g.dist_ally_dash < 9999) dash += v;
+    }
+    return dash > 0 && walk < 0.6f * dash;
+}
+
+std::vector<cambc::champion_draft> preferred_picks(int team_size, bool dash_map) {
     using cd = cambc::champion_draft;
     std::vector<cd> all{cd::vendetta, cd::marcella, cd::vesper_vale, cd::tavi, cd::ryth, cd::varg};
+    // Most camps behind one-tile holes: take the champions that can dash over them.
+    if (dash_map) all = {cd::vendetta, cd::vesper_vale, cd::heart_of_ruin, cd::ren, cd::marcella, cd::tavi};
     all.resize(std::min<size_t>(all.size(), std::max(team_size, 1)));
     return all;
 }

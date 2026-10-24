@@ -9,15 +9,22 @@
 // Split the camp groups into one region per champion and record it, then pick the next champion.
 void play_draft() {
     const int size = static_cast<int>(cambc::draft::team_size());
-    const auto picks = preferred_picks(size);
+    static std::vector<GroupData> groups;
+    static bool analysed = false;
+    if (!analysed) {
+        analysed = true;
+        groups = analyse_groups();
+    }
+    const bool dash_map = is_dash_map(groups);
+    const auto picks = preferred_picks(size, dash_map);
     const auto chosen = cambc::draft::current_draft(cambc::team::ally);
 
     static bool written = false;
     if (!written) {
         written = true;
-        const auto groups = analyse_groups();
-        const auto owner = split_regions(groups, static_cast<int>(picks.size()));
+        const auto owner = split_regions(groups, static_cast<int>(picks.size()), dash_map);
         std::array<std::byte, 1024> mem{};
+        mem[layout::dash_map] = static_cast<std::byte>(dash_map ? 1 : 0);
         mem[layout::magic] = std::byte{'S'};
         mem[layout::team_size] = static_cast<std::byte>(picks.size());
         for (size_t i = 0; i < picks.size() && i < 5; ++i)
