@@ -33,7 +33,8 @@ memory pull nearby healthy team-mates in and push farmers away from enemy packs.
 - Penalty for light groups another champion targets: ×0.5 kept; ×0.3 and ×0.75 both clearly worse on 20 games.
 - Banking stricter (≥50, detour ≤ gems/10) and more eager (≥60, detour ≤ 2 + gems/6): neither better.
 - Respawn wait counted 1.5× in the target score: worse. Recall at 25%/40% instead of 30%/45%: 23/80 vs 28/80.
-  Heal-before-fight only when the fight looks dangerous: 24/80 vs 28/80.
+  Heal-before-fight only when the fight looks dangerous: 24/80 vs 28/80. Never re-picking the current target
+  while it would need >4 rounds of respawn wait: 22/80.
 - Picks Vendetta, Ryth, Willow, Vesper Vale, Marcella (tank + healer for group fights): fewer gems than the
   f00-03 picks (11.5k vs 13.2k on 20 games).
 - 01boss-battle: the only altar's free sides are all camp spawn tiles; excluding camp tiles from altar tiles left
