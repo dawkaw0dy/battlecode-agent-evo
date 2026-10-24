@@ -32,6 +32,7 @@ constexpr int kChaseTurns = 5;  // approach turns without a hit before giving up
 constexpr float kBossTurns = 8.0f;  // turns a champion must be able to tank a boss
 constexpr int kFoeZone = 4;         // no chasing enemies this close to their spawn
 constexpr float kChaseHp = 0.5f;    // chase only above this share of health
+constexpr float kStandRatio = 0.8f; // one-on-one at full health: fight down to this share of need
 
 namespace {
 // Debug: turns spent per activity, printed every 200 rounds.
@@ -706,7 +707,9 @@ bool Bot::enemies() {
         std::cout << "fight r" << now << ' ' << cambc::to_string(me.champion_name()) << " hp " << me.health()
                   << " n " << list.size() << " dmin " << dmin << " ratio " << ratio << " need " << need << '\n';
 
-    if (ratio < need && !home) {
+    // A healthy champion facing one slightly stronger enemy stands: running only gives it free hits.
+    const bool stand = list.size() == 1 && ratio >= need * kStandRatio && me.health() >= me.max_health() * 0.9f;
+    if (ratio < need && !home && !stand) {
         // Far enemies that are not coming for us: carry on, but bank sooner (tribute checks sightings).
         if (dmin >= 6 && me.health() > me.max_health() * 0.5f && (!kHysteresis || flee_until_ < now)) return false;
         flee_until_ = now + 4;
