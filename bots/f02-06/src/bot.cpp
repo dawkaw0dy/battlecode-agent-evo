@@ -17,7 +17,7 @@ namespace {
 using cambc::bitboard;
 using it = cambc::item_type;
 
-constexpr bool kDebug = true;
+constexpr bool kDebug = false;
 std::uint32_t g_round = 0;
 const char* g_branch = "";
 bool live() { return cambc::round_number() == g_round; }
@@ -637,8 +637,8 @@ bool handle_enemies(const std::vector<Foe>& foes) {
     float theirs = 0;
     int closest = 99;
     for (const auto& f : foes) { theirs += f.hp * (f.str + 30.0f); closest = std::min(closest, cheb(f.p, pos)); }
-    const float need = 1.2f + static_cast<float>(me.gem_count()) / 100.0f;
-    if (ours >= theirs * need && me.health() > me.max_health() * 0.45f && near_allies + 1 >= static_cast<int>(foes.size())) {
+    const float need = 1.5f + static_cast<float>(me.gem_count()) / 100.0f;
+    if (ours >= theirs * need && me.health() > me.max_health() * 0.5f && near_allies + 1 >= static_cast<int>(foes.size())) {
         // Fight: spells and basic attack on the weakest enemy in range.
         const Foe* best = nullptr;
         for (const auto& f : foes)
@@ -677,7 +677,7 @@ bool handle_enemies(const std::vector<Foe>& foes) {
         }
         return false;
     }
-    if (closest <= 6) {
+    if (closest <= 7) {
         std::vector<vec2> threats;
         for (const auto& f : foes) threats.push_back(f.p);
         step_away(threats);
