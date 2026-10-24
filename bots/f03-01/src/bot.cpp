@@ -33,6 +33,7 @@ constexpr float kBossTurns = 8.0f;  // turns a champion must be able to tank a b
 constexpr int kFoeZone = 4;         // no chasing enemies this close to their spawn
 constexpr float kChaseHp = 0.5f;    // chase only above this share of health
 constexpr float kStandRatio = 0.8f; // one-on-one at full health: fight down to this share of need
+constexpr float kHuntRatio = 2.5f;  // odds needed to go after enemies more than 5 tiles away
 
 namespace {
 // Debug: turns spent per activity, printed every 200 rounds.
@@ -724,7 +725,7 @@ bool Bot::enemies() {
         return true;
     }
     // Strong enough but nobody close: keep farming unless the odds invite a hunt.
-    if (dmin > 5 && ratio < 1.6f && (!kHysteresis || fight_until_ < now)) return false;
+    if (dmin > 5 && ratio < kHuntRatio && (!kHysteresis || fight_until_ < now)) return false;
     // A chase that never lands a hit only wastes farming time.
     if (now < no_chase_until_ && dmin > me.attack_range() + 1) return false;
     fight_until_ = now + 3;
