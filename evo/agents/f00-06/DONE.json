@@ -1,0 +1,27 @@
+{
+ "agent": "f00-06",
+ "task_sha256": "02700e5185e6b5b4994d54b99a29cf61dc090c76e27175585025ea0cb1d5a7d1",
+ "base_commit": "cacbd3f5f84121b4ea87abe77ce09a17deed0df3",
+ "session_id": "cse_01VHvYpc3yCmgYkTggAmmLqp",
+ "bot_dir": "bots/f00-06",
+ "self_eval": {
+  "vs": "starter",
+  "games": 80,
+  "wins": 78
+ },
+ "games_played": 854,
+ "summary": "Deathball: leader-led ball on static group fields, Vesper/Ryth/Tavi/Willow/Vendetta draft, lock breaking, late monoliths; 78/80 vs starter, 13/16 vs e07-05",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "8225c1d38b5a90c91456d4d0b6d77f40901d162fdd30888c6a2d6aba7c249335",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 22.57,
+  "remote": "true",
+  "session_id": "cse_01VHvYpc3yCmgYkTggAmmLqp",
+  "effort_level": "high",
+  "model": null
+ }
+}
