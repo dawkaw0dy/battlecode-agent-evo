@@ -10,6 +10,7 @@
 #include <span>
 #include <type_traits>
 #include <variant>
+#include <string>
 #include <vector>
 
 namespace {
@@ -17,7 +18,10 @@ namespace {
 using cambc::bitboard;
 using it = cambc::item_type;
 
-constexpr bool kDebug = false;
+constexpr bool kDebug = true;
+constexpr int kPackMemory = 48;
+constexpr float kMaxTrips = 6;
+constexpr float kGoldEarly = 0.5f, kGoldLate = 0.3f;
 std::uint32_t g_round = 0;
 const char* g_branch = "";
 bool live() { return cambc::round_number() == g_round; }
@@ -363,6 +367,8 @@ AbInfo ab_info(const cambc::ability& a) {
 
 // An area spell must not wake a group we do not mean to fight.
 int g_fight_group = -1;
+bool g_no_excl = false;
+bool g_pack = false;
 bool aoe_safe(vec2 c) {
     for (int dy = -1; dy <= 1; ++dy)
         for (int dx = -1; dx <= 1; ++dx) {
@@ -391,7 +397,7 @@ bool cast_offense(const Target& t, vec2 tpos, bool is_camp) {
         const bool aoe = inf.kind == cambc::ability_kind::aoe_damage;
         if (!dmg && !aoe) continue;
         if (aoe && !aoe_safe(tpos)) continue;
-        if (inf.excl && moved) continue;
+        if (inf.excl && (moved || g_no_excl)) continue;
         if (cheb(me.position(), tpos) > static_cast<int>(inf.range)) continue;
         try {
             if (!a.is_ready()) continue;
@@ -607,6 +613,28 @@ bool claimed_by_other(int gi) {
     return false;
 }
 
+// byte 7: round / 8 (top bit set) of the latest enemy sighting outside their spawn.
+void write_sighting() {
+    std::array<std::uint8_t, 1> b{static_cast<std::uint8_t>(((g_round / 8) & 127) | 128)};
+    cambc::shared_memory.write(7, std::span<std::uint8_t>{b});
+}
+bool recent_sighting() {
+    std::array<std::uint8_t, 1> b{};
+    cambc::shared_memory.read(7, std::span<std::uint8_t>{b});
+    if (!(b[0] & 128)) return false;
+    return ((static_cast<int>((g_round / 8) & 127) - (b[0] & 127)) & 127) <= kPackMemory / 8;
+}
+// The pack follows the lowest-index champion with a live claim.
+int pack_leader_target() {
+    for (int i = 0; i < 6; ++i) {
+        const auto v = g_claims[static_cast<size_t>(i)];
+        if (v & 128 || v == 0) continue;
+        if (i == g_my_index) return -2;  // we lead
+        return static_cast<int>(v) - 1;
+    }
+    return -2;
+}
+
 float my_dps() {
     auto& me = cambc::self();
     return me.strength() * 1.1f + me.focus() * 0.3f;
@@ -680,7 +708,34 @@ bool handle_enemies(const std::vector<Foe>& foes) {
     if (closest <= 7) {
         std::vector<vec2> threats;
         for (const auto& f : foes) threats.push_back(f.p);
-        step_away(threats);
+        const Foe* inrange = nullptr;
+        const Foe* nearest = nullptr;
+        for (const auto& f : foes) {
+            const int d = cheb(f.p, pos);
+            if (d <= me.attack_range() && (!inrange || f.hp < inrange->hp)) inrange = &f;
+            if (!nearest || d < cheb(nearest->p, pos)) nearest = &f;
+        }
+        auto hit = [&](const Foe* f) {
+            if (!f || attacked || !live() || !me.can_attack() || (!is_melee() && moved)) return;
+            try {
+                if (cheb(f->p, me.position()) > me.attack_range()) return;
+                const auto c = cambc::vision::champion_at(f->p);
+                me.attack(c);
+                attacked = true;
+            } catch (const cambc::error& e) { warn("hit back", e); }
+        };
+        // A stun or damage spell that allows walking helps us get away.
+        if (nearest) {
+            try {
+                g_no_excl = true;
+                const auto c = cambc::vision::champion_at(nearest->p);
+                cast_offense(c, nearest->p, false);
+            } catch (const cambc::error& e) { warn("flee cast", e); }
+            g_no_excl = false;
+        }
+        if (is_melee()) hit(inrange);
+        const bool ran = L_ally_spawn.at(pos) ? false : step_away(threats);
+        if (!ran) hit(inrange);
         retreating = true;
         return true;
     }
@@ -695,6 +750,7 @@ std::vector<Foe> visible_foes() {
         try {
             const auto c = cambc::vision::champion_at(p);
             out.push_back({p, c.health(), c.strength()});
+            if (out.size() == 1) write_sighting();
         } catch (const cambc::error&) {}
         if (out.size() >= 6) break;
     }
@@ -725,7 +781,7 @@ float target_score(int gi, vec2 pos, float dps, float hp_now, float maxhp, float
     const int now = static_cast<int>(g_round);
     const int d = group_dist(gi, pos);
     if (d >= kFar) return 0;
-    const float gold_w = now < 700 ? 0.5f : 0.3f;
+    const float gold_w = now < 700 ? kGoldEarly : kGoldLate;
     const float value = static_cast<float>(x.gems) + gold_w * static_cast<float>(x.gold);
     if (value <= 0) return 0;
     float wait = 0;
@@ -741,14 +797,15 @@ float target_score(int gi, vec2 pos, float dps, float hp_now, float maxhp, float
         if (need > hp_now * 0.8f && trips <= 1) trips = 1.5f;
     }
     if (x.big) return 0;  // bosses only as a team raid
-    if (trips > 6) return 0;
+    if (trips > kMaxTrips) return 0;
     const float home = static_cast<float>(std::min(g_home.at(x.center), 200));
     const float time = static_cast<float>(d) + wait + clear + (trips - 1) * (2 * home + 12) + 6;
     float s = value / (time + 10);
     if (gi == target) s *= 1.3f;
     if (x.state == 1) s *= 1.4f;
     // Allies already on a small group: leave it to them.
-    if (claimed_by_other(gi)) s *= hp_left > 3000 ? 0.7f : 0.15f;
+    if (!g_pack && claimed_by_other(gi)) s *= hp_left > 3000 ? 0.7f : 0.15f;
+
     // Enemy half: closer to their spawn than to ours.
     if (cheb(x.center, g_enemy_spawn_pos) + 4 < cheb(x.center, g_spawn_pos)) s *= 0.75f;
     return s;
@@ -776,9 +833,16 @@ struct FuelReport {
         if (!kDebug) return;
         const auto f = cambc::fuel_remaining();
         if (f < 25000 && g_round > 2) std::cout << "lowfuel r" << g_round << ' ' << f << '\n';
-        if (g_round >= 150 && g_round < 154)
-            std::cout << "br r" << g_round << ' ' << cambc::to_string(cambc::self().champion_name()) << ' ' << g_branch
-                      << " moved " << moved << " att " << attacked << " stall " << stall << " tgt " << target << '\n';
+        static std::vector<std::pair<std::string, int>> counts;
+        std::string key = std::string(g_branch) + (attacked ? "+A" : "") + (moved ? "+M" : "");
+        bool found = false;
+        for (auto& [k, v] : counts) if (k == key) { ++v; found = true; }
+        if (!found) counts.push_back({key, 1});
+        if (g_round == 1000 || g_round == 1999) {
+            std::cout << "act r" << g_round << ' ' << cambc::to_string(cambc::self().champion_name());
+            for (auto& [k, v] : counts) std::cout << ' ' << k << '=' << v;
+            std::cout << '\n';
+        }
     }
 };
 
@@ -805,11 +869,14 @@ void play_turn_inner() {
     }
 
     if (!me.is_alive()) {
+        g_branch = "dead";
+        if (target >= 0) write_claim(-1);
         buy_items();
         target = -1;
         return;
     }
-    if (me.is_recalling() || me.is_submitting_gems() || me.is_teleporting()) return;
+    if (me.is_recalling()) { g_branch = "recall"; return; }
+    if (me.is_submitting_gems() || me.is_teleporting()) { g_branch = "tribute"; return; }
 
     refresh_view();
     refresh_allies();
@@ -842,10 +909,12 @@ void play_turn_inner() {
         }
     }
 
+    const bool remote_shop = me.champion_name() == cambc::champion_type::tavi;
+    if (remote_shop && !at_spawn && me.gold_count() >= 30) buy_items();
     if (at_spawn) {
         buy_items();
         retreating = false;
-        if (hp < maxhp * 0.9f && spawn_wait < 8) { ++spawn_wait; return; }
+        if (hp < maxhp * 0.9f && spawn_wait < 8) { ++spawn_wait; g_branch = "spawnheal"; return; }
     }
     spawn_wait = 0;
 
@@ -883,7 +952,8 @@ void play_turn_inner() {
     retreating = false;
 
     // Shopping trip when rich and idle.
-    if (!at_spawn && me.gold_count() >= 300 && threats.empty() && g_home.at(pos) > 8 && me.gem_count() < 10) {
+    if (!at_spawn && !remote_shop && me.gold_count() >= 300 && threats.empty() && g_home.at(pos) > 8 && me.gem_count() < 10) {
+        g_branch = "shoptrip";
         safe_recall();
         return;
     }
@@ -980,6 +1050,7 @@ void play_turn_inner() {
 
     // Farm: choose the best group.
     read_claims();
+    g_pack = recent_sighting();
     {
         float best = 0;
         int bi = -1;
@@ -988,10 +1059,15 @@ void play_turn_inner() {
             const float s = target_score(static_cast<int>(gi), pos, dps, hp, maxhp, mult);
             if (s > best) { best = s; bi = static_cast<int>(gi); }
         }
+        if (g_pack) {
+            const int lt = pack_leader_target();
+            if (lt >= 0 && lt < static_cast<int>(G.size()) && !G[static_cast<size_t>(lt)].big) bi = lt;
+        }
         if (bi != target) { target = bi; target_since = static_cast<int>(g_round); stall = 0; }
         write_claim(target);
     }
     if (target < 0) {
+        g_branch = "idle";
         // Nothing worth doing: bank gems or go home.
         if (gems > 0) step_to(g_altar_goals);
         else if (!at_spawn) step_to(cambc::map::spawn_region(team::ally));
