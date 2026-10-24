@@ -15,7 +15,7 @@ namespace {
 
 using it = cambc::item_type;
 constexpr bool kLog = true;
-constexpr int kLogFrom = 60, kLogTo = 100;
+constexpr int kLogFrom = 1, kLogTo = 0;
 constexpr float kFightRatio = 1.0f;
 constexpr float kHuntRatio = 1.6f;
 constexpr float kStuckBonus = 1.3f;
@@ -956,18 +956,22 @@ void Bot::farm(int gi) {
     auto& g = g_[gi];
     if (g.state == Group::reward) {
         // Capture: stand on a spawn tile.
+        g_mode = "capture";
         if (g.spawn.is_set(pos_)) return;
         go(g.spawn, true);
         return;
     }
     if (g.state == Group::respawning) {
         // Wait beside the group, never on its spawn tiles (that blocks the respawn).
+        g_mode = "wait";
         if (cheb(pos_, g.center) <= g.reach + 2 && !g.spawn.is_set(pos_)) return;
         auto goal = grow(g.spawn, 2) & ~g_ww & ~g.spawn;
         go(goal, true);
         return;
     }
+    g_mode = "hit";
     if (hit_camps(gi) && ranged_) return;
+    if (!attacked_) g_mode = "approach";
     // Approach living camps (goal cached while the living set stays the same).
     int sig = 1;
     for (size_t c = 0; c < g.tiles.size(); ++c)
@@ -1014,6 +1018,18 @@ void Bot::play_turn() {
     invalidate();
     g_mode = "start";
     turn();
+    if (kLog) {
+        static std::array<std::pair<const char*, int>, 24> counts{};
+        for (auto& c : counts) {
+            if (c.first == g_mode) { ++c.second; break; }
+            if (!c.first) { c = {g_mode, 1}; break; }
+        }
+        if (now() % 500 == 0) {
+            std::cout << "modes r" << now() << ' ' << cambc::to_string(cambc::self().champion_name());
+            for (auto& c : counts) if (c.first) std::cout << ' ' << c.first << '=' << c.second;
+            std::cout << '\n';
+        }
+    }
     if (kLog && (now() % 50 == 0 || (now() >= kLogFrom && now() <= kLogTo))) {
         auto& me = cambc::self();
         std::cout << "r" << now() << ' ' << cambc::to_string(me.champion_name()) << ' ' << g_mode << " at " << pos_.x << ',' << pos_.y
@@ -1130,6 +1146,19 @@ void Bot::turn() {
         g_mode = "heal";
         go_home_or_recall(4);
         return;
+    }
+    // Waiting for a respawn: bank gems or shop in the meantime.
+    if (g_[target_].state == Group::respawning) {
+        const int left = g_[target_].ready - now();
+        if (me.gem_count() > 0 && left > 2 * altar_.at(pos_) + 4) {
+            g_mode = "bankwait";
+            if (tribute(true)) return;
+        }
+        if (me.gold_count() >= 90 && left > 12 + std::min(home_.at(pos_), 10) && incoming_ <= 0) {
+            g_mode = "shopwait";
+            go_home_or_recall(6);
+            return;
+        }
     }
     g_mode = "farm";
     // Stuck detection: no progress towards the target for a long time.
