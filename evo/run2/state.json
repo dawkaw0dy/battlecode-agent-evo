@@ -968,9 +968,11 @@
   },
   "f02-03": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evo-task-f02-03-9a8ifn",
+   "commit": "d6a9bac5b085ba6f39c7348c40904d1201fa2bcc",
    "deadline_minutes": 120,
+   "done_at": 1792876668,
+   "effort_level": "high",
    "evidence": [
     {
      "gems_opponent": 1012,
@@ -1018,6 +1020,7 @@
    "generation": 2,
    "id": "f02-03",
    "kind": "child",
+   "model": null,
    "nudged": [
     "session_01SKqAdwQhhAfbSnvF9igfYB"
    ],
@@ -1040,14 +1043,16 @@
    ],
    "slot": 3,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "d5806abfe9787e2227cedf2c0e566679071fbcb2cb3303bc114c3df19f10d8a1"
   },
   "f02-04": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evo-task-f02-04-h95nr8",
+   "commit": "881f7665dd3176aa2cddb0d834e2d6e5d2c6b74b",
    "deadline_minutes": 120,
+   "done_at": 1792876672,
+   "effort_level": "high",
    "evidence": [
     {
      "gems_opponent": 2263,
@@ -1095,6 +1100,7 @@
    "generation": 2,
    "id": "f02-04",
    "kind": "child",
+   "model": null,
    "nudged": [
     "session_01R2kzXhb2YyvTtks6xPZUH3"
    ],
@@ -1116,7 +1122,7 @@
    ],
    "slot": 4,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "7511729f10e93e28756b63760a6283d983fb77cf649adbc1a6fd2d7f3a7201c6"
   },
   "f02-05": {
@@ -1197,9 +1203,11 @@
   },
   "f02-06": {
    "archetype": "big-game-hunter",
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evolution-agent-f02-06-v5zcfl",
+   "commit": "738ee78dbe47a549d5d4ecc76bda9eebea4268d8",
    "deadline_minutes": 120,
+   "done_at": 1792876678,
+   "effort_level": "high",
    "evidence": [],
    "failed_ideas": [
     "f00-03: Linear bitboard buffers are bit-packed (not one byte per tile as the API doc says).",
@@ -1222,6 +1230,7 @@
    "generation": 2,
    "id": "f02-06",
    "kind": "immigrant",
+   "model": null,
    "nudged": [
     "session_01DiamW9ysr8ga5WAUk2JabT"
    ],
@@ -1243,14 +1252,16 @@
    ],
    "slot": 6,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "b6b5a98ef34c33bb1739b75d050e66b6e8abadca598be3acc39ffe5127411b74"
   },
   "f02-07": {
    "archetype": "altar-control",
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evo-task-f02-07-q8bopt",
+   "commit": "9f50a0c27a7383f19568d849d4b84840a0ea5736",
    "deadline_minutes": 120,
+   "done_at": 1792876682,
+   "effort_level": "high",
    "evidence": [],
    "failed_ideas": [
     "f00-03: Linear bitboard buffers are bit-packed (not one byte per tile as the API doc says).",
@@ -1273,6 +1284,7 @@
    "generation": 2,
    "id": "f02-07",
    "kind": "immigrant",
+   "model": null,
    "nudged": [
     "session_014eLzVvrS56XeWP3C5bNsmt"
    ],
@@ -1294,7 +1306,7 @@
    ],
    "slot": 7,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "4bdbfd31b8a7c2ec010648c898959044787d839280b2f1e600716c2dc39f8fea"
   }
  },
@@ -5703,7 +5715,11 @@
   "2026-10-24T19:35:06Z g02 f02-06: launched session_01DiamW9ysr8ga5WAUk2JabT",
   "2026-10-24T19:35:19Z g02 f02-07: launched session_014eLzVvrS56XeWP3C5bNsmt",
   "2026-10-24T21:15:44Z g02 f02-01: done on origin/claude/evolution-agent-f02-01-xc7p7z at 959c7c67a1",
-  "2026-10-24T21:15:47Z g02 f02-02: done on origin/claude/evolution-agent-f02-02-95plho at 7e13f21db8"
+  "2026-10-24T21:15:47Z g02 f02-02: done on origin/claude/evolution-agent-f02-02-95plho at 7e13f21db8",
+  "2026-10-24T21:17:48Z g02 f02-03: done on origin/claude/evo-task-f02-03-9a8ifn at d6a9bac5b0",
+  "2026-10-24T21:17:52Z g02 f02-04: done on origin/claude/evo-task-f02-04-h95nr8 at 881f7665dd",
+  "2026-10-24T21:17:58Z g02 f02-06: done on origin/claude/evolution-agent-f02-06-v5zcfl at 738ee78dbe",
+  "2026-10-24T21:18:02Z g02 f02-07: done on origin/claude/evo-task-f02-07-q8bopt at 9f50a0c27a"
  ],
  "paused": null,
  "phase": "RUNNING",
