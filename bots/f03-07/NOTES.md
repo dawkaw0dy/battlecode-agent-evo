@@ -23,9 +23,9 @@ enemies unless the square-law ratio (Σhp·Σdps, visible allies within 6) clear
 - Shared memory: bytes 0–4 target claims, 5–7 latest enemy sighting (x, y, round).
 
 ## Changes this generation
-- New bot (immigrant, safe-banker archetype) on the starter's main loop. Final local results: 20/20 vs starter
-  (10 maps), 10/20 vs f00-03 (10 fresh maps, benchmark.py), 6/16 vs f02-01 (8 maps), 6/20 vs f02-01 (10 other
-  maps), 0 faults and 0 caught exceptions in every run.
+- New bot (immigrant, safe-banker archetype) on the starter's main loop. Final local results: 8/20 vs f02-01
+  (benchmark.py, 10 maps), 9/20 vs f01-07 (10 maps), 10/20 vs f00-03 (10 maps, one build earlier), 20/20 vs
+  starter (10 maps); 0 faults and 0 caught exceptions in every run.
 - Biggest wins found while building: capture-ready groups scored negative (trips = 0) so champions walked away from
   every capture (vs starter 1/6 → 6/6); per-champion sectors (16-game margin vs f00-03 −6379 → −3883); heal
   below 65% between targets; abandon blocked tribute trips; side attacks while capturing.
@@ -48,7 +48,8 @@ enemies unless the square-law ratio (Σhp·Σdps, visible allies within 6) clear
   reach, stricter even-fight rule, enemy radius 8. Fleeing is what keeps the bank safe.
 - (f03-07) Neutral or worse: tribute at ≥70 gems, durability before monster, gold weight 0.5, enemy-side factor
   0.85 or 0.45, sector factor 0.4, sectors including centre groups, shop at 240 gold, Tavi instead of Ryth
-  (better vs f00-03, worse vs f02-01), heal threshold 0.35.
+  (better vs f00-03, worse vs f02-01), heal threshold 0.35, camp-retreat margin 120 (16-game margins vs
+  f02-01 −1422 → −2567, vs f00-03 −2464 → −4551).
 
 ## Known weaknesses
 - Still ~1.5–2x slower farming than f02-01/f01-07 on open maps; no boss raids, so monolith-only gem maps
