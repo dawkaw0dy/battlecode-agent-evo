@@ -676,6 +676,24 @@ bool Bot::enemies() {
                 if (lk) stuck_foe = true;  // clearing our lock: punish
             }
     }
+    // A stun cancels an enemy tribute: always worth the cast.
+    if (!cast_ && !moved_ && me.can_cast() && live())
+        for (const auto& f : near) {
+            if (!f.channel || f.gems < 5 || cast_) continue;
+            for (const auto& ab : me.abilities()) {
+                if (cast_ || !ab.is_ready() || !ab.is_cc() || !ab.can_target_enemies()) continue;
+                if (static_cast<float>(cheb(f.pos, pos_)) > ability_range(ab)) continue;
+                try {
+                    if (cambc::vision::has_champion(f.pos)) {
+                        ab.use(cambc::vision::champion_at(f.pos));
+                        cast_ = true;
+                        ++stuns_;
+                        invalidate();
+                        if (kLog) std::cout << "stun r" << now() << " gems " << f.gems << '\n';
+                    }
+                } catch (const cambc::error& e) { warn("stun", e); }
+            }
+        }
     float ratio = (our_hp * our_pow) / std::max(1.0f, their_hp * their_pow);
     if (home_.at(pos_) <= 3) ratio *= 1.5f;
     if (stuck_foe) ratio *= kStuckBonus;

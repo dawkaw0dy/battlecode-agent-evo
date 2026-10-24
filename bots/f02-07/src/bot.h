@@ -47,6 +47,7 @@ class Bot {
     bool block_dirty_ = true;
     bool shop_trip_ = false;
     int last_enemy_seen_ = -1000;
+    int stuns_ = 0;
     int locks_placed_ = 0, locks_cancel_ = 0, lock_gems_ = 0;
     int flee_until_ = -1;
     int plug_ = -1, plug_at_ = -100;
