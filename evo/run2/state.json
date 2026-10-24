@@ -385,9 +385,11 @@
   },
   "f01-02": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evolution-agent-f01-02-zhhnyq",
+   "commit": "9273b9a01b2bb9df70825cc172a43dafbbb93951",
    "deadline_minutes": 120,
+   "done_at": 1792866827,
+   "effort_level": "high",
    "evidence": [
     {
      "gems_opponent": 1070,
@@ -435,6 +437,7 @@
    "generation": 1,
    "id": "f01-02",
    "kind": "child",
+   "model": null,
    "nudged": [
     "session_01Gh66GxLLXpcTC7PEVC9uML"
    ],
@@ -456,14 +459,16 @@
    ],
    "slot": 2,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "c7705817b616b3ac16c5358fd7bda786e37db4b1c2dd9d85e13903b7640ddfa4"
   },
   "f01-03": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evo-f01-03-e6it48",
+   "commit": "776bcb351492fe46cd3005c0a6675a1273501425",
    "deadline_minutes": 120,
+   "done_at": 1792866830,
+   "effort_level": "high",
    "evidence": [
     {
      "gems_opponent": 1070,
@@ -511,6 +516,7 @@
    "generation": 1,
    "id": "f01-03",
    "kind": "child",
+   "model": null,
    "nudged": [
     "session_014UdZb764jesDfpmhBqiQdD"
    ],
@@ -533,14 +539,16 @@
    ],
    "slot": 3,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "cc977586bdb4a01bf3e1097cefd09f5dba2721b4f618e629b2bab1ba46cefea2"
   },
   "f01-04": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evo-task-f01-04-71hqaj",
+   "commit": "5d92d091ca51602e7fb6b0d75519d6da1cfd9062",
    "deadline_minutes": 120,
+   "done_at": 1792866834,
+   "effort_level": "high",
    "evidence": [
     {
      "gems_opponent": 1060,
@@ -588,6 +596,7 @@
    "generation": 1,
    "id": "f01-04",
    "kind": "child",
+   "model": null,
    "nudged": [
     "session_01PwnWUfngPqCzR2CyUmAr2V"
    ],
@@ -609,14 +618,16 @@
    ],
    "slot": 4,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "ddbb56d2c2729d46edb19b4b8f5534957a42b39869a5a4e7ff70183bcdfff848"
   },
   "f01-05": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evo-f01-05-v32gro",
+   "commit": "c3bbcc42ea54913d55488faafe07f02c4433f6b2",
    "deadline_minutes": 120,
+   "done_at": 1792866837,
+   "effort_level": "high",
    "evidence": [
     {
      "gems_opponent": 1060,
@@ -664,6 +675,7 @@
    "generation": 1,
    "id": "f01-05",
    "kind": "child",
+   "model": null,
    "nudged": [
     "session_01ECvaF6hVGChQiz6YU3N1Cn"
    ],
@@ -685,14 +697,16 @@
    ],
    "slot": 5,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "8e7ac366a87e0f068e64509ca0eccccaab2f264675271088a519a050c5b29b2c"
   },
   "f01-06": {
    "archetype": "camp-sweep",
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evolution-f01-06-hjq5z6",
+   "commit": "ad1a69f79aba4bdfc11fe2869a07e7fe2210498d",
    "deadline_minutes": 120,
+   "done_at": 1792866840,
+   "effort_level": "high",
    "evidence": [],
    "failed_ideas": [
     "f00-01: Starter step selection `field.get(tile) < field.get(step)` picks blocked/unreached tiles: only step to free tiles in `visited`.",
@@ -715,6 +729,7 @@
    "generation": 1,
    "id": "f01-06",
    "kind": "immigrant",
+   "model": null,
    "nudged": [
     "session_01EkEwfGNeT65esUX5cBiMA1"
    ],
@@ -736,14 +751,16 @@
    ],
    "slot": 6,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "311069ec3f98854916be835972a43678b8abe6380c1778a9ba54cb54b59291dd"
   },
   "f01-07": {
    "archetype": "scaling-economy",
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evo-task-f01-07-gz5n3z",
+   "commit": "f73626c450d03bcc4f83eb3f0835667dc60cdca3",
    "deadline_minutes": 120,
+   "done_at": 1792866843,
+   "effort_level": "high",
    "evidence": [],
    "failed_ideas": [
     "f00-01: Starter step selection `field.get(tile) < field.get(step)` picks blocked/unreached tiles: only step to free tiles in `visited`.",
@@ -766,6 +783,7 @@
    "generation": 1,
    "id": "f01-07",
    "kind": "immigrant",
+   "model": null,
    "nudged": [
     "session_01LZ2GPZrdTvTuN8tVN5UV1Z"
    ],
@@ -787,7 +805,7 @@
    ],
    "slot": 7,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "ba3186d86ee8e218c9d4f6d802fcd202ea1ebcda1f15593a2a84b2a5840a025e"
   }
  },
@@ -2902,10 +2920,17 @@
   "2026-10-24T16:50:16Z g01 f01-05: launched session_01ECvaF6hVGChQiz6YU3N1Cn",
   "2026-10-24T16:50:27Z g01 f01-06: launched session_01EkEwfGNeT65esUX5cBiMA1",
   "2026-10-24T16:50:36Z g01 f01-07: launched session_01LZ2GPZrdTvTuN8tVN5UV1Z",
-  "2026-10-24T18:31:33Z g01 f01-01: done on origin/claude/evolution-f01-01-o4wv8s at 2562344868"
+  "2026-10-24T18:31:33Z g01 f01-01: done on origin/claude/evolution-f01-01-o4wv8s at 2562344868",
+  "2026-10-24T18:33:47Z g01 f01-02: done on origin/claude/evolution-agent-f01-02-zhhnyq at 9273b9a01b",
+  "2026-10-24T18:33:50Z g01 f01-03: done on origin/claude/evo-f01-03-e6it48 at 776bcb3514",
+  "2026-10-24T18:33:54Z g01 f01-04: done on origin/claude/evo-task-f01-04-71hqaj at 5d92d091ca",
+  "2026-10-24T18:33:57Z g01 f01-05: done on origin/claude/evo-f01-05-v32gro at c3bbcc42ea",
+  "2026-10-24T18:34:00Z g01 f01-06: done on origin/claude/evolution-f01-06-hjq5z6 at ad1a69f79a",
+  "2026-10-24T18:34:03Z g01 f01-07: done on origin/claude/evo-task-f01-07-gz5n3z at f73626c450",
+  "2026-10-24T18:34:03Z g01 phase ADMITTED"
  ],
  "paused": null,
- "phase": "RUNNING",
+ "phase": "ADMITTED",
  "sessions_launched": 15,
  "version": 1
 }
