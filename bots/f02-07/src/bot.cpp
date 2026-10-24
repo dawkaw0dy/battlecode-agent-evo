@@ -23,7 +23,6 @@ constexpr float kGold = 0.35f, kGoldVesper = 0.35f;
 constexpr int kBankGems = 30;
 constexpr bool kHelp = true;
 constexpr int kHelpRange = 14;
-constexpr int kThreat = 4;
 constexpr int kGuardFrom = 250;
 constexpr float kSightPenalty = 0.35f;
 
