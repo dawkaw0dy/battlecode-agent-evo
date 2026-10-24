@@ -17,7 +17,7 @@ using cambc::team;
 // Fight tuning switches.
 constexpr bool kUseMemo = false;      // count enemies seen in the last rounds
 constexpr bool kFleeHpGate = true;    // keep retreating out of sight only while hurt
-constexpr bool kTradeAlways = true;   // trade blows whenever fleeing cannot avoid them
+constexpr bool kTradeAlways = false;  // trade blows whenever fleeing cannot avoid them
 constexpr bool kFleeStep = false;     // threat-aware flee steps instead of the home path
 constexpr bool kAvoidSpawnCampers = true;  // keep out of reach of enemies on their spawn
 
@@ -563,7 +563,7 @@ bool Bot::step_to(const cambc::bitboard& goals_in, bool allow_dash) {
                     const int now = static_cast<int>(cambc::round_number());
                     if (now != gap_last_ + 1) gap_start_ = now;
                     gap_last_ = now;
-                    if (now - gap_start_ < 5) return true;
+                    if (now - gap_start_ < 5 && !urgent_) return true;
                     break;
                 }
             }
@@ -630,6 +630,7 @@ bool Bot::dash_ready() const {
 }
 
 void Bot::go_home() {
+    urgent_ = true;
     // Without a dash ready, never wait beside a hole: walk the long way round.
     const bool w = (dasher_ && !dash_ready()) ? walk_field(home_walk_, false) : walk_field(home_, true);
     bool st = false;
@@ -926,7 +927,9 @@ bool Bot::fight_attack(const std::vector<Sighting>& enemies, float burst) {
     const int v = pick_victim(enemies, me.attack_range(), burst);
     if (v < 0) return false;
     const vec2 p = enemies[static_cast<size_t>(v)].pos;
-    if (!hit_champion(p)) return false;
+    const bool hit = hit_champion(p);
+    TRACE("   attack " << p.x << "," << p.y << " hp" << int(enemies[static_cast<size_t>(v)].hp) << " ok" << hit << " str" << me.strength());
+    if (!hit) return false;
     if (!cast_ && live() && !me.can_attack() && me.can_cast() && fuel_ok(8000))
         for (const auto& ab : me.abilities())
             if (ab.is_attack_reset() && ab.is_ready()) {
@@ -1350,7 +1353,7 @@ void Bot::play_turn() {
     pos_ = cambc::self().position();
     if (!ready_) initialise();
     auto& me = cambc::self();
-    moved_ = attacked_ = cast_ = move_failed_ = false;
+    moved_ = attacked_ = cast_ = move_failed_ = urgent_ = false;
     invalidate_view();
 
     if (!me.is_alive()) {

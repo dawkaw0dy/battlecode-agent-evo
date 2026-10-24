@@ -63,6 +63,7 @@ class Bot {
 
     // Per-turn flags.
     bool moved_ = false, attacked_ = false, cast_ = false, move_failed_ = false;
+    bool urgent_ = false;                 // running from enemies: never wait for a gap to clear
     float incoming_ = 0;                  // strength of awake camps that can hit us
     int exit_steps_ = 0;                  // steps to get out of their range
     float taken_mult_ = 1.0f, dps_ = 50.0f;
