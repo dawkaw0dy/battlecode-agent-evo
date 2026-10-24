@@ -21,6 +21,7 @@ int W = 0, H = 0;
 constexpr float DANGER = 0.75f;
 constexpr int THREAT_R = 5;
 constexpr unsigned SHOP_GOLD = 150;
+constexpr int CLAIM_SLOTS = 6;   // shared bytes 0..5 hold claims, 6..7 the last enemy sighting
 constexpr float OUTMATCH = 1.4f;
 constexpr std::uint16_t UNR = distance_field::unreachable;
 constexpr std::array<vec2, 8> DIRS{vec2{0, 1}, vec2{1, 1}, vec2{1, 0}, vec2{1, -1},
@@ -208,7 +209,7 @@ void Bot::init() {
     const auto& me = cambc::self();
     for (std::size_t i = 0; i < allies.size(); ++i)
         if (allies[i] == me) my_index = static_cast<int>(i);
-    if (my_index > 7) my_index = 7;
+    if (my_index >= CLAIM_SLOTS) my_index = CLAIM_SLOTS - 1;
 }
 
 int Bot::read_claim(int index) {
@@ -478,8 +479,8 @@ void Bot::choose_target(const distance_field& from_me, const bitboard& reach) {
     int helpers = 1;
     for (auto p : cambc::vision::champion_tiles(team::ally).positions())
         if (p != me.position() && cheb(p, me.position()) <= 8) ++helpers;
-    std::array<int, 8> claims{};
-    for (int j = 0; j < 8; ++j) claims[j] = j == my_index ? -1 : read_claim(j);
+    std::array<int, CLAIM_SLOTS> claims{};
+    for (int j = 0; j < CLAIM_SLOTS; ++j) claims[j] = j == my_index ? -1 : read_claim(j);
     const float gold_w = 0.33f;
 
     int best = -1;
@@ -496,7 +497,7 @@ void Bot::choose_target(const distance_field& from_me, const bitboard& reach) {
         const int wait = std::max(0, ready_round[i] - now);
         const int arrival = std::max(dist, wait);
         int claimants = 0;
-        for (int j = 0; j < 8; ++j) if (claims[j] == static_cast<int>(i)) ++claimants;
+        for (int j = 0; j < CLAIM_SLOTS; ++j) if (claims[j] == static_cast<int>(i)) ++claimants;
         float factor = 1.0f;
         const float k = static_cast<float>(std::max(helpers, 1 + claimants));
         const float dps = my_str * k;
