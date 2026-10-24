@@ -25,7 +25,7 @@ class Bot {
     int wait_turns = 0;
     int last_enemy_round = -1000;
     bool moved = false, cast_lock = false;
-    cambc::bitboard static_walls, approach, own_spawn;
+    cambc::bitboard static_walls, approach, own_spawn, all_spawns;
     cambc::distance_field spawn_field, altar_field;
 
     void init();

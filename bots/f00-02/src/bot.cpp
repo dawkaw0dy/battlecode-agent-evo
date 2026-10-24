@@ -5,9 +5,11 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
+#include <optional>
 #include <span>
 #include <variant>
 #include <vector>
+#include <iostream>
 
 using cambc::bitboard;
 using cambc::distance_field;
@@ -16,7 +18,9 @@ using cambc::vec2;
 
 namespace {
 
+int dbg_reason = 0;
 int W = 0, H = 0;
+constexpr float DANGER = 0.75f;
 constexpr std::uint16_t UNR = distance_field::unreachable;
 constexpr std::array<vec2, 8> DIRS{vec2{0, 1}, vec2{1, 1}, vec2{1, 0}, vec2{1, -1},
                                    vec2{0, -1}, vec2{-1, -1}, vec2{-1, 0}, vec2{-1, 1}};
@@ -34,6 +38,30 @@ bitboard square(vec2 c, int r) {
             if (inb(p)) b.set(p);
         }
     return b;
+}
+
+// Entity lookups that report absence instead of throwing: a unit can leave or die between
+// the occupancy mask and the lookup (engine errors 97/98).
+std::optional<cambc::camp> camp_here(vec2 p) {
+    if (!inb(p) || !cambc::vision::has_camp(p)) return std::nullopt;
+    try {
+        auto c = cambc::vision::camp_at(p);
+        if (!c.is_visible()) return std::nullopt;
+        return c;
+    } catch (const cambc::error&) {
+        return std::nullopt;
+    }
+}
+
+std::optional<cambc::champion> champion_here(vec2 p) {
+    if (!inb(p) || !cambc::vision::has_champion(p)) return std::nullopt;
+    try {
+        auto c = cambc::vision::champion_at(p);
+        if (!c.is_visible()) return std::nullopt;
+        return c;
+    } catch (const cambc::error&) {
+        return std::nullopt;
+    }
 }
 
 struct CampStat { float hp, str; int range; };
@@ -63,9 +91,9 @@ struct Seen { vec2 pos; float hp, str; };
 std::vector<Seen> visible_champions(team side) {
     std::vector<Seen> out;
     for (auto p : cambc::vision::champion_tiles(side).positions()) {
-        auto c = cambc::vision::champion_at(p);
-        if (!c.is_visible()) continue;
-        out.push_back({p, c.health(), c.strength()});
+        auto c = champion_here(p);
+        if (!c) continue;
+        out.push_back({p, c->health(), c->strength()});
     }
     return out;
 }
@@ -74,9 +102,9 @@ std::vector<Seen> visible_champions(team side) {
 bool camp_threat_at(vec2 tile) {
     for (auto p : cambc::vision::camp_tiles().positions()) {
         if (cheb(p, tile) > 5) continue;
-        auto c = cambc::vision::camp_at(p);
-        if (!c.is_visible() || !c.is_awake()) continue;
-        if (c.strength() > 0 && cheb(p, tile) <= c.attack_range()) return true;
+        auto c = camp_here(p);
+        if (!c || !c->is_awake()) continue;
+        if (c->strength() > 0 && cheb(p, tile) <= c->attack_range()) return true;
     }
     return false;
 }
@@ -91,11 +119,18 @@ void Bot::init() {
         | cambc::map::spawn_region(team::enemy);
     own_spawn = cambc::map::spawn_region(team::ally);
     approach.clear();
+    all_spawns.clear();
     for (auto a : cambc::map::altars().positions()) approach |= square(a, cambc::constants::submit_gems_range);
     approach &= ~static_walls;
     bitboard visited;
-    spawn_field.compute(static_walls, own_spawn, visited);
-    altar_field.compute(static_walls, approach, visited);
+    {
+        bitboard walls = static_walls;
+        spawn_field.compute(walls, own_spawn, visited);
+    }
+    {
+        bitboard walls = static_walls;
+        altar_field.compute(walls, approach, visited);
+    }
 
     for (const auto& g : group_handles()) {
         GroupInfo info;
@@ -121,8 +156,13 @@ void Bot::init() {
             adist = std::min<int>(adist, altar_field.get(t));
         }
         info.altar_dist = adist;
+        all_spawns |= info.spawns;
         groups.push_back(std::move(info));
     }
+    if (cambc::self().champion_name() == cambc::champion_type::vendetta)
+        for (std::size_t i = 0; i < groups.size(); ++i)
+            std::cout << "DBG group " << i << " at " << groups[i].tiles[0].x << "," << groups[i].tiles[0].y << " n=" << groups[i].tiles.size()
+                      << " gems=" << groups[i].gems << " gold=" << groups[i].gold << " mhp=" << groups[i].monster_hp << " spawnd=" << spawn_field.get(groups[i].tiles[0]) << " altar=" << groups[i].altar_dist << std::endl;
     ready_round.assign(groups.size(), 0);
     banned_until.assign(groups.size(), 0);
 
@@ -148,15 +188,22 @@ void Bot::buy_items() {
     auto& me = cambc::self();
     const auto counts = me.item_count();
     using cambc::item_type;
-    int dur = static_cast<int>(counts[item_type::durability_shard_of_health])
-        + 5 * static_cast<int>(counts[item_type::durability_emblem_of_health]);
-    const bool healer = me.champion_name() == cambc::champion_type::willow;
+    // Durability emblem of strength first (farming speed and 10% less damage), then
+    // alternate power strength and health shards.
+    int dur = static_cast<int>(counts[item_type::durability_shard_of_strength])
+        + 5 * static_cast<int>(counts[item_type::durability_emblem_of_strength]);
+    int power = static_cast<int>(counts[item_type::power_shard_of_strength])
+        + 6 * static_cast<int>(counts[item_type::power_emblem_of_strength]);
+    int health = static_cast<int>(counts[item_type::power_shard_of_health])
+        + 6 * static_cast<int>(counts[item_type::power_emblem_of_health]);
     for (int guard = 0; guard < 20; ++guard) {
-        const item_type item = dur < 5 ? item_type::durability_shard_of_health
-            : healer ? item_type::power_shard_of_health : item_type::power_shard_of_strength;
+        item_type item = item_type::durability_shard_of_strength;
+        if (dur >= 5) item = health * 2 < power ? item_type::power_shard_of_health : item_type::power_shard_of_strength;
         if (me.gold_count() < item.cost() || !me.can_buy(item, 1)) break;
         me.buy(item, 1);
         if (dur < 5) ++dur;
+        else if (item == item_type::power_shard_of_health) ++health;
+        else ++power;
     }
 }
 
@@ -181,29 +228,32 @@ bool Bot::step_to(const bitboard& goals) {
     auto& me = cambc::self();
     if (moved || cast_lock || !me.can_move()) return false;
     const vec2 pos = me.position();
-    auto walls = static_walls | occupied();
-    walls.set(pos, false);
-    auto roots = goals & ~walls;
+    bitboard blocked = static_walls | occupied();
+    blocked.set(pos, false);
+    bitboard roots = goals & ~blocked;
     if (roots.is_empty() || roots.is_set(pos)) return false;
     distance_field field;
     bitboard visited;
-    field.compute_to(walls, roots, square(pos, 0), visited);
+    {
+        bitboard walls = blocked;   // the search gets its own copy
+        field.compute_to(walls, roots, square(pos, 0), visited);
+    }
     if (!visited.is_set(pos)) {
         // Allies may block a corridor: plan through champions, then take any free improving step.
-        walls = static_walls | cambc::vision::camp_tiles();
+        bitboard walls = static_walls | cambc::vision::camp_tiles();
         walls.set(pos, false);
         roots = goals & ~walls;
         if (roots.is_empty()) return false;
         field.compute_to(walls, roots, square(pos, 0), visited);
         if (!visited.is_set(pos)) return false;
-        walls = static_walls | occupied();
     }
     const auto cur = field.get(pos);
     vec2 best = pos;
     std::uint16_t bestd = cur;
     for (auto d : DIRS) {
         const vec2 t{pos.x + d.x, pos.y + d.y};
-        if (!inb(t) || walls.is_set(t) || !visited.is_set(t)) continue;
+        if (!inb(t) || blocked.is_set(t) || !visited.is_set(t)) continue;
+        if (cambc::vision::has_champion(t) || cambc::vision::has_camp(t)) continue;
         const auto fd = field.get(t);
         if (fd < bestd) { bestd = fd; best = t; }
     }
@@ -229,6 +279,7 @@ bool Bot::flee(const std::vector<vec2>& threats) {
     for (auto d : DIRS) {
         const vec2 t{pos.x + d.x, pos.y + d.y};
         if (!inb(t) || walls.is_set(t)) continue;
+        if (cambc::vision::has_champion(t) || cambc::vision::has_camp(t)) continue;
         const float s = score(t);
         if (s > bests) { bests = s; best = t; }
     }
@@ -275,11 +326,10 @@ bool Bot::cast_on_camp(const vec2& tile) {
         if (!ab.is_ready()) continue;
         if (!(ab.can_target_camps() || ab.can_target_ground())) continue;
         if (!ab.valid_tiles().is_set(tile)) continue;
-        if (!cambc::vision::has_camp(tile)) return false;
-        auto c = cambc::vision::camp_at(tile);
-        if (!c.is_visible()) return false;
+        auto c = camp_here(tile);
+        if (!c) return false;
         cast_lock = true;
-        return ab.can_target_camps() ? ab.use(c) : ab.use(tile);
+        return ab.can_target_camps() ? ab.use(*c) : ab.use(tile);
     }
     return false;
 }
@@ -294,11 +344,11 @@ void Bot::use_support_spells() {
             const float amount = ab.heal_amount();
             for (auto p : cambc::vision::champion_tiles(team::ally).positions()) {
                 if (p == me.position() || !mask.is_set(p)) continue;
-                auto c = cambc::vision::champion_at(p);
-                if (!c.is_visible() || c.health() <= 0) continue;
-                const float missing = c.max_health() - c.health();
-                if (missing >= amount * 0.7f || c.health() < 0.45f * c.max_health()) {
-                    ab.use(c);
+                auto c = champion_here(p);
+                if (!c || c->health() <= 0) continue;
+                const float missing = c->max_health() - c->health();
+                if (missing >= amount * 0.7f || c->health() < 0.45f * c->max_health()) {
+                    ab.use(*c);
                     return;
                 }
             }
@@ -323,7 +373,7 @@ void Bot::choose_target(const distance_field& from_me, const bitboard& reach) {
     const int allies = static_cast<int>(cambc::champions(team::ally).size());
     std::array<int, 8> claims{};
     for (int j = 0; j < 8; ++j) claims[j] = j == my_index ? -1 : read_claim(j);
-    const float gold_w = me.gold_count() < 150 ? 0.25f : 0.12f;
+    const float gold_w = 0.33f;
 
     int best = -1;
     float best_score = 0;
@@ -346,12 +396,18 @@ void Bot::choose_target(const distance_field& from_me, const bitboard& reach) {
             const float team_hp = my_hp + 750.0f * claimants;
             const float ttk = g.monster_hp / dps;
             const float dmg = g.strength * ttk * (g.monsters > 1 ? 0.7f : 1.0f);
-            if (dmg > 0.5f * team_hp) {
+            if (claimants > 0) {
+                // Already clearable without us? Then we add little.
+                const float o_dps = 50.0f * claimants, o_hp = 750.0f * claimants;
+                const float o_dmg = g.strength * (g.monster_hp / o_dps) * (g.monsters > 1 ? 0.7f : 1.0f);
+                if (o_dmg <= DANGER * o_hp && claimants >= 2) factor = 0.35f;
+            }
+            if (dmg > DANGER * team_hp) {
                 // Needs a coalition: worth proposing only if the whole team could do it.
                 const float all_dps = my_str + 50.0f * (allies - 1);
                 const float all_hp = my_hp + 750.0f * (allies - 1);
                 const float all_dmg = g.strength * (g.monster_hp / all_dps) * (g.monsters > 1 ? 0.7f : 1.0f);
-                if (allies < 2 || all_dmg > 0.5f * all_hp) continue;
+                if (allies < 2 || all_dmg > DANGER * all_hp) continue;
                 factor = 0.45f;
                 dps = all_dps;
             }
@@ -367,6 +423,17 @@ void Bot::choose_target(const distance_field& from_me, const bitboard& reach) {
     }
     if (best != target) wait_turns = 0;
     target = best;
+    if (best < 0 && now % 25 == 0) {
+        int nb = 0, nu = 0, nm = 0;
+        for (std::size_t i = 0; i < groups.size(); ++i) {
+            if (banned_until[i] > now) ++nb;
+            int dist = UNR;
+            for (auto t : groups[i].tiles) if (reach.is_set(t)) dist = std::min<int>(dist, from_me.get(t));
+            if (dist >= UNR) ++nu;
+            if (groups[i].monster_hp >= 20000) ++nm;
+        }
+        std::cout << "DBG none " << groups.size() << " banned=" << nb << " unreach=" << nu << " mono=" << nm << " reachcnt=" << reach.count() << std::endl;
+    }
 }
 
 bool Bot::fight_group() {
@@ -381,34 +448,64 @@ bool Bot::fight_group() {
         if (vis.is_set(t)) { seen = true; break; }
     const int range = me.attack_range();
     if (!seen) {
+        // Camps hidden in bushes: close in, then step into the bush next to them.
         bitboard goals;
         goals.clear();
         for (auto t : g.tiles) goals |= square(t, range);
-        step_to(goals & ~static_walls);
+        goals &= ~static_walls;
+        if (goals.is_set(pos)) {
+            goals.clear();
+            for (auto t : g.tiles) goals |= square(t, 1);
+            goals &= ~static_walls;
+            if (goals.is_set(pos)) goals &= cambc::map::bushes();
+        }
+        if (!step_to(goals) && !moved) {
+            if (++wait_turns > 6) {
+                banned_until[target] = now + 60;
+                target = -1;
+                wait_turns = 0;
+                { dbg_reason = 6; return false; }
+            }
+        }
         return true;
     }
     const auto state = group_handles()[target].state();
     if (const auto* r = std::get_if<cambc::map::camp_group_respawning>(&state)) {
         ready_round[target] = now + std::max(1, r->timer);
+        if (r->timer <= 2 && ++wait_turns < 25) {
+            // About to respawn (or blocked by someone standing on it): clear the tiles and wait.
+            if (all_spawns.is_set(pos)) step_to(square(pos, 2) & ~all_spawns & ~static_walls);
+            return true;
+        }
         target = -1;
-        return false;
+        { dbg_reason = 1; return false; }
     }
     if (std::holds_alternative<cambc::map::camp_group_reward_available>(state)) {
         if (g.spawns.is_set(pos)) return true;          // capturing
-        for (auto p : cambc::vision::champion_tiles(team::ally).positions())
-            if (p != pos && g.spawns.is_set(p)) {
-                target = -1;                            // an ally is capturing it
-                return false;
+        const bool vesper = me.champion_name() == cambc::champion_type::vesper_vale;
+        for (auto p : cambc::vision::champion_tiles(team::ally).positions()) {
+            if (p == pos) continue;
+            const bool other_on = g.spawns.is_set(p);
+            bool other_vesper = false;
+            if (!vesper && cheb(p, g.tiles[0]) <= 6) {
+                auto c = champion_here(p);
+                other_vesper = c && c->champion_name() == cambc::champion_type::vesper_vale;
             }
+            if ((other_on && !vesper) || other_vesper) {
+                banned_until[target] = now + 8;
+                target = -1;                            // an ally is capturing it (Vesper gets bonus gold)
+                { dbg_reason = 2; return false; }
+            }
+        }
         if (!(cambc::vision::champion_tiles(team::enemy) & square(g.tiles[0], 4)).is_empty()) {
             banned_until[target] = now + 40;
             target = -1;
-            return false;
+            { dbg_reason = 3; return false; }
         }
         if (!step_to(g.spawns)) {
             if (moved) return true;
             target = -1;
-            return false;
+            { dbg_reason = 4; return false; }
         }
         return true;
     }
@@ -419,10 +516,9 @@ bool Bot::fight_group() {
     float monster_hp = 0, strength = 0;
     bool any_awake = false;
     for (auto t : g.tiles) {
-        if (!cambc::vision::has_camp(t)) continue;
-        auto c = cambc::vision::camp_at(t);
-        if (!c.is_visible() || !c.is_alive()) continue;
-        const Live l{t, c.health(), c.strength(), c.is_awake()};
+        auto c = camp_here(t);
+        if (!c || !c->is_alive()) continue;
+        const Live l{t, c->health(), c->strength(), c->is_awake()};
         live.push_back(l);
         if (l.str > 0) { monster_hp += l.hp; strength += l.str; }
         any_awake = any_awake || l.awake;
@@ -442,19 +538,19 @@ bool Bot::fight_group() {
         for (const auto& l : live) if (l.str > 0) ++monsters;
         for (auto p : cambc::vision::champion_tiles(team::ally).positions()) {
             if (cheb(p, live[0].pos) > 7) continue;
-            auto c = cambc::vision::champion_at(p);
-            if (!c.is_visible()) continue;
-            dps += c.strength();
-            hp += c.health();
+            auto c = champion_here(p);
+            if (!c) continue;
+            dps += c->strength();
+            hp += c->health();
         }
         dps = std::max(dps, 1.0f);
         const float dmg = strength * (monster_hp / dps) * (monsters > 1 ? 0.7f : 1.0f);
-        if (dmg > 0.5f * hp) {
+        if (dmg > DANGER * hp) {
             if (++wait_turns > 30) {
                 banned_until[target] = now + 120;
                 target = -1;
                 wait_turns = 0;
-                return false;
+                { dbg_reason = 5; return false; }
             }
             // Wait next to the group without waking it.
             bitboard goals;
@@ -489,9 +585,9 @@ bool Bot::fight_group() {
 
     if (tgt) {
         cast_on_camp(tgt->pos);
-        if (me.can_attack() && cambc::vision::has_camp(tgt->pos)) {
-            auto c = cambc::vision::camp_at(tgt->pos);
-            if (c.is_visible() && c.is_alive()) me.attack(c);
+        if (me.can_attack()) {
+            auto c = camp_here(tgt->pos);
+            if (c && c->is_alive()) me.attack(*c);
         }
         return true;
     }
@@ -501,9 +597,9 @@ bool Bot::fight_group() {
     if (me.can_attack()) {
         const auto atk2 = me.attack_tiles();
         for (const auto& l : live) {
-            if (!atk2.is_set(l.pos) || !cambc::vision::has_camp(l.pos)) continue;
-            auto c = cambc::vision::camp_at(l.pos);
-            if (c.is_visible() && c.is_alive()) { me.attack(c); break; }
+            if (!atk2.is_set(l.pos)) continue;
+            auto c = camp_here(l.pos);
+            if (c && c->is_alive()) { me.attack(*c); break; }
         }
     }
     return true;
@@ -519,6 +615,7 @@ void Bot::play_turn() {
         return;
     }
     if (me.is_recalling() || me.is_submitting_gems() || me.is_teleporting()) return;
+    if (me.buffs().has_stun()) return;
     update_groups();
 
     const int now = static_cast<int>(cambc::round_number());
@@ -552,20 +649,20 @@ void Bot::play_turn() {
             const bool outmatched = theirs > 0.75f * ours || (gems > 0 && theirs > 0.4f * ours)
                 || hp < 0.3f * max_hp;
             if (kill_shot && me.can_attack()) {
-                auto c = cambc::vision::champion_at(weakest->pos);
-                if (c.is_visible()) { me.attack(c); return; }
+                auto c = champion_here(weakest->pos);
+                if (c) { me.attack(*c); return; }
             }
             if (outmatched) {
                 if (flee(threats)) return;
                 if (weakest && me.can_attack()) {
-                    auto c = cambc::vision::champion_at(weakest->pos);
-                    if (c.is_visible()) me.attack(c);
+                    auto c = champion_here(weakest->pos);
+                    if (c) me.attack(*c);
                 }
                 return;
             }
             if (weakest && me.can_attack()) {
-                auto c = cambc::vision::champion_at(weakest->pos);
-                if (c.is_visible()) { me.attack(c); return; }
+                auto c = champion_here(weakest->pos);
+                if (c) { me.attack(*c); return; }
             }
         }
     }
@@ -596,7 +693,7 @@ void Bot::play_turn() {
     const bool engaged = camp_threat_at(pos);
     if (gems > 0 && !capturing && !engaged) {
         const int adist = altar_field.get(pos);
-        if (adist <= 6 + static_cast<int>(gems) / 2 || gems >= 20 || now - last_enemy_round < 12
+        if (adist <= 3 + static_cast<int>(gems) / 4 || gems >= 30 || now - last_enemy_round < 12
             || now > 1900) {
             go_bank();
             return;
@@ -606,12 +703,25 @@ void Bot::play_turn() {
     // Farming.
     distance_field from_me;
     bitboard reach;
-    from_me.compute(static_walls, square(pos, 0), reach);
+    {
+        bitboard walls = static_walls;
+        from_me.compute(walls, square(pos, 0), reach);
+    }
     if (target < 0 || (now % 5 == 0 && !engaged && !capturing)) choose_target(from_me, reach);
+    if (all_spawns.is_set(pos) && !capturing && !engaged) {
+        // Never block a camp group's respawn by idling on its spawn tiles.
+        bool needed = false;
+        if (target >= 0 && groups[target].spawns.is_set(pos)) {
+            const auto st = group_handles()[target].state();
+            needed = !std::holds_alternative<cambc::map::camp_group_respawning>(st);
+        }
+        if (!needed) step_to(square(pos, 2) & ~all_spawns & ~static_walls);
+    }
     if (target >= 0 && !fight_group()) {
         choose_target(from_me, reach);
         if (target >= 0) fight_group();
     }
     write_claim(target);
+    if (now % 25 == 0) std::cout << "DBG r" << now << " " << cambc::to_string(me.champion_name()) << " idx=" << my_index << " tgt=" << target << " pos=" << pos.x << "," << pos.y << " hp=" << hp << " wait=" << wait_turns << " moved=" << moved << " why=" << dbg_reason << std::endl;
     if (target < 0 && gems > 0) go_bank();
 }

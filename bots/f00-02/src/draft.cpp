@@ -11,8 +11,8 @@ void play_draft() {
     using cambc::champion_draft;
     const auto chosen = cambc::draft::current_draft(cambc::team::ally);
     constexpr std::array preference{
-        champion_draft::vendetta, champion_draft::vesper_vale, champion_draft::marcella,
-        champion_draft::willow, champion_draft::ryth, champion_draft::varg,
+        champion_draft::vesper_vale, champion_draft::marcella, champion_draft::vendetta,
+        champion_draft::varg, champion_draft::ryth, champion_draft::willow,
         champion_draft::tavi, champion_draft::cassi_and_issac, champion_draft::ren,
         champion_draft::heart_of_ruin, champion_draft::stellar, champion_draft::prism,
     };
