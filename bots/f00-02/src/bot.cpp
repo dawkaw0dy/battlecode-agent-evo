@@ -226,20 +226,25 @@ void Bot::buy_items() {
     auto& me = cambc::self();
     const auto counts = me.item_count();
     using cambc::item_type;
-    // Durability emblem of strength first (farming speed and 10% less damage), then
-    // alternate power strength and health shards.
+    // Durability emblem of strength (farming speed, 10% less damage), Home emblem of strength
+    // (three-turn recalls), then power strength and health shards.
     int dur = static_cast<int>(counts[item_type::durability_shard_of_strength])
         + 5 * static_cast<int>(counts[item_type::durability_emblem_of_strength]);
+    int home = static_cast<int>(counts[item_type::home_shard_of_strength])
+        + 5 * static_cast<int>(counts[item_type::home_emblem_of_strength]);
     int power = static_cast<int>(counts[item_type::power_shard_of_strength])
         + 6 * static_cast<int>(counts[item_type::power_emblem_of_strength]);
     int health = static_cast<int>(counts[item_type::power_shard_of_health])
         + 6 * static_cast<int>(counts[item_type::power_emblem_of_health]);
     for (int guard = 0; guard < 20; ++guard) {
         item_type item = item_type::durability_shard_of_strength;
-        if (dur >= 5) item = health * 2 < power ? item_type::power_shard_of_health : item_type::power_shard_of_strength;
+        if (dur >= 5) item = item_type::home_shard_of_strength;
+        if (dur >= 5 && home >= 5)
+            item = health * 2 < power ? item_type::power_shard_of_health : item_type::power_shard_of_strength;
         if (me.gold_count() < item.cost() || !me.can_buy(item, 1)) break;
         me.buy(item, 1);
         if (dur < 5) ++dur;
+        else if (home < 5) ++home;
         else if (item == item_type::power_shard_of_health) ++health;
         else ++power;
     }
