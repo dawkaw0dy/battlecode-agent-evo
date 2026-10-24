@@ -45,14 +45,14 @@ class Bot {
     cambc::bitboard awake_;             // awake camps in view this turn
     cambc::bitboard goal_;              // cached approach goal
     int goal_group_ = -1, goal_r_ = -1, goal_sig_ = 0;
-    int plug_ = -1, plug_since_ = 0;
+    int plug_ = -1, plug_since_ = 0;    // a living group that closes our way: clear it
     bool plug_altar_ = false;           // the plug guards the altar rather than a path
     int altar_wait_until_ = -1;         // too weak to clear the altar's guard until about then
-    int shrink_ = 0, shrink_g_ = -1;
+    int shrink_ = 0, shrink_g_ = -1;    // approach closer when walls hide the camps from range
     struct Seen { vec2 pos{}; float hp = 0, power = 0; int round = -1000; };
     std::vector<Seen> foe_mem_;         // last sighting of each enemy champion
     int fight_until_ = -1, flee_until_ = -1;
-    int chase_turns_ = 0, no_chase_until_ = -1;    // approach closer when walls hide the camps from range    // a living group that closes our way: clear it
+    int chase_turns_ = 0, no_chase_until_ = -1;  // a chase that lands no hit is dropped
 
     // Per turn.
     vec2 pos_{};
