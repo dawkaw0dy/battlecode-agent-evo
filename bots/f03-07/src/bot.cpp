@@ -628,7 +628,7 @@ bool Bot::go_tribute() {
     if (d == UNREACHED) return false;
     const int now = static_cast<int>(turn_round);
     const int left = static_cast<int>(cambc::constants::max_rounds) - now;
-    bool go = gems >= 50 || d <= 3 + gems / 5 || left <= d + (gems + 9) / 10 + 6
+    bool go = gems >= 40 || d <= 4 + gems / 4 || left <= d + (gems + 9) / 10 + 6
         || (now - last_enemy_round < 30 && gems >= 8) || target < 0;
     if (!go) return false;
     // Give up a trip that stops making progress (blocked or guarded altar) for a while.
