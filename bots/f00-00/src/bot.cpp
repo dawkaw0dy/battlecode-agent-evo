@@ -682,9 +682,18 @@ void Bot::play_turn() {
     const Fight fight = assess_fight(&weakest);
     const float hp_frac = me.health() / me.max_health();
     const float retreat_at = fight == Fight::none ? 0.3f : 0.45f;
+    constexpr float flee_below = 0.2f;
+    // Never turn our back on an enemy we can hit: fleeing one step a turn only gives free damage.
+    bool enemy_in_range = false;
+    for (const auto& e : enemies) enemy_in_range |= cheb(e.pos, pos) <= me.attack_range();
     if (!at_spawn && (hp_frac < retreat_at || (fight == Fight::retreat && hp_frac < 0.75f))) {
         const auto threat = threat_tiles();
         if (me.gem_count() >= 10 && altar_field.at(pos) <= 1 && try_bank()) return;
+        if (enemy_in_range && hp_frac >= flee_below) {
+            try_spells();
+            basic_attack();
+            return;
+        }
         if (!threat.is_set(pos)) {
             recall();
             return;
@@ -698,7 +707,7 @@ void Bot::play_turn() {
         }
         return;
     }
-    if (fight == Fight::retreat) {
+    if (fight == Fight::retreat && !enemy_in_range) {
         // Outmatched but healthy: back off without starting anything.
         const auto threat = threat_tiles();
         if (threat.is_set(pos) && step_away(threat)) {

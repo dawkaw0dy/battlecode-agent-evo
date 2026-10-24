@@ -23,8 +23,8 @@ void play_draft() {
         champion_draft::marcella, champion_draft::ryth, champion_draft::willow, champion_draft::varg};
     static constexpr std::array pack{champion_draft::vesper_vale, champion_draft::ryth, champion_draft::vendetta,
         champion_draft::willow, champion_draft::varg, champion_draft::marcella, champion_draft::tavi};
-    static constexpr std::array skirmish{champion_draft::vendetta, champion_draft::vesper_vale, champion_draft::ryth,
-        champion_draft::tavi, champion_draft::willow, champion_draft::marcella, champion_draft::varg};
+    static constexpr std::array skirmish{champion_draft::vesper_vale, champion_draft::ryth, champion_draft::tavi,
+        champion_draft::vendetta, champion_draft::marcella, champion_draft::willow, champion_draft::varg};
 
     const auto chosen = cambc::draft::current_draft(cambc::team::ally);
     const auto taken = [&](champion_draft c) { return std::find(chosen.begin(), chosen.end(), c) != chosen.end(); };
