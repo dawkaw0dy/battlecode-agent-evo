@@ -33,10 +33,10 @@ constexpr int kChaseTurns = 5;  // approach turns without a hit before giving up
 constexpr float kBossTurns = 8.0f;  // turns a champion must be able to tank a boss
 constexpr bool kLocks = true;       // carry an altar lock and drop it on enemy tributes
 constexpr bool kDeny = true;        // hunt enemies channelling a tribute or recall
-constexpr bool kPressureTribute = true;
+constexpr bool kPressureTribute = true;  // bank under enemy pressure when the channel outlasts their damage
 constexpr int kLockRange = 2;       // altar lock placement range
 constexpr bool kLockAll = true;     // lock every altar we pass: our locks block only enemy tributes
-constexpr int kLockDetour = 8;      // walk this far (Chebyshev) out of our way to lock an altar  // bank under enemy pressure when the channel outlasts their damage
+constexpr int kLockDetour = 8;      // walk this far (Chebyshev) out of our way to lock an altar
 
 namespace {
 // Debug: turns spent per activity, printed every 200 rounds.
@@ -1438,6 +1438,11 @@ bool Bot::tribute() {
     for (auto a : locks.positions()) {
         auto one = empty_board();
         one.set(a);
+        // An enemy lock close by: break it (five hits) rather than walk away and back as it drops out of sight.
+        if (cheb(a, pos_) <= 4) {
+            const auto hit = grow(one, std::min(cambc::constants::submit_gems_range, std::max(1, me.attack_range()))) & ~walk_walls();
+            if (!(hit & ~camp_block_).is_empty()) return go(hit & ~camp_block_, false);
+        }
         goal &= ~grow(one, cambc::constants::submit_gems_range);
     }
     if ((goal & ~camp_block_).is_empty()) {
