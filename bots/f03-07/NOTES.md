@@ -50,6 +50,8 @@ enemies unless the square-law ratio (Σhp·Σdps, visible allies within 6) clear
   0.85 or 0.45, sector factor 0.4, sectors including centre groups, shop at 240 gold, Tavi instead of Ryth
   (better vs f00-03, worse vs f02-01), heal threshold 0.35, camp-retreat margin 120 (16-game margins vs
   f02-01 −1422 → −2567, vs f00-03 −2464 → −4551).
+- (f03-07) Dash (Vendetta, Vesper) to escape when fleeing from a chaser within 4: margins vs f02-01 −1422 → −4422,
+  vs f00-03 −2464 → −3232. Reverted.
 
 ## Known weaknesses
 - Still ~1.5–2x slower farming than f02-01/f01-07 on open maps; no boss raids, so monolith-only gem maps
