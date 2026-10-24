@@ -867,10 +867,19 @@
    ],
    "reason": null,
    "rng_key": "21376769:2:1",
-   "sessions": [],
+   "sessions": [
+    {
+     "attempt": 1,
+     "base_commit": "e64ed4997ace0131444bfcb3d1ecab238ef7b94a",
+     "id": "session_01NtrBKtUusbaUXQvL8fLYPy",
+     "launch_output": "Created cloud session: Evolution agent f02-01\nView: https://claude.ai/code/session_01NtrBKtUusbaUXQvL8fLYPy?from=cli&m=0\nResume with: claude --teleport session_01NtrBKtUusbaUXQvL8fLYPy",
+     "launched_at": 1792870416,
+     "url": "https://claude.ai/code/session_01NtrBKtUusbaUXQvL8fLYPy"
+    }
+   ],
    "slot": 1,
    "src_sha256": null,
-   "status": "planned",
+   "status": "running",
    "task_sha256": "c5ff07c414d97638d314a458a5fa0064e902487fd01a91dd930d8a38055b80a7"
   },
   "f02-02": {
@@ -932,10 +941,19 @@
    ],
    "reason": null,
    "rng_key": "21376769:2:2",
-   "sessions": [],
+   "sessions": [
+    {
+     "attempt": 1,
+     "base_commit": "e64ed4997ace0131444bfcb3d1ecab238ef7b94a",
+     "id": "session_01YKp1nZ54113g9Dxx8rnJ6F",
+     "launch_output": "Created cloud session: Evolution agent f02-02\nView: https://claude.ai/code/session_01YKp1nZ54113g9Dxx8rnJ6F?from=cli&m=0\nResume with: claude --teleport session_01YKp1nZ54113g9Dxx8rnJ6F",
+     "launched_at": 1792870433,
+     "url": "https://claude.ai/code/session_01YKp1nZ54113g9Dxx8rnJ6F"
+    }
+   ],
    "slot": 2,
    "src_sha256": null,
-   "status": "planned",
+   "status": "running",
    "task_sha256": "4ac03586af185919b3ca7a3f1c4806f33dca8614fb27fe565c0f8ec789c48e59"
   },
   "f02-03": {
@@ -998,10 +1016,19 @@
    ],
    "reason": null,
    "rng_key": "21376769:2:3",
-   "sessions": [],
+   "sessions": [
+    {
+     "attempt": 1,
+     "base_commit": "e64ed4997ace0131444bfcb3d1ecab238ef7b94a",
+     "id": "session_01SKqAdwQhhAfbSnvF9igfYB",
+     "launch_output": "Created cloud session: Evolution task f02-03\nView: https://claude.ai/code/session_01SKqAdwQhhAfbSnvF9igfYB?from=cli&m=0\nResume with: claude --teleport session_01SKqAdwQhhAfbSnvF9igfYB",
+     "launched_at": 1792870453,
+     "url": "https://claude.ai/code/session_01SKqAdwQhhAfbSnvF9igfYB"
+    }
+   ],
    "slot": 3,
    "src_sha256": null,
-   "status": "planned",
+   "status": "running",
    "task_sha256": "d5806abfe9787e2227cedf2c0e566679071fbcb2cb3303bc114c3df19f10d8a1"
   },
   "f02-04": {
@@ -1063,10 +1090,19 @@
    ],
    "reason": null,
    "rng_key": "21376769:2:4",
-   "sessions": [],
+   "sessions": [
+    {
+     "attempt": 1,
+     "base_commit": "e64ed4997ace0131444bfcb3d1ecab238ef7b94a",
+     "id": "session_01R2kzXhb2YyvTtks6xPZUH3",
+     "launch_output": "Created cloud session: F02-04 evolution task\nView: https://claude.ai/code/session_01R2kzXhb2YyvTtks6xPZUH3?from=cli&m=0\nResume with: claude --teleport session_01R2kzXhb2YyvTtks6xPZUH3",
+     "launched_at": 1792870477,
+     "url": "https://claude.ai/code/session_01R2kzXhb2YyvTtks6xPZUH3"
+    }
+   ],
    "slot": 4,
    "src_sha256": null,
-   "status": "planned",
+   "status": "running",
    "task_sha256": "7511729f10e93e28756b63760a6283d983fb77cf649adbc1a6fd2d7f3a7201c6"
   },
   "f02-05": {
@@ -1128,10 +1164,19 @@
    ],
    "reason": null,
    "rng_key": "21376769:2:5",
-   "sessions": [],
+   "sessions": [
+    {
+     "attempt": 1,
+     "base_commit": "e64ed4997ace0131444bfcb3d1ecab238ef7b94a",
+     "id": "session_01To5NTLxbCaht3Vw6AofF83",
+     "launch_output": "Created cloud session: Evolution agent f02-05\nView: https://claude.ai/code/session_01To5NTLxbCaht3Vw6AofF83?from=cli&m=0\nResume with: claude --teleport session_01To5NTLxbCaht3Vw6AofF83",
+     "launched_at": 1792870489,
+     "url": "https://claude.ai/code/session_01To5NTLxbCaht3Vw6AofF83"
+    }
+   ],
    "slot": 5,
    "src_sha256": null,
-   "status": "planned",
+   "status": "running",
    "task_sha256": "de86a2ed69ea3b0fccdeaa20f44eefacf5cc9f3ea53779dd78c72951b683b161"
   },
   "f02-06": {
@@ -1168,10 +1213,19 @@
    ],
    "reason": null,
    "rng_key": "21376769:2:6",
-   "sessions": [],
+   "sessions": [
+    {
+     "attempt": 1,
+     "base_commit": "e64ed4997ace0131444bfcb3d1ecab238ef7b94a",
+     "id": "session_01DiamW9ysr8ga5WAUk2JabT",
+     "launch_output": "Created cloud session: Evolution agent f02-06\nView: https://claude.ai/code/session_01DiamW9ysr8ga5WAUk2JabT?from=cli&m=0\nResume with: claude --teleport session_01DiamW9ysr8ga5WAUk2JabT",
+     "launched_at": 1792870506,
+     "url": "https://claude.ai/code/session_01DiamW9ysr8ga5WAUk2JabT"
+    }
+   ],
    "slot": 6,
    "src_sha256": null,
-   "status": "planned",
+   "status": "running",
    "task_sha256": "b6b5a98ef34c33bb1739b75d050e66b6e8abadca598be3acc39ffe5127411b74"
   },
   "f02-07": {
@@ -1208,10 +1262,19 @@
    ],
    "reason": null,
    "rng_key": "21376769:2:7",
-   "sessions": [],
+   "sessions": [
+    {
+     "attempt": 1,
+     "base_commit": "e64ed4997ace0131444bfcb3d1ecab238ef7b94a",
+     "id": "session_014eLzVvrS56XeWP3C5bNsmt",
+     "launch_output": "Created cloud session: Evolution agent f02-07\nView: https://claude.ai/code/session_014eLzVvrS56XeWP3C5bNsmt?from=cli&m=0\nResume with: claude --teleport session_014eLzVvrS56XeWP3C5bNsmt",
+     "launched_at": 1792870519,
+     "url": "https://claude.ai/code/session_014eLzVvrS56XeWP3C5bNsmt"
+    }
+   ],
    "slot": 7,
    "src_sha256": null,
-   "status": "planned",
+   "status": "running",
    "task_sha256": "4bdbfd31b8a7c2ec010648c898959044787d839280b2f1e600716c2dc39f8fea"
   }
  },
@@ -5611,10 +5674,17 @@
   "2026-10-24T19:32:39Z g01 survivors ['f01-07', 'f01-03'], hall of fame ['f00-03', 'f01-07']",
   "2026-10-24T19:32:39Z g02 phase PLANNED: 8 slots",
   "2026-10-24T19:32:45Z g02 phase TASKS_PUSHED: 7 task files",
-  "2026-10-24T19:33:00Z g02 phase RUNNING"
+  "2026-10-24T19:33:00Z g02 phase RUNNING",
+  "2026-10-24T19:33:37Z g02 f02-01: launched session_01NtrBKtUusbaUXQvL8fLYPy",
+  "2026-10-24T19:33:54Z g02 f02-02: launched session_01YKp1nZ54113g9Dxx8rnJ6F",
+  "2026-10-24T19:34:13Z g02 f02-03: launched session_01SKqAdwQhhAfbSnvF9igfYB",
+  "2026-10-24T19:34:37Z g02 f02-04: launched session_01R2kzXhb2YyvTtks6xPZUH3",
+  "2026-10-24T19:34:54Z g02 f02-05: launched session_01To5NTLxbCaht3Vw6AofF83",
+  "2026-10-24T19:35:06Z g02 f02-06: launched session_01DiamW9ysr8ga5WAUk2JabT",
+  "2026-10-24T19:35:19Z g02 f02-07: launched session_014eLzVvrS56XeWP3C5bNsmt"
  ],
  "paused": null,
  "phase": "RUNNING",
- "sessions_launched": 15,
+ "sessions_launched": 22,
  "version": 1
 }
