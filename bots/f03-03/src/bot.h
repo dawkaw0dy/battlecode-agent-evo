@@ -26,8 +26,8 @@ class Bot {
     std::vector<cambc::bitboard> gtiles_;
     std::vector<std::uint8_t> home_slot_;
     std::vector<Dist> gfield_;          // walking distance to each group, filled lazily
-    std::uint64_t field_cost_ = 0;      // fuel of one group field (largest seen)
-    std::uint64_t go_cost_ = 0;         // fuel of one go() (largest seen)
+    std::uint64_t field_cost_ = 0;      // fuel of one group field (recent peak)
+    std::uint64_t go_cost_ = 0;         // fuel of one go() (recent peak)
     std::vector<int> fill_order_;
     std::vector<std::int16_t> group_at_; // tile -> group of the camp spawned there
     std::vector<std::int16_t> camp_at_;  // tile -> index of that camp inside its group

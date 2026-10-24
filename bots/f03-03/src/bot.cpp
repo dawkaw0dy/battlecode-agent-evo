@@ -71,7 +71,13 @@ void warn(const char* where, const std::exception& e) {
 }
 
 View g_view;
-std::uint64_t g_view_cost = 8000;  // fuel of one refresh (largest seen)
+// Cost estimates follow recent peaks: a plain maximum keeps one-off costs (first calls,
+// fallback routes) and then refuses ordinary work for the rest of the game.
+void track_cost(std::uint64_t& est, std::uint64_t f0, std::uint64_t f1) {
+    if (!live() || f0 <= f1) return;
+    est = std::max(f0 - f1, est - est / 16);
+}
+std::uint64_t g_view_cost = 8000;  // fuel of one refresh (recent peak)
 void invalidate() { g_view.ok = false; }
 bool view_affordable() { return g_view.ok || fuel(g_view_cost + 4000); }
 const View& view() {
@@ -106,7 +112,7 @@ const View& view() {
         g_view.ltele.load(g_view.tele);
         g_view.ok = true;
         const auto f1 = cambc::fuel_remaining();
-        if (live() && f0 > f1) g_view_cost = std::max(g_view_cost, f0 - f1);
+        track_cost(g_view_cost, f0, f1);
     }
     return g_view;
 }
@@ -284,7 +290,7 @@ void Bot::fill_fields(std::uint64_t reserve) {
         f.compute(route_walls(), gtiles_[i], seen);
         gfield_[i].load(f);
         const auto f1 = cambc::fuel_remaining();
-        if (live() && f0 > f1) field_cost_ = std::max(field_cost_, f0 - f1);
+        track_cost(field_cost_, f0, f1);
         if (kProbe && cambc::round_number() < 30) std::cout << "PROBE field r" << cambc::round_number() << ' ' << (f0 - f1) << '\n';
     }
 }
@@ -465,7 +471,7 @@ bool Bot::go(const cambc::bitboard& goals_in, bool dash) {
     if (!fuel(std::max<std::uint64_t>(25000, go_cost_ + 3000))) return false;
     struct Cost {
         std::uint64_t& worst; std::uint64_t f0 = cambc::fuel_remaining();
-        ~Cost() { const auto f1 = cambc::fuel_remaining(); if (live() && f0 > f1) worst = std::max(worst, f0 - f1); }
+        ~Cost() { track_cost(worst, f0, cambc::fuel_remaining()); }
     } cost{go_cost_};
     const vec2 pos = me.position();
     auto blocked = blocked_now(camp_block_);
