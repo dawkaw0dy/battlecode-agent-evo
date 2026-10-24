@@ -14,7 +14,8 @@ camps (01boss-battle) switch the scoring to gold (the tiebreak).
 - Draft order: Vesper Vale, Ryth, Vendetta, Willow, Marcella, Varg, Tavi, Ren (first free entries).
 - Target score: value = gems x (1.5 before r300, else 3) + gold x (0.5 before r1200, else 0.2); score =
   value / ((eta + respawn wait + hp/team_dps + 6) x (1 + taken/ehp)); team_dps = n x own strength x 1.25,
-  ehp = n x own max health; skip if taken > 0.8 x ehp (small) or kBigRisk = 1.0 x ehp (golem/monolith).
+  ehp = n x own max health; skip if taken > 0.8 x ehp (small) or kBigRisk = 1.0 x ehp (golem/monolith); if every
+  group is skipped, fall back to the least dangerous small group with taken <= 1.5 x ehp (never idle).
 - Big camps: tribute first if carrying >= 5 gems; wait for 2 (golem) / 4 (monolith) allies within 6 and own health
   >= 80%; after 30 waiting turns need one fewer; after 70 give the camp up for 150 rounds.
 - Tribute: >= 25 carried gems (12 if an enemy champion was seen in the last 40 rounds), >= 6 with an altar within
@@ -36,7 +37,8 @@ target scoring around living camps); fighting enemies who heal on their own spaw
 the far end of a 30-tile group (go and fight it); shop-recall loop once the build list ran out; altars only reachable
 after killing a monolith (gold mode); nearest altar by Chebyshev distance unreachable through holes (01islands, path
 search over all altars); gather deadlock at the monolith; lone monolith carrier killed on the way to the altar
-(escort); side-farming re-picking an unreachable cluster (ban).
+(escort); side-farming re-picking an unreachable cluster (ban). Last: a fallback target when every group fails the
+danger filter (identical results on 8 elk-heavy games; a safety net for held-out maps).
 
 ## Tried and failed (keep entries from the parent's notes; add yours)
 - Two squads (3 + 2) for parallel farming, big camps pulling both: vs e07-01 0/16, 414 deaths vs 297 for one pack.

@@ -664,8 +664,8 @@ int choose_target() {
     walls.set(pos, false);
     field.compute(walls, single(pos), visited);
     const int other = squad_n < team_n ? read_target_of(1 - squad) : -1;
-    int best = -1;
-    float best_s = -1;
+    int best = -1, fallback = -1;
+    float best_s = -1, fallback_r = 1e9f;
     for (int i = 0; i < static_cast<int>(groups.size()); ++i) {
         auto& g = groups[i];
         if (g.bad_until > now || g.gems + g.gold == 0) continue;
@@ -685,7 +685,11 @@ int choose_target() {
         int wait = std::max(0, g.avail - now - eta);
         float kill = g.hp / dps;
         float taken = g.str * kill;
-        if (taken > (g.big ? kBigRisk : 0.8f) * ehp) continue;
+        if (taken > (g.big ? kBigRisk : 0.8f) * ehp) {
+            // Too dangerous for now; remembered as a last resort for maps where nothing is safe.
+            if (!g.big && taken <= 1.5f * ehp && taken / ehp < fallback_r) { fallback_r = taken / ehp; fallback = i; }
+            continue;
+        }
         float gem_w = now < 300 ? 1.5f : 3.0f;
         float gold_w = now < 1200 ? 0.5f : 0.2f;
         if (!altar_open) { gem_w = 0.05f; gold_w = 1.0f; }
@@ -694,7 +698,7 @@ int choose_target() {
         float score = value / ((eta + wait + kill + 6.0f) * risk);
         if (score > best_s) { best_s = score; best = i; }
     }
-    return best;
+    return best >= 0 ? best : fallback;
 }
 
 bool target_valid(int t) {
