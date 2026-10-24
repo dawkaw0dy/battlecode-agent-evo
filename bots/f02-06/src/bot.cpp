@@ -21,6 +21,7 @@ using it = cambc::item_type;
 constexpr bool kDebug = true;
 constexpr int kPackMemory = 48;
 constexpr float kMaxTrips = 6;
+constexpr float kClaimed = 0.15f, kLongWait = 0.6f;
 constexpr float kGoldEarly = 0.5f, kGoldLate = 0.3f;
 std::uint32_t g_round = 0;
 const char* g_branch = "";
@@ -801,10 +802,11 @@ float target_score(int gi, vec2 pos, float dps, float hp_now, float maxhp, float
     const float home = static_cast<float>(std::min(g_home.at(x.center), 200));
     const float time = static_cast<float>(d) + wait + clear + (trips - 1) * (2 * home + 12) + 6;
     float s = value / (time + 10);
-    if (gi == target) s *= 1.3f;
+    if (gi == target && !(x.state == 2 && wait > 12)) s *= 1.3f;
+    if (x.state == 2 && wait > 12) s *= kLongWait;
     if (x.state == 1) s *= 1.4f;
     // Allies already on a small group: leave it to them.
-    if (!g_pack && claimed_by_other(gi)) s *= hp_left > 3000 ? 0.7f : 0.15f;
+    if (!g_pack && claimed_by_other(gi)) s *= hp_left > 3000 ? 0.7f : kClaimed;
 
     // Enemy half: closer to their spawn than to ours.
     if (cheb(x.center, g_enemy_spawn_pos) + 4 < cheb(x.center, g_spawn_pos)) s *= 0.75f;
@@ -838,7 +840,7 @@ struct FuelReport {
         bool found = false;
         for (auto& [k, v] : counts) if (k == key) { ++v; found = true; }
         if (!found) counts.push_back({key, 1});
-        if (g_round >= 200 && g_round < 300 && cambc::self().champion_name() == cambc::champion_type::vendetta) {
+        if (g_round >= 200 && g_round < 300 && cambc::self().champion_name() == cambc::champion_type::vesper_vale) {
             const vec2 q = cambc::self().position();
             std::cout << "tr r" << g_round << ' ' << q.x << ',' << q.y << ' ' << key << " tgt " << target
                       << (target >= 0 ? " st " + std::to_string(G[static_cast<size_t>(target)].state) + " d " + std::to_string(G[static_cast<size_t>(target)].min_dist(q)) + " hpL " + std::to_string(static_cast<int>(G[static_cast<size_t>(target)].hp_left())) : std::string())
