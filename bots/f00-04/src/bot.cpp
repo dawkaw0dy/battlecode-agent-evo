@@ -93,6 +93,8 @@ int last_enemy_seen = -1000;
 int gather_turns = 0;      // turns spent waiting for the pack at a big camp
 int side_target = -1;      // harmless cluster group this champion farms alone on the way
 int side_turns = 0;
+constexpr float kRetreat = 0.35f;       // health share that sends a champion home
+constexpr float kRetreatEnemy = 0.5f;   // the same with an enemy champion within 5 tiles
 constexpr int kSideRange = 3;     // harmless clusters within this distance are farmed alone
 constexpr float kBigRisk = 1.0f;  // golem/monolith: allowed camp damage as a share of team health
 bool acted = false;        // attacked this turn
@@ -1101,7 +1103,9 @@ void Bot::play_turn() {
     if (at_spawn && hp < max_hp * 0.95f && enemies.empty()) return;
 
     // Low health: get out of range, then recall.
-    if (!at_spawn && hp < max_hp * 0.35f) {
+    bool enemy_close = false;
+    for (auto& e : enemies) if (dist(e.pos, pos) <= 5) enemy_close = true;
+    if (!at_spawn && hp < max_hp * (enemy_close ? kRetreatEnemy : kRetreat)) {
         auto th = threats_near(camps, enemies, pos);
         if (!th.empty()) {
             // Still allowed to cast a heal/shield or finish an adjacent target while backing off.
