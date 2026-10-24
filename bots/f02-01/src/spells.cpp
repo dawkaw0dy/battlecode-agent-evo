@@ -372,8 +372,9 @@ bool Bot::fight_spells(const std::vector<Foe>& list) {
                     val = cast_value(sl, abs[i], a);
                 }
                 const bool decisive = val >= 1000 || (sl.stun && a.tribute && !a.immune);
-                // A melee champion keeps its walk unless the cast decides something.
-                if (sl.excl && melee && !in_reach && !decisive) continue;
+                // A melee champion keeps its walk unless the cast decides something, or the last
+                // step of a chase did not bring the target into reach (it runs as fast as we walk).
+                if (sl.excl && melee && !in_reach && !decisive && chase_turns_ < 1) continue;
                 if (reset_kill && val < 1000) continue;
                 if (val > best) { best = val; slot = static_cast<int>(i); aim = a.pos; }
             }

@@ -14,6 +14,7 @@
 constexpr bool kDebugMap = false;
 constexpr bool kStats = false;  // activity counters and positions in stdout
 constexpr bool kTrace = false;
+constexpr bool kSpellStats = false;
 std::uint64_t g_f0 = 0;
 const char* g_phase_tag = "";
 int now_dbg() { return static_cast<int>(cambc::round_number()); }
@@ -966,6 +967,23 @@ void Bot::play_turn() {
         // Never let one failed action end the turn with an error; log where it happened.
         static int count = 0;
         if (++count <= 20) std::cout << "warn: turn r" << cambc::round_number() << " after " << g_phase_tag << ": " << e.what() << '\n';
+    }
+    if (kSpellStats) {
+        static std::array<int, 8> st{};  // casts, hit turns, hit turns without a cast while a slot was ready (per slot), engaged turns
+        if (cast_) ++st[0];
+        if (attacked_) {
+            ++st[1];
+            if (!cast_) {
+                try {
+                    const auto abs = cambc::self().abilities();
+                    for (size_t i = 0; i < 2; ++i) if (abs[i].is_ready()) ++st[2 + i];
+                } catch (const std::exception&) {}
+            }
+        }
+        if (g_mode == 2) ++st[4];
+        if (cambc::round_number() % 500 == 0 || cambc::round_number() == 1999)
+            std::cout << "spells r" << cambc::round_number() << ' ' << cambc::to_string(cambc::self().champion_name()) << " casts " << st[0]
+                      << " hitturns " << st[1] << " idle0 " << st[2] << " idle1 " << st[3] << " enemy " << st[4] << '\n';
     }
 }
 
