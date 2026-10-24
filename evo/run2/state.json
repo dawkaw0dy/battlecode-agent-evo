@@ -268,15 +268,18 @@
   },
   "f00-07": {
    "archetype": "vision-ambush",
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evolution-agent-f00-07-vkm4zp",
+   "commit": "e584b64508498384149140306c890daf2b7fe58b",
    "deadline_minutes": 180,
+   "done_at": 1792859585,
+   "effort_level": "high",
    "evidence": [],
    "failed_ideas": [],
    "focus": null,
    "generation": 0,
    "id": "f00-07",
    "kind": "immigrant",
+   "model": null,
    "nudged": [
     "session_01JezuLUfbCXZ6xG6xtgPh4u"
    ],
@@ -298,7 +301,7 @@
    ],
    "slot": 7,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "3c44aec145f16f27649f692ba87df819ce54273b566c25bf6f724303ad134f3f"
   }
  },
@@ -346,10 +349,12 @@
   "2026-10-24T13:52:26Z g00 f00-03: done on origin/claude/evolution-agent-f00-03-mi28rz at 9573ad6edf",
   "2026-10-24T13:52:29Z g00 f00-04: done on origin/claude/evolution-agent-f00-04-t313o8 at ad0cee69ab",
   "2026-10-24T13:53:49Z g00 f00-05: done on origin/claude/evolution-f00-05-msb4b5 at f23a65bd9f",
-  "2026-10-24T13:53:52Z g00 f00-06: done on origin/claude/evolution-f00-06-8re18e at 53d745d9c2"
+  "2026-10-24T13:53:52Z g00 f00-06: done on origin/claude/evolution-f00-06-8re18e at 53d745d9c2",
+  "2026-10-24T16:33:05Z g00 f00-07: done on origin/claude/evolution-agent-f00-07-vkm4zp at e584b64508",
+  "2026-10-24T16:33:05Z g00 phase ADMITTED"
  ],
  "paused": null,
- "phase": "RUNNING",
+ "phase": "ADMITTED",
  "sessions_launched": 8,
  "version": 1
 }
