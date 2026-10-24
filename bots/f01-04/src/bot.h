@@ -1,5 +1,6 @@
 #pragma once
 #include <cambc.h>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <vector>
@@ -81,7 +82,7 @@ class Bot {
     float my_dps() const;
     bool walk(cambc::vec2 destination);
     bool step_along(const Field& field, bool roots_are_targets = false);
-    bool try_dash(const Field& f, const Bits& blocked_bits);
+    bool try_dash(const std::function<int(cambc::vec2)>& cost, int min_gain, const Bits& blocked_bits);
     bool step_away(const cambc::bitboard& threat);
     bool step_off(const cambc::bitboard& avoid);
     bool try_spells();
@@ -89,6 +90,7 @@ class Bot {
     bool try_bank();
     void shop();
     cambc::bitboard threat_tiles() const;
+    cambc::bitboard occupied() const;
     bool farm();
     Fight assess_fight(const Seen** weakest) const;
 

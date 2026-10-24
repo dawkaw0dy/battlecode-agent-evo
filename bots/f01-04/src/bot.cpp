@@ -5,6 +5,7 @@
 #include <array>
 #include <cmath>
 #include <cstdint>
+#include <functional>
 #include <iostream>
 #include <span>
 #include <variant>
@@ -18,6 +19,8 @@ constexpr int far_away = 9999;
 constexpr bool trace = false;
 constexpr bool dash_travel = true; // dash down travel fields when no enemy is in sight
 constexpr int dash_min = 4;        // only dash with at least this many steps left
+constexpr bool dash_escape = false; // dash out of threat when retreating
+constexpr bool block_allies = true; // treat all ally positions as occupied when stepping
 
 constexpr std::array<vec2, 8> directions{vec2{0, 1}, vec2{1, 1}, vec2{1, 0}, vec2{1, -1}, vec2{0, -1}, vec2{-1, -1},
     vec2{-1, 0}, vec2{-1, 1}};
@@ -216,6 +219,21 @@ cambc::bitboard Bot::threat_tiles() const {
     return threat;
 }
 
+// Visible champions plus every ally: allies hidden in bushes still block a step.
+cambc::bitboard Bot::occupied() const {
+    auto board = cambc::vision::champion_tiles();
+    if (!block_allies) return board;
+    const auto self = cambc::self();
+    for (const auto& c : cambc::champions(team::ally)) {
+        try {
+            if (c == self || !c.is_alive()) continue;
+            board.set(c.position());
+        } catch (const std::exception&) {
+        }
+    }
+    return board;
+}
+
 bool Bot::walk(vec2 destination) {
     auto& me = cambc::self();
     bool ok = false;
@@ -231,12 +249,12 @@ bool Bot::walk(vec2 destination) {
 }
 
 // Dash two tiles down a field when it gains two steps; the dash is otherwise unused while travelling.
-bool Bot::try_dash(const Field& f, const Bits& blocked_bits) {
+bool Bot::try_dash(const std::function<int(vec2)>& cost, int min_gain, const Bits& blocked_bits) {
     auto& me = cambc::self();
-    if (!dash_travel || walked_fail || cast_exclusive || !me.can_cast() || !enemies.empty()) return false;
+    if (walked_fail || cast_exclusive || !me.can_cast()) return false;
     const auto pos = me.position();
-    const int here = f.at(pos);
-    if (here >= far_away || here < dash_min) return false;
+    const int here = cost(pos);
+    if (here >= far_away) return false;
     for (const auto& a : me.abilities()) {
         try {
             if (!a.is_dash() || !a.is_ready()) continue;
@@ -248,8 +266,8 @@ bool Bot::try_dash(const Field& f, const Bits& blocked_bits) {
                     const vec2 t{pos.x + dx, pos.y + dy};
                     if (!in_bounds(t) || blocked_bits.get(t)) continue;
                     if (avoid_active && avoid_bits.get(t)) continue;
-                    const int d = f.at(t);
-                    if (d > here - 2) continue;
+                    const int d = cost(t);
+                    if (d > here - min_gain) continue;
                     // A free first step (holes may be jumped, walls and units not).
                     bool path = false;
                     for (auto s : directions) {
@@ -285,11 +303,13 @@ bool Bot::step_along(const Field& field, bool roots_are_targets) {
     if (field.at(me.position()) == 0) return false;
     const int round = static_cast<int>(cambc::round_number());
     const auto camps = cambc::vision::camp_tiles();
-    const auto blocked = walls | cambc::vision::champion_tiles() | camps | cambc::vision::teleport_tiles();
+    const auto blocked = walls | occupied() | camps | cambc::vision::teleport_tiles();
     const Bits blocked_bits(blocked), camp_bits(camps);
     {
         const bool sticky_now = detour && detour_for == &field && round <= detour_until;
-        try_dash(sticky_now ? *detour : field, blocked_bits);
+        const Field& f = sticky_now ? *detour : field;
+        if (dash_travel && enemies.empty() && f.at(me.position()) >= dash_min)
+            try_dash([&](vec2 t) { return f.at(t); }, 2, blocked_bits);
         if (walked_fail || !me.can_move()) return false;
     }
     const auto pos = me.position();
@@ -347,8 +367,13 @@ bool Bot::step_away(const cambc::bitboard& threat) {
     auto& me = cambc::self();
     if (walked_fail || cast_exclusive || !me.can_move()) return false;
     const auto pos = me.position();
-    const Bits blocked(walls | cambc::vision::champion_tiles() | cambc::vision::camp_tiles() | cambc::vision::teleport_tiles());
+    const Bits blocked(walls | occupied() | cambc::vision::camp_tiles() | cambc::vision::teleport_tiles());
     const Bits danger(threat);
+    if (dash_escape && danger.get(pos)) {
+        const auto cost = [&](vec2 t) { return (danger.get(t) ? 100000 : 0) + home_field.at(t); };
+        if (try_dash(cost, 2, blocked)) return true;
+        if (walked_fail || !me.can_move()) return false;
+    }
     vec2 best = pos;
     int best_cost = (danger.get(pos) ? 100000 : 0) + home_field.at(pos);
     for (auto d : directions) {
@@ -365,7 +390,7 @@ bool Bot::step_off(const cambc::bitboard& avoid) {
     auto& me = cambc::self();
     if (walked_fail || cast_exclusive || !me.can_move()) return false;
     const auto pos = me.position();
-    const Bits blocked(walls | avoid | cambc::vision::champion_tiles() | cambc::vision::camp_tiles() | cambc::vision::teleport_tiles());
+    const Bits blocked(walls | avoid | occupied() | cambc::vision::camp_tiles() | cambc::vision::teleport_tiles());
     for (auto d : directions) {
         const vec2 q = pos + d;
         if (!in_bounds(q) || blocked.get(q)) continue;
