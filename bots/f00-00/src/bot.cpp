@@ -568,7 +568,10 @@ int Bot::choose_target(float keep_bonus) {
         const float team_dps = dps + 50.0f * static_cast<float>(helpers);
         if (g.facts.golem && team_dps < plan.golem_dps * 10.0f) continue;
         const float clear = g.reward ? 0.0f : g.facts.hp / team_dps;
-        const float time = static_cast<float>(std::max(d, wait)) + clear + 6.0f;
+        // Health spent must be won back with a trip home: charge that trip pro rata.
+        const float hp_cost = g.reward ? 0.0f : damage_with(helpers) / static_cast<float>(helpers + 1) / me.max_health();
+        const float trip = 12.0f + static_cast<float>(std::min(home_field.at(g.facts.tiles.front()), 80));
+        const float time = static_cast<float>(std::max(d, wait)) + clear + 6.0f + hp_cost * trip;
         float score = value / time;
         if (!survivable(helpers)) score *= 0.03f;
         if (k > need) score *= std::pow(0.55f, static_cast<float>(k - need));
