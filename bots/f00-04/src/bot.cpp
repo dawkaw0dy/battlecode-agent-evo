@@ -90,6 +90,7 @@ int idle_fight_turns = 0;  // hunting turns with foes in sight but no attack or 
 int capture_turns = 0;     // turns spent waiting on a capture
 int next_choose = 0;       // earliest round for the next target search after a failed one
 int last_enemy_seen = -1000;
+constexpr float kBigRisk = 1.0f;  // golem/monolith: allowed camp damage as a share of team health
 bool acted = false;        // attacked this turn
 
 // Shared memory: [0] target group + 1, [1] spare, [2..7] three (group + 1, avail / 16) notes.
@@ -656,7 +657,7 @@ int choose_target() {
         int wait = std::max(0, g.avail - now - eta);
         float kill = g.hp / dps;
         float taken = g.str * kill;
-        if (taken > (g.big ? 0.55f : 0.8f) * ehp) continue;
+        if (taken > (g.big ? kBigRisk : 0.8f) * ehp) continue;
         float gem_w = now < 300 ? 1.5f : 3.0f;
         float gold_w = now < 1200 ? 0.5f : 0.2f;
         if (!altar_open) { gem_w = 0.05f; gold_w = 1.0f; }

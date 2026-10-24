@@ -12,8 +12,8 @@ using cambc::champion_draft;
 void play_draft() {
     const auto chosen = cambc::draft::current_draft(cambc::team::ally);
     const std::array<champion_draft, 8> order{
-        champion_draft::ryth, champion_draft::vendetta, champion_draft::willow, champion_draft::varg,
-        champion_draft::vesper_vale, champion_draft::marcella, champion_draft::tavi, champion_draft::ren};
+        champion_draft::vesper_vale, champion_draft::ryth, champion_draft::vendetta, champion_draft::willow,
+        champion_draft::marcella, champion_draft::varg, champion_draft::tavi, champion_draft::ren};
     champion_draft pick = order[0];
     for (auto c : order) {
         if (std::find(chosen.begin(), chosen.end(), c) == chosen.end()) {
