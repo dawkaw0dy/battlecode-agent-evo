@@ -18,6 +18,7 @@ enum plan_mode : std::uint8_t {
 // Per-group flag bits.
 constexpr std::uint8_t group_reachable = 1;
 constexpr std::uint8_t group_big = 2; // contains a golem or monolith
+constexpr std::uint8_t group_enemy_side = 4; // clearly closer to the enemy spawn than to ours
 
 struct Plan {
     std::uint8_t magic = 0;

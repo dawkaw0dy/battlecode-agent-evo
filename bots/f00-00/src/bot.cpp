@@ -502,7 +502,9 @@ int Bot::choose_target(float keep_bonus) {
 
     const float dps = std::max(20.0f, my_dps());
     // Gold matters early (shards) and decides gem-less maps on the tiebreak.
-    const float gold_weight = plan.gemless ? 1.0f : (round < 600 ? 0.25f : 0.12f);
+    const float gold_weight = plan.gemless ? 1.0f : (round < 700 ? 0.25f : 0.12f);
+    const bool support = me.champion_name() == cambc::champion_type::willow;
+    const int follow = slot != 0 ? static_cast<int>(read_shared(0)) - 1 : static_cast<int>(read_shared(1)) - 1;
     const float hp_now = me.health();
     const int zone_lo = slot * 256 / std::max(1, bodies), zone_hi = (slot + 1) * 256 / std::max(1, bodies);
 
@@ -536,6 +538,8 @@ int Bot::choose_target(float keep_bonus) {
         if (plan.mode == mode_spread && g.zone >= zone_lo && g.zone < zone_hi) score *= 1.6f;
         if (plan.mode != mode_spread && static_cast<int>(i) == leader_target) score *= 2.5f;
         if (static_cast<int>(i) == target) score *= keep_bonus;
+        if ((g.flags & group_enemy_side) && !plan.gemless) score *= g.facts.gems > 0 ? 0.5f : 0.25f;
+        if (support && static_cast<int>(i) == follow) score *= 6.0f;
         if (score > best_score) { best_score = score; best = static_cast<int>(i); }
     }
     return best;

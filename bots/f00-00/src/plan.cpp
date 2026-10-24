@@ -77,14 +77,14 @@ void build_plan(Plan& plan) {
     const auto spawn_center = region_center(cambc::map::spawn_region(team::ally));
 
     // Distance between the two spawns, ignoring the enemy-spawn wall.
+    const auto open = cambc::map::walls() | cambc::map::holes() | cambc::map::altars();
+    cambc::distance_field from_enemy;
+    cambc::bitboard enemy_reached;
+    from_enemy.compute(open, cambc::map::spawn_region(team::enemy), enemy_reached);
     {
-        const auto open = cambc::map::walls() | cambc::map::holes() | cambc::map::altars();
-        cambc::distance_field field;
-        cambc::bitboard seen;
-        field.compute(open, cambc::map::spawn_region(team::ally), seen);
         int best = 9999;
-        for (auto t : cambc::map::spawn_region(team::enemy).positions())
-            if (seen.is_set(t)) best = std::min<int>(best, field.get(t));
+        for (auto t : cambc::map::spawn_region(team::ally).positions())
+            if (enemy_reached.is_set(t)) best = std::min<int>(best, from_enemy.get(t));
         plan.spawn_gap = static_cast<std::uint16_t>(std::min(best, 9999));
     }
 
@@ -109,8 +109,12 @@ void build_plan(Plan& plan) {
         int best = 9999;
         for (auto t : facts.tiles)
             if (reached.is_set(t)) best = std::min<int>(best, from_spawn.get(t));
+        int enemy_best = 9999;
+        for (auto t : facts.tiles)
+            if (enemy_reached.is_set(t)) enemy_best = std::min<int>(enemy_best, from_enemy.get(t));
         std::uint8_t flags = 0;
         if (best < 9999) flags |= group_reachable;
+        if (enemy_best * 10 < best * 8) flags |= group_enemy_side;
         if (facts.golem || facts.monolith) flags |= group_big;
         plan.flags[i] = flags;
         if ((flags & group_reachable) && !facts.monolith && facts.gems > 0) {
