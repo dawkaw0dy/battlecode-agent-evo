@@ -57,6 +57,8 @@ class Bot {
     std::vector<std::int8_t> camp_kind_at_;      // tile -> camp_type spawned there, -1 if none
     std::vector<std::int16_t> camp_group_at_;  // tile -> group index of the camp spawned there, -1 if none
     int blocker_group_ = -1, blocker_since_ = 0;  // living camps walling us in: clear them
+    float last_hp_ = 0;                   // health at the start of our previous turn
+    int last_hp_round_ = -10, threat_until_ = -1;  // hit by an unseen enemy: walk home until then
 
     // Per-turn flags.
     bool moved_ = false, attacked_ = false, cast_ = false, move_failed_ = false;

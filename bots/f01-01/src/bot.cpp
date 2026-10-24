@@ -834,6 +834,11 @@ bool Bot::handle_enemies() {
     const vec2 pos = me.position();
     const int now = static_cast<int>(cambc::round_number());
     if (cambc::vision::champion_tiles(team::enemy).is_empty()) {
+        // Hit by someone we cannot see: walk home (a recall would be cancelled by the next hit).
+        if (threat_until_ >= now && !cambc::map::spawn_region(team::ally).is_set(pos)) {
+            go_home();
+            return true;
+        }
         // Answer an ally's report of an invader nearby.
         std::array<std::uint8_t, 6> buf{};
         cambc::shared_memory.read(0, std::span<std::uint8_t>{buf.data(), buf.size()});
@@ -1209,6 +1214,15 @@ void Bot::play_turn() {
         dps_ = my_dps();
         if (counts[cambc::item_type::monster_emblem_of_strength] + counts[cambc::item_type::monster_emblem_of_health]
             + counts[cambc::item_type::monster_emblem_of_focus] > 0) dps_ *= 1.1f;
+    }
+    {
+        // Health lost with no awake camp or visible champion in reach: something hides in a bush.
+        const int now = static_cast<int>(cambc::round_number());
+        if (now - last_hp_round_ <= 2 && me.health() < last_hp_ - 1 && incoming_ == 0
+            && cambc::vision::champion_tiles(team::enemy).is_empty())
+            threat_until_ = now + 4;
+        last_hp_ = me.health();
+        last_hp_round_ = now;
     }
     if (handle_enemies()) { return; }
     if (!fuel_ok(30000)) { return; }
