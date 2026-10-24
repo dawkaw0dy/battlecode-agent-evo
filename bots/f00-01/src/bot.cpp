@@ -143,6 +143,61 @@ bool step_towards(cambc::bitboard goals) {
     return false;
 }
 
+// Terrain-only fields towards fixed goals, cached by key so long trips cost one field.
+struct CachedField {
+    int key = -1;
+    cambc::distance_field field;
+    cambc::bitboard visited;
+};
+std::array<CachedField, 3> field_cache;
+int field_cache_next = 0;
+
+CachedField& cached_field(int key, const cambc::bitboard& goals) {
+    for (auto& c : field_cache)
+        if (c.key == key) return c;
+    auto& c = field_cache[field_cache_next];
+    field_cache_next = (field_cache_next + 1) % int(field_cache.size());
+    c.key = key;
+    auto walls = world.terrain | world.enemy_spawn;
+    walls &= ~goals;
+    c.field.compute(walls, goals, c.visited);
+    return c;
+}
+
+// Step along a cached terrain field; near the goal (or when units block) plan around units.
+bool step_cached(int key, const cambc::bitboard& goals, int near = 6) {
+    auto& me = cambc::self();
+    if (move_blocked || moved || !me.can_move()) return false;
+    const vec2 pos = me.position();
+    if (goals.is_set(pos)) return false;
+    auto& c = cached_field(key, goals);
+    if (!c.visited.is_set(pos)) return step_towards(goals);
+    const int here = c.field.get(pos);
+    if (here <= near) return step_towards(goals);
+    const auto blocked = blocked_tiles();
+    int best_d = here;
+    vec2 best = pos;
+    for (int dx = -1; dx <= 1; ++dx)
+        for (int dy = -1; dy <= 1; ++dy) {
+            if (!dx && !dy) continue;
+            vec2 n{pos.x + dx, pos.y + dy};
+            if (n.x < 0 || n.y < 0 || n.x >= world.w || n.y >= world.h) continue;
+            if (blocked.is_set(n) || !c.visited.is_set(n)) continue;
+            const int d = c.field.get(n);
+            if (d < best_d) { best_d = d; best = n; }
+        }
+    if (best == pos) return step_towards(goals);
+    try {
+        if (me.move_absolute(best)) {
+            moved = true;
+            return true;
+        }
+    } catch (...) {
+    }
+    move_blocked = true;
+    return false;
+}
+
 // Path distance field from one tile over terrain.
 void field_from(vec2 pos, cambc::distance_field& field, cambc::bitboard& visited) {
     auto walls = world.terrain | world.enemy_spawn;
@@ -163,7 +218,11 @@ int altar_dist(const cambc::distance_field& field, const cambc::bitboard& visite
 
 int group_dist(const cambc::distance_field& field, const cambc::bitboard& visited, const GroupInfo& g) {
     int best = 1 << 20;
-    for (auto t : g.spawns.positions()) {
+    const auto all = g.spawns.positions();
+    std::vector<vec2> sample;
+    if (all.size() <= 4) sample = all;
+    else sample = {all.front(), all[all.size() / 3], all[2 * all.size() / 3], all.back()};
+    for (auto t : sample) {
         if (visited.is_set(t)) best = std::min(best, int(field.get(t)));
         else
             for (int dx = -1; dx <= 1; ++dx)
@@ -478,17 +537,14 @@ bool Bot::bank_gems() {
     const unsigned gems = me.gem_count();
     if (!gems) return false;
     const vec2 pos = me.position();
-    cambc::distance_field f;
-    cambc::bitboard v;
-    field_from(pos, f, v);
     int best = -1, best_d = 1 << 20, best_cost = 1 << 20;
     bool any_free = false;
     for (int i = 0; i < int(world.altars.size()); ++i)
         if (!enemy_lock_at(world.altars[i])) any_free = true;
     for (int i = 0; i < int(world.altars.size()); ++i) {
         const vec2 a = world.altars[i];
-        const int d = distance(pos, a) <= 1 ? 0 : altar_dist(f, v, a);
-        if (d >= (1 << 20)) continue;
+        if (world.ally_dist[i] >= (1 << 20)) continue;   // not reachable from our spawn
+        const int d = distance(pos, a) <= 1 ? 0 : distance(pos, a);
         int cost = d;
         if (enemy_lock_at(a)) cost += any_free ? 1000 : 6;
         if (world.enemy_dist[i] + 4 < world.ally_dist[i]) cost += 6;   // deep in their half
@@ -527,7 +583,7 @@ bool Bot::bank_gems() {
         }
         return true;
     }
-    step_towards(ring(altar, 1));
+    step_cached(1000 + best, ring(altar, 1) & ~world.terrain);
     return true;
 }
 
@@ -571,7 +627,7 @@ void Bot::farm() {
     const auto visible = cambc::vision::visible_tiles();
 
     // Track respawn timers of visible groups.
-    try {
+    if (now % 3 == 0) try {
         const auto groups = cambc::map::camp_groups();
         for (int g = 0; g < int(groups.size()) && g < int(world.groups.size()); ++g) {
             if ((world.groups[g].spawns & visible).is_empty()) continue;
@@ -658,7 +714,7 @@ void Bot::farm() {
         for (auto t : gi.spawns.positions()) around |= ring(t, 2);
         around &= ~gi.spawns & ~world.terrain & ~world.enemy_spawn;
         if (around.is_set(me.position())) return;
-        step_towards(around);
+        step_cached(2000 + target_group, around);
         return;
     }
     const cambc::bitboard live = cambc::vision::camp_tiles() & gi.spawns;
@@ -672,7 +728,8 @@ void Bot::farm() {
         return;
     }
     capture_wait = 0;
-    if (step_towards(live.is_empty() ? gi.spawns : live)) attack_camp();
+    const bool moved_now = live.is_empty() ? step_cached(target_group, gi.spawns) : step_towards(live);
+    if (moved_now) attack_camp();
 }
 
 // Warden: keep a lock, wait beside the enemy's altar, lock it when they tribute.
@@ -726,7 +783,7 @@ bool Bot::warden_turn() {
         }
         return true;
     }
-    step_towards(goals);
+    step_cached(3000 + post, goals);
     return true;
 }
 
@@ -736,6 +793,7 @@ void Bot::play_turn() {
     } catch (const std::exception& e) {
         std::cout << "dbg exc " << stage << " r" << cambc::round_number() << " " << e.what() << '\n';
     }
+    if (cambc::round_number() % 25 == 3) std::cout << "dbg endfuel " << cambc::fuel_remaining() << '\n';
 }
 
 void Bot::turn() {
@@ -792,7 +850,7 @@ void Bot::turn() {
     }
 
     if (cambc::round_number() % 50 == 2)
-        std::cout << "dbg r" << cambc::round_number() << " i" << my_index << " w" << warden << " pos " << me.position().x
+        std::cout << "dbg fuel " << cambc::fuel_remaining() << " r" << cambc::round_number() << " i" << my_index << " w" << warden << " pos " << me.position().x
                   << "," << me.position().y << " tg " << target_group << " gems " << me.gem_count() << " gold "
                   << me.gold_count() << '\n';
     stage = "warden";
