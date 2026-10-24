@@ -82,7 +82,8 @@ class Bot {
 
     bool enemies();
     int pick_victim(const std::vector<Foe>& list, int range, float burst) const;
-    bool fight_spells(const std::vector<Foe>& list, float burst, bool threatened);
+    bool fight_spells(const std::vector<Foe>& list, float burst, bool threatened, bool damage_only = false);
+    void shield_on_the_run();
     bool hit_champion(vec2 p);
     bool fight_attack(const std::vector<Foe>& list, float burst);
     bool flee_step(const std::vector<Foe>& threats);

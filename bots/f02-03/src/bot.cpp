@@ -29,7 +29,11 @@ constexpr bool kFleeStun = true;      // stun a lone chaser instead of stepping 
 constexpr bool kEagerShield = true;   // shield as soon as camps hit us
 constexpr int kReserveRounds = 8;     // keep camp spells for enemies seen this recently (0: never)
 constexpr bool kReserveResets = false;
+constexpr bool kKiteCast = true;      // cast while fleeing when standing still costs no hit
 
+constexpr bool kSpellStats = false;
+std::array<int, 10> g_casts{};
+inline void cnt(int i) { ++g_casts[static_cast<size_t>(i)]; }
 namespace {
 // Debug: turns spent per activity, printed every 200 rounds.
 int g_mode = 0;
@@ -40,6 +44,11 @@ struct ModeCount {
     ~ModeCount() {
         ++g_modes[static_cast<size_t>(g_mode)];
         const int r = static_cast<int>(cambc::round_number());
+        if (kSpellStats && r % 500 == 499) {
+            std::cout << "casts r" << r << ' ' << cambc::to_string(cambc::self().champion_name());
+            for (int c : g_casts) std::cout << ' ' << c;
+            std::cout << '\n';
+        }
         if (kStats && r % 200 == 0) {
             std::cout << "stat r" << r << ' ' << cambc::to_string(cambc::self().champion_name());
             for (int i = 0; i < 16; ++i) if (g_modes[static_cast<size_t>(i)]) std::cout << ' ' << kModeNames[i] << '=' << g_modes[static_cast<size_t>(i)];
@@ -408,6 +417,8 @@ void Bot::measure() {
             incoming_ += s.str;
             exit_steps_ = std::max(exit_steps_, s.range + 1 - d);
         }
+    if (kSpellStats && now_dbg() < 400 && me.champion_name() == cambc::champion_type::varg)
+        std::cout << "meas r" << now_dbg() << " awake " << awake_.count() << " inc " << incoming_ << " hp " << me.health() << " pos " << pos_.x << ',' << pos_.y << '\n';
     const auto counts = me.item_count();
     taken_ = 1.0f;
     if (has_any(counts, it::jungle_emblem_of_strength, it::jungle_emblem_of_health, it::jungle_emblem_of_focus)) taken_ *= 0.7f;
@@ -506,6 +517,7 @@ bool Bot::try_dash(const cambc::distance_field& f, const cambc::bitboard& seen) 
             if (!live()) return false;
             try {
                 fp("dash-use");
+                cnt(0);
                 const bool ok = ab.use(cand[i].second);
                 fp("dash-used");
                 cast_ = true;
@@ -708,7 +720,7 @@ void Bot::reset_hit(int group) {
     for (const auto& ab : me.abilities()) {
         if (!ab.is_attack_reset() || !ab.is_ready()) continue;
         cast_ = true;
-        try { ab.use(); } catch (const cambc::error& e) { warn("reset", e); return; }
+        try { cnt(1); ab.use(); } catch (const cambc::error& e) { warn("reset", e); return; }
         if (me.can_attack()) hit_group(group);
         return;
     }
@@ -717,6 +729,11 @@ void Bot::reset_hit(int group) {
 // Damage spells on camps; shield while under fire. Cast before walking.
 void Bot::spells_on_group(int group) {
     auto& me = cambc::self();
+    if (kSpellStats && now_dbg() < 600 && (me.champion_name() == cambc::champion_type::varg || me.champion_name() == cambc::champion_type::tavi)) {
+        std::cout << "sog r" << now_dbg() << ' ' << cambc::to_string(me.champion_name()) << " cast " << cast_ << " moved " << moved_ << " cc " << me.can_cast() << " inc " << incoming_ << " res " << reserve_spells();
+        for (const auto& ab : me.abilities()) std::cout << " [" << ab.is_ready() << ab.is_shield() << ab.is_cc() << ab.is_damage() << " cd" << ab.cooldown() << "]";
+        std::cout << '\n';
+    }
     if (cast_ || moved_ || !live() || !me.can_cast()) return;
     const auto& v = view();
     for (const auto& ab : me.abilities()) {
@@ -724,7 +741,7 @@ void Bot::spells_on_group(int group) {
         if (ab.is_shield()) {
             if (incoming_ > 0 && (kEagerShield || me.health() < me.max_health() * 0.9f)) {
                 cast_ = true;
-                try { ab.use(); } catch (const cambc::error& e) { warn("shield", e); }
+                try { cnt(2); ab.use(); } catch (const cambc::error& e) { warn("shield", e); }
                 return;
             }
             continue;
@@ -749,6 +766,7 @@ void Bot::spells_on_group(int group) {
         if (best_score < 0) continue;
         try {
             cast_ = true;
+            cnt(3);
             if (ab.is_aoe_damage() || !ab.can_target_camps()) ab.use(best);
             else ab.use(cambc::vision::camp_at(best));
             invalidate();
@@ -812,16 +830,17 @@ int Bot::pick_victim(const std::vector<Foe>& list, int range, float burst) const
 }
 
 // Shield, stun and damage spells on enemy champions; true when one was cast.
-bool Bot::fight_spells(const std::vector<Foe>& list, float burst, bool threatened) {
+bool Bot::fight_spells(const std::vector<Foe>& list, float burst, bool threatened, bool damage_only) {
     auto& me = cambc::self();
     if (cast_ || !live() || !me.can_cast()) return false;
     for (const auto& ab : me.abilities()) {
         if (!ab.is_ready()) continue;
         if (moved_ && excludes_walk(ab)) continue;
         if (ab.is_shield()) {
+            if (damage_only) continue;
             if (threatened || me.health() < me.max_health() * 0.9f) {
                 cast_ = true;
-                if (live()) try { ab.use(); } catch (const cambc::error& e) { warn("fight shield", e); }
+                if (live()) try { cnt(4); ab.use(); } catch (const cambc::error& e) { warn("fight shield", e); }
                 return true;
             }
             continue;
@@ -865,9 +884,9 @@ bool Bot::fight_spells(const std::vector<Foe>& list, float burst, bool threatene
                 if (!cambc::vision::has_champion(p)) continue;
                 auto c = cambc::vision::champion_at(p);
                 if (!c.is_visible() || !c.is_alive()) continue;
-                ab.use(c);
+                cnt(5); ab.use(c);
             } else {
-                ab.use(p);
+                cnt(5); ab.use(p);
             }
             cast_ = true;
             invalidate();
@@ -906,7 +925,7 @@ bool Bot::fight_attack(const std::vector<Foe>& list, float burst) {
         for (const auto& ab : me.abilities())
             if (ab.is_attack_reset() && ab.is_ready()) {
                 cast_ = true;
-                try { ab.use(); } catch (const cambc::error& e) { warn("reset", e); break; }
+                try { cnt(6); ab.use(); } catch (const cambc::error& e) { warn("reset", e); break; }
                 if (me.can_attack()) hit_champion(p);
                 break;
             }
@@ -961,6 +980,7 @@ bool Bot::flee_step(const std::vector<Foe>& threats) {
             for (size_t i = 0; i < n && i < 4; ++i) {
                 if (!live()) return false;
                 try {
+                    cnt(7);
                     const bool ok = ab.use(cands[i].second);
                     cast_ = true;
                     moved_ = true;
@@ -981,6 +1001,17 @@ bool Bot::flee_step(const std::vector<Foe>& threats) {
     invalidate();
     if (!ok) move_failed_ = true;
     return ok;
+}
+
+void Bot::shield_on_the_run() {
+    auto& me = cambc::self();
+    if (cast_ || !live() || !me.can_cast()) return;
+    for (const auto& ab : me.abilities()) {
+        if (!ab.is_shield() || !ab.is_ready() || excludes_walk(ab)) continue;
+        cast_ = true;
+        try { ab.use(); } catch (const cambc::error& e) { warn("run shield", e); }
+        return;
+    }
 }
 
 // Fleeing from a single enemy that will reach us anyway: a stun costs it a turn, a step costs us nothing.
@@ -1005,7 +1036,7 @@ bool Bot::flee_stun(const std::vector<Foe>& threats) {
             if (!cambc::vision::has_champion(e.pos)) return false;
             auto c = cambc::vision::champion_at(e.pos);
             if (!c.is_visible() || !c.is_alive()) return false;
-            ab.use(c);
+            cnt(8); ab.use(c);
             cast_ = true;
             invalidate();
             return true;
@@ -1151,6 +1182,15 @@ bool Bot::enemies() {
             fight_attack(threats, burst);
             return true;
         }
+        // Nobody reaches us next turn even if we stand: a spell costs one step and nothing else.
+        if (kKiteCast && !cast_ && !moved_) {
+            bool safe = true;
+            for (const auto& e : threats)
+                if (cheb(e.pos, pos_) <= (e.range <= 1 ? 2 : e.range)) safe = false;
+            if (safe && home_.at(pos_) > 2 && fight_spells(threats, burst, false, true)) return true;
+        }
+        // A shield that does not stop us walking is free while running.
+        if (hit_anyway) shield_on_the_run();
         // Melee: a free swing before stepping away.
         if (me.attack_range() <= 1) fight_attack(threats, burst);
         retreat(dmin, threats);
