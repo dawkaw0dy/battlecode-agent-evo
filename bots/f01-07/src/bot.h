@@ -40,7 +40,10 @@ class Bot {
     int last_enemy_seen_ = -1000;
     cambc::bitboard camp_block_;        // tiles of camps we believe alive, seen or not
     int plug_ = -1, plug_since_ = 0;
-    int shrink_ = 0, shrink_g_ = -1;    // approach closer when walls hide the camps from range    // a living group that closes our way: clear it
+    int shrink_ = 0, shrink_g_ = -1;
+    struct Seen { vec2 pos{}; float hp = 0, power = 0; int round = -1000; };
+    std::vector<Seen> foe_mem_;         // last sighting of each enemy champion
+    int fight_until_ = -1, flee_until_ = -1;    // approach closer when walls hide the camps from range    // a living group that closes our way: clear it
 
     // Per turn.
     vec2 pos_{};

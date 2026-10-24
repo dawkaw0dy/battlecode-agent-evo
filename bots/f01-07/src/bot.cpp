@@ -10,6 +10,10 @@
 #include <variant>
 
 constexpr bool kDebugMap = false;
+constexpr bool kTrace = false;
+constexpr float kShareTurns = 15.0f;
+constexpr bool kFoeMemory = false;  // remember enemies for 3 rounds
+constexpr bool kHysteresis = false;  // solo clear time above which allies may join a group
 constexpr float kBossTurns = 8.0f;  // turns a champion must be able to tank a boss
 
 namespace {
@@ -128,7 +132,7 @@ std::vector<Foe> foes(team side) {
         try {
             auto c = cambc::vision::champion_at(p);
             if (!c.is_alive()) continue;
-            out.push_back({p, c.health(), c.max_health(), c.strength() + 0.35f * c.focus(), c.attack_range()});
+            out.push_back({p, c.health(), c.max_health(), 1.1f * c.strength() + 0.25f * c.focus(), c.attack_range()});
         } catch (const cambc::error&) {}
     }
     return out;
@@ -684,15 +688,16 @@ bool Bot::escape_camps() {
 
 // ---------------------------------------------------------------- enemies
 
-// Fight a force we outmatch, run from a stronger one. True when the turn is spent.
+// Fight when the square law favours us (sum of health times sum of damage), run otherwise.
+// True when the turn is spent.
 bool Bot::enemies() {
     auto& me = cambc::self();
     const int now = static_cast<int>(cambc::round_number());
     auto list = foes(team::enemy);
     const auto& enemy_spawn = cambc::map::spawn_region(team::enemy);
-    std::erase_if(list, [&](const Foe& e) { return enemy_spawn.is_set(e.pos) || cheb(e.pos, pos_) > 8; });
+    std::erase_if(list, [&](const Foe& e) { return enemy_spawn.is_set(e.pos) || cheb(e.pos, pos_) > 9; });
     if (list.empty()) {
-        // Help an ally who reported a lone invader close by.
+        // Help an ally who reported an invader close by.
         const auto s = read_sighting();
         if (s.ok && s.age <= 4 && cheb(s.where, pos_) <= 10 && me.health() > me.max_health() * 0.6f
             && me.gem_count() < 30 && incoming_ == 0) {
@@ -704,21 +709,65 @@ bool Bot::enemies() {
         return false;
     }
     last_enemy_seen_ = now;
-    float theirs = 0;
-    int dmin = 99;
-    for (const auto& e : list) {
-        theirs += e.hp * e.power;
-        dmin = std::min(dmin, cheb(e.pos, pos_));
+    // Remember sightings for a few rounds: vision flickers and one turn's view undercounts.
+    {
+        const auto all = cambc::champions(team::enemy);
+        if (foe_mem_.size() != all.size()) foe_mem_.assign(all.size(), Seen{});
+        for (size_t i = 0; i < all.size(); ++i) {
+            try {
+                if (!all[i].is_visible()) continue;
+                if (!all[i].is_alive()) { foe_mem_[i].round = -1000; continue; }
+                foe_mem_[i] = {all[i].position(), all[i].health(), 1.1f * all[i].strength() + 0.25f * all[i].focus(), now};
+            } catch (const cambc::error&) {}
+        }
     }
-    float ours = me.health() * (me.strength() + 0.35f * me.focus());
-    for (const auto& a : foes(team::ally))
-        if (cheb(a.pos, pos_) <= 6) ours += a.hp * a.power;
+    float their_hp = 0, their_dps = 0;
+    int dmin = 99;
+    if (kFoeMemory) {
+        for (const auto& m : foe_mem_) {
+            if (now - m.round > 3 || cheb(m.pos, pos_) > 9 || enemy_spawn.is_set(m.pos)) continue;
+            their_hp += m.hp;
+            their_dps += m.power;
+        }
+    } else {
+        for (const auto& e : list) { their_hp += e.hp; their_dps += e.power; }
+    }
+    for (const auto& e : list) dmin = std::min(dmin, cheb(e.pos, pos_));
+    float our_hp = me.health(), our_dps = 1.1f * me.strength() + 0.25f * me.focus();
+    if (!kFoeMemory) {
+        for (const auto& a : foes(team::ally))
+            if (cheb(a.pos, pos_) <= 7) { our_hp += a.hp; our_dps += a.power; }
+    } else {
+        const int self_h = static_cast<int>(static_cast<cambc::handle_champion_t>(me));
+        for (const auto& a : cambc::champions(team::ally)) {
+            if (static_cast<int>(static_cast<cambc::handle_champion_t>(a)) == self_h) continue;
+            try {
+                if (!a.is_alive() || cheb(a.position(), pos_) > 7) continue;
+                our_hp += a.health();
+                our_dps += 1.1f * a.strength() + 0.25f * a.focus();
+            } catch (const cambc::error&) {}
+        }
+    }
     write_sighting(list.front().pos);
-
+    float ratio = our_hp * our_dps / std::max(1.0f, their_hp * their_dps);
+    const int home_d = home_.at(pos_);
+    if (home_d <= 3) ratio *= 1.5f;  // spawn heals us
     const bool home = cambc::map::spawn_region(team::ally).is_set(pos_);
-    const bool strong = ours >= theirs * 1.2f;
-    if (!strong && !home && (me.health() < me.max_health() * 0.85f || list.size() >= 2 || ours < theirs * 0.85f)) {
-        // Run: a melee swing first if one is free, recall once nobody is close.
+    const int gems = static_cast<int>(me.gem_count());
+    float need = (kHysteresis ? 1.1f : 1.0f) + std::min(0.5f, gems / 100.0f);
+    // Hysteresis: stick with the last decision unless the odds clearly changed.
+    if (kHysteresis && flee_until_ >= now) need = 1.5f;
+    else if (kHysteresis && fight_until_ >= now) need = 0.7f;
+    if (kTrace && now < 300)
+        std::cout << "fight r" << now << ' ' << cambc::to_string(me.champion_name()) << " hp " << me.health()
+                  << " n " << list.size() << " dmin " << dmin << " ratio " << ratio << " need " << need << '\n';
+
+    if (ratio < need && !home) {
+        // Far enemies that are not coming for us: carry on, but bank sooner (tribute checks sightings).
+        if (dmin >= 6 && me.health() > me.max_health() * 0.5f && (!kHysteresis || flee_until_ < now)) return false;
+        flee_until_ = now + 4;
+        fight_until_ = -1;
+        // Run: a melee swing first when one is free, recall once nobody is close.
         if (me.attack_range() <= 1 && me.can_attack() && live())
             for (const auto& e : list)
                 if (cheb(e.pos, pos_) <= 1 && view().lvis.at(e.pos)) {
@@ -736,19 +785,26 @@ bool Bot::enemies() {
         go_home();
         return true;
     }
+    // Strong enough but nobody close: keep farming unless the odds invite a hunt.
+    if (dmin > 5 && ratio < 1.6f && (!kHysteresis || fight_until_ < now)) return false;
+    fight_until_ = now + 3;
+    flee_until_ = -1;
 
-    // Fight: spells on the weakest enemy in range, then basic attacks with a reset.
+    // Fight: stuns and damage spells on the weakest enemy in range, then basic attacks with a reset.
     if (!live()) return true;
+    auto weakest_in = [&](int r) -> const Foe* {
+        const Foe* aim = nullptr;
+        for (const auto& e : list)
+            if (cheb(e.pos, me.position()) <= r && view().lvis.at(e.pos) && (!aim || e.hp < aim->hp)) aim = &e;
+        return aim;
+    };
     if (!cast_ && !moved_ && me.can_cast()) {
         for (const auto& ab : me.abilities()) {
             if (cast_ || !ab.is_ready()) continue;
             const bool unit_spell = (ab.is_damage() || ab.is_cc()) && ab.can_target_enemies();
             const bool area_spell = ab.is_aoe_damage() && ab.can_target_ground();
             if (!unit_spell && !area_spell) continue;
-            const int r = static_cast<int>(ability_range(ab));
-            const Foe* aim = nullptr;
-            for (const auto& e : list)
-                if (cheb(e.pos, pos_) <= r && view().lvis.at(e.pos) && (!aim || e.hp < aim->hp)) aim = &e;
+            const Foe* aim = weakest_in(static_cast<int>(ability_range(ab)));
             if (!aim) continue;
             try {
                 if (unit_spell) ab.use(cambc::vision::champion_at(aim->pos));
@@ -759,11 +815,7 @@ bool Bot::enemies() {
         }
     }
     auto strike = [&]() -> bool {
-        const int range = me.attack_range();
-        const vec2 at = me.position();
-        const Foe* best = nullptr;
-        for (const auto& e : list)
-            if (cheb(e.pos, at) <= range && (!best || e.hp < best->hp)) best = &e;
+        const Foe* best = weakest_in(me.attack_range());
         if (!best || !me.can_attack() || !live()) return false;
         try {
             if (!cambc::vision::has_champion(best->pos)) return false;
@@ -787,16 +839,17 @@ bool Bot::enemies() {
         return true;
     };
     if (strike()) return true;
-    if (cast_) return true;
-    if (dmin <= 4 && me.health() > me.max_health() * 0.35f) {
+    if (cast_ && me.attack_range() > 1) return true;
+    if (me.health() > me.max_health() * 0.3f) {
         auto goal = empty_board();
         for (const auto& e : list) goal.set(e.pos);
         goal = grow(goal, me.attack_range()) & ~walk_walls();
-        go(goal, false);
+        go(goal, dmin > 2);
         if (me.attack_range() <= 1) strike();
         return true;
     }
-    return false;
+    go_home();
+    return true;
 }
 
 // ---------------------------------------------------------------- gems
@@ -891,10 +944,13 @@ int Bot::choose(int& wait_out) {
         int claimers = 0;
         for (int o = 0; o < 5; ++o)
             if (o != slot_ && claims[static_cast<size_t>(o)] == i + 1) ++claimers;
-        // Bosses are raided together; anything else is better left to whoever claimed it.
+        // Bosses are raided together; big groups are shared; small ones are left to whoever claimed them.
+        const float solo = remaining(i) / dps_;
+        float share = 1.0f;
         if (g.boss) f *= 1.0f + 0.3f * claimers;
-        else for (int c = 0; c < claimers; ++c) f *= 0.3f;
-        const float bound = value * f / (e + wait + 10.0f);
+        else if (k.state == Known::reward || solo < kShareTurns) { for (int c = 0; c < claimers; ++c) f *= 0.3f; }
+        else share = 1.0f + claimers;
+        const float bound = value * f / share / (e + wait + 10.0f);
         if (bound <= best_score) continue;
         float clear = 0;
         if (g.boss && k.state != Known::reward) {
@@ -911,8 +967,8 @@ int Bot::choose(int& wait_out) {
             if (trips > 10) continue;
             clear = t + (trips - 1) * (12 + std::min(60, g.d_ally));
         } else if (k.state != Known::reward) {
-            const float dmg = estimate_damage(i);
-            clear = remaining(i) / dps_;
+            const float dmg = estimate_damage(i) / (share * share);
+            clear = solo / share;
             if (dmg > hp - margin) {
                 float hits = 0;
                 for (size_t c = 0; c < g.kinds.size(); ++c)
@@ -925,6 +981,7 @@ int Bot::choose(int& wait_out) {
                 clear += trips * (12 + std::min(60, g.d_ally));
             }
         }
+        value /= share;
         const float score = value * f / (e + wait + clear + 10.0f);
         if (score > best_score) { best_score = score; best = i; wait_out = wait; }
     }
