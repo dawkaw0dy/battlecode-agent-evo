@@ -1422,10 +1422,16 @@ float Bot::threat_at(vec2 t, const std::vector<Fighter>& theirs) const {
 
 // Run from the enemies: the free neighbouring tile with the least threat, nearer home on ties, a dash
 // first when it gets us out of reach. Recall once no enemy can reach us soon.
-bool Bot::retreat(const std::vector<Fighter>& theirs, int dmin) {
+bool Bot::retreat(std::vector<Fighter>& theirs, int dmin) {
     auto& me = cambc::self();
     const bool on_spawn = cambc::map::spawn_region(team::ally).is_set(pos_);
-    if (on_spawn) return false;  // the spawn heals us and they cannot step on it
+    if (on_spawn) {
+        // The spawn heals us every turn and they cannot step on it: hold it and shoot from there.
+        if (++spawn_hold_ > 20) return false;
+        strike(theirs);
+        return true;
+    }
+    spawn_hold_ = 0;
     // Out of reach of everyone for a few turns: recall (damage would cancel it).
     if (dmin >= 7 && !moved_ && incoming_ == 0 && live() && home_.at(pos_) > 6) {
         try { me.recall(); } catch (const cambc::error& e) { warn("flee recall", e); }
@@ -1951,6 +1957,16 @@ void Bot::turn() {
     observe();
     fp("observe");
     if (!live()) return;
+    // A recall that an enemy will cancel anyway: stop it and get away (or fight) instead of standing still.
+    if (me.is_recalling() && live()) {
+        const auto foes = cambc::vision::champion_tiles(team::enemy);
+        if (!foes.is_empty())
+            for (auto p : foes.positions())
+                if (cheb(p, pos_) <= 5 && !cambc::map::spawn_region(team::enemy).is_set(p)) {
+                    try { me.cancel_recall(); } catch (const cambc::error& e) { warn("cancel recall", e); }
+                    break;
+                }
+    }
     if (me.is_recalling() || me.is_submitting_gems() || me.is_teleporting()) {
         g_mode = 1;
         fill_fields(30000);

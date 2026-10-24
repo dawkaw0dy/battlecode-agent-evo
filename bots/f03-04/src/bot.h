@@ -67,6 +67,7 @@ class Bot {
     Bits spawn_local_;                  // our spawn tiles
     int fight_round_ = -100;            // last round we weighed a fight ...
     bool fight_engaged_ = false;        // ... and whether we took it
+    int spawn_hold_ = 0;                // turns spent holding our spawn against enemies
     int chase_turns_ = 0, no_chase_until_ = -1;  // a chase that lands no hit is dropped
 
     // Per turn.
@@ -97,7 +98,7 @@ class Bot {
     bool enemies();
     void camp_fire(std::vector<Fighter>& ours, std::vector<Fighter>& theirs) const;
     float threat_at(vec2 t, const std::vector<Fighter>& theirs) const;
-    bool retreat(const std::vector<Fighter>& theirs, int dmin);
+    bool retreat(std::vector<Fighter>& theirs, int dmin);
     bool strike(std::vector<Fighter>& theirs);
     void fight_spells(std::vector<Fighter>& theirs, bool engage);
     bool tribute();
