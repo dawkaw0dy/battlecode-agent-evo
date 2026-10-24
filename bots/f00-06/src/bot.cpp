@@ -599,6 +599,51 @@ bool cast_spell(Ctx& c, bool allow_exclusive) {
     return false;
 }
 
+// Dash next to a wounded enemy champion that is just out of reach.
+bool dash_chase(Ctx& c) {
+    auto& me = cambc::self();
+    if (c.cast || !me.can_cast() || c.enemies.empty()) return false;
+    const int range = me.attack_range();
+    const ChampView* prey = nullptr;
+    for (const auto& e : c.enemies) {
+        const int d = dist(e.pos, c.pos);
+        if (d <= range || d > range + 2 || e.hp > 0.35f * e.max_hp) continue;
+        if (!prey || e.hp < prey->hp) prey = &e;
+    }
+    if (!prey) return false;
+    auto abilities = me.abilities();
+    for (auto& a : abilities) {
+        try {
+            if (!a.info() || !a.is_dash() || !a.is_ready()) continue;
+            if (exclusive(a) && c.moved) continue;
+            const auto tiles = a.valid_tiles();
+            vec2 best = c.pos;
+            int bd = dist(prey->pos, c.pos);
+            for (int dx = -2; dx <= 2; ++dx)
+                for (int dy = -2; dy <= 2; ++dy) {
+                    const vec2 p{c.pos.x + dx, c.pos.y + dy};
+                    if (!in_bounds(p) || c.blocked.is_set(p) || !tiles.is_set(p)) continue;
+                    if (cambc::map::spawn_region(team::enemy).is_set(p)) continue;
+                    const int d = dist(prey->pos, p);
+                    if (d < bd) {
+                        bd = d;
+                        best = p;
+                    }
+                }
+            if (best == c.pos || bd > range) return false;
+            if (a.use(best)) {
+                c.cast = true;
+                c.pos = me.position();
+                return true;
+            }
+            return false;
+        } catch (...) {
+            return false;
+        }
+    }
+    return false;
+}
+
 // After a basic attack this turn, an attack reset grants a second one.
 void attack_reset(Ctx& c) {
     auto& me = cambc::self();
@@ -716,6 +761,10 @@ void leader_plan(Ctx& c) {
         if (cv.group == target && target >= 0) target_seen = true;
     }
 
+    // Far from an altar, carry a bigger bag before walking back.
+    const int altar_d = nearest_altar_dist(c.pos);
+    const int bank_at = altar_d <= 12 ? kBankGems : altar_d <= 25 ? kBankGems * 3 / 2 : kBankGems * 2;
+
     // Hunting: chase visible enemies when we have local superiority.
     sm.b[6] = sm.b[7] = 255;
     if (!c.enemies.empty() && mode != kShop) {
@@ -756,7 +805,7 @@ void leader_plan(Ctx& c) {
             if (me.gold_count() >= kShopGold && !endgame && c.enemies.empty()) mode = kShop;
         }
     } else if (mode != kShop && !fighting && gems > 0 && !(mode == kFight && target_seen)
-               && (gems >= kBankGems || endgame
+               && (gems >= bank_at || endgame
                    || (gems >= kNearAltarGems && nearest_altar_dist(c.pos) <= kNearAltarDist && mode == kTravel))) {
         mode = kBank;
     } else if (mode == kTravel && gems == 0 && !fighting && me.gold_count() >= kShopGold + 60 && !endgame
@@ -826,7 +875,7 @@ void leader_plan(Ctx& c) {
                         for (const auto& a : c.allies)
                             if (dist(a.pos, c.pos) > kGatherDist) ++far;
                         ++g_gather_wait;
-                        if (far == 0 || g_gather_wait >= kGatherWait) mode = kFight;
+                        if (far == 0 || g_gather_wait >= kGatherWait || w.groups[target].str < 40) mode = kFight;
                     }
                 }
             } else if (mode == kCapture && st == GState::unknown) {
@@ -1069,6 +1118,12 @@ void act(Ctx& c) {
         attack_reset(c);
     } else {
         cast_spell(c, false);
+    }
+
+    // Finish a fleeing enemy with a dash, then strike.
+    if (dash_chase(c)) {
+        basic_attack(c);
+        attack_reset(c);
     }
 
     // Movement by mode.
