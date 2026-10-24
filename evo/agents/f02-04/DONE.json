@@ -1,0 +1,27 @@
+{
+ "agent": "f02-04",
+ "task_sha256": "7511729f10e93e28756b63760a6283d983fb77cf649adbc1a6fd2d7f3a7201c6",
+ "base_commit": "e64ed4997ace0131444bfcb3d1ecab238ef7b94a",
+ "session_id": "cse_01R2kzXhb2YyvTtks6xPZUH3",
+ "bot_dir": "bots/f02-04",
+ "self_eval": {
+  "vs": "f01-03",
+  "games": 8,
+  "wins": 3
+ },
+ "games_played": 31,
+ "summary": "Map-adaptive plan in draft memory (boss list, altar blocker, raid squad sync via shared memory); raids enabled only on blocked-altar maps, split farm elsewhere",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "54eb070b451545432474025de1d9caf3a5088efc5c73bd5cae48adeb56c738fa",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 18.01,
+  "remote": "true",
+  "session_id": "cse_01R2kzXhb2YyvTtks6xPZUH3",
+  "effort_level": "high",
+  "model": null
+ }
+}
