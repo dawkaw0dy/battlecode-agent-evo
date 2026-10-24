@@ -44,6 +44,9 @@ New immigrant bot (archetype altar-control). All tests vs starter with tools/ben
 - Recall at 35%/40%: about equal gems to 45%, one more loss on 01corridors; kept 45%.
 - Shopping recall at 300 gold: -136 over 16 games vs 180. Leave spawn at 50% HP: -336 vs 70%.
 - Bank threshold 40 vs 25: equal vs starter (6991 vs 7004); kept 25 (less to lose to kills).
+- Gem weight 8 (vs 5): 7390 vs 7864 gems over the same 16 games. Danger exponent 1.0: 6240; 2.0: 7346 (1.5: 7864).
+- 00rushbait-v2 side A: our spawn is boxed in by the enemy spawn tiles, no group is walkable and we start with 0 gold
+  (no crystal): nothing to fix there.
 
 ## Known weaknesses
 - Only tested against the starter (the task's test opponent); combat and spells are simple (no dashes, no wards except
