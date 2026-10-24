@@ -18,7 +18,8 @@ no gold/gems/damage for 30 rounds -> skip target 150 rounds. Shared memory bytes
 
 ## Changes this generation
 New immigrant bot (archetype altar-control). All tests vs starter with tools/benchmark.py (both sides, release):
-- Final full run (40 maps, 80 games) in the DONE.json self_eval; before the last tuning: 78/79 valid wins.
+- Final full run, 40 maps both sides: 76/79 valid wins, mean margin +654, 0 faults, 0 caught exceptions on our side
+  (losses: 00rushbait-v2 A -52, 01islands B -60, 01shortcut A 0-0 tiebreak; the one invalid game is the starter's error).
 - Lock every free altar we pass (vs warden-only locking): +454 gems over 16 games.
 - Warden on vs off: off lost 00ambush both sides and dropped 00gem-fields B +893 -> +245; warden kept.
 - Retreat from awake camps before recalling: +994 over 16 games (most deaths were to camps, losing the gems).
