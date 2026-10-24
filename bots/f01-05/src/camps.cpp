@@ -3,17 +3,19 @@
 //
 // Model (GameRules.md as changed by patch 100): camps never regenerate, awake monsters hit the nearest
 // champion in range every round, a capture pays the group's reward split among the allies present, and
-// the group respawns together afterwards. A champion values a group as its share of the reward per round
-// it spends on it: travel or respawn wait, clear time at the team's damage, heal trips for the health the
-// clear costs it, and the capture. Hard groups get cheaper with more champions (damage taken shrinks with
-// the square of the team size), so a champion can ask for helpers through shared memory (a rally).
+// the group respawns together afterwards. A champion values a group by reward per round spent on it:
+// travel or respawn wait, clear time at the team's damage (champions already targeting it help), heal
+// trips for the health the clear costs (at most six, each with six rounds of fighting or more), and the
+// capture. Spread teams count their own share and farm alone; packed teams (pack, skirmish) count the
+// whole reward less a penalty for surplus helpers, follow the leader, and may plan a team clear of a
+// group none of them could clear alone (posted as a rally in shared memory). Hard-hitting groups are
+// woken only once three champions are ready beside them.
 #include <cambc.h>
 #include "bot.h"
 #include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstdint>
-#include <iostream>
 #include <variant>
 #include <vector>
 
@@ -27,14 +29,6 @@ constexpr int rally_group_byte = 6, rally_ready_byte = 7;
 // Byte 5: the last group whose capture someone saw complete + 1 (teams of up to five bodies).
 constexpr int capture_byte = 5;
 constexpr int max_slots = 6;
-constexpr bool camp_trace = false;
-constexpr bool camp_tally = false;
-// Rounds per farm branch, for tuning: heal, capture, respawn wait, gather, walk to stand, at stand, none.
-std::array<int, 12> tally{};
-long fuel_mark[6] = {};
-bool camp_profile = false;
-int tally_round = 0;
-const char* const tally_names[] = {"other", "heal", "capt", "capwalk", "respwait", "lowhp", "gather", "stand", "walk", "none", "acting", "spawn"};
 
 int cheb(vec2 a, vec2 b) { return static_cast<int>(a.chebyshev_distance(b)); }
 bool in_bounds(vec2 p) { return cambc::map::is_in_bounds(p); }
@@ -79,12 +73,6 @@ void Bot::prepare_group(Group& g) {
     if (hits >= 150) g.deadly = true;
 }
 
-float Bot::group_hp(const Group& g) const {
-    float hp = 0;
-    for (float h : g.member_hp) hp += h;
-    return hp;
-}
-
 // Damage the team takes clearing the living members at `dps`: monsters die in the order that removes
 // the most strength per health first; clusters never hit back and die last. The order is cached per
 // group until a member's health changes (scoring runs over every group, and fuel is instructions).
@@ -124,13 +112,8 @@ int Bot::group_distance(int index, vec2 pos) const {
 }
 
 void Bot::update_groups() {
-    fuel_mark[0] = static_cast<long>(cambc::fuel_remaining());
     const auto pos = cambc::self().position();
     const int round = static_cast<int>(cambc::round_number());
-    if (camp_tally) {
-        ++tally[10];
-        if (cambc::map::spawn_region(team::ally).is_set(pos)) ++tally[11];
-    }
     const Bits visible(cambc::vision::visible_tiles());
     const Bits living(cambc::vision::awake_camp_tiles() | cambc::vision::asleep_camp_tiles());
     // A capture an ally saw complete: the group is respawning, wherever we are.
@@ -202,7 +185,6 @@ void Bot::update_groups() {
         } catch (const std::exception&) {
         }
     }
-    fuel_mark[1] = static_cast<long>(cambc::fuel_remaining());
 }
 
 // The rally group is live while some champion still targets it.
@@ -286,7 +268,8 @@ int Bot::choose_target(float keep_bonus) {
         const float value = static_cast<float>(g.facts.gems) + gold_part;
         const int n_now = 1 + claims[i];
         // Upper bound (no clear time, no trips): skip groups that cannot beat the best so far.
-        if (!support && !is_boss && value / static_cast<float>(n_now) / static_cast<float>(d + wait + 12) * 2.0f < best_score) continue;
+        const float bound = (packed ? value : value / static_cast<float>(n_now)) * 3.0f / static_cast<float>(d + wait + 12);
+        if (!support && !is_boss && bound < best_score) continue;
         float unused = 0;
         clear_cost(g, dps, &unused);
         const float hits = g.hits;
@@ -346,7 +329,7 @@ int Bot::choose_target(float keep_bonus) {
         const int need = n_at_best;
         if (g.reward && claims[i] > 0) score *= 0.2f;
         if (g.reward) score *= 1.3f;
-        if (plan.mode == mode_spread && g.zone >= zone_lo && g.zone < zone_hi) score *= 1.3f;
+        if (plan.mode == mode_spread && g.zone >= zone_lo && g.zone < zone_hi) score *= 1.8f;
         if (gi == target && wait <= 10) score *= keep_bonus;
         if (packed && gi == leader_target) score *= 2.0f;
         // The altar guard: the whole team chips it down, then everyone banks.
@@ -367,13 +350,6 @@ int Bot::choose_target(float keep_bonus) {
             best_damage = damage_at_best;
             best_need = need;
         }
-    }
-    if (camp_trace && best >= 0) {
-        const auto& g = groups[static_cast<std::size_t>(best)];
-        const int d = group_distance(best, pos);
-        std::cout << "CH r" << round << " s" << slot << " " << cambc::to_string(pos) << " -> g" << best << " gems" << g.facts.gems
-                  << " gold" << g.facts.gold << " hp" << int(group_hp(g)) << " d" << d << " wait" << std::max(0, g.respawn_at - round)
-                  << " n" << best_n << " need" << best_need << " rew" << g.reward << " score" << best_score << " prev" << target << '\n';
     }
     want_n = best_n;
     need_n = std::min(best_need, best_n);
@@ -552,12 +528,7 @@ bool Bot::farm() {
             const int d = cheb(g.facts.center, pos);
             if (d < pick_d) { pick_d = d; pick = static_cast<int>(gi); }
         }
-        if (pick >= 0) {
-            const long before = static_cast<long>(cambc::fuel_remaining());
-            group_field(pick);
-            if (camp_profile && slot == 0)
-                std::cout << "BFS r" << cambc::round_number() << " g" << pick << " cost " << before - static_cast<long>(cambc::fuel_remaining()) << '\n';
-        }
+        if (pick >= 0) group_field(pick);
     }
     return acted;
 }
@@ -566,34 +537,6 @@ bool Bot::farm_step() {
     auto& me = cambc::self();
     const int round = static_cast<int>(cambc::round_number());
     const auto pos = me.position();
-    fuel_mark[2] = static_cast<long>(cambc::fuel_remaining());
-    struct Report {
-        const Bot* bot; int round;
-        ~Report() {
-            if (camp_profile && bot->slot == 0 && round >= 100 && round <= 260)
-                std::cout << "FUEL r" << round << " upd " << fuel_mark[0] - fuel_mark[1] << " mid " << fuel_mark[1] - fuel_mark[2]
-                          << " farm " << fuel_mark[2] - static_cast<long>(cambc::fuel_remaining()) << " left " << cambc::fuel_remaining() << '\n';
-        }
-    } report{this, round};
-    if (camp_trace && round % 5 == 0 && round >= 400 && round <= 520 && slot <= 1) {
-        int es = 0;
-        const float inc = camp_incoming(&es);
-        std::cout << "T r" << round << " s" << slot << " " << cambc::to_string(pos) << " hp" << int(me.health()) << " t" << target
-                  << " n" << want_n << " dmg" << int(plan_damage) << " heal" << heal_trip << " inc" << int(inc) << " st" << cambc::to_string(stand)
-                  << " gems" << me.gem_count();
-        if (target >= 0) std::cout << " ghp" << int(group_hp(groups[static_cast<std::size_t>(target)])) << " rew" << groups[static_cast<std::size_t>(target)].reward << " resp" << groups[static_cast<std::size_t>(target)].respawn_at;
-        std::cout << '\n';
-    }
-    if (camp_tally) {
-        if (round > tally_round + 1) tally[0] += round - tally_round - 1;
-        tally_round = round;
-        if (round % 250 == 0) {
-            std::cout << "TALLY r" << round << " s" << slot;
-            for (std::size_t k = 0; k < tally.size(); ++k) std::cout << ' ' << tally_names[k] << '=' << tally[k];
-            std::cout << '\n';
-        }
-    }
-    const auto mark = [](int k) { if (camp_tally) ++tally[static_cast<std::size_t>(k)]; return true; };
     const auto awake = cambc::vision::awake_camp_tiles();
     const float hp = me.health(), hp_max = std::max(1.0f, me.max_health());
 
@@ -619,14 +562,14 @@ bool Bot::farm_step() {
         if (threat.is_set(pos)) {
             set_ready(false);
             step_away(threat);
-            return mark(1);
+            return true;
         }
         heal_trip = false;
         chosen_round = -100;
         if (hp < 0.5f * hp_max && target != boss) {
             if (home_field.at(pos) <= 6) step_along(home_field);
             else recall();
-            return mark(1);
+            return true;
         }
     }
 
@@ -654,13 +597,13 @@ bool Bot::farm_step() {
         chosen_round = round;
         if (target != before) gather_since = -1;
     }
-    if (target < 0) return !mark(9);
+    if (target < 0) return false;
     if (target != tracked_target) {
         tracked_target = target;
         target_since = round;
     }
     auto& g = groups[static_cast<std::size_t>(target)];
-    if (!g.field && cambc::fuel_remaining() < 45000) return mark(9);
+    if (!g.field && cambc::fuel_remaining() < 45000) return true;
     const auto& field = group_field(target);
 
     if (g.reward) {
@@ -670,7 +613,7 @@ bool Bot::farm_step() {
                 hold_group = target;
                 hold_since = round;
             }
-            if (round - hold_since <= cambc::constants::capture_time + 6) return mark(2);
+            if (round - hold_since <= cambc::constants::capture_time + 6) return true;
             g.contested_until = round + 60;
             hold_group = -1;
             target = choose_target(1.0f);
@@ -679,37 +622,35 @@ bool Bot::farm_step() {
             step_along(group_field(target), !groups[static_cast<std::size_t>(target)].reward);
             return true;
         }
-        if (camp_trace && false) std::cout << "CW r" << round << " s" << slot << " " << cambc::to_string(pos) << " t" << target << " d" << field.at(pos) << " claims" << int(read_shared(0)) << ',' << int(read_shared(1)) << ',' << int(read_shared(2)) << ',' << int(read_shared(3)) << ',' << int(read_shared(4)) << '\n';
         step_along(field);
-        return mark(3);
+        return true;
     }
     hold_group = -1;
-    // Never stand on a captured region: an occupied spawn tile stops the group respawning.
-    // Wait three or four tiles out, leaving a lane free so whoever stands on the region (blocking its
-    // respawn) can step off, even in a one-tile corridor.
-    // Everyone waits on the same spot (2 to 4 steps out, on our side) so the team meets enemies together.
+    // Respawning: never stand on the region (an occupied spawn tile stops the respawn). Everyone waits on
+    // the same spot, two to four steps out on our side, so the team meets enemies together and a lane
+    // stays free for whoever must step off the region.
     if (g.respawn_at > round) {
         const int here = field.at(pos);
         const vec2 spot = wait_spot(target);
         if (here == 0) {
-            // Across the region's own tiles if need be: they are free while it respawns.
+            // Across the region's own tiles if need be: they are empty while it respawns.
             if (!step_outward(field) && !(spot.x >= 0 && step_towards(spot))) step_off(g.tiles);
-            return mark(4);
+            return true;
         }
-        if (spot.x < 0 || pos == spot) return mark(4);
-        if (cheb(pos, spot) <= 1 && here >= 2) return mark(4);
+        if (spot.x < 0 || pos == spot) return true;
+        if (cheb(pos, spot) <= 1 && here >= 2) return true;
         if (cheb(pos, spot) > 3 || !step_towards(spot)) {
             if (here > 4) step_along(field, true);
             else if (here < 2) step_outward(field);
         }
-        return mark(4);
+        return true;
     }
 
     // Alive. Come back healthy when the clear would cost more than we can spend now.
     if (target != boss && !engaged && hp < 0.5f * hp_max && plan_damage > hp - 100.0f && awake.is_empty()) {
         if (home_field.at(pos) <= 8) step_along(home_field);
         else recall();
-        return mark(5);
+        return true;
     }
 
     // Groups too strong for one champion are engaged together: wait just out of reach until
@@ -719,11 +660,10 @@ bool Bot::farm_step() {
     for (const auto& m : g.members) reach = std::max(reach, m.range);
     const bool close = field.at(pos) <= reach + 3;
     set_ready(close && need_n > 1);
-    // Wait only while other champions are on their way to this group.
-    int coming = 0;
+    int coming = 0; // other champions targeting this group
     for (int s = 0; s < std::min(bodies, max_slots); ++s)
         if (s != slot && static_cast<int>(read_shared(s)) - 1 == target) ++coming;
-    // Packed teams move together anyway and wait less (monolith and golem groups excepted).
+    // Packed teams move together anyway and wait less (hard-hitting groups excepted).
     const int patience = plan.mode == mode_spread || g.deadly ? 30 : 15;
     // Nobody else is coming to a group that needs a team: drop it for a while.
     const bool is_boss = target == boss;
@@ -732,7 +672,7 @@ bool Bot::farm_step() {
         set_ready(false);
         target = choose_target(1.0f);
         chosen_round = round;
-        return mark(6);
+        return true;
     }
     const bool packed = plan.mode != mode_spread;
     if (!is_boss && (g.deadly || packed) && need_n > 1 && !group_awake && rally_ready(target) + 1 < std::min(need_n, 3)) {
@@ -744,11 +684,11 @@ bool Bot::farm_step() {
             set_ready(false);
             target = choose_target(1.0f);
             chosen_round = round;
-            return mark(6);
+            return true;
         }
-        if (field.at(pos) <= reach + 2) return mark(6);
+        if (field.at(pos) <= reach + 2) return true;
         step_along(field, true);
-        return mark(6);
+        return true;
     }
     gather_since = -1;
 
@@ -768,14 +708,14 @@ bool Bot::farm_step() {
             stand_idle = 0;
             stand_round = -100;
         }
-        return mark(7);
+        return true;
     }
     stand_idle = 0;
     // Ranged champions already in reach of a member hold rather than walk into more fire.
-    if (me.attack_range() > 1 && !me.can_attack()) return mark(7);
+    if (me.attack_range() > 1 && !me.can_attack()) return true;
     // Far off: the group's path field. Close: greedy steps onto the stand tile.
     if (cheb(pos, stand) > 3 || !step_towards(stand)) {
         if (!walked_fail) step_along(field, true);
     }
-    return mark(8);
+    return true;
 }

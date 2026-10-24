@@ -106,7 +106,6 @@ class Bot {
     bool heal_trip = false;     // left a clear to heal: go home before coming back
 
     void prepare_group(Group& g);
-    float group_hp(const Group& g) const;
     float clear_cost(Group& g, float dps, float* clear_time) const;
     bool pick_stand(int index);
     void post_rally(int group);
