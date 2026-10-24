@@ -21,6 +21,7 @@ constexpr bool dash_travel = true; // dash down travel fields when no enemy is i
 constexpr int dash_min = 2;        // only dash with at least this many steps left
 constexpr bool dash_escape = false; // dash out of threat when retreating
 constexpr bool block_allies = true; // treat all ally positions as occupied when stepping
+constexpr bool dash_chase = false;  // melee dash next to a chased enemy
 
 constexpr std::array<vec2, 8> directions{vec2{0, 1}, vec2{1, 1}, vec2{1, 0}, vec2{1, -1}, vec2{0, -1}, vec2{-1, -1},
     vec2{-1, 0}, vec2{-1, 1}};
@@ -900,7 +901,14 @@ void Bot::play_turn() {
     if ((fight == Fight::engage || press) && weakest && me.can_move() && !cast_exclusive && !walked_fail
         && cheb(weakest->pos, pos) > me.attack_range() && now >= no_chase_until) {
         try {
-            chased = me.move_towards(weakest->pos);
+            // Melee: a dash that lands next to the target lets us strike this turn.
+            const vec2 goal = weakest->pos;
+            const int gap = cheb(goal, pos);
+            if (dash_chase && !ranged && gap <= 3) {
+                const Bits blocked(walls | occupied() | cambc::vision::camp_tiles() | cambc::vision::teleport_tiles());
+                chased = try_dash([&](vec2 t) { return cheb(t, goal) <= 1 ? 0 : 100; }, 100, blocked);
+            }
+            if (!chased && !walked_fail && me.can_move()) chased = me.move_towards(goal);
         } catch (const std::exception& error) {
             if (trace) std::cout << "warn chase r" << now << ": " << error.what() << '\n';
             walked_fail = true;
