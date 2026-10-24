@@ -232,6 +232,7 @@ void Bot::spells_on_group(int group) {
         else if (sl.camps && v.lcamps.at(aim)) ok = ab.use(cambc::vision::camp_at(aim));
         else ok = ab.use(aim);
         cast_ = ok;
+        if (ok && sl.excl) move_failed_ = true;  // no walk after this cast
         invalidate();
     } catch (const cambc::error& e) { warn("spell", e); }
 }
@@ -386,6 +387,7 @@ bool Bot::fight_spells(const std::vector<Foe>& list) {
                 else if (sl.kind == ability_kind::aoe_damage || !sl.enemies) ok = ab.use(aim);
                 else if (cambc::vision::has_champion(aim)) ok = ab.use(cambc::vision::champion_at(aim));
                 cast_ = ok;
+                if (ok && sl.excl) move_failed_ = true;
                 invalidate();
             } catch (const cambc::error& e) { warn("fight spell", e); }
             if (cast_) ms = marks(list, 6);
@@ -467,12 +469,38 @@ void Bot::flee_spells(const std::vector<Foe>& list) {
                 if (m.d > sl.range || cast_value(sl, abs[i], m) < 1000 || !live()) continue;
                 try {
                     if (cambc::vision::has_champion(m.pos)) cast_ = abs[i].use(cambc::vision::champion_at(m.pos));
+                    if (cast_ && sl.excl) move_failed_ = true;
                     invalidate();
                 } catch (const cambc::error& e) { warn("flee spell", e); }
                 break;
             }
         }
         if (cast_) ms = marks(list, 3);
+    }
+    // One chaser that can reach us: a stun buys a turn without its hits, and a ranged champion
+    // that stands still can shoot it too. Running would not shake it off anyway.
+    if (!cast_ && me.can_cast() && !moved_ && fuel(10000)) {
+        int threats = 0;
+        const Mark* chaser = nullptr;
+        for (const auto& m : ms)
+            if (m.d <= m.range + 1 && !m.stunned && !m.tribute && !m.recall) { ++threats; chaser = &m; }
+        if (threats == 1 && !chaser->immune) {
+            const auto abs = me.abilities();
+            for (size_t i = 0; i < abs.size() && !cast_; ++i) {
+                const auto& sl = kit_[i];
+                if (!sl.used || !sl.stun || !sl.enemies || sl.kind == ability_kind::aoe_damage) continue;
+                if (!abs[i].is_ready() || chaser->d > sl.range || !live()) continue;
+                try {
+                    if (cambc::vision::has_champion(chaser->pos)) cast_ = abs[i].use(cambc::vision::champion_at(chaser->pos));
+                    if (cast_ && sl.excl) move_failed_ = true;
+                    invalidate();
+                } catch (const cambc::error& e) { warn("flee stun", e); }
+            }
+            if (cast_ && move_failed_ && me.attack_range() > 1) {
+                if (strike_best(marks(list, me.attack_range()))) attacked_ = true;
+                return;
+            }
+        }
     }
     // A shield costs no step.
     if (!cast_ && me.can_cast() && !has_shield()) {
