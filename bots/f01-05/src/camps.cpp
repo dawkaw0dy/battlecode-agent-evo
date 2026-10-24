@@ -328,7 +328,7 @@ int Bot::choose_target(float keep_bonus) {
         float damage_at_best = mine;
         int n_at_best = n_now;
         // A team clear: the fewest champions that need no trips home.
-        if (!g.reward && team > n_now && (rally < 0 || rally == gi)) {
+        if (!g.reward && packed && team > n_now && (rally < 0 || rally == gi)) {
             for (int n = n_now + 1; n <= team; ++n) {
                 float m = 0;
                 bool t = false;
@@ -646,6 +646,10 @@ bool Bot::farm_step() {
         if (target != before) gather_since = -1;
     }
     if (target < 0) return !mark(9);
+    if (target != tracked_target) {
+        tracked_target = target;
+        target_since = round;
+    }
     auto& g = groups[static_cast<std::size_t>(target)];
     if (!g.field && cambc::fuel_remaining() < 45000) return mark(9);
     const auto& field = group_field(target);
@@ -712,14 +716,14 @@ bool Bot::farm_step() {
     // Packed teams move together anyway and wait less (monolith and golem groups excepted).
     const int patience = plan.mode == mode_spread || g.deadly ? 30 : 15;
     // Nobody else is coming to a group that needs a team: drop it for a while.
-    if (need_n > 1 && !group_awake && coming == 0) {
+    if (need_n > 1 && !group_awake && coming == 0 && round - target_since >= 12) {
         g.lonely_until = round + 60;
         set_ready(false);
         target = choose_target(1.0f);
         chosen_round = round;
         return mark(6);
     }
-    if (need_n > 1 && !group_awake && rally_ready(target) + 1 < need_n) {
+    if (g.deadly && need_n > 1 && !group_awake && rally_ready(target) + 1 < std::min(need_n, 3)) {
         if (gather_since < 0) gather_since = round;
         if (round - gather_since > patience) {
             // Nobody came: farm something else for a while.

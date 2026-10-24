@@ -98,6 +98,7 @@ class Bot {
     int stand_group = -1, stand_round = -100, stand_alive = -1;
     cambc::vec2 stand{-1, -1};  // tile we attack the target from
     int gather_since = -1;      // round we started waiting for helpers
+    int target_since = 0, tracked_target = -1; // round the current target was first chosen
     int capture_seen = 0;       // last capture news read from shared memory
     int stand_shrink = 0, stand_idle = 0; // attack range given up after idle turns at the stand
     float last_hp = 0;
