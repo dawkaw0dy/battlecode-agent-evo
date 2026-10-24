@@ -1154,7 +1154,7 @@ int Bot::choose(int& eta_out, int near_group) {
     // Plan with the squad as drafted: allies out of sight cannot be inspected.
     const float team = dps() * (1.0f + 0.85f * (squad_n_ - 1));
     const float team_hp = me.health() + 0.8f * me.max_health() * (squad_n_ - 1);
-    const float gold_w = std::max(0.15f, 0.45f * (1.0f - now_ / 1600.0f));
+    const float gold_w = std::max(0.08f, 0.25f * (1.0f - now_ / 1600.0f));
     int best = -1;
     float bs = 0, cur = -1;
     eta_out = kFar;
