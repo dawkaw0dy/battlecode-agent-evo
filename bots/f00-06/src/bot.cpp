@@ -29,6 +29,7 @@ constexpr int kEndgameRounds = 140;  // bank everything this many rounds before 
 constexpr int kFollowDist = 2;
 constexpr int kGatherDist = 3;
 constexpr int kGatherWait = 8;
+constexpr int kLeadAhead = 3;
 constexpr int kGolemRound = 400;
 constexpr int kStallRounds = 90;
 constexpr float kSoloRecallHp = 0.25f;
@@ -218,6 +219,7 @@ int g_hunt_rounds = 0;
 int g_last_choice = -100;
 vec2 g_still_pos{-1, -1};
 int g_still_rounds = 0;
+int g_bank_stuck = 0;
 
 void collect(Ctx& c) {
     auto& w = *world;
@@ -248,6 +250,8 @@ void collect(Ctx& c) {
                 if (!ch.is_visible() || !ch.is_alive()) continue;
                 ChampView v{ch, p, ch.health(), ch.max_health()};
                 if (v.hp <= 0) continue;
+                // Enemies on their own spawn heal and cannot be reached: not worth a turn.
+                if (side == 0 && cambc::map::spawn_region(team::enemy).is_set(p)) continue;
                 (side == 0 ? c.enemies : c.allies).push_back(v);
             } catch (...) {
             }
@@ -693,8 +697,11 @@ void leader_plan(Ctx& c) {
     const int gems = static_cast<int>(me.gem_count());
     const bool endgame = c.round + kEndgameRounds >= static_cast<int>(cambc::constants::max_rounds);
     bool fighting = false;
-    for (const auto& cv : c.camps)
+    bool target_seen = false;
+    for (const auto& cv : c.camps) {
         if (cv.awake && dist(cv.pos, c.pos) <= 6) fighting = true;
+        if (cv.group == target && target >= 0) target_seen = true;
+    }
 
     // Hunting: chase visible enemies when we have local superiority.
     sm.b[6] = sm.b[7] = 255;
@@ -735,7 +742,7 @@ void leader_plan(Ctx& c) {
             mode = kTravel;
             if (me.gold_count() >= kShopGold && !endgame && c.enemies.empty()) mode = kShop;
         }
-    } else if (mode != kShop && !fighting && gems > 0
+    } else if (mode != kShop && !fighting && gems > 0 && !(mode == kFight && target_seen)
                && (gems >= kBankGems || endgame
                    || (gems >= kNearAltarGems && nearest_altar_dist(c.pos) <= kNearAltarDist && mode == kTravel))) {
         mode = kBank;
@@ -744,6 +751,17 @@ void leader_plan(Ctx& c) {
         mode = kShop;
     }
 
+    if (mode == kBank && g_bank_stuck >= 3) {
+        // Camps block the way to the altar: clear the nearest group first.
+        const CampView* near = nullptr;
+        for (const auto& cv : c.camps)
+            if (!hazard(cv, -1) && cv.group >= 0 && (!near || dist(cv.pos, c.pos) < dist(near->pos, c.pos))) near = &cv;
+        if (near) {
+            target = near->group;
+            mode = kFight;
+            g_bank_stuck = 0;
+        }
+    }
     if (mode == kTravel || mode == kFight || mode == kCapture) {
         auto& w = *world;
         if (target >= 0 && target < static_cast<int>(w.groups.size())) {
@@ -838,6 +856,32 @@ int my_index() {
     return g_index;
 }
 
+// Path around units with a fresh field from the goal tiles (multi-root move_towards).
+bool step_dynamic(Ctx& c, const cambc::bitboard& goals) {
+    auto& me = cambc::self();
+    if (c.moved || c.move_failed || !me.can_move()) return false;
+    auto roots = goals & ~c.blocked;
+    if (roots.is_empty()) return false;
+    cambc::bitboard here;
+    here.clear();
+    here.set(c.pos);
+    cambc::distance_field f;
+    cambc::bitboard visited;
+    f.compute_to(c.blocked, roots, here, visited);
+    if (!visited.is_set(c.pos)) return false;
+    vec2 best = c.pos;
+    int bv = f.get(c.pos);
+    for (auto d : kDirs) {
+        const vec2 p = c.pos + d;
+        if (!in_bounds(p) || c.blocked.is_set(p) || !visited.is_set(p)) continue;
+        if (f.get(p) < bv) {
+            bv = f.get(p);
+            best = p;
+        }
+    }
+    return best != c.pos && try_step(c, best);
+}
+
 void bank(Ctx& c) {
     auto& me = cambc::self();
     auto& w = *world;
@@ -845,21 +889,32 @@ void bank(Ctx& c) {
         if (dist(a, c.pos) <= cambc::constants::submit_gems_range && !cambc::vision::has_altar_lock(a)) {
             try {
                 me.submit_gems(a);
+                g_bank_stuck = 0;
             } catch (...) {
             }
             return;
         }
     }
-    if (w.altar_ready && step_field(c, w.altar_field, w.altar_reach, 0)) return;
-    // Fallback: nearest unlocked altar by straight line.
-    vec2 best{};
-    int bd = 1 << 20;
-    for (auto a : w.altars)
-        if (!cambc::vision::has_altar_lock(a) && dist(a, c.pos) < bd) {
-            bd = dist(a, c.pos);
-            best = a;
+    if (w.altar_ready && step_field(c, w.altar_field, w.altar_reach, 0)) {
+        g_bank_stuck = 0;
+        return;
+    }
+    if (c.moved) return;
+    // Units in the way: route around them.
+    cambc::bitboard goals;
+    goals.clear();
+    for (auto a : w.altars) {
+        if (cambc::vision::has_altar_lock(a)) continue;
+        for (auto d : kDirs) {
+            const vec2 p = a + d;
+            if (in_bounds(p)) goals.set(p);
         }
-    if (bd < (1 << 20)) walk_to(c, best, 1);
+    }
+    if (step_dynamic(c, goals)) {
+        g_bank_stuck = 0;
+        return;
+    }
+    ++g_bank_stuck;
 }
 
 // Move into attack range of the target group's nearest living camp.
@@ -896,7 +951,8 @@ void travel_along(Ctx& c, int target, vec2 anchor, int base_stop) {
             walk_to(c, anchor, kFollowDist);
             return;
         }
-        stop = std::max(base_stop, static_cast<int>(g.field.get(anchor)));
+        // Stay level with the leader or a few steps ahead, so nobody blocks its path from behind.
+        stop = std::max(base_stop, static_cast<int>(g.field.get(anchor)) - kLeadAhead);
     }
     if (g.ready && step_field(c, g.field, g.reach, stop)) return;
     if (c.moved) return;
@@ -977,22 +1033,26 @@ void act(Ctx& c) {
     for (const auto& cv : c.camps)
         if (cv.group == target) sees_target = true;
     const bool must_bank = gems > 0 && (mode == kBank || endgame || (gems >= 2 * kBankGems));
+    const auto& enemy_spawn = cambc::map::spawn_region(team::enemy);
+    bool handled = false;
     if (must_bank && enemy_close > 3) {
         bank(c);
-    } else if (c.sm.hunting() && dist(c.sm.hunt(), c.pos) <= 9
-               && !cambc::map::spawn_region(team::enemy).is_set(c.sm.hunt())) {
+        handled = true;
+    } else if (c.sm.hunting() && dist(c.sm.hunt(), c.pos) <= 9 && !enemy_spawn.is_set(c.sm.hunt())) {
         const vec2 h = c.sm.hunt();
         if (dist(h, c.pos) > range) walk_to(c, h, range);
-    } else if (closest && enemy_close <= 5 && !in_reach) {
+        handled = true;
+    } else if (closest && enemy_close <= 5 && !in_reach && !enemy_spawn.is_set(closest->pos)) {
         // Enemy near but no hunt order: close in only if our group is locally stronger.
         int near_allies = 1;
         for (const auto& a : c.allies)
             if (dist(a.pos, c.pos) <= 4) ++near_allies;
-        if (near_allies >= static_cast<int>(c.enemies.size()) && dist(closest->pos, anchor) <= 6
-            && !cambc::map::spawn_region(team::enemy).is_set(closest->pos))
+        if (near_allies >= static_cast<int>(c.enemies.size()) && dist(closest->pos, anchor) <= 6) {
             walk_to(c, closest->pos, range);
-        else if (dist(anchor, c.pos) > kFollowDist)
-            walk_to(c, anchor, kFollowDist);
+            handled = true;
+        }
+    }
+    if (handled) {
     } else if (mode == kFight && target >= 0) {
         bool sees = sees_target;
         for (const auto& cv : c.camps)
