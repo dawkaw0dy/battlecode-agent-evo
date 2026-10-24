@@ -67,6 +67,20 @@ std::optional<cambc::champion> champion_here(vec2 p) {
     }
 }
 
+// Move to an adjacent tile; a tile the engine knows is occupied (e.g. by a ward or a unit
+// revealed this round) counts as a failed move rather than an error.
+bool safe_move(vec2 t) {
+    if (cambc::vision::has_champion(t) || cambc::vision::has_camp(t) || cambc::vision::has_teleport(t)
+        || cambc::vision::has_ward(t))
+        return false;
+    try {
+        return cambc::self().move_absolute(t);
+    } catch (const cambc::error& e) {
+        if (e.code() == cambc::error_code::invalid_action_move_bad_destination) return false;
+        throw;
+    }
+}
+
 struct CampStat { float hp, str; int range; };
 CampStat camp_stat(int kind) {
     switch (static_cast<cambc::camp_type>(kind)) {
@@ -261,7 +275,7 @@ bool Bot::step_to(const bitboard& goals) {
     }
     if (best == pos) return false;
     moved = true;
-    return me.move_absolute(best);
+    return safe_move(best);
 }
 
 bool Bot::flee(const std::vector<vec2>& threats) {
@@ -287,7 +301,7 @@ bool Bot::flee(const std::vector<vec2>& threats) {
     }
     if (best == pos) return false;
     moved = true;
-    return me.move_absolute(best);
+    return safe_move(best);
 }
 
 bool Bot::go_bank() {
