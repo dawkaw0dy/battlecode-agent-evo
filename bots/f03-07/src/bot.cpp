@@ -685,7 +685,7 @@ bool Bot::maybe_recall() {
     // Gold to spend and nothing engaged: go shopping.
     if (!want && me.gold_count() >= 150 && inc == 0 && hd(pos) > 6 && hd(pos) < 40 && me.gem_count() == 0) want = true;
     // Hurt and not in the middle of a camp: heal before the next target.
-    if (!want && inc == 0 && hp < mx * 0.5f) {
+    if (!want && inc == 0 && hp < mx * 0.65f) {
         bool engaged = false;
         if (target >= 0) {
             const auto& g = groups[target];
