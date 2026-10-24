@@ -153,8 +153,8 @@ void Bot::init() {
 void Bot::buy_items() {
     auto& me = cambc::self();
     using IT = cambc::item_type;
-    static const std::array<IT, 5> plan{IT::jungle_shard_of_strength, IT::durability_shard_of_health,
-        IT::power_shard_of_health, IT::monster_shard_of_strength, IT::power_shard_of_strength};
+    static const std::array<IT, 5> plan{IT::jungle_shard_of_strength, IT::monster_shard_of_strength,
+        IT::durability_shard_of_health, IT::power_shard_of_health, IT::power_shard_of_strength};
     for (int guard = 0; guard < 40; ++guard) {
         IT item = bought < 20 ? plan[bought / 5] : (bought % 2 ? IT::power_shard_of_strength : IT::power_shard_of_health);
         if (me.gold_count() < item.cost() || !me.can_buy(item, 1)) return;
@@ -461,6 +461,21 @@ bool Bot::handle_enemies() {
     flee_until = static_cast<int>(turn_round) + 3;
 
     if (ratio >= need) return fight(near);
+    int dclose = 99;
+    for (int i : near) dclose = std::min(dclose, cheb(foes[i].pos, pos) - foes[i].range);
+    if (ratio >= 1.1f && me.health() > me.max_health() * 0.5f && (dclose > 1 || me.gem_count() < 20)) {
+        // Even fight: do not start it, but answer anyone already in reach and keep farming.
+        for (int i : near)
+            if (cheb(foes[i].pos, pos) <= me.attack_range() && me.can_attack()) {
+                try {
+                    const auto c = cambc::vision::champion_at(foes[i].pos);
+                    if (fresh()) { cast_on_champion(c, false); me.attack(c); attacked = true; after_hit(c); }
+                } catch (const std::exception&) {
+                }
+                return true;
+            }
+        return false;
+    }
 
     // Losing side. Take a free kill shot, bank gems if the altar is right here, else run.
     for (int i : near) {
@@ -532,7 +547,8 @@ void Bot::flee() {
     if (at_spawn) return; // enemies cannot enter our spawn
     int dmin = 99;
     for (const auto& f : foes) dmin = std::min(dmin, cheb(f.pos, pos));
-    if (dmin >= 6 && incoming_at(pos) == 0 && !me.is_recalling()) {
+    if (dmin >= 6 && incoming_at(pos) == 0 && !me.is_recalling()
+        && (me.health() < me.max_health() * 0.5f || me.gem_count() >= 20)) {
         try {
             if (fresh()) { me.recall(); return; }
         } catch (const std::exception&) {
@@ -600,7 +616,7 @@ bool Bot::go_tribute() {
     if (d == UNREACHED) return false;
     const int now = static_cast<int>(turn_round);
     const int left = static_cast<int>(cambc::constants::max_rounds) - now;
-    bool go = gems >= 36 || d <= 8 + gems / 2 || left <= d + (gems + 9) / 10 + 6
+    bool go = gems >= 50 || d <= 3 + gems / 5 || left <= d + (gems + 9) / 10 + 6
         || (now - last_enemy_round < 30 && gems >= 8) || target < 0;
     if (!go) return false;
     step_towards(goals);
@@ -614,7 +630,7 @@ bool Bot::maybe_recall() {
     const float inc = incoming_at(pos);
     bool want = hp < mx * 0.25f;
     // Gold to spend and nothing engaged: go shopping.
-    if (!want && me.gold_count() >= 240 && inc == 0 && hd(pos) > 6 && me.gem_count() == 0) want = true;
+    if (!want && me.gold_count() >= 150 && inc == 0 && hd(pos) > 6 && hd(pos) < 40 && me.gem_count() == 0) want = true;
     // Too weak to start the planned target again.
     if (!want && target >= 0 && inc == 0) {
         const auto& g = groups[target];
@@ -649,7 +665,7 @@ int Bot::choose_target() {
     const float dps = my_dps() * (bought >= 20 ? 1.1f : 1.0f);
     const float mx = me.max_health();
     const float reduce = bought >= 5 ? 0.7f : 1.0f;
-    const float gold_w = std::max(0.05f, 0.25f * (1.0f - now / 1500.0f));
+    const float gold_w = std::max(0.12f, 0.35f * (1.0f - now / 1500.0f));
 
     std::array<std::uint8_t, 5> claims{};
     try { cambc::shared_memory.read(0, std::span{claims}); } catch (const std::exception&) {}
@@ -684,7 +700,8 @@ int Bot::choose_target() {
         }
         float wait = 0;
         if (g.state == 3) wait = std::max(0, g.respawn_at - now - d);
-        if (wait > 80) continue;
+        if (wait > 60) continue;
+        wait *= 1.5f;
         float value = g.gems + gold_w * g.gold;
         if (value <= 0) continue;
         float factor = 1.0f;
@@ -783,6 +800,7 @@ void Bot::farm() {
     auto& g = groups[target];
 
     if (g.state == 2) {
+        ++modes[7];
         // Capture: stand on one of the group's tiles.
         bitboard goals;
         for (auto t : g.tiles) goals.set(t);
@@ -796,6 +814,7 @@ void Bot::farm() {
         return;
     }
     if (g.state == 3) {
+        ++modes[8];
         // Wait near the group for its respawn, off its spawn tiles (standing on one delays it).
         bitboard spawn_tiles, ring;
         for (auto t : g.tiles) { spawn_tiles.set(t); box(ring, t, 2); }
@@ -816,14 +835,17 @@ void Bot::farm() {
     int exit_steps = 0;
     for (const auto& t : threats) exit_steps = std::max(exit_steps, t.range + 1 - cheb(pos, t.pos));
     if (inc > 0 && hp < inc * (exit_steps + 2.0f) + margin) {
+        ++modes[11];
         step_away_from_camps();
         return;
     }
 
     if (attack_camps(target)) {
+        ++modes[9];
         stuck_turns = 0;
         return;
     }
+    ++modes[10];
 
     // Approach the living camps of the group.
     bitboard goals;
@@ -851,11 +873,18 @@ void Bot::play_turn() {
     if (!inited) init();
     moved = move_failed = attacked = false;
 
+    if (turn_round == 800) {
+        std::cout << "MODES #" << my_index;
+        for (int i = 0; i < 12; ++i) std::cout << " " << modes[i];
+        std::cout << "\n";
+    }
     if (!me.is_alive()) {
+        ++modes[0];
         buy_items();
         return;
     }
-    if (me.is_recalling() || me.is_submitting_gems() || me.is_teleporting()) return;
+    if (me.is_recalling()) { ++modes[1]; return; }
+    if (me.is_submitting_gems() || me.is_teleporting()) { ++modes[2]; return; }
     pos = me.position();
     if (pos.x < 0) return;
     observe();
@@ -866,17 +895,18 @@ void Bot::play_turn() {
     const bool at_spawn = cambc::map::spawn_region(team::ally).is_set(pos);
     if (at_spawn) buy_items();
     if (!fresh()) return;
-    if (handle_enemies()) { dbg("enemies"); return; }
+    if (handle_enemies()) { ++modes[3]; dbg("enemies"); return; }
 
     // Heal fully on spawn before heading out.
     if (at_spawn && me.health() < me.max_health() * 0.92f && heal_wait < 15) {
         ++heal_wait;
+        ++modes[4];
         return;
     }
     if (!at_spawn) heal_wait = 0;
 
-    if (go_tribute()) { dbg("tribute"); return; }
-    if (maybe_recall()) { dbg("recall"); return; }
+    if (go_tribute()) { ++modes[5]; dbg("tribute"); return; }
+    if (maybe_recall()) { ++modes[6]; dbg("recall"); return; }
     farm();
     dbg("farm");
 }

@@ -74,6 +74,7 @@ private:
     int stuck_turns = 0;
     int heal_wait = 0;
     int bought = 0;
+    int modes[12] = {};
     int flee_until = -1;
     cambc::vec2 last_enemy{-1, -1};
     int last_enemy_round = -1000;
