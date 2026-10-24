@@ -19,7 +19,7 @@ foe attacking a friend, retreat home when low or outnumbered; Willow heals; gems
   Damage estimate counts at most ~6 attackers of a big group; ≤10 trips.
 - Gather before a sleeping dangerous group: wait outside its range up to 12 turns (raids: team, 25 turns).
 - Fight: ratio = Σhp·power within 7 (allies remembered 2 rounds); retreat if low (hp<30% or <2.5 turns of
-  threat) and ratio<2, else if ratio<0.8 (0.6 while committed); kill shot = hp ≤ 0.9·burst always taken.
+  threat) and ratio<2, else if ratio<0.65 (0.45 while committed); kill shot = hp ≤ 0.9·burst always taken.
 - Tribute: ≥32 gems, ≥14 within 8 tiles, ≥6 within 3, ≥8 with a foe in sight, endgame, or the winning bag.
 - Build: jungle(str) → monster(str) → power(hp) → power(str) → durability(hp) → alternating power shards.
 - Turn 1 only initialises (static fields); leftover fuel computes group fields; costly paths guarded by fuel.

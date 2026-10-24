@@ -15,7 +15,7 @@ namespace {
 std::uint32_t g_round = 0;
 bool live() { return cambc::round_number() == g_round; }
 int g_warns = 0;
-constexpr bool kStats = true;   // one activity line per champion every 250 rounds
+constexpr bool kStats = false;  // one activity line per champion every 250 rounds
 constexpr bool kTable = false;  // group table at the start (costs fuel)
 int g_mode = 0;
 int g_modes[16]{};
