@@ -84,6 +84,7 @@ int now = 0;
 vec2 last_pos{-1, -1};
 int still_turns = 0;
 int idle_fight_turns = 0;  // hunting turns with foes in sight but no attack or move
+int capture_turns = 0;     // turns spent waiting on a capture
 bool acted = false;        // attacked this turn
 
 // Shared memory: [0] target group + 1, [1] spare, [2..7] three (group + 1, avail / 16) notes.
@@ -225,6 +226,20 @@ int group_of_tile(vec2 p) {
     return -1;
 }
 
+std::vector<Foe> all_camps;  // every visible living camp this turn
+std::vector<Foe> cambc_enemies;  // every visible enemy champion off their spawn this turn
+
+// True if hitting tile `c` with radius `r` would also touch a sleeping camp outside `foes`.
+bool wakes_bystander(vec2 c, int r, const std::vector<Foe>& foes) {
+    for (auto& k : all_camps) {
+        if (k.awake || dist(k.pos, c) > r) continue;
+        bool listed = false;
+        for (auto& f : foes) if (f.pos == k.pos) { listed = true; break; }
+        if (!listed) return true;
+    }
+    return false;
+}
+
 std::vector<Foe> visible_camps() {
     std::vector<Foe> out;
     for (auto p : cambc::vision::camp_tiles().positions()) {
@@ -359,7 +374,7 @@ bool cast_spells(const std::vector<Foe>& foes, bool fighting_champs) {
                         for (int dy = -r; dy <= r; ++dy)
                             for (int dx = -r; dx <= r; ++dx) {
                                 vec2 c{f.pos.x + dx, f.pos.y + dy};
-                                if (!in_bounds(c) || !range.is_set(c)) continue;
+                                if (!in_bounds(c) || !range.is_set(c) || wakes_bystander(c, r, foes)) continue;
                                 int n = 0;
                                 for (auto& g : foes)
                                     if (dist(g.pos, c) <= r) n += g.champ ? 3 : ((g.awake || g.str == 0) ? 2 : 1);
@@ -439,9 +454,11 @@ const Foe* pick_in_range(const std::vector<Foe>& foes) {
     auto& me = cambc::self();
     const Foe* best = nullptr;
     float best_s = -1e9f;
+    const bool splash = my_type == cambc::champion_type::varg;
     for (auto& f : foes) {
         if (dist(me.position(), f.pos) > me.attack_range()) continue;
         float s = (f.champ ? 100000.0f : 0.0f) - f.hp;
+        if (splash && wakes_bystander(f.pos, 1, foes)) s -= 1000000.0f;
         if (s > best_s) { best_s = s; best = &f; }
     }
     return best;
@@ -765,9 +782,47 @@ void hunt(const std::vector<Foe>& camps, const std::vector<Ally>& allies) {
             }
             return;
         }
-        // Reward available (or about to be): stand on a free spawn tile of the group.
-        if (g.spawns.is_set(pos)) return;
-        step_to(g.spawns);
+        if (g.state == 2 && g.state_round == now) {
+            // Reward available: stand on a free spawn tile of the group. If the capture stalls, an
+            // enemy is contesting the region: go and fight it.
+            ++capture_turns;
+            if (capture_turns > 7) {
+                std::vector<Foe> contest;
+                for (auto& e : cambc_enemies)
+                    if (g.spawns.is_set(e.pos)) contest.push_back(e);
+                if (!contest.empty()) {
+                    fight(contest, true);
+                    return;
+                }
+                const auto unseen = g.spawns & ~cambc::vision::visible_tiles();
+                if (!unseen.is_empty() && capture_turns < 60) {
+                    if (step_to(unseen)) return;
+                }
+                if (capture_turns > 60) {
+                    g.bad_until = now + 100;
+                    write_target(-1);
+                    capture_turns = 0;
+                    return;
+                }
+            }
+            if (g.spawns.is_set(pos)) return;
+            step_to(g.spawns);
+            return;
+        }
+        capture_turns = 0;
+        // Alive but its camps are out of sight (long groups): walk to the unseen part.
+        const auto unseen = g.spawns & ~cambc::vision::visible_tiles();
+        if (!unseen.is_empty()) {
+            bitboard goals;
+            goals.clear();
+            for (auto tile : unseen.positions()) goals |= square(tile, 1);
+            if (step_to(goals)) return;
+        }
+        if (++idle_fight_turns > 10) {
+            g.bad_until = now + 150;
+            write_target(-1);
+            idle_fight_turns = 0;
+        }
         return;
     }
 
@@ -824,7 +879,7 @@ void init() {
     me.set_priority(is_tank ? 3 : (is_melee ? 2 : 1));
 }
 
-constexpr bool kDump = true;
+constexpr bool kDump = false;
 void dump_map() {
     bitboard cs;
     cs.clear();
@@ -886,7 +941,9 @@ void Bot::play_turn() {
     observe_groups();
 
     const auto camps = visible_camps();
+    all_camps = camps;
     const auto enemies = visible_enemies();
+    cambc_enemies = enemies;
     const auto allies = visible_allies();
     const float hp = me.health(), max_hp = me.max_health();
 
