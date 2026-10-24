@@ -149,7 +149,7 @@ struct CachedField {
     cambc::distance_field field;
     cambc::bitboard visited;
 };
-std::array<CachedField, 3> field_cache;
+std::array<CachedField, 10> field_cache;
 int field_cache_next = 0;
 
 CachedField& cached_field(int key, const cambc::bitboard& goals) {
@@ -544,7 +544,12 @@ bool Bot::bank_gems() {
     for (int i = 0; i < int(world.altars.size()); ++i) {
         const vec2 a = world.altars[i];
         if (world.ally_dist[i] >= (1 << 20)) continue;   // not reachable from our spawn
-        const int d = distance(pos, a) <= 1 ? 0 : distance(pos, a);
+        int d = 0;
+        if (distance(pos, a) > 1) {
+            auto& c = cached_field(1000 + i, ring(a, 1) & ~world.terrain);
+            d = c.visited.is_set(pos) ? int(c.field.get(pos)) : 1 << 20;
+        }
+        if (d >= (1 << 20)) continue;
         int cost = d;
         if (enemy_lock_at(a)) cost += any_free ? 1000 : 6;
         if (world.enemy_dist[i] + 4 < world.ally_dist[i]) cost += 6;   // deep in their half
@@ -713,6 +718,7 @@ void Bot::farm() {
         cambc::bitboard around = empty_board();
         for (auto t : gi.spawns.positions()) around |= ring(t, 2);
         around &= ~gi.spawns & ~world.terrain & ~world.enemy_spawn;
+        progress_round = now;   // waiting for a respawn is not being stuck
         if (around.is_set(me.position())) return;
         step_cached(2000 + target_group, around);
         return;
