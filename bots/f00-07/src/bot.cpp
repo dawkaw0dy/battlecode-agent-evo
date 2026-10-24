@@ -149,9 +149,6 @@ void init_static() {
         G.near &= ~G.spawns;
         G.near &= ~g_static_walls;
         if (n) G.center = {static_cast<int>(sx / n), static_cast<int>(sy / n)};
-        if (cambc::self().position().x >= 0 && idx <= 30)
-            std::cout << "grp " << G.index << " c " << G.center.x << "," << G.center.y << " gems " << G.gems << " gold "
-                      << G.gold << " hp " << G.hp << " str " << G.str << " resp " << G.respawn << "\n";
         g_groups.push_back(std::move(G));
     }
     g_altars = M::altars().positions();
@@ -179,9 +176,7 @@ bool build_field(Field& F, const bitboard& roots) {
     if (F.ready) return true;
     if (cambc::fuel_remaining() < static_cast<std::uint64_t>(W * H * 3 + 15000)) return false;
     if (!F.f) F.f = std::make_unique<cambc::distance_field>();
-    const auto before = cambc::fuel_remaining();
     F.f->compute(g_static_walls & ~roots, roots, F.reach);
-    std::cout << "field cost " << (before - cambc::fuel_remaining()) << " area " << W * H << "\n";
     F.ready = true;
     return true;
 }
@@ -1043,17 +1038,7 @@ void init_shared_memory_once() {
 
 }  // namespace
 
-struct TurnTrace {
-    ~TurnTrace() {
-        if (ROUND >= 1200 && ROUND <= 1212 && cambc::self().is_alive())
-            std::cout << "trace r" << ROUND << " " << static_cast<int>(cambc::self().champion_name()) << " pos "
-                      << cambc::self().position().x << "," << cambc::self().position().y << " phase " << g_phase
-                      << " tgt " << g_target_group << " enemies " << g_enemies.size() << "\n";
-    }
-};
-
 void Bot::play_turn() {
-    TurnTrace trace_guard;
     g_phase = "play_turn";
     ROUND = static_cast<int>(cambc::round_number());
     if (!g_init) init_static();
@@ -1150,11 +1135,4 @@ void Bot::play_turn() {
 
     if (respond_to_call()) return;
     farm();
-    if (ROUND % 100 == 0)
-        std::cout << "dbg r" << ROUND << " pos " << me.position().x << "," << me.position().y << " hp " << me.health()
-                  << " gems " << me.gem_count() << " gold " << me.gold_count() << " tgt " << g_target_group
-                  << " fuel " << cambc::fuel_remaining() << " phase " << g_phase << " still " << g_still
-                  << " gc " << (g_target_group >= 0 ? g_groups[g_target_group].center.x : -1) << ","
-                  << (g_target_group >= 0 ? g_groups[g_target_group].center.y : -1) << " fd "
-                  << (g_target_group >= 0 ? g_groups[g_target_group].field.get(me.position()) : -9) << "\n";
 }
