@@ -73,6 +73,10 @@ void Bot::prepare_group(Group& g) {
         g.member_hp[i] = g.members[i].max_hp;
         if (g.members[i].str >= 120) g.deadly = true;
     }
+    // Three elks or more hit too hard for champions arriving one by one.
+    float hits = 0;
+    for (const auto& m : g.members) hits += m.str;
+    if (hits >= 150) g.deadly = true;
 }
 
 float Bot::group_hp(const Group& g) const {
@@ -571,7 +575,7 @@ bool Bot::farm_step() {
                           << " farm " << fuel_mark[2] - static_cast<long>(cambc::fuel_remaining()) << " left " << cambc::fuel_remaining() << '\n';
         }
     } report{this, round};
-    if (camp_trace && round % 10 == 0 && round <= 300) {
+    if (camp_trace && round % 5 == 0 && round >= 400 && round <= 520 && slot <= 1) {
         int es = 0;
         const float inc = camp_incoming(&es);
         std::cout << "T r" << round << " s" << slot << " " << cambc::to_string(pos) << " hp" << int(me.health()) << " t" << target
@@ -603,7 +607,12 @@ bool Bot::farm_step() {
     }
     last_hp = hp;
     last_hp_round = round;
-    if (incoming > 0 && hp <= incoming * static_cast<float>(exit_steps + 2) + 40.0f) heal_trip = true;
+    // Ranged champions attack before they can walk (and walk only if they did not attack), so they
+    // need two more rounds of margin to get out.
+    const int margin_rounds = me.attack_range() > 1 ? 4 : 2;
+    // The altar guard is worn down by the whole team regardless (no banking until it falls).
+    if (incoming > 0 && target != boss && hp <= incoming * static_cast<float>(exit_steps + margin_rounds) + 40.0f)
+        heal_trip = true;
     if (heal_trip) {
         // Out of reach the target model decides whether the next clear needs a trip home first.
         const auto threat = threat_tiles();
@@ -614,7 +623,7 @@ bool Bot::farm_step() {
         }
         heal_trip = false;
         chosen_round = -100;
-        if (hp < 0.5f * hp_max) {
+        if (hp < 0.5f * hp_max && target != boss) {
             if (home_field.at(pos) <= 6) step_along(home_field);
             else recall();
             return mark(1);
@@ -681,11 +690,12 @@ bool Bot::farm_step() {
     // Everyone waits on the same spot (2 to 4 steps out, on our side) so the team meets enemies together.
     if (g.respawn_at > round) {
         const int here = field.at(pos);
+        const vec2 spot = wait_spot(target);
         if (here == 0) {
-            if (!step_outward(field)) step_off(g.tiles);
+            // Across the region's own tiles if need be: they are free while it respawns.
+            if (!step_outward(field) && !(spot.x >= 0 && step_towards(spot))) step_off(g.tiles);
             return mark(4);
         }
-        const vec2 spot = wait_spot(target);
         if (spot.x < 0 || pos == spot) return mark(4);
         if (cheb(pos, spot) <= 1 && here >= 2) return mark(4);
         if (cheb(pos, spot) > 3 || !step_towards(spot)) {
@@ -696,7 +706,7 @@ bool Bot::farm_step() {
     }
 
     // Alive. Come back healthy when the clear would cost more than we can spend now.
-    if (!engaged && hp < 0.5f * hp_max && plan_damage > hp - 100.0f && awake.is_empty()) {
+    if (target != boss && !engaged && hp < 0.5f * hp_max && plan_damage > hp - 100.0f && awake.is_empty()) {
         if (home_field.at(pos) <= 8) step_along(home_field);
         else recall();
         return mark(5);
@@ -716,14 +726,16 @@ bool Bot::farm_step() {
     // Packed teams move together anyway and wait less (monolith and golem groups excepted).
     const int patience = plan.mode == mode_spread || g.deadly ? 30 : 15;
     // Nobody else is coming to a group that needs a team: drop it for a while.
-    if (need_n > 1 && !group_awake && coming == 0 && round - target_since >= 12) {
+    const bool is_boss = target == boss;
+    if (!is_boss && need_n > 1 && !group_awake && coming == 0 && round - target_since >= 12) {
         g.lonely_until = round + 60;
         set_ready(false);
         target = choose_target(1.0f);
         chosen_round = round;
         return mark(6);
     }
-    if (g.deadly && need_n > 1 && !group_awake && rally_ready(target) + 1 < std::min(need_n, 3)) {
+    const bool packed = plan.mode != mode_spread;
+    if (!is_boss && (g.deadly || packed) && need_n > 1 && !group_awake && rally_ready(target) + 1 < std::min(need_n, 3)) {
         if (gather_since < 0) gather_since = round;
         if (round - gather_since > patience) {
             // Nobody came: farm something else for a while.
