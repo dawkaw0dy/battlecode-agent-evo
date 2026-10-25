@@ -1,0 +1,40 @@
+{
+ "env_manifest_sha256": "8da1437926729df349b76cd9c211931c90673786ec5e4c6c97fa449d9ba532c4",
+ "generation": 5,
+ "heldout_repo": "dawkaw0dy/battlecode-agent-evo-heldout",
+ "job_id": "r05-C-spot",
+ "map_sha256": {
+  "h-1ce8": "7e8f4ef4618e4c4566567cf39f8b7933761210c6a844a24f6dacb6327511a71b",
+  "h-1cee": "2d11b8799b0f5e8a5ad84efa95b71e982c6c47ce93d108877996d77e4f27d57c",
+  "h-1e7e": "a1f7ddbf8cd539ca85a063e7f7b4a4761277aee24b88ecf8b942a1fa24ee0e40",
+  "h-1e7f": "dace9c8d9aa07a19ac1406edabe52a4e52bb17875afc453584e057a9a3bcc798"
+ },
+ "runner_version": "cambc==3.0.5",
+ "runs_on": "ubuntu-22.04",
+ "shards": [
+  {
+   "a": "f04-05",
+   "b": "f05-03",
+   "heldout": true,
+   "maps": [
+    "h-1ce8",
+    "h-1e7e",
+    "h-1e7f"
+   ]
+  },
+  {
+   "a": "f05-03",
+   "b": "f02-01",
+   "heldout": true,
+   "maps": [
+    "h-1cee"
+   ]
+  }
+ ],
+ "src_sha256": {
+  "f02-01": "4c7ef7070e1438412f0d8535ba02f3cc7bc4e2249323fc504e66018e4f78727f",
+  "f04-05": "c28582254ff7f36476845698f622d6f6e8e2bb7e9a2e598c3fe489d65518f0f1",
+  "f05-03": "fe02fe35d6a67ca98920e591c8fb5acbfd61eff8e7b0fc0f56fc1fd91e4e4cf2"
+ },
+ "stage": "spot"
+}
