@@ -23,6 +23,7 @@ struct GroupMem {
     int home_dist = 999;        // walking distance from our spawn
     int enemy_dist = 999;       // walking distance from the enemy spawn
     int trips = 0;              // heal trips spent on the current life
+    int travel = -1;            // walking distance from us at the last target choice
 };
 
 // Packed row-major tile bits, read locally (one export per board, no per-tile host calls).
@@ -97,6 +98,9 @@ private:
     int report_count = 0, report_age = 999;
     cambc::vec2 report_pos{-100, -100};
 
+    bool travel_ok = false;
+    int stat[12] = {}, mstat[8] = {}, purpose = 0;
+    void play_inner();
     void init();
     void init_fields();
     int init_stage = 0;

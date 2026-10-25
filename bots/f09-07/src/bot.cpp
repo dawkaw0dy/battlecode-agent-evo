@@ -434,6 +434,7 @@ bool Bot::flee_home() {
 
 bool Bot::escape_camps() {
     auto& me = cambc::self();
+    purpose = 3;
     if (incoming <= 0) {
         bool enemy_near = false;
         for (const auto& e : enemies) if (cheb(e.pos, pos) <= 7) enemy_near = true;
@@ -563,6 +564,7 @@ bool Bot::attack_enemies() {
 
 bool Bot::fight_or_flight() {
     if (enemies.empty()) return false;
+    purpose = 2;
     last_enemy_seen = round;
     auto& me = cambc::self();
     std::vector<int> near;
@@ -631,6 +633,7 @@ bool Bot::fight_or_flight() {
 
 bool Bot::tribute(bool force) {
     auto& me = cambc::self();
+    purpose = 1;
     const int gems = static_cast<int>(me.gem_count());
     if (gems <= 0) return false;
     int nearest = 999;
@@ -692,14 +695,15 @@ double Bot::group_score(int gi, double& trips_out, double floor) {
     }
     if (gi == target) factor *= round - target_since > 8 ? 1.5 : 1.25;
     if (report_age <= 20 && report_count >= 2 && cheb(report_pos, g.center) <= 10) factor *= 0.2;
-    if (g.state == 1) factor *= 1.3;
+    if (g.state == 1 && (round - g.seen > 10 || cheb(pos, g.center) > 15) && gi != target) return 0;
     const double w = round < 600 ? 0.3 : round < 1400 ? 0.15 : 0.05;
     const double value = (g.gems + w * g.gold) * factor;
     if (value <= 0) return 0;
-    const double travel = cheb(pos, g.center) * 1.2 + 1;
+    const double travel = (travel_ok && g.travel >= 0 ? g.travel : cheb(pos, g.center) * 1.3) + 1;
     double wait = 0;
     if (g.state == 2) {
         wait = std::max(0.0, g.respawn_at - round - travel);
+        if (wait > 30 && gi != target) wait *= 1.5;
     }
     // Far groups also cost the walk back to heal and bank.
     const double away = 0.4 * g.home_dist;
@@ -744,6 +748,27 @@ int Bot::choose_target() {
         int rx, ry;
         read_report(rx, ry, report_count, report_age);
         report_pos = {rx, ry};
+    }
+    // Walking distances from here to every group (one host search, static terrain).
+    travel_ok = false;
+    if (cambc::fuel_remaining() > 65000) {
+        try {
+            const auto walls = cambc::map::walls() | cambc::map::holes() | cambc::map::altars()
+                | cambc::map::spawn_region(team::enemy);
+            auto root = empty_board();
+            root.set(pos);
+            cambc::distance_field field;
+            cambc::bitboard seen;
+            field.compute(walls, root, seen);
+            for (auto& g : groups) {
+                g.travel = -1;
+                if (g.tiles.empty()) continue;
+                const auto t = g.tiles[0];
+                if (seen.is_set(t)) g.travel = field.get(t);
+                else g.travel = 9999;
+            }
+            travel_ok = true;
+        } catch (const std::exception&) {}
     }
     std::array<std::uint8_t, 4> claims{};
     cambc::shared_memory.read(4, std::span{claims});
@@ -868,6 +893,7 @@ bool Bot::attack_camps(int gi) {
 
 bool Bot::farm() {
     auto& me = cambc::self();
+    purpose = 0;
     if ((target < 0 || round - target_round >= 5) && cambc::fuel_remaining() > 45000) {
         const int t = choose_target();
         if (t != target) { claim(t); target_since = round; }
@@ -887,6 +913,7 @@ bool Bot::farm() {
     for (int ci : g.camps) if (camps[ci].hp > 0) all_dead = false;
     if (g.state == 1 || (g.state == 0 && all_dead)) {
         // Capture: stand on one of its spawn tiles until the reward lands.
+        purpose = 4;
         for (auto t : g.tiles) if (t.x == pos.x && t.y == pos.y) return true;
         auto goal = empty_board();
         for (auto t : g.tiles) goal.set(t);
@@ -900,6 +927,7 @@ bool Bot::farm() {
             try { me.recall(); return true; } catch (const cambc::error&) {}
         }
         // Wait near, never on, its spawn tiles.
+        purpose = 5;
         if (cheb(pos, g.center) <= 3) {
             for (auto t : g.tiles)
                 if (t.x == pos.x && t.y == pos.y) {
@@ -920,11 +948,12 @@ bool Bot::farm() {
 }
 
 bool Bot::answer_report() {
+    purpose = 7;
     int rx, ry, count, age;
     read_report(rx, ry, count, age);
-    if (age > 6 || count > 2 || hp < 0.6f * max_hp || cambc::self().gem_count() > 30) return false;
+    if (age > 3 || count > 2 || hp < 0.7f * max_hp || cambc::self().gem_count() > 20) return false;
     const vec2 r{rx, ry};
-    if (!in_bounds(r) || cheb(r, pos) > 16 || cheb(r, pos) <= 3) return false;
+    if (!in_bounds(r) || cheb(r, pos) > 12 || cheb(r, pos) <= 3) return false;
     auto goal = empty_board();
     add_box(goal, r, 2, width, height);
     return route_to(goal);
@@ -932,6 +961,33 @@ bool Bot::answer_report() {
 
 void Bot::play_turn() {
     round = static_cast<int>(cambc::round_number());
+    debug_block({
+        if (round == 1000) {
+            std::cout << "STATS s" << slot;
+            for (int k = 0; k < 12; ++k) std::cout << " " << stat[k];
+            std::cout << " | move";
+            for (int k = 0; k < 8; ++k) std::cout << " " << mstat[k];
+            std::cout << "\n";
+        }
+    });
+    purpose = 6;
+    play_inner();
+    debug_block({
+        auto& me2 = cambc::self();
+        int k = 0;
+        if (!me2.is_alive()) k = 1;
+        else if (me2.is_recalling()) k = 2;
+        else if (me2.is_submitting_gems()) k = 3;
+        else if (round - last_hit_round == 0) k = 4;
+        else if (moved) { k = 5; ++mstat[purpose]; }
+        else if (on_our_spawn(pos)) k = 6;
+        else k = 7;
+        ++stat[k];
+        if (k == 7 && target >= 0) ++stat[8 + std::min(groups[target].state, 2)];
+    });
+}
+
+void Bot::play_inner() {
     if (!ready) {
         init();
         init_stage = 1;
