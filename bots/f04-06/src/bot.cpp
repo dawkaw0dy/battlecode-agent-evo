@@ -28,6 +28,7 @@ constexpr int kNearAltar = 7;            // bank any gems when an altar is this 
 constexpr int kHuntRange = 14;           // answer a pack sighting this far away
 constexpr int kShopGold = 270;           // recall to shop with this much gold
 constexpr int kPackSize = 1;             // champions per farming pack
+constexpr int kGemWeight = 5;            // a gem is worth this much gold when choosing camps
 constexpr bool kHunt = false;            // answer pack sightings
 constexpr int kHuntAge = 6;              // rounds a sighting stays valid
 
@@ -448,21 +449,22 @@ float power_of(const std::vector<Foe>& v, vec2 around, int radius) {
 int pick_group(int team_n, const std::array<int, 5>& taken) {
     int best = -1;
     float bs = 0;
-    const float team_dps = 55.0f * static_cast<float>(std::max(1, team_n));
-    const float team_hp = 1000.0f * static_cast<float>(std::max(1, team_n));
+    auto& me = cambc::self();
+    const float team_dps = (me.strength() + 0.25f * me.focus()) * static_cast<float>(std::max(1, team_n));
+    const float team_hp = me.max_health() * static_cast<float>(std::max(1, team_n));
     for (size_t i = 0; i < g_groups.size(); ++i) {
         const auto& g = g_groups[i];
         const int d = dist(g_pos, g.center);
         if (std::find(taken.begin(), taken.end(), static_cast<int>(i)) != taken.end()) continue;
         if (g.ready && g.ready > g_round + d) continue;
         const float turns = g.hp / team_dps;
-        if (g.str * turns > 0.6f * team_hp) continue;
+        if (g.str * turns > 0.7f * team_hp) continue;
         if (g.boss && (g_round < 500 || team_n < 3)) continue;
         // Enemy side camps are where their champions get hurt: a mild bonus for aggression.
         const int de = dist(g.center, g_enemy_home), dh = home_dist(g.center);
         if (dh == 65535) continue;
-        float value = static_cast<float>(g.gems * 3 + g.gold) + (g.reward ? 40.0f : 0.0f);
-        if (de < dh) value *= 1.1f;
+        float value = static_cast<float>(g.gems * kGemWeight + g.gold) + (g.reward ? 40.0f : 0.0f);
+        value *= de < dh ? 0.85f : 1.1f;
         const float s = value / (static_cast<float>(d) + turns + 6.0f);
         if (s > bs) { bs = s; best = static_cast<int>(i); }
     }
@@ -623,6 +625,16 @@ void turn_body_impl() {
     }
 
     // ---- recover -----------------------------------------------------------------------------------
+    if (!at_spawn && hp < max_hp * kRecallHp) {
+        // Walk out of camp range first: camp hits would cancel the recall.
+        std::vector<Foe> camps;
+        for (auto p : cambc::vision::awake_camp_tiles().positions())
+            if (dist(p, g_pos) <= 6) camps.push_back(Foe{p, 0, 0, 0, 0, 4, false});
+        if (!camps.empty()) {
+            if (!step_away(camps)) dash_away(camps);
+            return;
+        }
+    }
     if (!at_spawn && nearest_foe > 6 && (hp < max_hp * kRecallHp
             || (static_cast<int>(me.gold_count()) >= kShopGold && me.gem_count() < 10)
             || (static_cast<int>(me.gold_count()) >= kShopGold / 2 && hp < max_hp * 0.6f))) {
