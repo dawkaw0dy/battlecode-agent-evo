@@ -155,13 +155,6 @@ Base base_of(cambc::champion_draft c) {
     }
 }
 
-// Groups nearer the enemy are contested: worth less, a little less so for a team.
-float territory_f(int rel, int n) {
-    float f = rel <= -3 ? 1.0f : rel <= 3 ? 0.9f : rel <= 10 ? 0.7f : 0.5f;
-    if (n >= 2) f = std::sqrt(f);
-    return f;
-}
-
 // Turns for a team to clear the group from full health without a trip home (-1: it cannot). Camps die in
 // threat-per-health order; a camp hurts while it reaches the one we hit.
 float clear_turns(const GroupInfo& g, float dps, float pool, float full, int n, int range) {
@@ -242,7 +235,8 @@ void plan_opening(const std::vector<GroupInfo>& groups, const std::vector<cambc:
         int best_g = -1, best_n = 0;
         for (size_t i = 0; i < groups.size(); ++i) {
             const auto& g = groups[i];
-            if (taken[i] || g.d_ally >= kFar) continue;
+            // Contested groups need a won fight first: the champions' own choice handles them.
+            if (taken[i] || g.d_ally >= kFar || g.d_ally - g.d_enemy > -3) continue;
             const float value = g.gems + 0.35f * g.gold;
             if (value <= 0) continue;
             float dps = 0, pool = 0;
@@ -255,7 +249,7 @@ void plan_opening(const std::vector<GroupInfo>& groups, const std::vector<cambc:
                 const float t = clear_turns(g, dps, pool, pool / n, n, range);
                 if (t < 0) continue;
                 const float bk = g.gems / 45.0f * std::min(bank[i], 6 + home_altar);
-                const float rate = value / n * territory_f(g.d_ally - g.d_enemy, n) / (g.d_ally + t + 6.0f + bk / n);
+                const float rate = value / n / (g.d_ally + t + 6.0f + bk / n);
                 if (rate > best) { best = rate; best_g = static_cast<int>(i); best_n = n; }
                 break;  // the smallest team that can do it
             }
