@@ -54,6 +54,7 @@ private:
     cambc::bitboard static_blocked_;
     cambc::bitboard spawn_board_;
     vec2 spawn_center_{0, 0};
+    vec2 espawn_center_{0, 0};
     int slot_ = -1;
     int home_altar_ = -1;
     int n_slots_ = 0;
@@ -84,6 +85,9 @@ private:
     float dmg_taken_ = 0;
     int mode_ = 0;
     std::array<int, 16> act_{};
+    std::array<double, 8> prof_{};
+    std::uint64_t pf_ = 0;
+    void lap(int i) { const auto f = cambc::fuel_remaining(); prof_[i] += double(pf_ - f); pf_ = f; }
     int flee_until_ = -1;
     vec2 flee_from_{-100, -100};
     int fight_round_ = -1000;
@@ -102,6 +106,7 @@ private:
     void update_group_from_vision(int gi);
     void plan_group(Group& g);
     bool live() const;
+    bool stunned() const;
 
     void shop();
     std::optional<cambc::item_type> next_item() const;
@@ -127,8 +132,8 @@ private:
     bool on_spawn() const;
 
     // shared memory sighting: x, y, count, round&255
-    void report(vec2 p, int count);
-    bool read_report(vec2& p, int& count, int& age) const;
+    void report(vec2 p, int count, bool fighting);
+    bool read_report(vec2& p, int& count, int& age, bool* fighting = nullptr) const;
     void claim(int group);
     std::array<int, 5> claims() const;
 };

@@ -41,6 +41,14 @@ bool excludes_walking(const cambc::ability& ab) {
 
 }  // namespace
 
+bool Bot::stunned() const {
+    try {
+        return cambc::self().buffs().has_stun();
+    } catch (const cambc::error&) {
+        return true;
+    }
+}
+
 bool Bot::live() const { return static_cast<int>(cambc::round_number()) == round_; }
 bool Bot::on_spawn() const { return Raw::bit(spawn_board_, pos_); }
 
@@ -62,6 +70,12 @@ void Bot::initialize() {
     long sx = 0, sy = 0;
     for (vec2 p : spawn_) sx += p.x, sy += p.y;
     if (!spawn_.empty()) spawn_center_ = {static_cast<int>(sx / (long)spawn_.size()), static_cast<int>(sy / (long)spawn_.size())};
+    {
+        const auto es = cambc::map::spawn_region(team::enemy).positions();
+        long ex = 0, ey = 0;
+        for (vec2 p : es) ex += p.x, ey += p.y;
+        if (!es.empty()) espawn_center_ = {static_cast<int>(ex / (long)es.size()), static_cast<int>(ey / (long)es.size())};
+    }
     altars_ = cambc::map::altars().positions();
     enemy_lock_seen_.assign(altars_.size(), -1000);
 
@@ -400,7 +414,14 @@ bool Bot::go(const cambc::bitboard& goals, bool allow_dash) {
     if (cambc::vision::has_champion(dest) || cambc::vision::has_camp(dest) || cambc::vision::has_teleport(dest))
         return false;
     g_where = "move";
-    if (!me.move(*d)) {
+    bool ok = false;
+    try {
+        ok = me.move(*d);
+    } catch (const cambc::error&) {
+        // A unit revealed to the team this round but outside our own vision.
+        ok = false;
+    }
+    if (!ok) {
         blocked_move_ = true;
         return false;
     }
@@ -508,7 +529,7 @@ bool Bot::try_recall() {
     auto& me = cambc::self();
     if (on_spawn() || me.is_recalling() || me.is_submitting_gems() || me.is_teleporting() || !live()) return false;
     if (moved_ || attacked_ || cast_ || blocked_move_) return false;
-    if (!me.can_move() && !me.can_attack()) return false;  // stunned
+    if (stunned()) return false;
     g_where = "recall";
     me.recall();
     return true;
@@ -561,17 +582,19 @@ bool Bot::attack_camp_in_range() {
 // ------------------------------------------------------------------ shared memory
 
 // Bytes 0-2: latest enemy sighting (x, y, count<<5 | round&31). Bytes 3-7: target claim per slot (group%255+1).
-void Bot::report(vec2 p, int count) {
+void Bot::report(vec2 p, int count, bool fighting) {
+    const int c = std::clamp(count, 1, 3) | (fighting ? 4 : 0);
     std::array<std::byte, 3> b{static_cast<std::byte>(p.x), static_cast<std::byte>(p.y),
-        static_cast<std::byte>((std::min(count, 7) << 5) | (round_ & 31))};
+        static_cast<std::byte>((c << 5) | (round_ & 31))};
     cambc::shared_memory.write(0, std::span<const std::byte>(b.data(), b.size()));
 }
 
-bool Bot::read_report(vec2& p, int& count, int& age) const {
+bool Bot::read_report(vec2& p, int& count, int& age, bool* fighting) const {
     std::array<std::byte, 3> b{};
     cambc::shared_memory.read(0, std::span<std::byte>(b.data(), b.size()));
     const int v = static_cast<int>(b[2]);
-    count = v >> 5;
+    count = (v >> 5) & 3;
+    if (fighting) *fighting = (v >> 7) & 1;
     if (count == 0) return false;
     p = {static_cast<int>(b[0]), static_cast<int>(b[1])};
     age = (round_ - v) & 31;
@@ -652,8 +675,12 @@ bool Bot::fight_or_flee() {
     auto& me = cambc::self();
     const auto& espawn = cambc::map::spawn_region(team::enemy);
     std::vector<const Foe*> near;
+    bool threat = dmg_taken_ > incoming_ + 1;  // champion damage last round
     for (const auto& f : foes_)
-        if (cheb(f.pos, pos_) <= 8 && !Raw::bit(espawn, f.pos)) near.push_back(&f);
+        if (cheb(f.pos, pos_) <= 8 && !Raw::bit(espawn, f.pos)) {
+            near.push_back(&f);
+            if (cheb(f.pos, pos_) <= f.range + 2 || f.channel) threat = true;
+        }
     if (near.empty()) return false;
 
     auto dps_of = [](float str, float focus) { return str * 1.1f + focus * 0.25f; };
@@ -674,8 +701,14 @@ bool Bot::fight_or_flee() {
     const double ratio = (std::max(0.0, hp_us) * dps_us) / std::max(1.0, hp_them * dps_them);
     double need = 1.2 + me.gem_count() / 150.0;
     if (n_us == 1 && n_them >= 2) need += 0.4;
-    report(near[0]->pos, static_cast<int>(near.size()));
+    report(near[0]->pos, static_cast<int>(near.size()), threat && ratio >= need);
 
+    if (!threat && ratio < need * 1.3) {
+        // Busy foes at a distance: keep farming, but stay away from them.
+        flee_until_ = round_ + 6;
+        flee_from_ = near[0]->pos;
+        return false;
+    }
     if (ratio >= need) {
         if (engage(near)) {
             mode_ = 3;
@@ -739,13 +772,14 @@ bool Bot::tribute() {
         if (cheb(a, pos_) > range) continue;
         if (Raw::bit(locks, a)) {
             if (!me.can_attack() || !live()) return true;
+            if (stunned()) return true;
             g_where = "lock_break";
             me.submit_gems(a);  // converted into a hit on the lock
             after_attack();
             if (me.can_attack() && live() && cambc::vision::has_altar_lock(a)) me.submit_gems(a);
             return true;
         }
-        if (me.health() > incoming_ * (std::ceil(gems / 10.0f) + 1) + 30 && live()) {
+        if (me.health() > incoming_ * (std::ceil(gems / 10.0f) + 1) + 30 && live() && !stunned()) {
             g_where = "submit";
             me.submit_gems(a);
             return true;
@@ -872,8 +906,15 @@ void Bot::farm() {
         if (target_ >= 0 && groups_[target_].status == 1)
             for (vec2 t : groups_[target_].tiles)
                 if (t.x == pos_.x && t.y == pos_.y) capturing = true;
-        if (capturing && hp > incoming_ * 7 + maxhp * 0.1f) {
-            // hold the capture
+        if (capturing) {
+            if (hp < incoming_ * 3 + maxhp * 0.08f) {
+                retreat_until_ = round_ + 12;
+                step_away_from_camps();
+                return;
+            }
+            // otherwise hold the capture
+        } else if (gi >= 0 && target_ >= 0 && groups_[target_].status == 0 && incoming_ - incoming_other_ > 0) {
+            // our own target hits us too: keep fighting it
         } else if (gi >= 0) {
             auto& og = groups_[gi];
             if (og.dirty) plan_group(og);
@@ -1009,6 +1050,7 @@ void Bot::play_turn() {
         std::uint64_t f0;
         ~Trace() {
             ++b->act_[b->mode_ & 15];
+            b->lap(4);
             debug_block({
                 if (b->round_ == 1 && b->slot_ == 0) {
                     std::cout << "MAP altars";
@@ -1025,9 +1067,14 @@ void Bot::play_turn() {
                 if (b->round_ == 1000) {
                     std::cout << "ACT k" << b->kind_;
                     for (int v : b->act_) std::cout << ' ' << v;
+                    std::cout << " PROF";
+                    for (double v : b->prof_) std::cout << ' ' << (long)(v / 1000);
                     std::cout << "\n";
                 }
-                if ((b->kind_ == 2 && b->round_ < 400) || f0 - cambc::fuel_remaining() > 90000) {
+                static int last_mode = -1, last_tg = -2;
+                const bool change = b->kind_ == 2 && b->round_ < 700 && (b->mode_ != last_mode || b->target_ != last_tg);
+                if (b->kind_ == 2) last_mode = b->mode_, last_tg = b->target_;
+                if (change || f0 - cambc::fuel_remaining() > 90000) {
                     auto& me = cambc::self();
                     std::cout << "T r" << b->round_ << " k" << b->kind_ << " s" << b->slot_ << " p" << b->pos_.x << ","
                               << b->pos_.y << " hp" << (int)me.health() << " g" << me.gem_count() << " $" << me.gold_count()
@@ -1041,6 +1088,7 @@ void Bot::play_turn() {
     auto& me = cambc::self();
     moved_ = attacked_ = cast_ = blocked_move_ = false;
     g_where = "init";
+    pf_ = cambc::fuel_remaining();
     if (!init_) initialize();
     g_where = "turn";
 
@@ -1061,7 +1109,9 @@ void Bot::play_turn() {
         last_hp_ = hp;
         last_hp_round_ = round_;
     }
+    lap(0);
     observe();
+    lap(1);
     if (me.is_recalling() || me.is_submitting_gems() || me.is_teleporting()) {
         mode_ = me.is_submitting_gems() ? 2 : 1;
         return;
@@ -1072,6 +1122,7 @@ void Bot::play_turn() {
 
     if (!fuel(12000)) return;
     if (fight_or_flee()) return;
+    lap(2);
     if (!fuel(12000)) return;
     if (round_ <= flee_until_ && !on_spawn() && incoming_ <= 0
         && (me.health() < me.max_health() * 0.75f || me.gem_count() >= 20)) {
@@ -1082,8 +1133,10 @@ void Bot::play_turn() {
     {
         vec2 rp;
         int rc = 0, rage = 99;
-        if (read_report(rp, rc, rage) && rage <= 3 && rc <= 2 && cheb(rp, pos_) <= 15 && cheb(rp, pos_) > 4
-            && me.health() > me.max_health() * 0.6f && me.gem_count() < 30 && incoming_ <= 0 && !on_spawn()) {
+        const bool ours = cheb(rp, spawn_center_) * 10 < cheb(rp, espawn_center_) * 8;
+        bool fighting = false;
+        if (read_report(rp, rc, rage, &fighting) && fighting && rage <= 2 && rc <= 2 && cheb(rp, pos_) <= 10 && cheb(rp, pos_) > 3 && ours
+            && me.health() > me.max_health() * 0.7f && me.gem_count() < 30 && incoming_ <= 0 && !on_spawn()) {
             mode_ = 5;
             if (go_tile(rp, 2, true)) return;
         }
@@ -1091,11 +1144,13 @@ void Bot::play_turn() {
 
     mode_ = 6;
     if (tribute()) return;
+    lap(3);
     mode_ = 7;
     if (!fuel(12000)) return;
 
-    // Shopping trip when rich and not in a fight.
-    if (!tavi && !on_spawn() && incoming_ <= 0 && me.gold_count() >= 200 && round_ < 1850) {
+    // Shopping trip when rich and not in a fight (sooner when hurt anyway).
+    const int gold_need = me.health() < me.max_health() * 0.6f ? 150 : 300;
+    if (!tavi && !on_spawn() && incoming_ <= 0 && static_cast<int>(me.gold_count()) >= gold_need && round_ < 1850) {
         if (try_recall()) return;
     }
     farm();
