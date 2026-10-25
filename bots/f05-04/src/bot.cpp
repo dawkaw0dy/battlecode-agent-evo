@@ -1119,7 +1119,16 @@ void Bot::turn() {
     measure();
     fp("measure");
     // Hit while no awake camp reaches us: an enemy we cannot see (a bush) is on us.
-    if (kGhostFlee && lost > 0 && incoming_ == 0) ghost_ = static_cast<int>(cambc::round_number());
+    // Camps in bushes hit unseen too: only with no living camp close by.
+    if (kGhostFlee && lost > 0 && incoming_ == 0) {
+        bool camp_near = false;
+        for (size_t i = 0; i < g_.size() && !camp_near; ++i) {
+            if (cheb(g_[i].center, pos_) > 5 + reach_[i] || k_[i].state == Known::respawning || k_[i].state == Known::reward) continue;
+            for (size_t c = 0; c < g_[i].tiles.size(); ++c)
+                if (k_[i].hp[c] > 0 && camp_spec(g_[i].kinds[c]).str > 0 && cheb(g_[i].tiles[c], pos_) <= 5) { camp_near = true; break; }
+        }
+        if (!camp_near) ghost_ = static_cast<int>(cambc::round_number());
+    }
     rebuild_camp_block();
     fp("block");
     if (!live()) return;
