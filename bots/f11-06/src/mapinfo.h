@@ -12,6 +12,7 @@ struct GroupInfo {
     int fighters = 0;           // monsters that attack (not clusters)
     bool boss = false;          // golem or monolith inside
     bool mono = false;
+    std::vector<std::pair<float, float>> kill_order;   // (hp, strength) in kill-priority order
     int dA = kFar, dE = kFar;   // walking distance from our / the enemy spawn
 };
 

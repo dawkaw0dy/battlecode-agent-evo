@@ -1,5 +1,6 @@
 #include "plan.h"
 #include <cambc.h>
+#include <cmath>
 
 using cd = cambc::champion_draft;
 
@@ -28,7 +29,51 @@ constexpr int kPicks = EVO_PICKS;
 #ifndef EVO_BANK_PCT
 #define EVO_BANK_PCT 100
 #endif
-constexpr int kBankPct = EVO_BANK_PCT;   // raid bosses on every map (measured worse: deaths at the boss)
+constexpr int kBankPct = EVO_BANK_PCT;
+#ifndef EVO_SECTORS
+#define EVO_SECTORS 0
+#endif
+constexpr bool kSectors = EVO_SECTORS;   // raid bosses on every map (measured worse: deaths at the boss)
+
+// Split our side's camp groups into one angular sector per champion around our spawn, each sector
+// holding about the same farming value, so champions cycle their own groups instead of crowding.
+static void assign_sectors(const MapInfo& m, Plan& p, int slots) {
+    const int n = static_cast<int>(m.groups.size());
+    p.owner.assign(static_cast<size_t>(n), -1);
+    if (slots <= 1 || !kSectors) return;
+    struct Item { float ang, value; int g; };
+    std::vector<Item> items;
+    float total = 0;
+    for (int i = 0; i < n; ++i) {
+        const auto& g = m.groups[static_cast<size_t>(i)];
+        const auto c = p.cls[static_cast<size_t>(i)];
+        if (c != kGHome && c != kGContested) continue;
+        const float v = static_cast<float>(g.gems) + 0.4f * static_cast<float>(g.gold) + g.hp / 500.0f;
+        const float ang = std::atan2(static_cast<float>(g.center.y - m.spawn_center.y), static_cast<float>(g.center.x - m.spawn_center.x));
+        items.push_back({ang, v, i});
+        total += v;
+    }
+    if (static_cast<int>(items.size()) < slots || total <= 0) return;
+    std::sort(items.begin(), items.end(), [](const Item& a, const Item& b) { return a.ang < b.ang; });
+    // Rotate so the largest angular gap sits between the last and the first sector.
+    size_t start = 0;
+    float best_gap = -1;
+    for (size_t k = 0; k < items.size(); ++k) {
+        const float a = items[k].ang;
+        const float b = k == 0 ? items.back().ang - 6.2831853f : items[k - 1].ang;
+        if (a - b > best_gap) {
+            best_gap = a - b;
+            start = k;
+        }
+    }
+    float acc = 0;
+    for (size_t k = 0; k < items.size(); ++k) {
+        const auto& it = items[(start + k) % items.size()];
+        const int slot = std::min(slots - 1, static_cast<int>((acc + it.value * 0.5f) / total * static_cast<float>(slots)));
+        p.owner[static_cast<size_t>(it.g)] = static_cast<std::int8_t>(slot);
+        acc += it.value;
+    }
+}
 
 Plan make_plan(const MapInfo& m, int team_size) {
     Plan p;
@@ -98,6 +143,8 @@ Plan make_plan(const MapInfo& m, int team_size) {
         p.squad[static_cast<size_t>(i)] = static_cast<std::uint8_t>(sq);
     }
 
+    assign_sectors(m, p, std::clamp(team_size, 1, 5));
+
     std::vector<cd> order;
     switch (kPicks) {
         case 1: order = {cd::vendetta, cd::vesper_vale, cd::ryth, cd::tavi, cd::marcella}; break;
@@ -127,7 +174,10 @@ void write_plan(const Plan& p, const MapInfo& m, std::span<std::byte> mem) {
     for (int i = 0; i < 5; ++i) put(dm::squads + i, p.squad[static_cast<size_t>(i)]);
     const int n = std::min<int>(static_cast<int>(m.groups.size()), dm::kMaxGroups);
     put(dm::ngroups, n);
-    for (int i = 0; i < n; ++i) put(dm::group + i, p.cls[static_cast<size_t>(i)]);
+    for (int i = 0; i < n; ++i) {
+        const int own = static_cast<size_t>(i) < p.owner.size() ? p.owner[static_cast<size_t>(i)] + 1 : 0;
+        put(dm::group + i, p.cls[static_cast<size_t>(i)] | (own << 4));
+    }
 }
 
 Plan read_plan(const MapInfo& m) {
@@ -152,6 +202,11 @@ Plan read_plan(const MapInfo& m) {
     const int n = static_cast<int>(m.groups.size());
     const int stored = get(dm::ngroups);
     p.cls.assign(static_cast<size_t>(n), kGHome);
-    for (int i = 0; i < n && i < stored; ++i) p.cls[static_cast<size_t>(i)] = static_cast<std::uint8_t>(get(dm::group + i));
+    p.owner.assign(static_cast<size_t>(n), -1);
+    for (int i = 0; i < n && i < stored; ++i) {
+        const int b = get(dm::group + i);
+        p.cls[static_cast<size_t>(i)] = static_cast<std::uint8_t>(b & 15);
+        p.owner[static_cast<size_t>(i)] = static_cast<std::int8_t>((b >> 4) - 1);
+    }
     return p;
 }

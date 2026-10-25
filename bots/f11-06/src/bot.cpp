@@ -20,15 +20,26 @@ namespace {
 constexpr int kEvalEvery = EVO_EVAL;
 constexpr float kTimeConst = EVO_TCONST;
 constexpr int kShopGold = 250;
+constexpr int kNavSpawn = 5000, kNavAltar = 6000;
+constexpr std::uint16_t kChooseRadius = 70;
+#ifndef EVO_NAV_CACHE
+#define EVO_NAV_CACHE 1
+#endif
+constexpr bool kNavCache = EVO_NAV_CACHE;
+constexpr int kNavCacheArea = 6400;   // cached routes only on big maps (fuel); elsewhere exact searches   // target search radius in walking steps   // cached-route keys (groups use their index)
 constexpr int kMaxExtraTrips = 3;
 #ifndef EVO_BANK_WARY
 #define EVO_BANK_WARY 15
 #endif
 constexpr int kBankWary = EVO_BANK_WARY;
 #ifndef EVO_ALTAR_DANGER
-#define EVO_ALTAR_DANGER 25
+#define EVO_ALTAR_DANGER 15
 #endif
-constexpr int kAltarDanger = EVO_ALTAR_DANGER;   // walking-tile penalty for an altar enemies were seen at   // bank this many gems once enemies were seen lately
+constexpr int kAltarDanger = EVO_ALTAR_DANGER;
+#ifndef EVO_OTHER_SECTOR
+#define EVO_OTHER_SECTOR 0.5f
+#endif
+constexpr float kOtherSector = EVO_OTHER_SECTOR, kSharedSector = 0.75f;   // value factors outside our sector   // walking-tile penalty for an altar enemies were seen at   // bank this many gems once enemies were seen lately
 #ifndef EVO_FLEE_PERIOD
 #define EVO_FLEE_PERIOD 0
 #endif
@@ -162,9 +173,12 @@ void Bot::play_turn() {
         target_ = -1;
         return;
     }
+    fuel_mark_[0] = cambc::fuel_remaining();
     snapshot();
+    fuel_mark_[1] = cambc::fuel_remaining();
     update_groups();
     update_squad();
+    fuel_mark_[2] = cambc::fuel_remaining();
     act_ = kActIdle;
     // Spawn heals only the champion whose recall lands this turn (it must end the turn there).
     just_recalled_ = was_recalling_ && !me.is_recalling();
@@ -199,6 +213,7 @@ void Bot::play_turn() {
     }
 
     bool done = false;
+    fuel_mark_[3] = cambc::fuel_remaining();
     try {
         done = handle_enemies();
     } catch (const std::exception& e) {
@@ -209,7 +224,7 @@ void Bot::play_turn() {
         // Just escaped a stronger force: keep going home (heal there) instead of walking back into it.
         act_ = kActFlee;
         try {
-            if (!at_spawn_) step_towards(cambc::map::spawn_region(team::ally), true);
+            if (!at_spawn_) step_towards(cambc::map::spawn_region(team::ally), true, kNavSpawn);
         } catch (...) {
             ++warns_;
         }
@@ -225,6 +240,7 @@ void Bot::play_turn() {
             std::printf("warn: recall %s\n", e.what());
         }
     }
+    fuel_mark_[4] = cambc::fuel_remaining();
     if (!done) {
         try {
             done = bank();
@@ -233,6 +249,7 @@ void Bot::play_turn() {
             std::printf("warn: bank %s\n", e.what());
         }
     }
+    fuel_mark_[5] = cambc::fuel_remaining();
     if (!done) {
         try {
             farm();
@@ -436,6 +453,15 @@ void Bot::shop() {
 
 void Bot::finish_turn() {
     write_claim(target_);
+    if (kTrace && cambc::fuel_remaining() < 20000)
+        std::printf("FUEL r%d s%d left%llu start%llu snap%llu groups%llu pre%llu enemies%llu bank%llu act%d tgt%d\n", round_, slot_,
+            static_cast<unsigned long long>(cambc::fuel_remaining()), static_cast<unsigned long long>(fuel_mark_[0]),
+            static_cast<unsigned long long>(fuel_mark_[0] - fuel_mark_[1]), static_cast<unsigned long long>(fuel_mark_[1] - fuel_mark_[2]),
+            static_cast<unsigned long long>(fuel_mark_[2] - fuel_mark_[3]), static_cast<unsigned long long>(fuel_mark_[3] - fuel_mark_[4]),
+            static_cast<unsigned long long>(fuel_mark_[4] - fuel_mark_[5]), act_, target_);
+    if (kTrace && cambc::fuel_remaining() < 20000)
+        std::printf("    choose%llu step%llu\n", static_cast<unsigned long long>(fuel_choose_), static_cast<unsigned long long>(fuel_step_));
+    fuel_choose_ = fuel_step_ = 0;
     if (kTrace) {
         ++acts_[static_cast<size_t>(act_)];
         if (round_ % 100 == 0 || (slot_ == kTraceSlot && round_ >= kTraceFrom && round_ < kTraceTo))
@@ -536,9 +562,75 @@ void Bot::disengage_step() {
     if (!goals.is_empty()) step_towards(goals, true);
 }
 
-bool Bot::step_towards(bitboard goals, bool allow_dash) {
+bool Bot::step_towards(bitboard goals, bool allow_dash, int key) {
     auto& me = cambc::self();
+    struct Spent {
+        std::uint64_t f0;
+        std::uint64_t* out;
+        ~Spent() { *out += f0 - cambc::fuel_remaining(); }
+    } spent{cambc::fuel_remaining(), &fuel_step_};
     if (moved_ || move_failed_ || !me.can_move()) return false;
+    // Long walks follow a cached static field (one full search per destination); the last tiles
+    // use the exact search with the units we can see.
+    if (key >= 0 && kNavCache && map_info().w * map_info().h >= kNavCacheArea) {
+        if (key != nav_key_ || round_ - nav_round_ > 80) {
+            bitboard walls = static_walls() | map_info().camp_tiles;
+            walls &= ~goals;
+            bitboard roots = goals & ~walls;
+            nav_field_.compute(walls, roots, nav_reached_);
+            nav_key_ = key;
+            nav_round_ = round_;
+        }
+        if (nav_reached_.is_set(pos_) && nav_field_.get(pos_) > 6) {
+            const int d0 = nav_field_.get(pos_);
+            const auto blocked = blocked_now();
+            auto ok = [&](vec2 t) { return in_bounds(t) && !blocked.is_set(t) && nav_reached_.is_set(t); };
+            if (allow_dash && kit_.dash >= 0 && !cast_ && d0 >= 8) {
+                const auto ab = me.abilities()[static_cast<size_t>(kit_.dash)];
+                if (ab.is_ready()) {
+                    vec2 best{-1, -1};
+                    int bd = d0;
+                    for (int dy = -2; dy <= 2; ++dy)
+                        for (int dx = -2; dx <= 2; ++dx) {
+                            const vec2 t{pos_.x + dx, pos_.y + dy};
+                            if (std::max(std::abs(dx), std::abs(dy)) != 2 || !ok(t)) continue;
+                            const vec2 mid{pos_.x + dx / 2, pos_.y + dy / 2};
+                            if (!ok(mid) || nav_field_.get(t) != d0 - 2) continue;
+                            if (nav_field_.get(t) < bd) {
+                                bd = nav_field_.get(t);
+                                best = t;
+                            }
+                        }
+                    if (best.x >= 0) {
+                        try {
+                            if (ab.use(best)) {
+                                cast_ = true;
+                                pos_ = best;
+                            } else {
+                                move_failed_ = true;
+                            }
+                        } catch (...) {
+                            ++warns_;
+                        }
+                    }
+                }
+            }
+            if (cast_ || move_failed_ || !me.can_move()) return cast_;
+            const int dc = nav_field_.get(pos_);
+            vec2 step = pos_;
+            int sd = dc;
+            for (int dy = -1; dy <= 1; ++dy)
+                for (int dx = -1; dx <= 1; ++dx) {
+                    const vec2 t{pos_.x + dx, pos_.y + dy};
+                    if ((dx == 0 && dy == 0) || !ok(t)) continue;
+                    if (nav_field_.get(t) < sd) {
+                        sd = nav_field_.get(t);
+                        step = t;
+                    }
+                }
+            if (step != pos_) return walk_to(step);
+        }
+    }
     const auto blocked = blocked_now();
     goals &= ~blocked;
     goals.set(pos_, false);
@@ -797,13 +889,14 @@ bool Bot::bank() {
     bitboard goals;
     goals.clear();
     mark_square(goals, a, locked ? range_ : cambc::constants::submit_gems_range);
-    step_towards(goals, true);
+    step_towards(goals, true, kNavAltar + bank_altar_ * 2 + (locked ? 1 : 0));
     return true;
 }
 
 // Pick the altar to bank at: walking distance, plus a detour for an enemy lock we must break.
 void Bot::choose_altar() {
     const auto& m = map_info();
+    if (bank_altar_ >= 0 && cambc::fuel_remaining() < 45000u) return;
     bank_choice_ = round_;
     cambc::distance_field field;
     bitboard visited, roots;
@@ -822,13 +915,16 @@ void Bot::choose_altar() {
         if (d >= kFar) continue;
         int cost = d;
         if (altar_locked_[i]) cost += 10;
-        if (round_ - altar_enemy_[i] < 40) cost += kAltarDanger;
+        if (round_ - altar_enemy_[i] < 40) cost += kAltarDanger * (40 - (round_ - altar_enemy_[i])) / 40;
         if (static_cast<int>(i) == bank_altar_) cost -= 3;
         if (cost < best_cost) {
             best_cost = cost;
             best = static_cast<int>(i);
         }
     }
+    if (kTrace && best != bank_altar_)
+        std::printf("K r%d s%d (%d,%d) gems%d altar%d->%d cost%d lock%d danger%d\n", round_, slot_, pos_.x, pos_.y, gems_, bank_altar_, best, best_cost,
+            best >= 0 ? static_cast<int>(altar_locked_[static_cast<size_t>(best)]) : -1, best >= 0 ? round_ - altar_enemy_[static_cast<size_t>(best)] : -1);
     bank_altar_ = best;
 }
 
@@ -836,7 +932,7 @@ void Bot::choose_altar() {
 
 int Bot::group_value(int g) const {
     const auto& G = map_info().groups[static_cast<size_t>(g)];
-    const int submitted = static_cast<int>(cambc::global_submitted_gems(team::ally));
+    const int submitted = submitted_;
     float goldw = round_ < 700 ? 0.4f : (round_ < 1200 ? 0.25f : 0.1f);
     if (submitted + gems_ >= 800) goldw = 0.05f;
     return static_cast<int>(static_cast<float>(G.gems) + goldw * static_cast<float>(G.gold));
@@ -845,23 +941,14 @@ int Bot::group_value(int g) const {
 // Time to clear a group at `dps` and the damage taken meanwhile: monsters die in priority order
 // (most strength per health first) and every living fighter hits us until it dies.
 void Bot::clear_model(const GroupInfo& G, float hp_scale, float dps, float* time, float* dmg) const {
-    std::array<std::pair<float, float>, 32> mons{};   // (hp, str)
-    size_t n = 0;
-    for (size_t i = 0; i < G.kinds.size() && n < mons.size(); ++i) {
-        const auto spec = camp_spec(G.kinds[i]);
-        mons[n++] = {spec.hp * hp_scale, spec.str};
-    }
-    std::sort(mons.begin(), mons.begin() + static_cast<long>(n), [](const auto& a, const auto& b) {
-        return (a.second + 1.0f) / std::max(1.0f, a.first) > (b.second + 1.0f) / std::max(1.0f, b.first);
-    });
-    float alive_str = 0;
-    for (size_t i = 0; i < n; ++i) alive_str += mons[i].second;
+    float alive_str = G.dps;
     float t = 0, d = 0;
-    for (size_t i = 0; i < n; ++i) {
-        const float dt = mons[i].first / std::max(1.0f, dps);
+    const float inv = 1.0f / std::max(1.0f, dps);
+    for (const auto& [hp, str] : G.kill_order) {
+        const float dt = hp * hp_scale * inv;
         t += dt;
         d += alive_str * dt;
-        alive_str -= mons[i].second;
+        alive_str -= str;
     }
     *time = t;
     *dmg = d;
@@ -869,13 +956,22 @@ void Bot::clear_model(const GroupInfo& G, float hp_scale, float dps, float* time
 
 void Bot::choose_target(bool force) {
     const auto& m = map_info();
+    const auto f0 = cambc::fuel_remaining();
+    struct Spent {
+        std::uint64_t f0;
+        std::uint64_t* out;
+        ~Spent() { *out += f0 - cambc::fuel_remaining(); }
+    } spent{f0, &fuel_choose_};
+    // Optional re-evaluations wait for a turn with fuel to spare.
+    if (cambc::fuel_remaining() < (force ? 40000u : 55000u) && target_ >= 0) return;
     last_eval_ = round_;
     cambc::distance_field field;
     bitboard visited, roots;
     roots.clear();
     roots.set(pos_);
-    field.compute(static_walls(), roots, visited);
+    field.compute(static_walls(), roots, visited, kChooseRadius);
     const auto claims = read_claims();
+    submitted_ = static_cast<int>(cambc::global_submitted_gems(team::ally));
     const float dps = my_camp_dps() * (0.4f + 0.6f * static_cast<float>(squad_n_));
     const float camp_mult = has_emblem(type_, shards_, cambc::item_type::jungle_shard_of_strength) ? 0.7f : 1.0f;
 
@@ -894,10 +990,19 @@ void Bot::choose_target(bool force) {
         const auto cls = plan_.cls[static_cast<size_t>(g)];
         if (cls == kGUnreachable) continue;
         const auto& K = gk_[static_cast<size_t>(g)];
+        // Walking distance from at most three member tiles; beyond the search radius a scaled
+        // straight-line estimate (only when the group is reachable from our spawn at all).
         int d = kFar;
-        for (auto t : G.tiles)
+        const size_t nt = G.tiles.size();
+        const size_t picks[3] = {0, nt / 2, nt - 1};
+        for (size_t k = 0; k < 3 && nt > 0; ++k) {
+            const vec2 t = G.tiles[picks[k]];
             if (visited.is_set(t)) d = std::min(d, static_cast<int>(field.get(t)));
-        if (d >= kFar) continue;
+        }
+        if (d >= kFar) {
+            if (G.dA >= kFar || cheb(G.center, pos_) < kChooseRadius - 10) continue;
+            d = cheb(G.center, pos_) * 3 / 2;
+        }
 
         int claimers = 0;
         for (int s = 0; s < sm::kSlots; ++s)
@@ -936,6 +1041,11 @@ void Bot::choose_target(bool force) {
         else if (cls == kGContested) value *= 0.85f;
         if (round_ - K.enemy_round < 30) value *= 0.5f;
         if (round_ < avoid_until_ && cheb(G.center, avoid_pos_) <= 8) value *= 0.2f;
+        {
+            const int own = static_cast<size_t>(g) < plan_.owner.size() ? plan_.owner[static_cast<size_t>(g)] : -1;
+            if (own >= 0) value *= own == slot_ ? 1.0f : kOtherSector;
+            else value *= kSharedSector;
+        }
         const float time = static_cast<float>(travel + wait) + clear + 5.0f + static_cast<float>(extra) * trip_cost;
         const float score = value / (time + kTimeConst);
         if (g == target_) cur_score = score;
@@ -1059,7 +1169,7 @@ bool Bot::execute_target(int g) {
             }
         }
         const auto& ap = approach_tiles(g);
-        if (!ap.is_set(pos_)) step_towards(ap, true);
+        if (!ap.is_set(pos_)) step_towards(ap, true, g);
         return true;
     }
 
@@ -1142,7 +1252,7 @@ bool Bot::execute_target(int g) {
     // Not in vision yet: walk to the approach tiles.
     (void)me;
     act_ = kActWalk;
-    step_towards(approach_tiles(g), true);
+    step_towards(approach_tiles(g), true, g);
     return true;
 }
 
@@ -1234,7 +1344,7 @@ int Bot::raid_target() const {
 void Bot::idle() {
     // Nothing worth doing: wait at home (heals, shops).
     if (at_spawn_) return;
-    step_towards(cambc::map::spawn_region(team::ally), true);
+    step_towards(cambc::map::spawn_region(team::ally), true, kNavSpawn);
 }
 
 void Bot::farm() {

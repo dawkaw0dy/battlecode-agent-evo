@@ -86,7 +86,7 @@ private:
     bool raid_step(int g);
 
     // helpers
-    bool step_towards(bitboard goals, bool allow_dash);
+    bool step_towards(bitboard goals, bool allow_dash, int key = -1);
     bool walk_to(vec2 t);
     void disengage_step();
     bitboard blocked_now() const;
@@ -111,6 +111,9 @@ private:
     std::vector<GroupKnow> gk_;
     std::vector<std::unique_ptr<bitboard>> approach_;
     cambc::distance_field home_field_;
+    cambc::distance_field nav_field_;
+    bitboard nav_reached_;
+    int nav_key_ = -1, nav_round_ = -1000;
     bitboard home_reached_;
     bool ranged_ = false;
     bool tavi_ = false;
@@ -131,6 +134,9 @@ private:
     std::vector<int> altar_enemy_;     // last round enemies were seen near each altar
     float last_hp_ = 0;
     int warns_ = 0;
+    int submitted_ = 0;
+    std::array<std::uint64_t, 6> fuel_mark_{};
+    std::uint64_t fuel_choose_ = 0, fuel_step_ = 0;
     int branch_ = 0;
     enum Act { kActDead, kActChannel, kActHeal, kActFight, kActFlee, kActBank, kActHit, kActWalk, kActCapture, kActIdle, kActWait, kActRecall, kActs };
     int act_ = 0;

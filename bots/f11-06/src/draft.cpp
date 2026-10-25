@@ -27,8 +27,8 @@ void play_draft() {
                 plan.mode, plan.bank, plan.raid, m.groups.size(), nb, ng, nc, m.altars.size());
             for (size_t i = 0; i < m.groups.size(); ++i) {
                 const auto& g = m.groups[i];
-                std::printf("G%zu c(%d,%d) n%zu gems%d gold%d hp%.0f dps%.0f dA%d dE%d cls%d\n", i, g.center.x, g.center.y, g.tiles.size(), g.gems, g.gold,
-                    g.hp, g.dps, g.dA, g.dE, plan.cls[i]);
+                std::printf("G%zu c(%d,%d) n%zu gems%d gold%d hp%.0f dps%.0f dA%d dE%d cls%d own%d\n", i, g.center.x, g.center.y, g.tiles.size(), g.gems, g.gold,
+                    g.hp, g.dps, g.dA, g.dE, plan.cls[i], plan.owner[i]);
             }
         }
         std::array<std::byte, 1024> mem{};

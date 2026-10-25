@@ -69,6 +69,13 @@ MapInfo analyse() {
             gi.dA = std::min(gi.dA, da(p));
             gi.dE = std::min(gi.dE, de(p));
         }
+        for (auto k : gi.kinds) {
+            const auto spec = camp_spec(k);
+            gi.kill_order.push_back({spec.hp, spec.str});
+        }
+        std::sort(gi.kill_order.begin(), gi.kill_order.end(), [](const auto& a, const auto& b) {
+            return (a.second + 1.0f) / std::max(1.0f, a.first) > (b.second + 1.0f) / std::max(1.0f, b.first);
+        });
         if (!gi.tiles.empty())
             gi.center = {static_cast<int>(sx / static_cast<long>(gi.tiles.size())),
                          static_cast<int>(sy / static_cast<long>(gi.tiles.size()))};
