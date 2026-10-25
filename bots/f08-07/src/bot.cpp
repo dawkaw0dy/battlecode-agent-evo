@@ -84,6 +84,7 @@ float gold_weight(int round, bool bonus) {
     return (bonus ? 0.5f : 0.35f) * std::max(0.4f, 1.0f - static_cast<float>(round) / 1500.0f);
 }
 
+constexpr bool kCapturePriority = false;  // Marcella (gems) or Vesper Vale (gold) captures when near
 constexpr bool kRetreatOnHit = false;  // leave a fight only when champions are hitting us
 constexpr float kEngageBias = -60.0f;  // simulated value margin to take a fight
 constexpr float kShareTurns = 20.0f;   // clears shorter than this (alone) are left to whoever claimed them
@@ -498,7 +499,16 @@ bool Bot::move_to(vec2 to) {
         move_fail_ = true;
         return false;
     }
-    if (me.move_absolute(to)) {
+    bool ok = false;
+    try {
+        ok = me.move_absolute(to);
+    } catch (const cambc::error& e) {
+        // The engine refuses a walk can_move() allowed (after a dash): stop walking this turn.
+        debug_block({ std::cout << "move refused r" << round_ << " " << cambc::to_string(type_) << " cast" << cast_ << " " << e.what() << "\n"; });
+        move_fail_ = true;
+        return false;
+    }
+    if (ok) {
         moved_ = true;
         pos_ = to;
         return true;
@@ -1244,15 +1254,31 @@ void Bot::work(int g) {
         return;
     }
     if (G.st == GroupK::reward) {
-        for (auto t : G.tiles) if (t == pos_) { sub_ = 11; return; }  // capturing: hold
-        for (const auto& f : friends_)
-            for (auto t : G.tiles)
-                if (f.pos == t) {
-                    // An ally captures it: move on.
-                    G.blocked_until = round_ + 8;
-                    target_at_ = -100;
-                    return;
-                }
+        // Who captures matters: Marcella earns gold for the gems she tributes, Vesper Vale more gold.
+        auto cap_rank = [&](champion_type t) {
+            if (!kCapturePriority) return 2;
+            if (t == champion_type::marcella) return G.gems > 0 ? 0 : 1;
+            if (t == champion_type::vesper_vale) return G.gems > 0 ? 1 : 0;
+            return 2;
+        };
+        const int mine = cap_rank(type_);
+        bool on_tile = false;
+        for (auto t : G.tiles) if (t == pos_) on_tile = true;
+        bool better_near = false, ally_on = false;
+        for (const auto& f : friends_) {
+            bool f_on = false;
+            for (auto t : G.tiles) if (f.pos == t) f_on = true;
+            if (f_on) ally_on = true;
+            if (cap_rank(f.type) < mine && (f_on || cheb(f.pos, G.center) <= 5)) better_near = true;
+        }
+        if (on_tile && !better_near) { sub_ = 11; return; }  // capturing: hold
+        if (ally_on || better_near) {
+            // An ally captures it: move on.
+            G.blocked_until = round_ + 8;
+            target_at_ = -100;
+            if (on_tile) retreat_step();
+            return;
+        }
         vec2 best = G.tiles[0];
         int bd = 9999;
         for (auto t : G.tiles) {
@@ -1345,8 +1371,14 @@ void Bot::farm() {
     // The healer follows its partner's claim.
     int g = -1;
     if (partner_ >= 0 && mate_alive_[static_cast<size_t>(partner_)]) {
-        const int pc = claims_[mates_[static_cast<size_t>(partner_)].slot];
-        if (pc > 0 && pc <= static_cast<int>(g_.size())) g = pc - 1;
+        // ... while the partner is in sight and its group still has camps to fight.
+        const Mate& pm = mates_[static_cast<size_t>(partner_)];
+        bool seen = false;
+        for (const auto& f : friends_) if (f.type == pm.type) seen = true;
+        const int pc = claims_[pm.slot];
+        if (seen && pc > 0 && pc <= static_cast<int>(g_.size()) && g_[pc - 1].st == GroupK::alive
+            && g_[pc - 1].blocked_until <= round_)
+            g = pc - 1;
     }
     if (g < 0) {
         bool valid = target_ >= 0 && g_[target_].blocked_until <= round_;
