@@ -84,16 +84,17 @@ float gold_weight(int round, bool bonus) {
     return (bonus ? 0.5f : 0.35f) * std::max(0.4f, 1.0f - static_cast<float>(round) / 1500.0f);
 }
 
-constexpr bool kCapturePriority = false;  // Marcella (gems) or Vesper Vale (gold) captures when near
-constexpr bool kRetreatOnHit = false;  // leave a fight only when champions are hitting us
-constexpr float kEngageBias = -60.0f;   // simulated value margin to take a fight
-constexpr float kShareTurns = 20.0f;   // clears shorter than this (alone) are left to whoever claimed them
-constexpr bool kSharePenalty = false;  // ... measured worse
+// Switches and parameters (results: f08-07 vs f03-05 / f07-02, 20 maps both sides, see NOTES.md).
+constexpr bool kCapturePriority = false;  // Marcella (gems) or Vesper Vale (gold) captures when near: neutral/worse
+constexpr bool kRetreatOnHit = false;     // leave a fight only when champions are hitting us
+constexpr float kEngageBias = -60.0f;     // simulated value margin to take a fight (-150: 13/40 but -265 vs -217)
+constexpr float kShareTurns = 20.0f;      // clears shorter than this (alone) are left to whoever claimed them ...
+constexpr bool kSharePenalty = false;     // ... measured much worse (9/39 vs 19/40)
 constexpr int kBankMin = 15, kBankMax = 40;  // carried gems that start a walk to the altar (by its distance)
-constexpr float kTogether = 1.0f;      // bonus for a group allies claim (1.3: 15/40 vs 19/40)
-constexpr int kRallyTurns = 40;        // longest wait for the allies a strong group needs
-constexpr bool kRallyAll = false;      // strong groups wait for every claimer (measured worse)
-constexpr bool kRallyBoss = true;      // bosses (monolith, golem) wait for every claimer  // bytes 0-4: each champion's target group + 1; bytes 5-7: last sighting
+constexpr float kTogether = 1.0f;         // bonus for a group allies claim (1.3: 15/40 vs 19/40)
+constexpr int kRallyTurns = 40;           // longest wait for the allies a strong group needs
+constexpr bool kRallyAll = false;         // every strong group waits for every claimer (measured worse)
+constexpr bool kRallyBoss = true;         // bosses (monolith, golem) wait for every claimer (9/40 vs 8/40 off)
 
 }  // namespace
 

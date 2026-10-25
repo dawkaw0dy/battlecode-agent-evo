@@ -1,0 +1,27 @@
+{
+ "agent": "f08-07",
+ "task_sha256": "61b28407e5c784c46c5e855486eac5983eb02adff0da898d54b34c83fc041a12",
+ "base_commit": "c8567f3516cab8e9bde28c10ff667310c5e0452e",
+ "session_id": "cse_01DtHWJhXNVPmkCPNCqikvcA",
+ "bot_dir": "bots/f08-07",
+ "self_eval": {
+  "vs": "f07-02",
+  "games": 40,
+  "wins": 9
+ },
+ "games_played": 905,
+ "summary": "Immigrant vision-ambush bot: claim-based farming with coalition clear model, shared sightings, focus-fire fight sim, tribute locks, wards; 9/40 vs f07-02, 19/20 vs starter",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "1a54a56bf1dc3f2480fe19e1b049da9db01d95df8ae8eea12ef882de23d6e83c",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 20.78,
+  "remote": "true",
+  "session_id": "cse_01DtHWJhXNVPmkCPNCqikvcA",
+  "effort_level": "high",
+  "model": null
+ }
+}
