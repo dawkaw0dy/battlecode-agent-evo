@@ -1,0 +1,27 @@
+{
+ "agent": "f11-01",
+ "task_sha256": "4bd2c653d8b527fcfa48f7c402c7f4b7ddd88b58c97bef2ecee4db6683b90e77",
+ "base_commit": "ec117b57163b37bc1cc47acab8e179db37a17271",
+ "session_id": "cse_016Y19jQPKXXMJ1QWzSmQMoh",
+ "bot_dir": "bots/f11-01",
+ "self_eval": {
+  "vs": "f09-01",
+  "games": 80,
+  "wins": 50
+ },
+ "games_played": 810,
+ "summary": "Parent f10-03 behaviour kept: six spell tweaks (early shield, melee wait, flee stun reach, free flee casts, focus weight, shield hold) measured, none helped; switches left off.",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "2c6270c1adfbe38115a3054c5689b7922583b2ddc0669d6c5534cb8ae5bf5fd1",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 16.22,
+  "remote": "true",
+  "session_id": "cse_016Y19jQPKXXMJ1QWzSmQMoh",
+  "effort_level": "high",
+  "model": null
+ }
+}

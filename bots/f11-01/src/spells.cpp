@@ -36,6 +36,9 @@ constexpr float kFocus = 300.0f;      // fight nukes: value of taking a target's
 constexpr bool kShieldEarly = false;  // camps: shield on the turn we wake a camp that will hit us
 constexpr bool kMeleeWait = false;    // fights: a melee champion keeps its step instead of an exclusive nuke from afar
 constexpr bool kCampStunDedup = false; // camps: no stun value on a camp that is stunned already
+constexpr int kShieldHold = 0;        // camps: keep the shield for a fight this many rounds after seeing an enemy
+constexpr bool kFleeFree = false;     // retreating: cast anyway where no enemy can hit us next turn
+constexpr int kFleeStunReach = 3;     // retreating: stun chasers this close (a stunned chaser loses the step we spend)
 
 // Debug: casts per use, printed every 500 rounds.
 constexpr bool kSpellStats = false;
@@ -161,7 +164,7 @@ void Bot::spells_on_group(int group) {
                     for (size_t a = 0; a < v.allies.size() && !nearer; ++a) nearer = cheb(g.tiles[c], v.allies[a]) < d;
                     soon = !nearer;
                 }
-            if ((incoming_ > 0 || soon) && !shielded_now()) {
+            if ((incoming_ > 0 || soon) && !shielded_now() && !hold_for_fight(kShieldHold)) {
                 try { ab.use(); cast_ = true; count(camp_shield); } catch (const cambc::error& e) { warn("shield", e); }
             }
             continue;
@@ -304,12 +307,13 @@ void Bot::fight_spells(std::vector<Fighter>& theirs, bool engage) {
         const int de = cheb(e.pos, pos_);
         // Retreating: only a kill, a stun on a chaser that hits us whatever step we take (melee beside us
         // or a dash away, ranged a tile inside its range) or a cancelled channel is worth the walk.
-        const bool caught = kRetreatCaught ? (e.ranged ? de <= e.range - 1 : de <= 1 + (e.dasher ? 2 : 0)) : de <= 3;
+        const bool caught = kRetreatCaught ? (e.ranged ? de <= e.range - 1 : de <= 1 + (e.dasher ? 2 : 0)) : de <= kFleeStunReach;
         if (kMeleeWait && engage && my_range <= 1 && kit.exclusive && !ab.is_cc() && !best_kill && !e.channel && de >= 2) {
             count(fight_wait);
             continue;
         }
-        if (!engage && kit.exclusive && !(best_kill || e.channel || (ab.is_cc() && !e.stunned && caught))) {
+        if (!engage && kit.exclusive && !(best_kill || e.channel || (ab.is_cc() && !e.stunned && caught))
+            && !(kFleeFree && threat_at(pos_, theirs) <= 0)) {
             count(flee_skip);
             continue;
         }
