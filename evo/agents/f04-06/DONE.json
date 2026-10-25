@@ -1,0 +1,27 @@
+{
+ "agent": "f04-06",
+ "task_sha256": "5ee2d77279324db632c1a97f3d4d0bf927ec654405d7229701cd7a680ab23508",
+ "base_commit": "1f5589e51c3a846cb8d8cf6565c8815c90f39c83",
+ "session_id": "cse_013pJi6b3rXrK6nFdM8jEW1a",
+ "bot_dir": "bots/f04-06",
+ "self_eval": {
+  "vs": "f03-05",
+  "games": 20,
+  "wins": 8
+ },
+ "games_played": 890,
+ "summary": "Early-aggression immigrant: 3+2 farming packs with shared-memory targets, square-law fights without chasing, committed walking-distance banking, fuel-lean init",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "16f38370f9e03b42263aab52253053e6123fa9667adec78e1e8ed8551fb817de",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 13.45,
+  "remote": "true",
+  "session_id": "cse_013pJi6b3rXrK6nFdM8jEW1a",
+  "effort_level": "high",
+  "model": null
+ }
+}

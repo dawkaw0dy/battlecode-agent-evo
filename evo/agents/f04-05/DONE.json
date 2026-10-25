@@ -1,0 +1,27 @@
+{
+ "agent": "f04-05",
+ "task_sha256": "4386b807c7f235d9caffe06785c897c5cad12845b7f530cdb85a045d3c03d374",
+ "base_commit": "1f5589e51c3a846cb8d8cf6565c8815c90f39c83",
+ "session_id": "cse_01Winrb6m3K71KbQwzDaiM8a",
+ "bot_dir": "bots/f04-05",
+ "self_eval": {
+  "vs": "f03-05",
+  "games": 80,
+  "wins": 59
+ },
+ "games_played": 832,
+ "summary": "Fuel subsystem rewrite (in-place engine buffer reads, no exports/exceptions, cheap vision and camp state; mean fuel 44k->19-29k, caps ~0) + plug_ crash fix + enemy altar lock breaking + f03-05 lock layer",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "16f38370f9e03b42263aab52253053e6123fa9667adec78e1e8ed8551fb817de",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 19.29,
+  "remote": "true",
+  "session_id": "cse_01Winrb6m3K71KbQwzDaiM8a",
+  "effort_level": "high",
+  "model": null
+ }
+}

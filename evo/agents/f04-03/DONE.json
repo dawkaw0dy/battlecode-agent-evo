@@ -1,0 +1,27 @@
+{
+ "agent": "f04-03",
+ "task_sha256": "04b17b6338d72e5c98e67c20f3984abad25226228a769adb1c57e1aebb58bfa0",
+ "base_commit": "1f5589e51c3a846cb8d8cf6565c8815c90f39c83",
+ "session_id": "cse_01Aj8kzpM3dwnJ2b5rZXuMQ1",
+ "bot_dir": "bots/f04-03",
+ "self_eval": {
+  "vs": "f02-01",
+  "games": 80,
+  "wins": 65
+ },
+ "games_played": 856,
+ "summary": "Camp subsystem rewritten (camps.cpp): kill-order clear simulation with walk-out reserve and team hand-off, smallest feasible team per group, engage gate on champions present; panel 208-210/240 vs parent 205.",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "16f38370f9e03b42263aab52253053e6123fa9667adec78e1e8ed8551fb817de",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 21.14,
+  "remote": "true",
+  "session_id": "cse_01Aj8kzpM3dwnJ2b5rZXuMQ1",
+  "effort_level": "high",
+  "model": null
+ }
+}
