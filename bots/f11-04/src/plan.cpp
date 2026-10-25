@@ -180,7 +180,7 @@ float solo_cost(const GroupInfo& g, int r) {
 }  // namespace
 
 std::vector<std::vector<std::uint8_t>> plan_routes(const std::vector<GroupInfo>& groups, int slots) {
-    constexpr float kHorizon = 260.0f;   // plan the opening this many rounds deep
+    constexpr float kHorizon = 400.0f;   // plan the opening this many rounds deep
     constexpr float kCapture = 6.0f;     // five capture phases and the step onto the region
     constexpr float kTrip = 8.0f;        // recall and the heal on spawn
     constexpr float kGoldW = 0.35f;
