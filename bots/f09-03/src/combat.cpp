@@ -54,6 +54,11 @@ constexpr float kHelpHp = 0.6f;        // answer an ally's sighting above this h
 constexpr int kSpawnHold = 20;         // turns we hold our spawn against enemies before walking out
 constexpr bool kSafeApproach = true;   // close in so that they walk into our reach (see the approach)
 constexpr bool kStandAndFight = true;  // a retreat that cannot get away shoots back instead of standing
+constexpr bool kCaughtShots = false;   // ranged, caught by a melee chaser: shoot back instead of stepping
+constexpr bool kEngageDash = true;     // melee dashers dash in and hit from up to four tiles
+constexpr int kHoldMax = 3;            // turns we wait at the edge of an enemy's reach before farming on
+constexpr bool kMarginal = true;       // stay out of a fight the allies win without us when joining costs us
+constexpr bool kPressRunners = false;  // the approach ignores the reach of enemies walking away from us
 
 std::uint32_t handle_of(const cambc::champion& c) {
     return static_cast<std::uint32_t>(static_cast<cambc::handle_champion_t>(c));
@@ -64,8 +69,11 @@ struct Ranks {
     bool read = false;
     std::vector<std::uint32_t> ally, enemy;
     int parity = -1;  // rounds r with r % 2 == parity are started by our team (-1 unknown)
+    std::array<vec2, 8> last_pos{};   // where each enemy (by rank) stood at our last turn ...
+    std::array<int, 8> last_round{};  // ... and that round
 };
 Ranks g_ranks;
+int g_hold = 0;  // consecutive turns spent waiting for an enemy to walk into our reach
 Ranks& ranks() {
     if (!g_ranks.read) {
         g_ranks.read = true;
@@ -260,7 +268,7 @@ Outcome play_out(const std::vector<Fighter>& a, const std::vector<Fighter>& b, i
 // opponent: strength, plus its ready burst on the first hit and its reset and spells again every 8th turn.
 // A ready stun on the first hit takes the most dangerous opponent's next turn. Camps fire at every round
 // start; a fighter on its own spawn heals fully at the end of each of its turns.
-Outcome play_ordered(const std::vector<Fighter>& a, const std::vector<Fighter>& b, int rounds, bool we_start) {
+Outcome play_ordered(const std::vector<Fighter>& a, const std::vector<Fighter>& b, int rounds, bool we_start, bool me_in = true) {
     struct Unit { float hp; int side, k, rank, active, skip, delay; };
     std::array<Unit, 16> u{};
     size_t n = 0;
@@ -320,10 +328,10 @@ Outcome play_ordered(const std::vector<Fighter>& a, const std::vector<Fighter>& 
         sort_round(ours_first);
         if (t == 0) {
             // We act now; who acted before us this round sits this one out.
-            act(0);
+            if (me_in) act(0);
             for (size_t o = 0; o < n; ++o) {
                 const size_t i = order[o];
-                if (i == 0 || fighter(u[i]).done) continue;
+                if ((me_in && i == 0) || fighter(u[i]).done) continue;
                 act(i);
             }
         } else {
@@ -341,7 +349,7 @@ Outcome play_ordered(const std::vector<Fighter>& a, const std::vector<Fighter>& 
             our_lost += (f.hp - left) / f.max_hp;
             start_a += f.hp;
             left_a += left;
-            if (left <= 0) { ++r.our_deaths; kills -= f.value; if (u[i].k == 0) r.me_dies = true; }
+            if (left <= 0) { ++r.our_deaths; kills -= f.value; if (u[i].k == 0 && me_in) r.me_dies = true; }
         } else {
             their_lost += (f.hp - left) / f.max_hp;
             start_b += f.hp;
@@ -439,6 +447,27 @@ bool Bot::retreat(std::vector<Fighter>& theirs, int dmin) {
     if (me.attack_range() > 1 && me.can_attack() && !moved_ && incoming_ == 0 && live()
         && threat_at(pos_, theirs) == 0 && strike(theirs))
         return true;
+    // Ranged and caught: a melee chaser hits us wherever we step (it walks and hits in one turn), so a step
+    // only gives it a free hit. Shoot back unless home is a few steps away or a dash could break contact.
+    if (kCaughtShots && me.attack_range() > 1 && me.can_attack() && !moved_ && live() && home_.at(pos_) > 3) {
+        auto melee_hits = [&](vec2 t) {
+            float h = 0;
+            for (const auto& e : theirs)
+                if (!e.ranged) h += hits_before_us(e, cheb(e.pos, t));
+            return h;
+        };
+        bool caught = melee_hits(pos_) > 0;
+        for (auto d : kDirs) {
+            if (!caught) break;
+            const vec2 t{pos_.x + d.x, pos_.y + d.y};
+            if (free_tile(t) && !camp_block_.is_set(t) && melee_hits(t) == 0) caught = false;
+        }
+        bool dash = false;
+        if (caught && dasher_ && !cast_ && me.can_cast())
+            for (const auto& ab : me.abilities())
+                if (ab.is_dash() && ab.is_ready()) dash = true;
+        if (caught && !dash && strike(theirs)) return true;
+    }
     if (moved_ || move_failed_ || !me.can_move() || !live()) return true;
     // Walking distance home around walls and the camps we know of (cut off at 40: far beyond, the plain
     // walking field decides).
@@ -636,6 +665,13 @@ bool Bot::enemies() {
                 // Its turns before our next one: one, or for the enemy of our rank none after it started
                 // this round (we start the next) and two when we started it.
                 if (f.rank == my_rank) f.moves = f.done ? 0 : 2;
+                // Moving away from us since our last turn: running, not coming to fight.
+                if (f.rank >= 0 && f.rank < 8) {
+                    const auto r = static_cast<size_t>(f.rank);
+                    if (rk.last_round[r] == now - 1 && cheb(p, pos_) > cheb(rk.last_pos[r], pos_)) f.fleeing = true;
+                    rk.last_pos[r] = p;
+                    rk.last_round[r] = now;
+                }
                 // The enemy of our own rank acted before us exactly when its team started this round.
                 if (f.rank == my_rank && rk.parity < 0) {
                     rk.parity = f.done ? (now + 1) % 2 : now % 2;
@@ -700,6 +736,12 @@ bool Bot::enemies() {
         return kOrdered ? play_ordered(a, b, kSimRounds, we_start) : play_out(a, b, kSimRounds);
     };
     const Outcome fight = model(ours, theirs);
+    // The allies' fight without us (we would get away).
+    float without = 0;
+    if (kMarginal && ours.size() > 1 && kOrdered) {
+        std::vector<Fighter> rest(ours.begin() + 1, ours.end());
+        without = play_ordered(rest, theirs, kSimRounds, we_start, false).value;
+    }
     const float hp = me.health();
     const int gems = static_cast<int>(me.gem_count());
     // Kill on the spot: an enemy our burst finishes this turn without moving.
@@ -710,7 +752,10 @@ bool Bot::enemies() {
         for (const auto& e : theirs)
             if (cheb(e.pos, pos_) <= reach && e.hp <= mine * kKillNow && view().lvis.at(e.pos)) kill_now = true;
     }
-    bool engage = fight.value > kEngageBias && !(fight.me_dies && fight.their_deaths == 0);
+    // Allies who win without us are not helped by our death; a fight they lose is decided by the plain rule
+    // (every champion assuming the others stay would walk into it together).
+    bool engage = fight.value > kEngageBias && (without <= 0 || fight.value - without > kEngageBias)
+        && !(fight.me_dies && fight.their_deaths == 0);
     // Carrying a big bag: only clearly winning fights.
     if (engage && fight.me_dies && gems >= 40 && fight.value < 2.0f * static_cast<float>(gems)) engage = false;
     if (!engage && kill_now && !(fight.me_dies && gems >= 60)) engage = true;
@@ -724,7 +769,7 @@ bool Bot::enemies() {
     }
     if (kTrace) {
         std::string line = "fight r" + std::to_string(now) + ' ' + cambc::to_string(me.champion_name()) + " v" + std::to_string(static_cast<int>(fight.value))
-            + " ws" + std::to_string(we_start) + std::to_string(rk.parity) + " die" + std::to_string(fight.me_dies) + " k" + std::to_string(fight.their_deaths)
+            + " wo" + std::to_string(static_cast<int>(without)) + " ws" + std::to_string(we_start) + std::to_string(rk.parity) + " die" + std::to_string(fight.me_dies) + " k" + std::to_string(fight.their_deaths)
             + " d" + std::to_string(fight.our_deaths) + " t" + std::to_string(fight.turns) + " E" + std::to_string(engage) + " |";
         auto add = [&](const Fighter& f) {
             line += ' ' + std::to_string(f.pos.x) + ',' + std::to_string(f.pos.y) + ':' + std::to_string(static_cast<int>(f.hp)) + '/'
@@ -762,6 +807,73 @@ bool Bot::enemies() {
         return false;
     }
     const int range = me.attack_range();
+    // Melee with the dash ready: dash and step close three tiles in one turn, so the first hit is ours from up
+    // to four tiles away. Land beside the target, or one step from it.
+    if (kEngageDash && range <= 1 && dasher_ && !cast_ && !moved_ && me.can_cast() && me.can_attack() && dmin <= 4 && fuel(15000)
+        && live()) {
+        int target = -1;
+        float ts = -1e9f;
+        for (size_t i = 0; i < theirs.size(); ++i) {
+            const auto& e = theirs[i];
+            const int d = cheb(e.pos, pos_);
+            if (e.hp <= 0 || d < 2 || d > 4 || !view().lvis.at(e.pos)) continue;
+            const float s = -e.hp / std::max(1.0f, e.sustain);
+            if (s > ts) { ts = s; target = static_cast<int>(i); }
+        }
+        for (const auto& ab : me.abilities()) {
+            if (target < 0 || !ab.is_dash() || !ab.is_ready()) continue;
+            const vec2 at = theirs[static_cast<size_t>(target)].pos;
+            vec2 land = pos_;
+            int best = 99;
+            for (int dx = -2; dx <= 2; ++dx)
+                for (int dy = -2; dy <= 2; ++dy) {
+                    const vec2 t{pos_.x + dx, pos_.y + dy};
+                    if (t == pos_ || !free_tile(t) || camp_block_.is_set(t)) continue;
+                    const int dt = cheb(t, at);
+                    if (dt < 1 || dt > 2) continue;
+                    if (std::max(std::abs(dx), std::abs(dy)) == 2) {
+                        bool path = false;  // a passable middle tile (holes may be jumped, walls not)
+                        for (auto s : kDirs) {
+                            const vec2 m{pos_.x + s.x, pos_.y + s.y};
+                            if (!inside(m) || cheb(m, t) != 1) continue;
+                            if (hard_local().at(m) || view().lchamps.at(m) || view().lcamps.at(m)) continue;
+                            path = true;
+                            break;
+                        }
+                        if (!path) continue;
+                    }
+                    // Beside the target is best; then the landing the fewest enemies can hit.
+                    const int score = dt * 100 + static_cast<int>(threat_at(t, theirs) / 10.0f);
+                    if (score < best) { best = score; land = t; }
+                }
+            // A dash that only lands two tiles away from a target we could reach with one step is no gain.
+            if (land == pos_ || (cheb(at, pos_) == 2 && cheb(land, at) == 2)) break;
+            try {
+                const bool ok = ab.use(land);
+                cast_ = true;
+                invalidate();
+                if (!ok) { move_failed_ = true; return true; }
+                pos_ = me.position();
+            } catch (const cambc::error& e) { warn("engage dash", e); return true; }
+            if (cheb(pos_, at) == 2 && me.can_move() && live()) {
+                vec2 step = pos_;
+                for (auto d : kDirs) {
+                    const vec2 t{pos_.x + d.x, pos_.y + d.y};
+                    if (free_tile(t) && !camp_block_.is_set(t) && cheb(t, at) == 1) { step = t; break; }
+                }
+                if (step != pos_) {
+                    moved_ = true;
+                    bool ok = false;
+                    try { ok = me.move_absolute(step); } catch (const cambc::error& e) { warn("dash step", e); }
+                    invalidate();
+                    if (!ok) move_failed_ = true;
+                    pos_ = me.position();
+                }
+            }
+            if (live() && me.can_attack() && strike(theirs)) chase_turns_ = 0;
+            return true;
+        }
+    }
     // Close: one step, or none, chosen so that they walk into our reach rather than we into theirs. The first
     // hit of an even duel decides it, so we stop just outside the reach they have before our next turn (two
     // turns for the enemy of our rank every other round) unless we can close and hit first. A melee
@@ -775,7 +887,7 @@ bool Bot::enemies() {
             for (const auto& e : theirs) {
                 if (e.hp <= 0) continue;
                 gap = std::min(gap, std::max(0, cheb(e.pos, t) - range));
-                if (range > 1 || !e.ranged) {
+                if ((range > 1 || !e.ranged) && !(kPressRunners && e.fleeing)) {
                     const float hits = hits_before_us(e, cheb(e.pos, t));
                     if (hits > 0) th += hits * e.str + e.burst * 0.5f;
                 }
@@ -789,14 +901,22 @@ bool Bot::enemies() {
             const float s = tile_score(t) - 1.0f;  // ties: step rather than stand
             if (s < best_s) { best_s = s; best = t; }
         }
-        if (best != pos_ && live()) {
+        if (best == pos_) {
+            // Holding the edge of their reach: a few turns at most (they may not be coming), and an awake
+            // camp of our target in range takes the hit meanwhile.
+            if (++g_hold > kHoldMax) { g_hold = 0; return false; }
+            if (target_ >= 0 && group_awake(target_) && me.can_attack() && live()) hit_group(target_);
+            return true;
+        }
+        g_hold = 0;
+        if (live()) {
             moved_ = true;
             bool ok = false;
             try { ok = me.move_absolute(best); } catch (const cambc::error& e) { warn("approach move", e); }
             invalidate();
             if (!ok) move_failed_ = true;
         }
-        stepped = true;  // (staying: this tile is the best one, they come to us)
+        stepped = true;
     }
     if (!stepped) {
         auto goal = empty_board();
