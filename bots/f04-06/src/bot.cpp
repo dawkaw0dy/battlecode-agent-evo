@@ -35,6 +35,7 @@ constexpr int kWalkHome = 10;            // walk instead of recalling this close
 constexpr int kShadowRounds = -1;        // walk home rather than recall this soon after seeing a foe
 constexpr int kEnemySideSlack = 99;      // skip camps this much closer to the enemy spawn than ours
 constexpr int kTraceFrom = -1, kTraceTo = -1;
+constexpr int kBankFirstRange = 9;       // with gems and an altar this close, bank before recalling
 constexpr bool kHunt = false;            // answer pack sightings
 constexpr int kHuntAge = 6;              // rounds a sighting stays valid
 
@@ -81,6 +82,7 @@ void count_mode(const char* m) {
         if (k == m) { ++v; return; }
     g_hist.emplace_back(m, 1);
 }
+int g_bank_altar = -1;            // altar this champion is walking to with its gems
 int g_foe_seen = -100;            // last round this champion saw an enemy
 int g_pack = 0;                   // champions farm in packs: {0,2}, {1,3}, {4} by draft slot
 constexpr std::array<int, 5> kPackByte{0, 1, 5, 6, 7};
@@ -738,7 +740,11 @@ void turn_body_impl() {
     }
 
     // ---- recover -----------------------------------------------------------------------------------
-    if (!at_spawn && hp < max_hp * kRecallHp) {
+    // Gems in the bag and an altar close by: bank first (camp damage does not stop a tribute).
+    int altar_d = 99;
+    for (auto a : g_altars) altar_d = std::min(altar_d, dist(g_pos, a));
+    const bool bank_first = me.gem_count() >= 5 && altar_d <= kBankFirstRange && hp > max_hp * 0.2f && nearest_foe > 6;
+    if (!at_spawn && !bank_first && hp < max_hp * kRecallHp) {
         // Walk out of camp range first: camp hits would cancel the recall.
         std::vector<Foe> camps;
         for (auto p : cambc::vision::awake_camp_tiles().positions())
@@ -749,7 +755,7 @@ void turn_body_impl() {
             return;
         }
     }
-    if (!at_spawn && nearest_foe > 6 && (hp < max_hp * kRecallHp
+    if (!at_spawn && !bank_first && nearest_foe > 6 && (hp < max_hp * kRecallHp
             || (static_cast<int>(me.gold_count()) >= kShopGold && me.gem_count() < 10)
             || (static_cast<int>(me.gold_count()) >= kShopGold / 2 && hp < max_hp * 0.6f))) {
         g_mode = "home";
@@ -765,24 +771,32 @@ void turn_body_impl() {
 
     // ---- bank gems ---------------------------------------------------------------------------------
     const int gems = static_cast<int>(me.gem_count());
+    if (gems == 0) g_bank_altar = -1;
     if (gems > 0) {
         int nearest_altar = 99;
         for (auto a : g_altars) nearest_altar = std::min(nearest_altar, dist(g_pos, a));
-        g_mode = "bank";
-        if (gems >= kBankGems || nearest_altar <= kNearAltar || g_round > 1850) {
+        if (gems >= kBankGems || nearest_altar <= kNearAltar || g_round > 1850 || bank_first) {
+            g_mode = nearest_altar <= 1 ? "bankwait" : "bank";
             for (auto a : g_altars)
                 if (dist(g_pos, a) <= cambc::constants::submit_gems_range && nearest_foe > 5) {
+                    if (cambc::vision::altar_lock_tiles(team::enemy).is_set(a)) count_mode("lockhit");
                     safe("submit", [&] { me.submit_gems(a); return true; });
                     return;
                 }
-            bitboard goals;
-            goals.clear();
-            const bitboard enemy_locks = cambc::vision::altar_lock_tiles(team::enemy);
-            for (auto a : g_altars)
-                if (!enemy_locks.is_set(a)) goals |= ring(a, cambc::constants::submit_gems_range);
-            if (goals.is_empty())
-                for (auto a : g_altars) goals |= ring(a, cambc::constants::submit_gems_range);
-            if (step_to(goals)) return;
+            // Commit to one altar: re-choosing as units block its tiles made champions oscillate.
+            if (g_bank_altar < 0 || g_bank_altar >= static_cast<int>(g_altars.size())) {
+                int bd = 1 << 30;
+                for (size_t k = 0; k < g_altars.size(); ++k) {
+                    const int d = dist(g_pos, g_altars[k]);
+                    if (d < bd) { bd = d; g_bank_altar = static_cast<int>(k); }
+                }
+            }
+            const vec2 altar = g_altars[static_cast<size_t>(g_bank_altar)];
+            const vec2 before = g_pos;
+            const bool ok = step_to(ring(altar, cambc::constants::submit_gems_range)) || step_to(ring(altar, 2));
+            if (g_round >= kTraceFrom && g_round <= kTraceTo)
+                std::cout << "dbg B r" << g_round << " c" << static_cast<int>(me.champion_name()) << " " << before.x << "," << before.y << " -> " << g_pos.x << "," << g_pos.y << " ok" << ok << " gems" << gems << " altar " << altar.x << "," << altar.y << " nf" << nearest_foe << "\n";
+            if (ok) return;
         }
     }
 
@@ -863,6 +877,7 @@ void turn_body_impl() {
         return;
     }
 
+    g_mode = "idle";
     // Nothing to farm: walk towards the middle of the map.
     step_to(ring(vec2{W / 2, H / 2}, 3));
 }
