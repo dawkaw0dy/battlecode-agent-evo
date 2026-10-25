@@ -5245,9 +5245,11 @@
   },
   "f10-07": {
    "archetype": "camp-sweep",
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evolution-f10-07-gfk17m",
+   "commit": "2099ce27ce06fdc07922233816599503d2456199",
    "deadline_minutes": 120,
+   "done_at": 1792965165,
+   "effort_level": "high",
    "evidence": [],
    "failed_ideas": [
     "f08-04: Fuel: host calls cost ~30\u201340 fuel, but every bitboard temporary (&, |, ~, shift) ~600 and a grow(r) ~4k\u00b7r;",
@@ -5270,6 +5272,7 @@
    "generation": 10,
    "id": "f10-07",
    "kind": "immigrant",
+   "model": null,
    "nudged": [
     "session_01U78Sckd7oZxrGhFo2MUAxX"
    ],
@@ -5292,7 +5295,7 @@
    ],
    "slot": 7,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "e5bcf1404cf60621397a572f7ce396fb78ca0da77481ed29a16128992dc4d23b"
   }
  },
@@ -29732,8 +29735,6 @@
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-25T12:26:47Z g05 r05-A: pushed 2f5ffa42b8 with 28 shards",
-  "2026-10-25T12:30:04Z g05 phase EVAL_A_DONE: results for r05-A",
   "2026-10-25T12:30:15Z g05 r05-A-spot: pushed 1ca4d6f606 (18 sampled games, 13 shards)",
   "2026-10-25T12:32:31Z g05 r05-A: verified, 896 rows, spot-check 18 OK",
   "2026-10-25T12:32:41Z g05 phase EVAL_B_PENDING: stage A ranked: f05-02, f05-03, f05-05, f04-05, f05-01, f05-04, f03-05, f02-01, f05-06, f05-07, starter",
@@ -29931,10 +29932,12 @@
   "2026-10-25T20:49:38Z g10 f10-06: done on origin/claude/evolution-f10-06-dj1l1u at ac15014ffd",
   "2026-10-25T20:50:51Z g10 f10-02: done on origin/claude/evo-task-f10-02-e9dyi8 at 07f7265370",
   "2026-10-25T20:50:56Z g10 f10-05: done on origin/claude/evolution-agent-f10-05-0srmfi at 5b8f61ed8a",
-  "2026-10-25T20:56:44Z g10 f10-03: done on origin/claude/evo-task-f10-03-p0zuix at 41955deb7f"
+  "2026-10-25T20:56:44Z g10 f10-03: done on origin/claude/evo-task-f10-03-p0zuix at 41955deb7f",
+  "2026-10-25T21:52:45Z g10 f10-07: done on origin/claude/evolution-f10-07-gfk17m at 2099ce27ce",
+  "2026-10-25T21:52:45Z g10 phase ADMITTED"
  ],
  "paused": null,
- "phase": "RUNNING",
+ "phase": "ADMITTED",
  "sessions_launched": 78,
  "version": 1
 }
