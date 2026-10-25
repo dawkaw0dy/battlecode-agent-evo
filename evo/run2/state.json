@@ -1369,7 +1369,7 @@
    "parents": [
     "f02-01"
    ],
-   "reason": null,
+   "reason": "deadline",
    "rng_key": "21376769:3:1",
    "sessions": [
     {
@@ -1383,7 +1383,7 @@
    ],
    "slot": 1,
    "src_sha256": null,
-   "status": "running",
+   "status": "dead",
    "task_sha256": "80023abb225efc332b55543b1d9578210adf5c3219cf4eab309b0dedd658bb7e"
   },
   "f03-02": {
@@ -1443,7 +1443,7 @@
    "parents": [
     "f02-01"
    ],
-   "reason": null,
+   "reason": "deadline",
    "rng_key": "21376769:3:2",
    "sessions": [
     {
@@ -1457,7 +1457,7 @@
    ],
    "slot": 2,
    "src_sha256": null,
-   "status": "running",
+   "status": "dead",
    "task_sha256": "0ae20e0b430b3a5dcad0bb4341af1da48e1bbc8f987145e2b7bce780524311f7"
   },
   "f03-03": {
@@ -1517,7 +1517,7 @@
    "parents": [
     "f02-01"
    ],
-   "reason": null,
+   "reason": "deadline",
    "rng_key": "21376769:3:3",
    "sessions": [
     {
@@ -1531,7 +1531,7 @@
    ],
    "slot": 3,
    "src_sha256": null,
-   "status": "running",
+   "status": "dead",
    "task_sha256": "4e0f9bcd6a01fbdcc781801dae89d024459bdb6dcfc5db2c9ad0d0853f58c2c1"
   },
   "f03-04": {
@@ -1591,7 +1591,7 @@
    "parents": [
     "f02-02"
    ],
-   "reason": null,
+   "reason": "deadline",
    "rng_key": "21376769:3:4",
    "sessions": [
     {
@@ -1605,7 +1605,7 @@
    ],
    "slot": 4,
    "src_sha256": null,
-   "status": "running",
+   "status": "dead",
    "task_sha256": "ebd0929c221b9c7118a74e9c76c6f87e718b92dda52e91ec88b809b933e693c3"
   },
   "f03-05": {
@@ -1665,7 +1665,7 @@
    "parents": [
     "f02-02"
    ],
-   "reason": null,
+   "reason": "deadline",
    "rng_key": "21376769:3:5",
    "sessions": [
     {
@@ -1679,7 +1679,7 @@
    ],
    "slot": 5,
    "src_sha256": null,
-   "status": "running",
+   "status": "dead",
    "task_sha256": "1b3f7f33dc0b5e6fa4abd7c43af8070de4f9137926884431c546e010879aa77d"
   },
   "f03-06": {
@@ -1714,7 +1714,7 @@
    "parents": [
     "starter"
    ],
-   "reason": null,
+   "reason": "deadline",
    "rng_key": "21376769:3:6",
    "sessions": [
     {
@@ -1728,7 +1728,7 @@
    ],
    "slot": 6,
    "src_sha256": null,
-   "status": "running",
+   "status": "dead",
    "task_sha256": "b93281052b94f1409f9648c75d637604773967c2c7308f0302b026922ce627c9"
   },
   "f03-07": {
@@ -1763,7 +1763,7 @@
    "parents": [
     "starter"
    ],
-   "reason": null,
+   "reason": "deadline",
    "rng_key": "21376769:3:7",
    "sessions": [
     {
@@ -1777,7 +1777,7 @@
    ],
    "slot": 7,
    "src_sha256": null,
-   "status": "running",
+   "status": "dead",
    "task_sha256": "e8484361de65305c646fce31306113d1485cfc989fab76a85b78d700d1c4f5a3"
   }
  },
@@ -8433,10 +8433,18 @@
   "2026-10-24T21:39:27Z g03 f03-04: launched session_01875JNraJyUkpaPhTXWCFT6",
   "2026-10-24T21:39:38Z g03 f03-05: launched session_015r4sVf8gYwNVq7dif5kzRc",
   "2026-10-24T21:39:53Z g03 f03-06: launched session_01KdzCukGtLV56bpMtToMfD7",
-  "2026-10-24T21:40:03Z g03 f03-07: launched session_01MjZHm1Rje8pqAEJzafDNA1"
+  "2026-10-24T21:40:03Z g03 f03-07: launched session_01MjZHm1Rje8pqAEJzafDNA1",
+  "2026-10-25T07:51:16Z g03 f03-01: dead (deadline)",
+  "2026-10-25T07:51:18Z g03 f03-02: dead (deadline)",
+  "2026-10-25T07:51:20Z g03 f03-03: dead (deadline)",
+  "2026-10-25T07:51:22Z g03 f03-04: dead (deadline)",
+  "2026-10-25T07:51:24Z g03 f03-05: dead (deadline)",
+  "2026-10-25T07:51:26Z g03 f03-06: dead (deadline)",
+  "2026-10-25T07:51:29Z g03 f03-07: dead (deadline)",
+  "2026-10-25T07:51:29Z g03 phase ADMITTED"
  ],
  "paused": null,
- "phase": "RUNNING",
+ "phase": "ADMITTED",
  "sessions_launched": 29,
  "version": 1
 }
