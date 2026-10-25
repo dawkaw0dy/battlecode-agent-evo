@@ -18,7 +18,8 @@ struct Group {
     bool reward_ready = false;
     int max_respawn = 60;
     int last_seen = -1000;
-    int home_dist = 0;               // walking distance from our spawn (65535: unreachable)
+    int home_dist = 0;
+    bool enemy_side = false;         // closer to the enemy spawn than to ours               // walking distance from our spawn (65535: unreachable)
 };
 
 // Per-champion state survives between turns.
@@ -44,6 +45,7 @@ class Bot {
     float last_hp_ = 0;
     int flee_until_ = 0;
     int enemy_seen_ = -1000;
+    cambc::vec2 enemy_pos_{};
     std::vector<std::pair<cambc::vec2, int>> awake_;  // awake camps near us: tile, attack range
     int raid_target_ = -1, raid_start_ = 0, raid_cool_ = 0;
     int last_scan_ = -100;

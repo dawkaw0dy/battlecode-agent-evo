@@ -33,6 +33,7 @@ constexpr int kSquads = 1;
 // Layout: [0..4] claim per slot (group + 1), [5] flags (bit0 engage, bit1 raid), [6] raid group + 1,
 // [7] bit per slot: near the raid target.
 constexpr bool kSolo = true;
+constexpr bool kPairs = false;
 constexpr int kFlags = 5, kRaid = 6, kNearBits = 7;
 constexpr float kBossBias = 2.0f;
 constexpr float kFightRatio = 1.3f;
@@ -41,9 +42,13 @@ constexpr int kBankGems = 40;
 constexpr float kSwitch = 2.0f;     // a new target must score this many times the current one
 constexpr float kStageStr = 60.f;   // groups at least this strong are engaged together
 constexpr float kSoloBudget = 0.6f;  // share of max health a solo champion may lose on one group
-constexpr int kGolemRound = 150, kMonoRound = 400;
+constexpr int kGolemRound = 250, kMonoRound = 600;
+constexpr int kGolemShards = 10, kMonoShards = 15;
 constexpr int kFleeCommit = 5;
 constexpr float kMaxTrips = 6.f;
+constexpr int kContested = 40;
+constexpr float kEnemySide = 0.7f;
+constexpr int kEnemyMemory = 30;
 
 int pick_order(bc::champion_type t) {
     switch (t) {
@@ -154,6 +159,16 @@ void Bot::init() {
             int best = bc::distance_field::unreachable;
             for (auto p : G.tiles) best = std::min<int>(best, field.get(p));
             G.home_dist = best;
+        }
+        auto walls = bc::map::walls() | bc::map::holes();
+        walls |= bc::map::altars();
+        walls |= bc::map::spawn_region(team::ally);
+        bc::distance_field efield;
+        efield.compute(walls, bc::map::spawn_region(team::enemy), visited);
+        for (auto& G : groups_) {
+            int best = bc::distance_field::unreachable;
+            for (auto p : G.tiles) best = std::min<int>(best, efield.get(p));
+            G.enemy_side = best < G.home_dist;
         }
     }
     bad_until_.assign(groups_.size(), 0);
@@ -341,8 +356,18 @@ void Bot::lead(int squad) {
 int Bot::choose_solo() {
     auto& me = bc::self();
     const vec2 pos = me.is_alive() ? me.position() : home_;
-    const float dps = std::max(30.f, me.strength()) * 1.1f;
-    const float budget = me.max_health() * kSoloBudget;
+    // Pairs: odd slots follow the claim of the even slot before them.
+    if (kPairs && slot_ % 2 == 1 && slot_ < kSlots) {
+        const int t = mem_[slot_ - 1] - 1;
+        if (t >= 0 && t < static_cast<int>(groups_.size())) {
+            mem_[slot_] = static_cast<std::uint8_t>(t + 1);
+            bc::shared_memory[slot_] = mem_[slot_];
+            return t;
+        }
+    }
+    const float n = (kPairs && slot_ % 2 == 0 && slot_ + 1 < team_n_) ? 2.f : 1.f;
+    const float dps = std::max(30.f, me.strength()) * 1.1f * n;
+    const float budget = me.max_health() * kSoloBudget * n;
     const float gold_w = round_ < 900 ? 0.4f : 0.25f;
     const int cur = slot_ < kSlots ? mem_[slot_] - 1 : -1;
     int best = -1;
@@ -352,7 +377,7 @@ int Bot::choose_solo() {
         if (G.tiles.empty() || G.boss || G.home_dist >= 60000 || bad_until_[i] > round_) continue;
         bool claimed = false;
         for (int s = 0; s < std::min(team_n_, kSlots); ++s)
-            if (s != slot_ && mem_[s] == i + 1) claimed = true;
+            if (s != slot_ && mem_[s] == i + 1 && !(kPairs && s == slot_ + 1)) claimed = true;
         if (claimed) continue;
         const int travel = dist(pos, G.center);
         const int wait = G.respawn_at > round_ ? G.respawn_at - round_ : 0;
@@ -375,6 +400,8 @@ int Bot::choose_solo() {
         if (value <= 0) continue;
         float score = value / (static_cast<float>(travel + eff_wait) + clear + trip_cost + 12.f);
         if (G.reward_ready) score *= 1.3f;
+        if (G.enemy_side) score *= kEnemySide;
+        if (round_ - enemy_seen_ < kEnemyMemory && dist(G.center, enemy_pos_) <= 7) score *= 0.3f;
         if (i == cur) cur_score = score;
         if (score > best_score) { best_score = score; best = i; }
     }
@@ -416,11 +443,12 @@ void Bot::lead_raid() {
         for (int i = 0; i < static_cast<int>(groups_.size()); ++i) {
             const auto& G = groups_[i];
             if (!G.boss || G.home_dist >= 60000 || team_n_ < 3) continue;
-            if (G.monolith ? (round_ < kMonoRound || bought_ < 10) : (round_ < kGolemRound || bought_ < 5)) continue;
+            if (G.monolith ? (round_ < kMonoRound || bought_ < kMonoShards)
+                           : (round_ < kGolemRound || bought_ < kGolemShards)) continue;
             if (G.respawn_at > round_ + dist(pos, G.center)) continue;
             const float hp = G.known_hp >= 0 ? G.known_hp : G.hp;
             const float trips = G.str * (hp / dps) / budget;
-            if (trips > (G.monolith ? 3.0f : 1.5f)) continue;
+            if (trips > (G.monolith ? 2.0f : 1.0f)) continue;
             if (G.home_dist < best_d) { best_d = G.home_dist; best = i; }
         }
         if (best >= 0) {
@@ -488,9 +516,16 @@ bool Bot::step_to(const bc::bitboard& goals) {
             attack_unit_camp(nxt);
             return false;
         }
+        if (blocked.is_set(nxt)) return false;
         d = d2;
     }
-    const bool ok = me.move(*d);
+    bool ok = false;
+    try {
+        ok = me.move(*d);
+    } catch (const std::exception&) {
+        move_failed_ = true;
+        return false;
+    }
     if (ok) moved_ = true;
     else move_failed_ = true;
     return ok;
@@ -514,7 +549,13 @@ bool Bot::step_away(vec2 from, int want) {
             if (s > best_score) { best_score = s; best = n; }
         }
     if (best == pos) return false;
-    const bool ok = me.move(best - pos);
+    bool ok = false;
+    try {
+        ok = me.move(best - pos);
+    } catch (const std::exception&) {
+        move_failed_ = true;
+        return false;
+    }
     if (ok) moved_ = true;
     else move_failed_ = true;
     return ok;
@@ -703,6 +744,7 @@ bool Bot::fight_enemies(bool& flee) {
     auto enemies = area & bc::vision::champion_tiles(team::enemy);
     if (enemies.is_empty()) return false;
     enemy_seen_ = round_;
+    enemy_pos_ = enemies.positions()[0];
     auto allies = area & bc::vision::champion_tiles(team::ally);
     float hp_a = 0, dps_a = 0, hp_e = 0, dps_e = 0;
     for (auto p : allies.positions()) {
@@ -734,7 +776,14 @@ bool Bot::fight_enemies(bool& flee) {
     if (nearest.x < 0) return false;
     const bool on_spawn = bc::map::spawn_region(team::ally).is_set(pos);
     const bool finish = weakest.x >= 0 && weakest_hp < 2.5f * me.strength();
-    const bool fight = hp_a * dps_a >= kFightRatio * hp_e * dps_e || finish;
+    const float ratio = allies.count() <= 1 ? kFightRatio * 1.2f : kFightRatio;
+    const bool fight = hp_a * dps_a >= ratio * hp_e * dps_e || finish;
+    debug_block({
+        if (round_ <= 400)
+            std::cout << "FIGHT r" << round_ << " s" << slot_ << " a" << allies.count() << " hpA" << int(hp_a) << " dA" << int(dps_a)
+                      << " hpE" << int(hp_e) << " dE" << int(dps_e) << " n" << enemies.count() << " fight" << fight
+                      << " w" << weakest.x << "," << weakest.y << " near" << nearest.x << "," << nearest.y << " thr" << threat << "\n";
+    });
     if (fight) {
         if (weakest.x >= 0) {
             cast_at_enemy(weakest);
@@ -973,6 +1022,10 @@ void Bot::play_turn() {
 
     if (!me.is_alive()) {
         shop();
+        if (kSolo && slot_ < kSlots && mem_[slot_] != 0) {
+            mem_[slot_] = 0;
+            bc::shared_memory[slot_] = 0;
+        }
         if (kSolo && slot_ == 0) lead_raid();
         write_status(false, false, false);
         return;
@@ -1112,7 +1165,17 @@ void Bot::play_turn() {
         }
     }
     if (fight_enemies(flee)) {
-        if (flee) flee_until_ = round_ + kFleeCommit;
+        if (flee) {
+            flee_until_ = round_ + kFleeCommit;
+            // Contested target: look elsewhere for a while (raids excepted).
+            if (target >= 0 && !raid && dist(pos, groups_[target].center) <= 10) {
+                bad_until_[target] = round_ + kContested;
+                if (kSolo && slot_ < kSlots) {
+                    mem_[slot_] = 0;
+                    bc::shared_memory[slot_] = 0;
+                }
+            }
+        }
         write_status(true, near, flee);
         trace(flee ? 'F' : 'A', target);
         return;
