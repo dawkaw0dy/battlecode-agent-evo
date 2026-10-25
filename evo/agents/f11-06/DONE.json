@@ -1,0 +1,27 @@
+{
+ "agent": "f11-06",
+ "task_sha256": "38a892071c3655af01588ebf6e9306a5b3c368814aa7b6c21aab655aaacadb54",
+ "base_commit": "ec117b57163b37bc1cc47acab8e179db37a17271",
+ "session_id": "cse_01Au4vw5hsGq9pvNSqmBesxK",
+ "bot_dir": "bots/f11-06",
+ "self_eval": {
+  "vs": "f10-03",
+  "games": 20,
+  "wins": 5
+ },
+ "games_played": 796,
+ "summary": "Map-reader immigrant: draft plan in draft memory, value/time farming with multi-trip attrition, focus-fire fight sim, altar choice with lock/danger memory, altar locks, race banking; 5/20 vs f10-03, 14-17/40 on panel sweeps, 0 faults.",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "2c6270c1adfbe38115a3054c5689b7922583b2ddc0669d6c5534cb8ae5bf5fd1",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 16.53,
+  "remote": "true",
+  "session_id": "cse_01Au4vw5hsGq9pvNSqmBesxK",
+  "effort_level": "high",
+  "model": null
+ }
+}
