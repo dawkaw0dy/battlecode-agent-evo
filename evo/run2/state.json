@@ -4380,7 +4380,7 @@
    "slot": 1,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "6290ac4e24f322c9d941af6f7b37cf3a5b102d371645b07f2f9b38662ca7bb31"
   },
   "f09-02": {
    "archetype": null,
@@ -4445,7 +4445,7 @@
    "slot": 2,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "d71b409fcce8b3359f4aaeacc32b684d402ec6d9111866f3493c535a3b2d0cb8"
   },
   "f09-03": {
    "archetype": null,
@@ -4510,7 +4510,7 @@
    "slot": 3,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "ecc888dcb2bc5ce537217e3140640795e601b79bc89798bcfab27a4cb45340ed"
   },
   "f09-04": {
    "archetype": null,
@@ -4575,7 +4575,7 @@
    "slot": 4,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "588bc5e0f0d27e8213febc39fa17f4551ec4bdfc33ba8a5f151c60ce487f8d20"
   },
   "f09-05": {
    "archetype": null,
@@ -4640,7 +4640,7 @@
    "slot": 5,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "2cdc441960b5d1cf1b1dc628d4dfa6348cdae828cc750b7c608a308cb285504a"
   },
   "f09-06": {
    "archetype": "altar-control",
@@ -4680,7 +4680,7 @@
    "slot": 6,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "bc1ed69ee63de10414b2a7cd80ca8f644a1db7342b680df6417fd07cd37d65af"
   },
   "f09-07": {
    "archetype": "split-farm",
@@ -4720,7 +4720,7 @@
    "slot": 7,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "f2243dce5aafcda2c302992053ae86fbd4baa655ffe49bc3003a3febb6eb739c"
   }
  },
  "generation": 9,
@@ -26492,7 +26492,6 @@
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-25T10:19:45Z g04 f04-02: done on origin/claude/evolution-task-f04-02-pes1td at 3c14532e62",
   "2026-10-25T10:19:48Z g04 f04-03: done on origin/claude/evolution-agent-f04-03-8c434x at 349cf6f2c0",
   "2026-10-25T10:19:54Z g04 f04-04: done on origin/claude/evolution-f04-04-thg6on at 1620fe260f",
   "2026-10-25T10:21:25Z g04 f04-05: done on origin/claude/evolution-f04-05-fh7434 at 37f39ca467",
@@ -26691,10 +26690,11 @@
   "2026-10-25T18:17:31Z g08 r08-C: verified, 144 rows, spot-check 4 OK",
   "2026-10-25T18:17:47Z g08 phase SELECTED: final: f08-04, f08-05, f08-03, f08-02, f07-02, f08-01, f06-05, f05-02, f08-07, f08-06, starter",
   "2026-10-25T18:18:03Z g08 survivors ['f08-04', 'f08-05'], hall of fame ['f00-03', 'f01-07', 'f02-01', 'f03-05', 'f04-05', 'f05-02', 'f06-05', 'f07-02', 'f08-04']",
-  "2026-10-25T18:18:03Z g09 phase PLANNED: 8 slots"
+  "2026-10-25T18:18:03Z g09 phase PLANNED: 8 slots",
+  "2026-10-25T18:18:18Z g09 phase TASKS_PUSHED: 7 task files"
  ],
  "paused": null,
- "phase": "PLANNED",
+ "phase": "TASKS_PUSHED",
  "sessions_launched": 64,
  "version": 1
 }
