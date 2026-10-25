@@ -4869,7 +4869,7 @@
    "slot": 1,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "6377c98826e8e05f11e68b5d7111afc7948f32008f96693e184bbaba65419ac3"
   },
   "f10-02": {
    "archetype": null,
@@ -4934,7 +4934,7 @@
    "slot": 2,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "44639de916d20d945027c229a0e833ea8139b1bebad0e58cc5c33416827dec6a"
   },
   "f10-03": {
    "archetype": null,
@@ -4999,7 +4999,7 @@
    "slot": 3,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "9d178312bf81f270c2c8f697a1b25177285251d57ec6f26f9571312c829d9db7"
   },
   "f10-04": {
    "archetype": null,
@@ -5064,7 +5064,7 @@
    "slot": 4,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "bb74a8e3297cd5969b696a93fc7fe9dcc3624de095e89741d2884ad9ee6559d6"
   },
   "f10-05": {
    "archetype": null,
@@ -5129,7 +5129,7 @@
    "slot": 5,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "b359ac5714eec2cbea0b8cfe671a5e55188e1485e9133b388625aba20effd47b"
   },
   "f10-06": {
    "archetype": "big-game-hunter",
@@ -5169,7 +5169,7 @@
    "slot": 6,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "a26c943e82382b52cdf91d19b1f046724cca6a42fbe5be44d6e1c8524caa3b63"
   },
   "f10-07": {
    "archetype": "camp-sweep",
@@ -5209,7 +5209,7 @@
    "slot": 7,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "e5bcf1404cf60621397a572f7ce396fb78ca0da77481ed29a16128992dc4d23b"
   }
  },
  "generation": 10,
@@ -29648,7 +29648,6 @@
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-25T12:24:06Z g05 f05-02: done on origin/claude/evo-task-f05-02-wty7r5 at 461bca893c",
   "2026-10-25T12:25:42Z g05 f05-03: done on origin/claude/evolution-agent-f05-03-p61kgx at 550b952b91",
   "2026-10-25T12:25:45Z g05 f05-04: done on origin/claude/evolution-agent-f05-04-lx8sce at 02545efec4",
   "2026-10-25T12:25:48Z g05 f05-05: done on origin/claude/evo-task-f05-05-odpgxn at eec9bb4b34",
@@ -29847,10 +29846,11 @@
   "2026-10-25T20:06:28Z g09 r09-C: verified, 144 rows, spot-check 4 OK",
   "2026-10-25T20:06:42Z g09 phase SELECTED: final: f09-01, f09-02, f09-03, f09-04, f09-05, f08-04, f07-02, f06-05, f09-06, f09-07, starter",
   "2026-10-25T20:06:57Z g09 survivors ['f09-01', 'f09-02'], hall of fame ['f00-03', 'f01-07', 'f02-01', 'f03-05', 'f04-05', 'f05-02', 'f06-05', 'f07-02', 'f08-04', 'f09-01']",
-  "2026-10-25T20:06:57Z g10 phase PLANNED: 8 slots"
+  "2026-10-25T20:06:57Z g10 phase PLANNED: 8 slots",
+  "2026-10-25T20:07:04Z g10 phase TASKS_PUSHED: 7 task files"
  ],
  "paused": null,
- "phase": "PLANNED",
+ "phase": "TASKS_PUSHED",
  "sessions_launched": 71,
  "version": 1
 }
