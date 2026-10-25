@@ -1,0 +1,27 @@
+{
+ "agent": "f11-02",
+ "task_sha256": "98d80e418d04369f223802666389461e56672dc481cfb569b61aa328dd53a8f6",
+ "base_commit": "ec117b57163b37bc1cc47acab8e179db37a17271",
+ "session_id": "cse_01M4S9aYsfMZpqRyojePp2e4",
+ "bot_dir": "bots/f11-02",
+ "self_eval": {
+  "vs": "f10-03",
+  "games": 80,
+  "wins": 44
+ },
+ "games_played": 228,
+ "summary": "Radical squad strategy failed (4/20); shipped parent + spell changes: Ryth for Varg, area stuns counted, camp stuns chained via shared memory (44/80 vs parent, 48/80 vs f09-01)",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "2c6270c1adfbe38115a3054c5689b7922583b2ddc0669d6c5534cb8ae5bf5fd1",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 16.35,
+  "remote": "true",
+  "session_id": "cse_01M4S9aYsfMZpqRyojePp2e4",
+  "effort_level": "high",
+  "model": null
+ }
+}

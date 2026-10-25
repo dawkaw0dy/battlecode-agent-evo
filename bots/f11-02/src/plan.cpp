@@ -62,7 +62,7 @@ std::vector<GroupInfo> analyse_map(const std::vector<cambc::map::camp_group>& gr
 std::vector<cambc::champion_draft> pick_order(int size) {
     using cd = cambc::champion_draft;
     // Gold makers first: Vesper Vale (+33% gold), Marcella (gold per gem tributed), Tavi (shops anywhere).
-    std::vector<cd> all{cd::vesper_vale, cd::vendetta, cd::marcella, cd::tavi, cd::varg};
+    std::vector<cd> all{cd::vesper_vale, cd::vendetta, cd::marcella, cd::tavi, cd::ryth};
     all.resize(static_cast<size_t>(std::clamp(size, 1, 5)));
     return all;
 }
