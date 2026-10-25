@@ -29,7 +29,7 @@ constexpr int kLockRange = 2;          // altar lock placement range
 constexpr int kEnemyLockMemory = 200;  // an enemy lock seen this long ago may still stand
 constexpr int kOurLockMemory = 150;    // ... and ours
 constexpr int kRaceGap = 120;          // this close to 1000 tributed, every bag is banked promptly
-constexpr int kBankGems = 30;          // a bag this big goes to the bank at once
+constexpr int kBankGems = 20;          // a bag this big goes to the bank at once
 constexpr bool kContest = true;        // go for channelling enemies we can kill before the channel ends
 
 int round_now() { return static_cast<int>(cambc::round_number()); }
