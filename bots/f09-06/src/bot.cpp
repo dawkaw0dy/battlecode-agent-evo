@@ -48,8 +48,11 @@ bool has_lock() {
 
 float unit_dps(const Unit& u) { return u.str + 0.25f * u.focus; }
 
+constexpr bool kUseLocks = true;           // place altar locks at all (A/B switch: on, enemy tributes -7%)
 constexpr int kLockRange = 2;              // altar locks are placed within this distance
 constexpr int kLockGems = 15;
+constexpr bool kPreLock = true;            // lock altars the enemy uses whenever we pass them
+constexpr int kPreLockSlack = 10;          // ... when their spawn is at most this much farther than ours
 constexpr int kBreakCost = 12;             // turns an enemy lock adds to an altar (5 hits and the risk)
 constexpr int kBankStick = 6;              // keep the chosen altar unless another is this much closer              // lock ahead of an enemy carrying at least this many gems
 constexpr float kForeignValue = 0.5f;      // groups on the enemy side
@@ -83,7 +86,7 @@ constexpr float kSightValue2 = 0.35f;      // ... near two or more
 
 // Put our lock on an altar within reach. Returns true when it was placed.
 bool place_lock(vec2 altar) {
-    if (!has_lock() || cambc::vision::has_altar_lock(altar)) return false;
+    if (!kUseLocks || !has_lock() || cambc::vision::has_altar_lock(altar)) return false;
     if (cheb(cambc::self().position(), altar) > kLockRange) return false;
     try {
         return cambc::self().consumables()[cambc::consumable_type::altar_lock].use(altar);
@@ -393,11 +396,12 @@ bool Bot::dash_towards(vec2 p, bool away) {
 
 // Locks block the enemy's tributes at an altar (not ours) and placing one cancels their running channels.
 bool Bot::handle_locks() {
-    if (!has_lock() || W.enemies.empty()) return false;
+    if (!has_lock()) return false;
     const vec2 pos = cambc::self().position();
     for (auto& a : W.altars) {
         if (cheb(a.pos, pos) > kLockRange || cambc::vision::has_altar_lock(a.pos)) continue;
-        bool want = false;
+        // An altar they can reach about as easily as we can: lock it on the way past (it never blocks us).
+        bool want = kPreLock && a.theirs <= a.ours + kPreLockSlack;
         for (const auto& e : W.enemies) {
             if (e.tribute && cheb(e.pos, a.pos) <= cambc::constants::submit_gems_range) want = true;  // cancel it
             if (e.gems >= kLockGems && cheb(e.pos, a.pos) <= 4) want = true;                          // shut the door
