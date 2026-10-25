@@ -22753,17 +22753,18 @@
    "status": "verified"
   },
   "r07-C": {
+   "arrived_at": 1792945366,
    "generation": 7,
    "pushed_at": 1792945232,
    "pushed_commit": "1e2434d5dafc629ec99d146f723643928207c766",
+   "results_commit": "df7ccdfeb07b54cd6634f0c0c24263c69c61989d",
    "retries": 0,
    "stage": "C",
-   "status": "pending"
+   "status": "arrived"
   }
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-25T07:51:18Z g03 f03-02: dead (deadline)",
   "2026-10-25T07:51:20Z g03 f03-03: dead (deadline)",
   "2026-10-25T07:51:22Z g03 f03-04: dead (deadline)",
   "2026-10-25T07:51:24Z g03 f03-05: dead (deadline)",
@@ -22962,10 +22963,11 @@
   "2026-10-25T16:17:42Z g07 r07-B-spot: pushed 833322ceb8 (40 sampled games, 27 shards)",
   "2026-10-25T16:20:04Z g07 r07-B: verified, 1952 rows, spot-check 40 OK",
   "2026-10-25T16:20:15Z g07 phase EVAL_C_PENDING: stage C for f07-03 vs f07-01",
-  "2026-10-25T16:20:32Z g07 r07-C: pushed 1e2434d5da with 9 shards"
+  "2026-10-25T16:20:32Z g07 r07-C: pushed 1e2434d5da with 9 shards",
+  "2026-10-25T16:22:46Z g07 phase EVAL_C_DONE: results for r07-C"
  ],
  "paused": null,
- "phase": "EVAL_C_PENDING",
+ "phase": "EVAL_C_DONE",
  "sessions_launched": 57,
  "version": 1
 }
