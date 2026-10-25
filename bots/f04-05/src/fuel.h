@@ -19,6 +19,15 @@ inline bool live() { return cambc::round_number() == g_round; }
 inline bool fuel(std::uint64_t need) { return cambc::fuel_remaining() > need; }
 void warn(const char* where, const std::exception& e);
 
+// A champion's live state without exceptions: false when it is not in our vision (a thrown cambc::error
+// costs ~3,000 fuel; position() of an ally out of sight throws).
+inline bool peek(const cambc::champion& c, cambc::detail::champion_info& out) {
+    const auto h = static_cast<std::uint32_t>(static_cast<cambc::handle_champion_t>(c));
+    std::int32_t alive = 0;
+    if (cambc::detail::sdk_champion_is_alive(h, &alive) != 0 || alive == 0) return false;
+    return cambc::detail::sdk_champion(h, &out) == 0;
+}
+
 // Vision snapshot, refreshed lazily after anything that changes what we see.
 struct View {
     cambc::bitboard vis, camps, champs, tele, foes;

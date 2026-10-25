@@ -81,15 +81,13 @@ const View& view() {
     v.allies.clear();
     v.ally_types.clear();
     for (size_t i = 0; i < g_others.size(); ++i) {
-        try {
-            const auto& a = g_others[i];
-            if (!a.is_alive()) continue;
-            const vec2 p = a.position();
-            if (!inside(p)) continue;
-            v.allies.push_back(p);
-            v.ally_types.push_back(g_other_types[i]);
-            raw_set(v.champs.ptr(), p);
-        } catch (const cambc::error&) {}
+        cambc::detail::champion_info info{};
+        if (!peek(g_others[i], info)) continue;
+        const vec2 p{info.x, info.y};
+        if (!inside(p)) continue;
+        v.allies.push_back(p);
+        v.ally_types.push_back(g_other_types[i]);
+        raw_set(v.champs.ptr(), p);
     }
     v.ok = true;
     return v;

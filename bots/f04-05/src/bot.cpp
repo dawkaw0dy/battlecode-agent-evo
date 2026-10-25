@@ -1255,8 +1255,9 @@ bool Bot::enemies() {
     write_sighting(theirs.front().pos);
     for (const auto& a : others_)
         try {
-            if (!a.is_alive()) continue;
-            const vec2 p = a.position();
+            cambc::detail::champion_info info{};
+            if (!peek(a, info)) continue;  // out of our sight (position() would throw)
+            const vec2 p{info.x, info.y};
             if (!inside(p)) continue;
             // Near us or near the enemies: our own step must not change who counts.
             bool near = cheb(p, pos_) <= 7;
