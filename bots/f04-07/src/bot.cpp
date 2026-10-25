@@ -56,6 +56,7 @@ constexpr int kBankGems = 25;
 constexpr int kCaptureTimeout = 14;
 constexpr int kGatherTurns = 12;
 constexpr float kHealHp = 0.75f;
+constexpr int kJungleShards = 5;
 
 // ---------------------------------------------------------------- static map knowledge
 struct Group {
@@ -376,7 +377,7 @@ void shop() {
     } catch (const std::exception& e) { warn("lock buy", e); }
     for (int guard = 0; guard < 20 && me.gold_count() >= 30; ++guard) {
         bc::item_type item = bc::item_type::power_shard_of_strength;
-        if (shards < 5) item = bc::item_type::jungle_shard_of_strength;
+        if (shards < kJungleShards) item = bc::item_type::jungle_shard_of_strength;
         else if ((shards - 5) % 3 == 2) item = bc::item_type::power_shard_of_health;
         if (!me.can_buy(item)) break;
         me.buy(item);
