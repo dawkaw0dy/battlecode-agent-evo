@@ -1247,13 +1247,16 @@ int Bot::choose_target() {
     return best;
 }
 
-// A cluster-only group (no attackers) close by: grab it on the way.
+// A cluster-only group (no attackers) a short walk away: grab it on the way.
 int Bot::pickup() {
-    int best = -1, bd = 6;
+    int best = -1, bd = 7;
     for (int g = 0; g < static_cast<int>(g_.size()); ++g) {
         const GroupK& G = g_[g];
         if (G.st != GroupK::alive || G.total_str > 0 || G.gems + G.gold <= 0 || G.blocked_until > round_) continue;
-        const int d = cheb(pos_, G.center);
+        if (cheb(pos_, G.center) > 6) continue;
+        ensure_field(g);  // walls can make it far
+        if (!G.field.ready()) continue;
+        const int d = G.field.at(pos_);
         if (d < bd) { bd = d; best = g; }
     }
     return best;
@@ -1301,6 +1304,19 @@ void Bot::work(int g) {
             if (f_on) ally_on = true;
             if (cap_rank(f.type) < mine && (f_on || cheb(f.pos, G.center) <= 5)) better_near = true;
         }
+        debug_block({
+            if (on_tile && round_ % 25 == 0) {
+                std::cout << "cap r" << round_ << " " << cambc::to_string(type_) << " g" << g << " p" << pos_.x << "," << pos_.y << " tiles";
+                for (auto t : G.tiles) std::cout << " " << t.x << "," << t.y;
+                std::cout << " camps";
+                for (int ci : G.camps) std::cout << " " << c_[ci].pos.x << "," << c_[ci].pos.y << (c_[ci].alive ? "A" : "d") << cambc::vision::has_camp(c_[ci].pos);
+                try {
+                    auto st = gh_[static_cast<size_t>(g)].state();
+                    std::cout << " live" << st.index();
+                } catch (const std::exception& e) { std::cout << " err" << e.what(); }
+                std::cout << " foes" << foes_.size() << " friends" << friends_.size() << "\n";
+            }
+        });
         if (on_tile && !better_near) { sub_ = 11; return; }  // capturing: hold
         if (ally_on || better_near) {
             // An ally captures it: move on.
@@ -1420,8 +1436,11 @@ void Bot::farm() {
         }
         g = target_;
     }
-    const int p = pickup();
-    if (p >= 0 && (g < 0 || cheb(pos_, g_[p].center) <= 4)) g = p;
+    // A capture in progress is never interrupted for a pickup.
+    if (g < 0 || g_[g].st != GroupK::reward) {
+        const int p = pickup();
+        if (p >= 0 && (g < 0 || g_[p].field.at(pos_) <= 5)) g = p;
+    }
     claim(g);
     if (g < 0) {
         if (gems_ > 0) { bank(); return; }
@@ -1495,7 +1514,7 @@ void Bot::play_turn() {
         if (round_ % 20 == 0) {
             std::cout << "r" << round_ << " " << cambc::to_string(type_) << " s" << slot_ << " p" << pos_.x << "," << pos_.y
                       << " hp" << static_cast<int>(hp_) << "/" << static_cast<int>(max_hp_) << " gems" << gems_ << " gold" << gold_
-                      << " tgt" << target_ << " mode" << mode_;
+                      << " tgt" << target_ << " cl" << (static_cast<int>(claims_[slot_]) - 1) << " mode" << mode_ << "/" << sub_;
             if (target_ >= 0) {
                 float hl = 0; int na = 0;
                 for (int ci : g_[target_].camps) if (c_[ci].alive) { hl += c_[ci].hp; ++na; }
