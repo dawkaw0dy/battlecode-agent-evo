@@ -261,25 +261,18 @@ constexpr int kRallyRounds = 35;       // longest wait for raiders outside a bos
 constexpr float kGatherTurns = 10.0f;  // expected wait for raiders not yet on their way
 }  // namespace
 
-// tmask_[g][c] has bit m set when camp m reaches us while we hit camp c (the parent kept this as an n×n byte
-// table and summed it pairwise; as masks clear_cost() is a few popcounts per camp). Groups past 64 camps keep
-// their first 64, as before.
 void Bot::build_threats() {
-    tmask_.assign(g_.size(), {});
-    kmask_.assign(g_.size(), {});
+    threat_.assign(g_.size(), {});
     for (size_t i = 0; i < g_.size(); ++i) {
         const auto& g = g_[i];
-        const size_t n = std::min<size_t>(g.tiles.size(), 64);
-        auto& tm = tmask_[i];
-        tm.assign(n, 0);
+        const size_t n = g.tiles.size();
+        auto& t = threat_[i];
+        t.assign(n * n, 0);
         for (size_t m = 0; m < n; ++m) {
-            kmask_[i][std::min<size_t>(static_cast<size_t>(g.kinds[m]), 5)] |= std::uint64_t{1} << m;
             const auto s = camp_spec(g.kinds[m]);
             if (s.str <= 0) continue;
-            const vec2 pm = g.tiles[m];
-            const int reach = s.range - my_range_;
             for (size_t c = 0; c < n; ++c)
-                if (m == c || cheb(pm, g.tiles[c]) <= reach) tm[c] |= std::uint64_t{1} << m;
+                if (m == c || cheb(g.tiles[m], g.tiles[c]) + my_range_ <= s.range) t[m * n + c] = 1;
         }
     }
     cost_.assign(g_.size(), ClearCost{});
@@ -301,29 +294,25 @@ const Bot::ClearCost& Bot::clear_cost(int group) {
     const auto& k = k_[group];
     const size_t n = g.tiles.size();
     std::array<std::pair<float, std::uint8_t>, 64> order;
-    std::uint64_t alive = 0;
+    std::array<std::uint8_t, 64> alive{};
     size_t m = 0;
     for (size_t c = 0; c < n && c < 64; ++c) {
         if (k.hp[c] <= 0) continue;
-        alive |= std::uint64_t{1} << c;
+        alive[c] = 1;
         order[m++] = {camp_spec(g.kinds[c]).str / std::max(1.0f, k.hp[c]), static_cast<std::uint8_t>(c)};
     }
     std::sort(order.begin(), order.begin() + m, [](auto a, auto b) { return a.first > b.first; });
-    const auto& tm = tmask_[group];
-    const auto& km = kmask_[group];
-    std::array<float, 6> str{};
-    for (size_t ty = 0; ty < 6; ++ty) str[ty] = camp_spec(static_cast<cambc::camp_type>(ty)).str;
+    const auto& t = threat_[group];
     cc.base = 0;
     cc.peak = 0;
     for (size_t j = 0; j < m; ++j) {
         const size_t c = order[j].second;
-        const std::uint64_t reach = tm[c] & alive;
         float rate = 0;
-        for (size_t ty = 0; ty < 6; ++ty)
-            if (str[ty] > 0) rate += str[ty] * static_cast<float>(__builtin_popcountll(reach & km[ty]));
+        for (size_t o = 0; o < n && o < 64; ++o)
+            if (alive[o] && t[o * n + c]) rate += camp_spec(g.kinds[o]).str;
         cc.base += k.hp[c] * rate;
         cc.peak = std::max(cc.peak, rate);
-        alive &= ~(std::uint64_t{1} << c);
+        alive[c] = 0;
     }
     return cc;
 }
