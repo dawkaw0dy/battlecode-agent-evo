@@ -143,8 +143,8 @@ void Bot::initialise() {
     g_walls_local.load(walk_walls());
     g_hard_local.load(cambc::map::walls() | cambc::map::altars());
     auto& me = cambc::self();
-    g_ = analyse_map();
-    h_ = cambc::map::camp_groups();
+    h_ = camp_groups_safe();
+    g_ = analyse_map(h_);
     k_.assign(g_.size(), Known{});
     for (size_t i = 0; i < g_.size(); ++i)
         for (auto kind : g_[i].kinds) k_[i].hp.push_back(camp_spec(kind).hp);
@@ -280,8 +280,6 @@ void Bot::observe() {
             continue;
         }
         if (k.state == Known::respawning) continue;
-        // A reward we are not after only needs an occasional look.
-        if (k.state == Known::reward && static_cast<int>(i) != target_ && (now + static_cast<int>(i)) % 4 != 0) continue;
         {
             int timer = 0;
             const int st = group_state(h_[i], timer);
@@ -1606,11 +1604,15 @@ void Bot::turn() {
             plug_ = -1;
             if (!plug_altar_) return;
         }
-        const auto st = k_[plug_].state;
-        if (st == Known::respawning || st == Known::reward || now - plug_since_ > 40 || remaining(plug_) <= 0) plug_ = -1;
-        else if (hp > max_hp * 0.4f) {
-            farm(plug_);
-            return;
+        // (The parent read k_[plug_] here after clearing plug_ for an altar guard: k_[-1], an out-of-range read
+        // that trapped once the heap layout changed.)
+        if (plug_ >= 0) {
+            const auto st = k_[plug_].state;
+            if (st == Known::respawning || st == Known::reward || now - plug_since_ > 40 || remaining(plug_) <= 0) plug_ = -1;
+            else if (hp > max_hp * 0.4f) {
+                farm(plug_);
+                return;
+            }
         }
     }
     g_mode = 6;

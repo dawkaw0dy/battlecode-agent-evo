@@ -37,9 +37,16 @@ void warn(const char* where, const std::exception& e) {
 
 // ---------------------------------------------------------------- snapshot
 
-View g_view;
-
 namespace {
+// Built on first use: a bitboard sizes its storage from the SDK's map layout, which is itself captured during
+// dynamic initialisation; a global board in this file may be constructed first, get no storage, and then
+// every host write into it overruns the heap (it trapped on 01boss-battle).
+View* g_view_p = nullptr;
+View& gv() {
+    if (!g_view_p) g_view_p = new View();
+    return *g_view_p;
+}
+
 // What the current snapshot was taken from. Within our turn nobody else moves, so allies are read once a
 // round, and the visible tiles only change when we move (we place no wards).
 std::uint32_t g_vis_round = 0xffffffffu;
@@ -72,6 +79,7 @@ void read_ally_handles() {
 }
 
 void read_allies() {
+    View& g_view = gv();
     if (!g_handles) read_ally_handles();
     g_view.allies.clear();
     g_view.ally_types.clear();
@@ -89,12 +97,13 @@ void read_allies() {
 }  // namespace
 
 void invalidate() {
-    g_view.ok = false;
+    if (g_view_p) g_view_p->ok = false;
     g_foes_ok = {};
     g_locks_ok = {};
 }
 
 const View& view() {
+    View& g_view = gv();
     if (g_view.ok) return g_view;
     const std::uint32_t now = cambc::round_number();
     const vec2 me = cambc::self().position();

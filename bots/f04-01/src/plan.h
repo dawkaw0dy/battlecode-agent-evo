@@ -15,7 +15,10 @@ struct GroupInfo {
 
 // Static walls for our walking: terrain plus the enemy spawn.
 const cambc::bitboard& walk_walls();
+// The map's camp groups (cambc::map::camp_groups() can overrun the heap on maps with many camps).
+std::vector<cambc::map::camp_group> camp_groups_safe();
 std::vector<GroupInfo> analyse_map();
+std::vector<GroupInfo> analyse_map(const std::vector<cambc::map::camp_group>& groups);
 
 // Champion picks in slot order for a team of `size`.
 std::vector<cambc::champion_draft> pick_order(int size);

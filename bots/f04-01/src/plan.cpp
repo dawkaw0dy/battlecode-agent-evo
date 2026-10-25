@@ -1,6 +1,7 @@
 #include "plan.h"
 #include <algorithm>
 #include <cmath>
+#include <memory>
 
 const cambc::bitboard& walk_walls() {
     static const cambc::bitboard w = cambc::map::walls() | cambc::map::holes() | cambc::map::altars()
@@ -17,10 +18,47 @@ int nearest(const cambc::distance_field& f, const cambc::bitboard& seen, const s
 }
 }  // namespace
 
-std::vector<GroupInfo> analyse_map() {
+// cambc::map::camp_groups() first reads the camp layout into a fixed 256-word buffer, and the host writes
+// the whole layout (5 words a group + 4 a camp) even when it is longer: on maps with ~50+ camps that
+// overruns the heap, which trapped (out of bounds) when the buffer happened to end at the top of memory.
+// Same parse, with a buffer that fits the layout from the first call.
+std::vector<cambc::map::camp_group> camp_groups_safe() {
+    namespace d = cambc::detail;
+    std::uint32_t cap = 8192, count = 0;
+    std::unique_ptr<std::uint32_t[]> words(new std::uint32_t[cap]);
+    d::check(d::sdk_map_camp_layout(words.get(), cap, &count));
+    if (count > cap) {
+        cap = count + 1024;
+        words.reset(new std::uint32_t[cap]);
+        d::check(d::sdk_map_camp_layout(words.get(), cap, &count));
+        count = std::min(count, cap);
+    }
+    std::vector<cambc::map::camp_group> result;
+    for (std::size_t i = 0; i + 5 <= count;) {
+        const auto group = words[i];
+        const auto gold = words[i + 1], gems = words[i + 2];
+        const auto respawn = static_cast<std::int32_t>(words[i + 3]);
+        const auto size = words[i + 4];
+        i += 5;
+        std::vector<cambc::camp> camps;
+        camps.reserve(size);
+        for (std::uint32_t m = 0; m < size && i + 4 <= count; ++m, i += 4)
+            camps.push_back(d::handle_access::make_camp(static_cast<cambc::handle_camp_t>(words[i]),
+                static_cast<cambc::handle_camp_group_t>(group), static_cast<cambc::camp_type>(words[i + 1]),
+                vec2{static_cast<std::int32_t>(words[i + 2]), static_cast<std::int32_t>(words[i + 3])}));
+        result.push_back(d::handle_access::make_camp_group(static_cast<cambc::handle_camp_group_t>(group), gold, gems,
+            respawn, std::move(camps)));
+    }
+    return result;
+}
+
+std::vector<GroupInfo> analyse_map() { return analyse_map(camp_groups_safe()); }
+
+// The champions pass the groups they keep anyway: camp_groups() costs ~30k on a map with many camps.
+std::vector<GroupInfo> analyse_map(const std::vector<cambc::map::camp_group>& groups) {
     init_dims();
     std::vector<GroupInfo> out;
-    const auto groups = cambc::map::camp_groups();
+    out.reserve(groups.size());
     const auto walls_e = cambc::map::walls() | cambc::map::holes() | cambc::map::altars()
         | cambc::map::spawn_region(team::ally);
     cambc::distance_field fa, fe;

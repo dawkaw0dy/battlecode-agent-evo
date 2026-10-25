@@ -307,17 +307,17 @@ bool Bot::try_dash(const cambc::distance_field& f, const cambc::bitboard& seen) 
             if (path) cand[n++] = {d, t};
         }
     std::sort(cand.begin(), cand.begin() + n, [](auto a, auto b) { return a.first < b.first; });
+    // The engine's dash path rules can be stricter than ours: try the next landing. The raw cast returns the
+    // refusal as a code (ability::use() would throw it, and a C++ throw costs far more fuel than the cast).
+    const auto slot = static_cast<std::uint32_t>(ab - abs.data());
     for (size_t i = 0; i < n && i < 3; ++i) {
         if (!live()) return false;
-        try {
-            const bool ok = ab->use(cand[i].second);
-            cast_ = true;
-            invalidate();
-            if (!ok) move_failed_ = true;
-            return ok;
-        } catch (const cambc::error&) {
-            // The engine's dash path rules can be stricter than ours: try the next landing.
-        }
+        std::int32_t ok = 0;
+        if (cambc::detail::sdk_cast(slot, 0, 0, cand[i].second.x, cand[i].second.y, &ok) != 0) continue;
+        cast_ = true;
+        invalidate();
+        if (!ok) move_failed_ = true;
+        return ok != 0;
     }
     return false;
 }
