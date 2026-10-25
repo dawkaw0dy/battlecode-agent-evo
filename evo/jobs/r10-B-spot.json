@@ -1,0 +1,240 @@
+{
+ "env_manifest_sha256": "2c6270c1adfbe38115a3054c5689b7922583b2ddc0669d6c5534cb8ae5bf5fd1",
+ "generation": 10,
+ "heldout_repo": "dawkaw0dy/battlecode-agent-evo-heldout",
+ "job_id": "r10-B-spot",
+ "map_sha256": {
+  "00lanes": "8ca26ed2ea65c7d80ceb9604a7431ca1dc056922912b4e2f46cad06051e4886a",
+  "00lost-world": "566697c98eace1c84152f571e9e1fa0b54ec64e038e4695305c874bd3dc2bc6e",
+  "00monolith": "ba5674bf2ab26336eb99df0c9e97c16b27bd231deffc023de1d873a05a558313",
+  "00reverse-spiral": "f57669ffc98b76a5c2e4eccba41690dc193efc29f067ee960605617b2cfb48e5",
+  "00rows": "6a4203ae1bfe86ad0f6b083f390cfd8e2f5e45f7e4102f6a2f27205d5333e701",
+  "00rushbait-v2": "f4dcc30269aa7d0983e7d244f72c3d2a9a6d7ce918cd00495d465b78b2609157",
+  "00stampede": "49807e4756ec1b2030ed2ca7ebdd8a07f1a6ed7f2d2bd751e6941f5c0c877cdc",
+  "00swirl": "e6f860670947b1326f34c86515db8ef6893c565eaa69e3f9a6464ec5744e1c93",
+  "01big-world": "f1ecb726472858efb1d75d00b0d7668be18d83a010b2abf9a1f8c38aab456aa5",
+  "01boss-battle": "53086e249294aed6f427fe647d578303589a081e953c62a0ff8f20cade9993fa",
+  "01concentrated-wealth": "dc09c386d5e9dec3cec8bc4575c19d43233e08790e138ccd02be4644f2808c65",
+  "01elk-arena": "72b8e03bc4378d5f988f9c1c07609848bfb42fd8a883cce01820d96212f21c0a",
+  "01gold-rush": "6e564fdf09fdf67a4182a909d6985737b488742e64f2c3e164204e78bc64c898",
+  "01hooks": "23e58fe8f41ff66761ade251d3d10a9c3eead864f9ad74f12ad9e34f4bece378",
+  "01islands": "d97cf04b738393812fb51024582e2a6cfba8a850b19ce031f2c1ad3d7b916acb",
+  "01the-farm": "5cca9ed6eaaf6ef15a170a4ea78488237fda7b256e182a2e3360a14b485e09c3",
+  "h-1b58": "87693b47f19c186e0a2f9605d90c89032b8877ff5216b9f18829095fe198cba6",
+  "h-1b59": "b283e684b10c7a8d7c5bd4d6cd4533db04fbb6588748ef53ce73f7504cf0ba55",
+  "h-1b5b": "9a6c2084d609d27cf7b9eb183eb5e46f16a442caa7b187646540329a951b3502",
+  "h-1b5e": "069c2161c732cf3bb2cafe3a317a0c8a7fbf917afe02f931853015cdcc8fe9cf",
+  "h-1cec": "cd7bbee79257e81d33e3eda06ab17a960aa94e8d922a453b42739bc6dae8c261",
+  "h-1cef": "1024c41f6d1d2d491d883e9acbc7d48ec73beedfc45fa7e31bdd076d407dbd42",
+  "h-1e7a": "770ec046edcf0c02690086c001ca3e681601d290f83f4f18a10dd4128116eecb",
+  "h-1e7d": "30de071943beda86486c5b987fbd8a7fd88544429fe64ee5927da08a6d9143fd"
+ },
+ "runner_version": "cambc==3.0.5",
+ "runs_on": "ubuntu-22.04",
+ "shards": [
+  {
+   "a": "f10-01",
+   "b": "f07-02",
+   "maps": [
+    "00lanes"
+   ]
+  },
+  {
+   "a": "f10-01",
+   "b": "f08-04",
+   "maps": [
+    "00rushbait-v2",
+    "01elk-arena",
+    "01hooks",
+    "01the-farm"
+   ]
+  },
+  {
+   "a": "f10-01",
+   "b": "f08-04",
+   "heldout": true,
+   "maps": [
+    "h-1b5b",
+    "h-1cec"
+   ]
+  },
+  {
+   "a": "f10-01",
+   "b": "f10-02",
+   "maps": [
+    "00rows",
+    "01big-world",
+    "01concentrated-wealth"
+   ]
+  },
+  {
+   "a": "f10-01",
+   "b": "f10-02",
+   "heldout": true,
+   "maps": [
+    "h-1e7a"
+   ]
+  },
+  {
+   "a": "f10-01",
+   "b": "f10-05",
+   "maps": [
+    "00monolith",
+    "01gold-rush"
+   ]
+  },
+  {
+   "a": "f10-01",
+   "b": "f10-05",
+   "heldout": true,
+   "maps": [
+    "h-1b59",
+    "h-1cec"
+   ]
+  },
+  {
+   "a": "f10-01",
+   "b": "starter",
+   "maps": [
+    "01islands"
+   ]
+  },
+  {
+   "a": "f10-01",
+   "b": "starter",
+   "heldout": true,
+   "maps": [
+    "h-1b5b"
+   ]
+  },
+  {
+   "a": "f10-02",
+   "b": "f07-02",
+   "heldout": true,
+   "maps": [
+    "h-1b5b"
+   ]
+  },
+  {
+   "a": "f10-02",
+   "b": "f08-04",
+   "maps": [
+    "00stampede"
+   ]
+  },
+  {
+   "a": "f10-02",
+   "b": "f09-01",
+   "maps": [
+    "01islands"
+   ]
+  },
+  {
+   "a": "f10-02",
+   "b": "f10-05",
+   "maps": [
+    "00swirl",
+    "01boss-battle",
+    "01elk-arena",
+    "01hooks",
+    "01islands"
+   ]
+  },
+  {
+   "a": "f10-02",
+   "b": "f10-05",
+   "heldout": true,
+   "maps": [
+    "h-1e7d"
+   ]
+  },
+  {
+   "a": "f10-02",
+   "b": "starter",
+   "maps": [
+    "00lost-world"
+   ]
+  },
+  {
+   "a": "f10-02",
+   "b": "starter",
+   "heldout": true,
+   "maps": [
+    "h-1b58",
+    "h-1b5e"
+   ]
+  },
+  {
+   "a": "f10-03",
+   "b": "f07-02",
+   "maps": [
+    "01gold-rush"
+   ]
+  },
+  {
+   "a": "f10-03",
+   "b": "f09-01",
+   "maps": [
+    "01concentrated-wealth"
+   ]
+  },
+  {
+   "a": "f10-03",
+   "b": "f10-02",
+   "maps": [
+    "00reverse-spiral",
+    "01gold-rush"
+   ]
+  },
+  {
+   "a": "f10-03",
+   "b": "f10-05",
+   "maps": [
+    "00stampede"
+   ]
+  },
+  {
+   "a": "f10-03",
+   "b": "starter",
+   "maps": [
+    "00swirl"
+   ]
+  },
+  {
+   "a": "f10-05",
+   "b": "f07-02",
+   "heldout": true,
+   "maps": [
+    "h-1e7d"
+   ]
+  },
+  {
+   "a": "f10-05",
+   "b": "f08-04",
+   "maps": [
+    "00rows",
+    "00swirl",
+    "01gold-rush"
+   ]
+  },
+  {
+   "a": "f10-05",
+   "b": "starter",
+   "heldout": true,
+   "maps": [
+    "h-1cef"
+   ]
+  }
+ ],
+ "src_sha256": {
+  "f07-02": "ccb9f3204d24c0444839560e9a817e36470082d7f187faf31d6eefde7b5c53e0",
+  "f08-04": "a7b076bbcfd73f4e88ad4fbfb3e907067ea39ccff1604cdfe74a65a7406321a6",
+  "f09-01": "43816d64dcee63f7aae46d7e312635401ab5533ce1d1299fdca2e20e78ecad39",
+  "f10-01": "f96531b1622a54cded4a2120d762ca383d0b748380b0bdba3960ee910edf0ed2",
+  "f10-02": "0a319e6100caa9046c9b804a4f7ed29e893729d1e8cb1117b9a76d1867ba35e7",
+  "f10-03": "6adc87eb07bb5c5ea5e509b4bb5d9150cd530c06659f4efaa1e439dd37a69ba8",
+  "f10-05": "e09a84faadadd779ed75ba0a950dba7bdb2c37cc15b2e4210dcb9de7ed235e3b",
+  "starter": "9023e6a089796897d6ed661f26054d1b81b298e048a09a5df75d3b9cb5d3c6a9"
+ },
+ "stage": "spot"
+}
