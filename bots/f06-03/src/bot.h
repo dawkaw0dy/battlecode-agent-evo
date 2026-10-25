@@ -74,11 +74,11 @@ class Bot {
     Bits spawn_local_;                  // our spawn tiles
     int fight_round_ = -100;            // last round we weighed a fight ...
     bool fight_engaged_ = false;        // ... and whether we took it
-    int spawn_hold_ = 0;
-    int alive_round_ = -1, last_mode_ = 0, diag_gems_ = 0, diag_hp_ = 0, diag_flee_ = 0;
-    std::string diag_line_;  // trace only                // turns spent holding our spawn against enemies
-    int chase_turns_ = 0, no_chase_until_ = -1;
-    int wait_in_ = 0, wait_last_ = -100;  // turns spent waiting outside a ranged enemy's range  // a chase that lands no hit is dropped
+    int spawn_hold_ = 0;                // turns spent holding our spawn against enemies
+    int alive_round_ = -1, last_mode_ = 0, diag_gems_ = 0, diag_hp_ = 0, diag_flee_ = 0;  // trace only
+    std::string diag_line_;             // trace only: the last fight decision
+    int chase_turns_ = 0, no_chase_until_ = -1;  // a chase that lands no hit is dropped
+    int wait_in_ = 0, wait_last_ = -100;  // turns spent waiting outside a ranged enemy's range
 
     // Per turn.
     vec2 pos_{};

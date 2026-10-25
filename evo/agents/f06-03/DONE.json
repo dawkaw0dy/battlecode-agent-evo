@@ -1,0 +1,27 @@
+{
+ "agent": "f06-03",
+ "task_sha256": "d218421f2442dafdf4b01c3436fb58fe96d7ba69c072307a1bb7b2d0d5037b51",
+ "base_commit": "8ea5f84a9c9994dcece9da33a3c0ebc245df2144",
+ "session_id": "cse_01GQ9NtwAjynBkkeARmwCNZu",
+ "bot_dir": "bots/f06-03",
+ "self_eval": {
+  "vs": "f05-03",
+  "games": 80,
+  "wins": 50
+ },
+ "games_played": 850,
+ "summary": "A (f05-02) + f05-03's contest of tributing enemies, channel-aware fight model, own-tribute guard, ranged wait-in outside a ranged enemy's range; vs B 50/80, vs A 38/80, vs f04-05 45/80, vs f03-05 47/80",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "8da1437926729df349b76cd9c211931c90673786ec5e4c6c97fa449d9ba532c4",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 21.8,
+  "remote": "true",
+  "session_id": "cse_01GQ9NtwAjynBkkeARmwCNZu",
+  "effort_level": "high",
+  "model": null
+ }
+}
