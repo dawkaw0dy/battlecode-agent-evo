@@ -134,6 +134,18 @@ void Bot::init() {
         G.max_respawn = g.max_respawn_timer();
         groups_.push_back(std::move(G));
     }
+    // Static reachability from our spawn: groups we can never walk to are ignored.
+    {
+        bc::distance_field field;
+        bc::bitboard visited;
+        field.compute(static_blocked(), bc::map::spawn_region(team::ally), visited);
+        for (auto& G : groups_) {
+            int best = bc::distance_field::unreachable;
+            for (auto p : G.tiles) best = std::min<int>(best, field.get(p));
+            G.home_dist = best;
+        }
+    }
+    bad_until_.assign(groups_.size(), 0);
     altars_ = bc::map::altars().positions();
     const auto spawn = bc::map::spawn_region(team::ally).positions();
     long sx = 0, sy = 0;
@@ -248,7 +260,7 @@ void Bot::lead(int squad) {
     float best_score = 0, cur_score = 0;
     for (int i = 0; i < static_cast<int>(groups_.size()); ++i) {
         const auto& G = groups_[i];
-        if (G.tiles.empty() || (i == other && !(squad == 0 && raid))) continue;
+        if (G.tiles.empty() || G.home_dist >= 60000 || bad_until_[i] > round_ || (i == other && !(squad == 0 && raid))) continue;
         if (G.boss && squad != 0) continue;
         const int n = G.boss ? avail_all : avail_sq;
         const float dps = dps_one * static_cast<float>(n);
@@ -297,6 +309,11 @@ void Bot::lead(int squad) {
             || (engage_since_ >= 0 && round_ - engage_since_ > (groups_[best].boss ? 30 : 15)))
             mem_[1] |= ebit;
     }
+    debug_block({
+        if (round_ <= 200 && round_ % 8 == 0)
+            std::cout << "L r" << round_ << " best" << best << " cur" << cur << " near" << near << " need" << n_need
+                      << " es" << engage_since_ << " m1 " << int(mem_[1]) << " str" << (best >= 0 ? groups_[best].str : -1) << "\n";
+    });
     bc::shared_memory[1] = mem_[1];
     bc::shared_memory[tb] = mem_[tb];
 }
@@ -705,13 +722,15 @@ bool Bot::work_target(int t, bool engage) {
             G.reward_ready = true;
             return work_target(t, engage);
         }
-        if (dist(pos, G.center) > 1) {
-            bc::bitboard g;
-            g.clear();
-            box(g, G.center, 2);
-            if (!step_to(g) && !moved_ && !move_failed_) {
-                try { if (me.move_towards(G.center)) moved_ = true; } catch (const std::exception&) {}
-            }
+        // Hidden camp tiles (often in bushes): walk next to them, into the bush if there is one.
+        bc::bitboard g;
+        g.clear();
+        for (auto p : G.tiles)
+            if (!visible.is_set(p)) box(g, p, 1);
+        auto in_bush = g & bc::map::bushes();
+        if (!in_bush.is_empty()) g = in_bush;
+        if (!step_to(g) && !moved_ && !move_failed_ && !g.is_set(pos)) {
+            try { if (me.move_towards(G.center)) moved_ = true; } catch (const std::exception&) {}
         }
         return true;
     }
@@ -830,6 +849,20 @@ void Bot::play_turn() {
         last_target_ = target;
         approach_ = 3;
         no_hit_turns_ = 0;
+        prog_best_ = 1 << 20;
+        prog_since_ = round_;
+    }
+    // Leader progress check: a target we cannot get close to is skipped for a while.
+    if (leader == slot_ && target >= 0) {
+        const int d = dist(pos, groups_[target].center);
+        if (d < prog_best_ || d <= groups_[target].range + 2) {
+            prog_best_ = d;
+            prog_since_ = round_;
+        } else if (round_ - prog_since_ > 25) {
+            bad_until_[target] = round_ + 150;
+            prog_best_ = 1 << 20;
+            prog_since_ = round_;
+        }
     }
     const bool engage = (mem_[1] & ((squad == 0 || raid) ? 1 : 4)) != 0;
 

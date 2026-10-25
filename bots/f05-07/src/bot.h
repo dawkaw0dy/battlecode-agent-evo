@@ -16,6 +16,7 @@ struct Group {
     bool reward_ready = false;
     int max_respawn = 60;
     int last_seen = -1000;
+    int home_dist = 0;               // walking distance from our spawn (65535: unreachable)
 };
 
 // Per-champion state survives between turns.
@@ -25,6 +26,8 @@ class Bot {
     bool ranged_ = false;
     std::vector<cambc::map::camp_group> handles_;
     std::vector<Group> groups_;
+    std::vector<int> bad_until_;     // leader: groups we failed to reach, skipped until this round
+    int prog_best_ = 1 << 20, prog_since_ = 0;
     std::vector<cambc::vec2> altars_;
     cambc::vec2 home_{};
     int bought_ = 0;
