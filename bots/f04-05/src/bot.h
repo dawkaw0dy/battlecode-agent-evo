@@ -44,6 +44,8 @@ class Bot {
     cambc::bitboard altar_spots_;
     std::vector<vec2> altars_;          // altar tiles, read once
     std::vector<int> enemy_lock_;       // per altar: round we last saw an enemy lock on it, -1 if seen free since
+    std::vector<int> lock_seen_;        // per altar: round we last saw our own lock on it
+    int lock_try_g_ = -1, lock_try_since_ = 0;
 
     // Memory.
     std::vector<Known> k_;
@@ -105,6 +107,9 @@ class Bot {
     bool strike(std::vector<Fighter>& theirs);
     void fight_spells(std::vector<Fighter>& theirs, bool engage);
     bool tribute();
+    bool deny();
+    bool lock_altars(bool detour, int reach);
+    bool lock_needed() const;
     int choose(int& wait);
     void farm(int group);
     bool hit_group(int group);

@@ -170,6 +170,7 @@ void Bot::initialise() {
     const int ar = cambc::constants::submit_gems_range;
     altars_ = cambc::map::altars().positions();
     enemy_lock_.assign(altars_.size(), -1);
+    lock_seen_.assign(altars_.size(), -1000);
     for (auto a : altars_)
         for (int dy = -ar; dy <= ar; ++dy)
             for (int dx = -ar; dx <= ar; ++dx) {

@@ -33,6 +33,10 @@ constexpr float kEngageBias = -150.0f;  // fight value needed to engage
 constexpr float kStick = 0.0f;       // fight value margin in favour of the last decision
 constexpr bool kDoomedFights = false;  // fight back when fleeing looks fatal anyway
 constexpr float kBossTurns = 8.0f;  // turns a champion must be able to tank a boss
+constexpr bool kLocks = true;       // carry an altar lock: drop it on enemy tributes and on altars we pass
+constexpr bool kLockRunner = true;  // the last pick carries locks to far altars
+constexpr int kLockRange = 2;       // altar lock placement range
+constexpr int kLockDetour = 8;      // walk this far (Chebyshev) out of our way to lock an altar
 
 namespace {
 // Debug: turns spent per activity, printed every 200 rounds.
@@ -96,6 +100,11 @@ void write_sighting(vec2 p) {
     std::array<std::uint8_t, 3> b{static_cast<std::uint8_t>(p.x + 1), static_cast<std::uint8_t>(p.y),
         static_cast<std::uint8_t>((cambc::round_number() >> 2) & 0xff)};
     cambc::shared_memory.write(5, std::span<const std::uint8_t>{b.data(), b.size()});
+}
+
+bool has_lock() {
+    try { return cambc::self().consumables()[cambc::consumable_type::altar_lock].count() > 0; }
+    catch (const cambc::error&) { return false; }
 }
 
 struct Step { it shard, emblem; };
@@ -204,6 +213,13 @@ int Bot::claimed_by_other(int group) const {
 
 void Bot::shop() {
     auto& me = cambc::self();
+    // An altar lock (10 gold) cancels an enemy tribute and blocks enemy tributes: always carry one.
+    if (kLocks && me.gold_count() >= 10 && fuel(15000) && live() && !has_lock()
+        && (!me.is_alive() || spawn_local_.at(pos_))) {
+        try {
+            if (me.can_buy(cambc::consumable_type::altar_lock)) me.buy(cambc::consumable_type::altar_lock);
+        } catch (const cambc::error& e) { warn("buy lock", e); }
+    }
     if (me.gold_count() < 30) return;
     const auto& plan = build_for(me.champion_name());
     for (int guard = 0; guard < 30; ++guard) {
@@ -1491,6 +1507,117 @@ bool Bot::tribute() {
     return go(open, true);
 }
 
+// ---------------------------------------------------------------- altar locks
+//
+// Our locks block only enemy tributes (we tribute through them), and bots of our own lineage before this
+// generation cannot break one. Keep a lock on every altar we come near, drop one on an enemy tribute in
+// progress (placing it cancels the channel), and let the last pick carry locks to far altars.
+
+// An enemy tributing near us: lock its altar or walk into lock range in time.
+bool Bot::deny() {
+    if (!kLocks || !has_lock() || !live()) return false;
+    auto& me = cambc::self();
+    const auto& v = view();
+    if (v.foes.is_empty()) return false;
+    vec2 aim{-1, -1};
+    int aim_gems = 0, aim_left = 0;
+    for (auto p : v.foes.positions()) {
+        if (cheb(p, pos_) > 9 || !v.lvis.at(p)) continue;
+        try {
+            const auto c = cambc::vision::champion_at(p);
+            if (!c.is_submitting_gems()) continue;
+            const int g = static_cast<int>(c.gem_count());
+            if (g < 5 || g <= aim_gems) continue;
+            aim = p;
+            aim_gems = g;
+            aim_left = static_cast<int>(std::ceil(g / 10.0f));
+            try { aim_left = c.remaining_channel_time(); } catch (const cambc::error&) {}
+        } catch (const cambc::error&) {}
+    }
+    if (aim_gems == 0) return false;
+    const auto locked = cambc::vision::altar_lock_tiles();
+    vec2 target{-1, -1};
+    int best = 99;
+    for (auto a : altars_) {
+        if (cheb(a, aim) > cambc::constants::submit_gems_range || bit(locked, a)) continue;
+        const int d = cheb(a, pos_);
+        if (d < best) { best = d; target = a; }
+    }
+    if (best > 9) return false;
+    if (best <= kLockRange) {
+        try {
+            if (me.consumables()[cambc::consumable_type::altar_lock].use(target)) invalidate();
+        } catch (const cambc::error& e) { warn("lock", e); }
+        return false;  // the rest of the turn is free: fight on
+    }
+    // Close enough to arrive before the channel ends?
+    if (best - kLockRange > aim_left + 1) return false;
+    if (me.health() < me.max_health() * 0.35f) return false;
+    auto goal = empty_board();
+    goal.set(target);
+    goal = grow(goal, kLockRange);
+    andnot_into(goal, walk_walls(), goal);
+    if (!go(goal, true)) return false;
+    // Arrived this step: drop it now.
+    if (cheb(target, me.position()) <= kLockRange && live()) {
+        try {
+            if (me.consumables()[cambc::consumable_type::altar_lock].use(target)) invalidate();
+        } catch (const cambc::error& e) { warn("lock2", e); }
+    }
+    return true;
+}
+
+// Keep one of our locks on every altar we come near. True when the turn went into a detour to lock one.
+bool Bot::lock_altars(bool detour, int reach) {
+    if (!kLocks || altars_.empty() || !live()) return false;
+    auto& me = cambc::self();
+    const int now = static_cast<int>(cambc::round_number());
+    const auto& v = view();
+    const auto ours = cambc::vision::altar_lock_tiles(team::ally);
+    const auto any = cambc::vision::altar_lock_tiles();
+    const auto theirs = cambc::vision::altar_lock_tiles(team::enemy);
+    for (size_t i = 0; i < altars_.size(); ++i) {
+        const vec2 a = altars_[i];
+        if (!v.lvis.at(a)) continue;
+        lock_seen_[i] = bit(ours, a) ? now : -1000;
+        enemy_lock_[i] = bit(theirs, a) ? now : -1;
+    }
+    if (!has_lock()) return false;
+    int best = -1, best_d = 99;
+    for (size_t i = 0; i < altars_.size(); ++i) {
+        const vec2 a = altars_[i];
+        if (lock_seen_[i] > -1000 && now - lock_seen_[i] < 150) continue;  // ours, as far as we know
+        const int d = cheb(a, pos_);
+        if (d <= kLockRange && v.lvis.at(a) && !bit(any, a)) {
+            try {
+                if (me.consumables()[cambc::consumable_type::altar_lock].use(a)) {
+                    lock_seen_[i] = now;
+                    invalidate();
+                    return false;
+                }
+            } catch (const cambc::error& e) { warn("lock altar", e); lock_seen_[i] = now; }
+            return false;
+        }
+        if (d < best_d && !bit(any, a)) { best_d = d; best = static_cast<int>(i); }
+    }
+    if (!detour || best < 0 || best_d > reach || incoming_ > 0 || moved_) return false;
+    if (lock_try_g_ != best) { lock_try_g_ = best; lock_try_since_ = now; }
+    if (now - lock_try_since_ > 2 * reach + 6) { lock_seen_[static_cast<size_t>(best)] = now; return false; }  // cannot get there
+    auto goal = empty_board();
+    goal.set(altars_[static_cast<size_t>(best)]);
+    goal = grow(goal, kLockRange);
+    andnot_into(goal, walk_walls(), goal);
+    return go(goal, true);
+}
+
+// Some altar we have not seen our lock on lately (so the runner should fetch another lock).
+bool Bot::lock_needed() const {
+    const int now = static_cast<int>(cambc::round_number());
+    for (size_t i = 0; i < altars_.size(); ++i)
+        if (lock_seen_[i] <= -1000 || now - lock_seen_[i] >= 150) return true;
+    return false;
+}
+
 // ---------------------------------------------------------------- turn
 
 
@@ -1607,6 +1734,8 @@ void Bot::turn() {
     if (!live()) return;
     g_mode = 2;
     try {
+        if (deny()) return;
+        lock_altars(false, 0);
         if (enemies()) return;
         fp("enemies");
     } catch (const cambc::error& e) { warn("enemies", e); }
@@ -1664,6 +1793,13 @@ void Bot::turn() {
     g_mode = 6;
     if (tribute()) return;
     fp("tribute");
+    // The last pick runs locks to altars nobody passes (the enemy's own banks), between fights.
+    const bool runner = kLockRunner && slot_ == size_ - 1 && size_ >= 3 && now < 1600
+        && me.gem_count() == 0 && hp > max_hp * 0.6f;
+    if (lock_altars(true, runner ? 60 : kLockDetour)) return;
+    if (runner && !has_lock() && !at_spawn && incoming_ == 0 && me.gold_count() >= 10 && lock_needed()) {
+        if (recall_or_walk(6)) return;
+    }
     g_mode = 7;
 
     const int t = target_;
