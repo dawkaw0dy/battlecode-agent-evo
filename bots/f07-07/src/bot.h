@@ -9,10 +9,10 @@ struct Body {
     cambc::vec2 pos;
     float hp = 0, max_hp = 1, strength = 0, focus = 0;
     float dps = 0;          // estimated damage per turn, spells averaged over their cooldown
-    float burst = 0;        // damage it can deal this turn with ready resources (enemies: guessed)
     int range = 1;
     int type = 0;
     unsigned id = 0;
+    unsigned gems = 0;
     bool melee = true, stunned = false, channelling = false;
     bool on_spawn = false;  // standing on its own spawn (heals fully, untouchable for us)
 };
@@ -41,10 +41,13 @@ struct Group {
     float max_hp = 0, strength = 0;
     int range = 3;
     bool boss = false;
+    int home_dist = 0;      // walking distance from our spawn
+    int enemy_dist = 0;     // walking distance from the enemy spawn
     int dead_until = 0;     // known to be respawning (or captured) until this round
     int state = 0;          // last seen state: 0 unknown, 1 alive, 2 reward, 3 respawning
     int seen = -1000;       // round of the last observation
     float hp_left = -1;     // last seen remaining monster health (-1: assume full)
+    int danger_until = 0;   // enemies were seen near it
 };
 
 // One of our ability slots, decoded once.
@@ -64,74 +67,66 @@ private:
     bool ready = false;
     int width = 0, height = 0;
     cambc::bitboard static_block;     // walls, holes, altars, enemy spawn
+    cambc::bitboard terrain;          // walls, holes, altars
     cambc::bitboard ally_spawn, enemy_spawn;
+    cambc::bitboard altar_goals;      // free tiles next to an altar
     cambc::distance_field home_field; // walking distance to our spawn (terrain only)
     cambc::distance_field enemy_field;// walking distance to the enemy spawn (terrain only)
+    cambc::distance_field altar_field;// walking distance to the nearest altar tile
     std::vector<cambc::vec2> altars;
     std::vector<Group> groups;
     std::vector<std::int16_t> group_at; // camp spawn tile -> group index
     cambc::vec2 home_center, enemy_center;
     int my_index = 0;                 // position among allied champion handles
     int team_count = 0;
-    std::vector<Body> ally_design;    // base-stat estimate per ally index, for allies out of sight
     std::vector<unsigned> ally_ids;
     std::array<Spell, 2> spells{};
     int shards_bought = 0;
+    float my_dps = 50;                // our damage per turn against camps
 
     // ---- per-turn snapshot ----
     unsigned round = 0;
     cambc::vec2 pos;
     float hp = 0, max_hp = 1, strength = 0, focus = 0;
     int range = 1, type = 0;
+    unsigned gems = 0, gold = 0;
     bool melee = true;
     bool moved = false, attacked = false, cast = false, cast_exclusive = false, move_blocked = false;
     std::vector<Body> enemies, allies;
     std::vector<CampSeen> camps;
     cambc::bitboard visible, occupied;
-    std::vector<int> alive_enemy_types;
-    int alive_allies = 0;
-    int alive_enemies = 0;
-
-    // ---- team coordination (shared memory) ----
-    std::array<std::uint8_t, 8> mem{};
-    int leader = -1;
-    bool is_leader = false;
-    cambc::vec2 leader_pos{-1, -1};
-    bool leader_fresh = false;
-    int mode = 0, mode_arg = 255;     // leader plan: 0 none, 1 farm, 2 bank, 3 hunt
-    cambc::vec2 sighting{-1, -1};
-    int sighting_age = 1000;
-    bool unavailable = false;
-    int pack_mask = 0;                // allies standing near the leader (shared, bits by index)
-    bool in_pack = false;
-    bool leashed = false;             // while engaging: stay near the pack
-    cambc::vec2 leash_center{-1, -1};
-    int leash_radius = 99;
-    bool leash_ok(cambc::vec2 p) const { return !leashed || p.chebyshev_distance(leash_center) <= leash_radius; }
-
-    // ---- leader planning ----
-    int target = -1;
-    int target_since = 0;
-    int last_plan = -100;
-    cambc::distance_field leader_field;
-    int leader_field_round = -100;
+    int alive_allies = 0, alive_enemies = 0;
 
     // ---- unit memory (vision flickers in bushes) ----
     std::vector<Memory> ally_mem, enemy_mem;
     void remember(std::vector<Memory>& list, const Body& b);
 
-    // ---- team fight call (shared memory) ----
-    bool call_fresh = false;          // a teammate already decided this round
-    bool call_engage = false;
-    cambc::vec2 call_target{-1, -1};
-    int call_age = 1000;
-    int wait_turns = 0;
+    // ---- team coordination (shared memory) ----
+    // [0..4] claimed group per ally index (255 none)  [5,6] alert x,y
+    // [7] alert round (low 6 bits) | help wanted (bit 6) | valid (bit 7)
+    std::array<std::uint8_t, 8> mem{};
+    cambc::vec2 alert{-1, -1};
+    int alert_age = 1000;
+    bool alert_help = false;
+
+    // ---- farming ----
+    int target = -1;
+    int last_plan = -100;
+    cambc::distance_field my_field;
+    int my_field_round = -100;
+    bool banking = false;
 
     // ---- combat memory ----
     unsigned chase_id = 0xFFFFFFFF;
     int chase_turns = 0, chase_best = 1000;
     int no_chase_until = 0;
     int last_enemy_round = -100;
+    float prev_hp = -1;               // our health at the start of the previous turn
+    bool damaged = false;             // lost health since then
+    int ambush_until = -100;          // hit by something we cannot see
+    const char* last_act = "";        // debug: what we did on our last living turn
+    char last_info[160] = {};
+    bool was_alive = true;
 
     // setup and snapshot
     void init();
@@ -139,30 +134,30 @@ private:
     void read_body(const cambc::champion& c, Body& b, bool enemy);
     void update_groups();
     void read_shared();
-    void write_shared();
-    void elect_leader();
-    void plan();
-    int nearest_altar(cambc::vec2 from) const;
+    void post_alert(cambc::vec2 p, bool help);
 
     // decisions
+    void choose_target();
     bool combat();
     void engage(const Body& target);
     void retreat();
-    void farm();
+    bool step_home();
+    bool farm();
     bool bank();
+    bool go_bank();
     void shop();
-    void follow(cambc::vec2 goal, int slack);
 
     // actions
-    bool step_to(const cambc::bitboard& goals, bool slow = false);
+    bool step_to(const cambc::bitboard& goals);
     bool step_toward(cambc::vec2 goal, int within);
     bool attack_body(const Body& b);
     bool attack_camp(const CampSeen& c);
-    bool try_reset_attack(bool camp_target);
+    bool try_reset_attack();
     bool cast_on_enemy(const Body& target, bool allow_exclusive);
     bool cast_on_camp(const CampSeen& c);
     bool cast_support();
     bool try_dash(cambc::vec2 toward, bool away);
     bool free_tile(cambc::vec2 p) const;
     float threat_at(cambc::vec2 p) const;
+    float camp_threat_at(cambc::vec2 p) const;
 };
