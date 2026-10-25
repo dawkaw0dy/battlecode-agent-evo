@@ -32,6 +32,7 @@ constexpr int kMaxChase = 4;
 constexpr int kLockDetour = 12;
 constexpr float kJoinBonus = 1.3f, kRaidWait = 15.0f;
 constexpr int kRaidHold = 30;
+constexpr bool kLocks = true;
 constexpr int kSimTurns = 10;
 constexpr bool kUseSim = true;
 constexpr float kFightMargin = 20.0f, kHuntMargin = 120.0f;
@@ -500,6 +501,11 @@ enum Family { kMonster = 0, kPower = 1, kDurability = 2, kTreasure = 3, kJungle 
 void shop() {
     auto& me = cambc::self();
     unsigned gold = me.gold_count();
+    // An altar lock (10 gold) rides along for every altar we pass.
+    if (kLocks && gold >= 10 && me.can_buy(cambc::consumable_type::altar_lock)) {
+        me.buy(cambc::consumable_type::altar_lock);
+        gold = me.gold_count();
+    }
     if (gold < 30) return;
     const auto stats = me.base_stats();
     std::vector<int> plan;
@@ -1123,7 +1129,7 @@ void choose_target() {
     if (kDebug && best >= 0 && raid_group() == best && raid_owner() != g_index) std::cout << "JOIN r" << g_round << " me" << g_index << " g" << best << '\n';
     if (best != g_target) {
         g_target = best;
-        if (best >= 0 && !g_groups[best].has_field && cambc::fuel_remaining() > 45000)
+        if (best >= 0 && !g_groups[best].has_field && cambc::fuel_remaining() > 60000)
             compute_group_field(g_groups[best]);
         g_approach = g_range;
         g_target_since = g_round;
@@ -1425,6 +1431,26 @@ void go_home() {
     cambc::self().recall();
 }
 
+// Lock every unlocked altar we pass: their carriers must stop and break it, ours tribute freely.
+// Never beside an ally (placing a lock cancels tribute channels at that altar).
+void place_lock() {
+    if (!kLocks) return;
+    for (std::size_t i = 0; i < g_altars.size(); ++i) {
+        const vec2 a = g_altars[i];
+        if (cheb(a, g_pos) > 2) continue;
+        auto& me = cambc::self();
+        const auto lock = me.consumables()[cambc::consumable_type::altar_lock];
+        if (lock.count() == 0) return;
+        if (!cambc::vision::in_vision(a) || cambc::vision::has_altar_lock(a)) continue;
+        bool ally_near = false;
+        for (const auto& u : g_allies)
+            if (cheb(u.pos, a) <= 1) ally_near = true;
+        if (ally_near) continue;
+        lock.use(a);
+        return;
+    }
+}
+
 // Enemies outside our spawn: we heal fully every turn end on it and they cannot step in, so hold it
 // and shoot from it instead of walking out one at a time.
 bool spawn_defense(float sim_value) {
@@ -1583,6 +1609,7 @@ void Bot::play_turn() {
     g_cur_act = busy ? aBusy : aOther;
     if (!busy) {
         bool done = false;
+        place_lock();
         // Stay on spawn for a turn end to heal after a recall.
         if (g_spawn.get(g_pos) && g_hp < g_max_hp * 0.95f && g_enemies.empty()) {
             done = true;
