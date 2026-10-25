@@ -4753,9 +4753,11 @@
   },
   "f09-07": {
    "archetype": "split-farm",
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evo-task-f09-07-w6p1le",
+   "commit": "e958a73309cefc928d0175aa4e7a67518d4ddbcd",
    "deadline_minutes": 120,
+   "done_at": 1792956045,
+   "effort_level": "high",
    "evidence": [],
    "failed_ideas": [
     "f07-02: Fuel: host calls cost ~30\u201340 fuel, but every bitboard temporary (&, |, ~, shift) ~600 and a grow(r) ~4k\u00b7r;",
@@ -4778,6 +4780,7 @@
    "generation": 9,
    "id": "f09-07",
    "kind": "immigrant",
+   "model": null,
    "nudged": [],
    "operator": null,
    "parents": [
@@ -4797,7 +4800,7 @@
    ],
    "slot": 7,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "f2243dce5aafcda2c302992053ae86fbd4baa655ffe49bc3003a3febb6eb739c"
   }
  },
@@ -26570,7 +26573,6 @@
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-25T10:22:11Z g04 phase EVAL_A_PENDING",
   "2026-10-25T10:22:21Z g04 r04-A: pushed 53e6664468 with 28 shards",
   "2026-10-25T10:25:37Z g04 phase EVAL_A_DONE: results for r04-A",
   "2026-10-25T10:25:47Z g04 r04-A-spot: pushed 0f96b65002 (18 sampled games, 12 shards)",
@@ -26769,7 +26771,8 @@
   "2026-10-25T18:59:01Z g09 f09-01: done on origin/claude/evo-f09-01-i5ow1u at 32efcde7c4",
   "2026-10-25T19:00:29Z g09 f09-02: done on origin/claude/evolution-f09-02-2nb8wk at bac9e0f247",
   "2026-10-25T19:00:35Z g09 f09-05: done on origin/claude/evolution-f09-05-pnnp1t at 1bf3bcda8d",
-  "2026-10-25T19:14:52Z g09 f09-03: done on origin/claude/evolution-agent-f09-03-7y4qfw at 77b5abfcb0"
+  "2026-10-25T19:14:52Z g09 f09-03: done on origin/claude/evolution-agent-f09-03-7y4qfw at 77b5abfcb0",
+  "2026-10-25T19:20:45Z g09 f09-07: done on origin/claude/evo-task-f09-07-w6p1le at e958a73309"
  ],
  "paused": null,
  "phase": "RUNNING",
