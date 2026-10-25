@@ -86,7 +86,7 @@ float gold_weight(int round, bool bonus) {
 
 constexpr bool kCapturePriority = false;  // Marcella (gems) or Vesper Vale (gold) captures when near
 constexpr bool kRetreatOnHit = false;  // leave a fight only when champions are hitting us
-constexpr float kEngageBias = -60.0f;  // simulated value margin to take a fight
+constexpr float kEngageBias = -60.0f;   // simulated value margin to take a fight
 constexpr float kShareTurns = 20.0f;   // clears shorter than this (alone) are left to whoever claimed them
 constexpr bool kSharePenalty = false;  // ... measured worse
 constexpr int kBankMin = 15, kBankMax = 40;  // carried gems that start a walk to the altar (by its distance)
@@ -820,15 +820,22 @@ bool Bot::lock_tributes() {
 bool Bot::retreat_step() {
     auto& me = cambc::self();
     if (moved_ || move_fail_ || !me.can_move()) return false;
+    // Living attackers that could reach any tile next to us.
+    int near[24];
+    int nn = 0;
+    for (int ci = 0; ci < static_cast<int>(c_.size()) && nn < 24; ++ci) {
+        const CampK& k = c_[ci];
+        if (k.alive && k.str > 0 && cheb(pos_, k.pos) <= k.range + 1) near[nn++] = ci;
+    }
     auto threat = [&](vec2 t) {
         float s = 0;
         for (const auto& f : foes_) {
             const int reach = f.melee ? 2 : f.range + 1;
             if (cheb(t, f.pos) <= reach) s += f.dps();
         }
-        for (const auto& k : c_) {
-            if (!k.alive || k.str <= 0 || cheb(t, k.pos) > k.range || cheb(pos_, k.pos) > 8) continue;
-            s += k.str * 0.5f;
+        for (int i = 0; i < nn; ++i) {
+            const CampK& k = c_[near[i]];
+            if (cheb(t, k.pos) <= k.range) s += k.str * 0.5f;
         }
         return s;
     };
@@ -1123,8 +1130,11 @@ bool Bot::bank() {
 
 // Trips needed to clear a group: damage taken while focus-firing its attackers weakest first
 // (incoming drops as they die), against the coalition's health and healing. t = turns to clear.
-float Bot::clear_trips(int g, float dps, float tank, float others_hp, float heal, float& t) const {
+// Focus-firing a group's attackers weakest first, the damage taken is K / dps (incoming drops as they
+// die) and the clear takes total_hp / dps. K and total_hp are computed once per group and round.
+void Bot::clear_profile(int g, float& K, float& total) const {
     const GroupK& G = g_[g];
+    if (G.prof_round == round_) { K = G.prof_k; total = G.prof_hp; return; }
     float att_hp[32], att_str[32];
     int n = 0;
     float rest = 0, inc = 0;
@@ -1137,21 +1147,29 @@ float Bot::clear_trips(int g, float dps, float tank, float others_hp, float heal
     }
     for (int i = 1; i < n; ++i)
         for (int j = i; j > 0 && att_hp[j] < att_hp[j - 1]; --j) { std::swap(att_hp[j], att_hp[j - 1]); std::swap(att_str[j], att_str[j - 1]); }
-    dps = std::max(10.0f, dps);
-    float dmg = 0;
-    t = 0;
+    K = 0;
+    total = rest;
     for (int i = 0; i < n; ++i) {
-        const float dt = att_hp[i] / dps;
-        dmg += dt * inc * 0.85f;
-        t += dt;
+        K += att_hp[i] * inc * 0.85f;
+        total += att_hp[i];
         inc -= att_str[i];
     }
-    t += rest / dps;
-    const float cap = 0.75f * (tank + 0.5f * others_hp) + heal * t;
-    return dmg / std::max(100.0f, cap);
+    G.prof_round = round_;
+    G.prof_k = K;
+    G.prof_hp = total;
 }
 
-float Bot::score(int g) const {
+// Trips needed to clear a group against the coalition's health and healing. t = turns to clear.
+float Bot::clear_trips(int g, float dps, float tank, float others_hp, float heal, float& t) const {
+    float K = 0, total = 0;
+    clear_profile(g, K, total);
+    dps = std::max(10.0f, dps);
+    t = total / dps;
+    const float cap = 0.75f * (tank + 0.5f * others_hp) + heal * t;
+    return K / dps / std::max(100.0f, cap);
+}
+
+float Bot::score(int g, float floor) const {
     const GroupK& G = g_[g];
     if (G.blocked_until > round_ || G.tiles.empty()) return -1;
     const float value = G.gems + gold_weight(round_, type_ == champion_type::vesper_vale) * G.gold;
@@ -1160,6 +1178,11 @@ float Bot::score(int g) const {
     if (G.st == GroupK::respawning) {
         wait = G.ready - round_;
         if (wait > 90) return -1;
+    }
+    // Cheap bound first (whole value, no clear time, every bonus): most groups stop here.
+    {
+        const int d0 = G.field.ready() ? G.field.at(pos_) : cheb(pos_, G.center) * 5 / 4 + 2;
+        if (d0 >= kFar || value * 2.4f / static_cast<float>(std::max(d0, wait) + 8) <= floor) return -1;
     }
     // Allies who claim it fight with us; if that is not enough, count who else would have to come.
     float dps = base_dps_, tank = melee_ ? max_hp_ : max_hp_ * 0.8f, others_hp = 0, heal = healer_ ? 45.0f : 0.0f;
@@ -1209,8 +1232,15 @@ int Bot::choose_target() {
     PROF(8); g_stage = 8;
     int best = -1;
     float bs = 0;
+    // The current target first: a good early best prunes most of the others.
+    if (target_ >= 0 && target_ < static_cast<int>(g_.size())) {
+        const float s = score(target_, 0);
+        if (s > bs) { bs = s; best = target_; }
+    }
     for (int g = 0; g < static_cast<int>(g_.size()); ++g) {
-        const float s = score(g);
+        if (g == target_) continue;
+        if (best >= 0 && cambc::fuel_remaining() < 30000) break;  // out of budget: keep the best so far
+        const float s = score(g, bs);
         if (s > bs) { bs = s; best = g; }
     }
     if (best >= 0) ensure_field(best);
@@ -1383,7 +1413,8 @@ void Bot::farm() {
     if (g < 0) {
         bool valid = target_ >= 0 && g_[target_].blocked_until <= round_;
         if (valid && g_[target_].st == GroupK::respawning && g_[target_].ready - round_ > 15) valid = false;
-        if (!valid || round_ - target_at_ >= 6) {
+        // Re-plan every 6 rounds (later when this turn is already expensive) or when the target is gone.
+        if (!valid || (round_ - target_at_ >= 6 && cambc::fuel_remaining() > 65000) || round_ - target_at_ >= 12) {
             target_ = choose_target();
             target_at_ = round_;
         }
@@ -1458,7 +1489,7 @@ void Bot::play_turn() {
     });
     if (me.is_recalling()) ++acc_[1];
     if (me.is_submitting_gems()) ++acc_[2];
-    if (slot_ == 0 && round_ % 250 == 0) prof_dump(round_);
+    if (round_ % 250 == 0) prof_dump(round_);
     if (me.is_recalling() || me.is_submitting_gems() || me.is_teleporting()) return;
     debug_block({
         if (round_ % 20 == 0) {

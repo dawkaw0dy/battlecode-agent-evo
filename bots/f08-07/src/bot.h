@@ -27,6 +27,8 @@ struct GroupK {
     int seen = -1;            // last round any spawn tile was in vision
     int blocked_until = -1;   // given up on until this round
     bool plug = false;        // its spawn tiles are the only tribute tiles
+    mutable int prof_round = -1;          // clear profile cache (see Bot::clear_profile)
+    mutable float prof_k = 0, prof_hp = 0;
     Field field;              // walking distance to the spawn tiles, filled lazily
 };
 
@@ -127,8 +129,9 @@ class Bot {
     // Targets.
     void claim(int g);
     int choose_target();
-    float score(int g) const;
+    float score(int g, float floor) const;
     float clear_trips(int g, float dps, float tank, float others_hp, float heal, float& t) const;
+    void clear_profile(int g, float& K, float& total) const;
     void work(int g);
     int pickup();
 

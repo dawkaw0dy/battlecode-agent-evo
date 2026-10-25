@@ -2,6 +2,7 @@
 // #define F0807_PROFILE
 // Geometry and raw engine-buffer helpers shared by the draft and the champions.
 #include <cambc.h>
+#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <memory>
@@ -67,19 +68,25 @@ inline bool is_melee_type(cambc::champion_type t) {
 // Fuel profiler (compiled in only with -DF0807_PROFILE edits; off in submissions).
 #ifdef F0807_PROFILE
 #include <iostream>
-inline std::uint64_t g_prof[24];
+inline std::uint64_t g_prof[24], g_prof_max[24];
 inline std::uint32_t g_prof_n[24];
 struct ProfScope {
     int i;
     std::uint64_t start;
     explicit ProfScope(int k) : i(k), start(cambc::fuel_remaining()) {}
-    ~ProfScope() { g_prof[i] += start - cambc::fuel_remaining(); ++g_prof_n[i]; }
+    ~ProfScope() {
+        const auto now = cambc::fuel_remaining();
+        if (now > start) return;  // resumed in a later round
+        g_prof[i] += start - now;
+        g_prof_max[i] = std::max(g_prof_max[i], start - now);
+        ++g_prof_n[i];
+    }
 };
 #define PROF(k) ProfScope prof_scope_##k(k)
 inline void prof_dump(int round) {
     std::cout << "prof r" << round;
     for (int i = 0; i < 24; ++i)
-        if (g_prof_n[i]) std::cout << ' ' << i << ':' << (g_prof[i] / g_prof_n[i]) << 'x' << g_prof_n[i];
+        if (g_prof_n[i]) std::cout << ' ' << i << ':' << (g_prof[i] / g_prof_n[i]) << '/' << g_prof_max[i] << 'x' << g_prof_n[i];
     std::cout << '\n';
 }
 #else
