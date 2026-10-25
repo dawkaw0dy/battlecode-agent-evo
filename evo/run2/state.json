@@ -2145,9 +2145,11 @@
   },
   "f04-05": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evolution-f04-05-fh7434",
+   "commit": "37f39ca4676f1ea7fd19507b373a24b1f302a633",
    "deadline_minutes": 120,
+   "done_at": 1792923685,
+   "effort_level": "high",
    "evidence": [
     {
      "gems_opponent": 1135,
@@ -2195,6 +2197,7 @@
    "generation": 4,
    "id": "f04-05",
    "kind": "child",
+   "model": null,
    "nudged": [
     "session_01Winrb6m3K71KbQwzDaiM8a"
    ],
@@ -2217,14 +2220,16 @@
    ],
    "slot": 5,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "4386b807c7f235d9caffe06785c897c5cad12845b7f530cdb85a045d3c03d374"
   },
   "f04-06": {
    "archetype": "early-aggression",
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evolution-f04-06-4g2zm2",
+   "commit": "e43fb70163335148f785418fca9d61bfd176b752",
    "deadline_minutes": 120,
+   "done_at": 1792923688,
+   "effort_level": "high",
    "evidence": [],
    "failed_ideas": [
     "f02-01: Fuel: host calls cost ~30\u201340 fuel, but every bitboard temporary (&, |, ~, shift) ~600 and a grow(r) ~4k\u00b7r;",
@@ -2247,6 +2252,7 @@
    "generation": 4,
    "id": "f04-06",
    "kind": "immigrant",
+   "model": null,
    "nudged": [
     "session_013pJi6b3rXrK6nFdM8jEW1a"
    ],
@@ -2269,14 +2275,16 @@
    ],
    "slot": 6,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "5ee2d77279324db632c1a97f3d4d0bf927ec654405d7229701cd7a680ab23508"
   },
   "f04-07": {
    "archetype": "vision-ambush",
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evolution-agent-f04-07-8zue17",
+   "commit": "c04bc1f805cfd8ca88882e3b4c5a6554ffb1c751",
    "deadline_minutes": 120,
+   "done_at": 1792923691,
+   "effort_level": "high",
    "evidence": [],
    "failed_ideas": [
     "f02-01: Fuel: host calls cost ~30\u201340 fuel, but every bitboard temporary (&, |, ~, shift) ~600 and a grow(r) ~4k\u00b7r;",
@@ -2299,6 +2307,7 @@
    "generation": 4,
    "id": "f04-07",
    "kind": "immigrant",
+   "model": null,
    "nudged": [
     "session_01JbTePEteoJaNKpNmfXAd4T"
    ],
@@ -2321,7 +2330,7 @@
    ],
    "slot": 7,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "8ccd26209d08390af9104688782a3c0cfa478d3a71740d226b55a8628617abc5"
   }
  },
@@ -11397,10 +11406,14 @@
   "2026-10-25T10:19:42Z g04 f04-01: done on origin/claude/evolution-agent-f04-01-8bdn1t at 8212f146f6",
   "2026-10-25T10:19:45Z g04 f04-02: done on origin/claude/evolution-task-f04-02-pes1td at 3c14532e62",
   "2026-10-25T10:19:48Z g04 f04-03: done on origin/claude/evolution-agent-f04-03-8c434x at 349cf6f2c0",
-  "2026-10-25T10:19:54Z g04 f04-04: done on origin/claude/evolution-f04-04-thg6on at 1620fe260f"
+  "2026-10-25T10:19:54Z g04 f04-04: done on origin/claude/evolution-f04-04-thg6on at 1620fe260f",
+  "2026-10-25T10:21:25Z g04 f04-05: done on origin/claude/evolution-f04-05-fh7434 at 37f39ca467",
+  "2026-10-25T10:21:28Z g04 f04-06: done on origin/claude/evolution-f04-06-4g2zm2 at e43fb70163",
+  "2026-10-25T10:21:31Z g04 f04-07: done on origin/claude/evolution-agent-f04-07-8zue17 at c04bc1f805",
+  "2026-10-25T10:21:31Z g04 phase ADMITTED"
  ],
  "paused": null,
- "phase": "RUNNING",
+ "phase": "ADMITTED",
  "sessions_launched": 36,
  "version": 1
 }
