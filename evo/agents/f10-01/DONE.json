@@ -1,0 +1,27 @@
+{
+ "agent": "f10-01",
+ "task_sha256": "6377c98826e8e05f11e68b5d7111afc7948f32008f96693e184bbaba65419ac3",
+ "base_commit": "4aaa39a9751e20d6b742ae4c5943352e35e134ff",
+ "session_id": "cse_01BjFLAiku3qeCkoXJnuEMN3",
+ "bot_dir": "bots/f10-01",
+ "self_eval": {
+  "vs": "f08-04",
+  "games": 80,
+  "wins": 55
+ },
+ "games_played": 900,
+ "summary": "f09-01 with kFleeHp 0.5->0.7 and kHuntPad 3->2: mirror vs parent 45/80, vs f06-05 67/80 (parent 58), vs f08-04 55/80 (parent 56)",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "115cd88fd4114caf0cb6833b9f885905db7678fd9dc70e4949b4f7e7f4141a60",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 23.64,
+  "remote": "true",
+  "session_id": "cse_01BjFLAiku3qeCkoXJnuEMN3",
+  "effort_level": "high",
+  "model": null
+ }
+}
