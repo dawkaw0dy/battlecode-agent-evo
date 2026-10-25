@@ -53,8 +53,8 @@ SpellInfo spell_info(const cambc::ability& ab) {
 
 // Shop order: camp damage first, then camp toughness, then raw stats.
 cambc::item_type shop_item(int n) {
-    if (n < 5) return cambc::item_type::monster_shard_of_strength;
-    if (n < 10) return cambc::item_type::jungle_shard_of_health;
+    if (n < 5) return cambc::item_type::jungle_shard_of_strength;
+    if (n < 10) return cambc::item_type::monster_shard_of_strength;
     if (n < 15) return cambc::item_type::power_shard_of_strength;
     if (n < 20) return cambc::item_type::durability_shard_of_health;
     return (n % 2) ? cambc::item_type::power_shard_of_health : cambc::item_type::power_shard_of_strength;
@@ -201,7 +201,7 @@ int Bot::choose_target() {
 
     const int my_home = spawn_field.get(pos);
     const float gold_w = round < 600 ? kGoldEarly : kGoldLate;
-    const float camp_taken = shards >= 10 ? 0.7f : 1.f; // jungle emblem
+    const float camp_taken = shards >= 5 ? 0.7f : 1.f; // jungle emblem
     int best = -1;
     float best_score = 0;
     for (std::size_t gi = 0; gi < groups.size(); ++gi) {
