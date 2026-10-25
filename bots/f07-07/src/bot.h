@@ -95,7 +95,7 @@ private:
     int range = 1, type = 0;
     unsigned gems = 0, gold = 0;
     bool melee = true;
-    bool moved = false, attacked = false, cast = false, cast_exclusive = false, move_blocked = false;
+    bool moved = false, walked = false, attacked = false, cast = false, cast_exclusive = false, move_blocked = false;
     std::vector<Body> enemies, allies;
     std::vector<CampSeen> camps;
     cambc::bitboard visible, occupied;

@@ -29,6 +29,7 @@ constexpr float kEngageValue = 150.0f;  // fight when the simulated outcome is w
 constexpr float kRecallHp = 0.3f;
 constexpr int kBankGems = 20;
 constexpr int kChaseTurns = 6;
+constexpr bool kWards = true;           // ward hidden bushes next to us
 constexpr float kOurEfficiency = 1.0f;  // share of our estimated damage that lands in a real fight
 constexpr float kBurstWeight = 0.0f;    // first-turn burst in the fight simulation (off: measured worse)
 constexpr int kHelpRange = 14;
@@ -236,7 +237,7 @@ void Bot::snapshot() {
     my_dps = std::max(10.0f, kit_dps(type, strength, focus));
     damaged = prev_hp >= 0 && hp < prev_hp - 1.0f;
     prev_hp = hp;
-    moved = attacked = cast = cast_exclusive = move_blocked = false;
+    moved = walked = attacked = cast = cast_exclusive = move_blocked = false;
 
     visible = cambc::vision::visible_tiles();
     const auto enemy_tiles = cambc::vision::champion_tiles(team::enemy);
@@ -377,25 +378,32 @@ bool Bot::step_to(const cambc::bitboard& goals_in) {
     field.compute_to(blocked, goals, start, visited);
     if (!visited.is_set(pos)) return false;
     const int here = field.get(pos);
-    vec2 best = pos;
-    int bd = here;
-    float bt = threat_at(pos);
+    // Candidate steps, best first; an ally hidden in a bush can still hold a tile.
+    std::array<std::pair<float, vec2>, 8> cand{};
+    int nc = 0;
     for (auto d : kDirs) {
         const vec2 n = pos + d;
         if (!in_map(n, width, height) || blocked.is_set(n) || !visited.is_set(n)) continue;
         const int v = field.get(n);
         if (v >= here) continue;
-        const float t = threat_at(n);
-        if (v < bd || (v == bd && t < bt)) bd = v, best = n, bt = t;
+        cand[static_cast<std::size_t>(nc++)] = {static_cast<float>(v) * 1000.0f + threat_at(n), n};
     }
-    if (best == pos) return false;
-    if (!me.move_absolute(best)) {
-        move_blocked = true;
-        return false;
+    std::sort(cand.begin(), cand.begin() + nc, [](const auto& a, const auto& b) { return a.first < b.first; });
+    for (int i = 0; i < nc && i < 3; ++i) {
+        const vec2 n = cand[static_cast<std::size_t>(i)].second;
+        try {
+            if (!me.move_absolute(n)) {
+                move_blocked = true;
+                return false;
+            }
+            moved = walked = true;
+            pos = n;
+            return true;
+        } catch (const cambc::error&) {
+            // Known occupied: try the next step.
+        }
     }
-    moved = true;
-    pos = best;
-    return true;
+    return false;
 }
 
 bool Bot::step_toward(vec2 goal, int within) {
@@ -471,7 +479,7 @@ bool Bot::attack_camp(const CampSeen& s) {
 bool Bot::try_reset_attack() {
     auto& me = cambc::self();
     if (cast) return false;
-    if (!attacked && !(moved && !melee)) return false;
+    if (!attacked && !(walked && !melee)) return false;
     for (int s = 0; s < 2; ++s) {
         const auto& sp = spells[static_cast<std::size_t>(s)];
         if (sp.kind != static_cast<int>(cambc::ability_kind::attack_reset)) continue;
@@ -859,7 +867,7 @@ void Bot::engage(const Body& t) {
         } else if (cheb(pos, t.pos) > range) {
             if (!try_dash(t.pos, false)) step_toward(t.pos, range);
             // A walk spends a ranged champion's attack; a reset gives it back.
-            if (cheb(pos, t.pos) <= range && moved) {
+            if (cheb(pos, t.pos) <= range && walked) {
                 if (try_reset_attack()) attack_body(t);
             }
         }
@@ -910,7 +918,7 @@ bool Bot::step_home() {
             return false;
         }
         if (me.move_absolute(best)) {
-            moved = true;
+            moved = walked = true;
             pos = best;
             return true;
         }
@@ -1190,9 +1198,39 @@ void Bot::play_turn() {
             if (attack_body(e)) break;
         done = true;
     }
+    // Next to an altar with gems: bank under fire when we outlive the channel (damage does not stop it).
+    if (!done && gems > 0 && !enemies.empty()) {
+        const float turns = std::max(1.0f, std::ceil(static_cast<float>(gems) / 10.0f)) + 1.0f;
+        if (threat_at(pos) * turns < hp * 0.8f && bank()) {
+            done = true;
+            debug_block({ last_act = "bank under fire"; });
+        }
+    }
     try {
         if (!done && !enemies.empty()) done = combat();
     } catch (const std::exception& e) { warn("combat", e); }
+    // Ward a hidden bush next to us: enemies wait in bushes.
+    if (kWards) {
+        try {
+            const auto st2 = me.state();
+            if (me.ward_cooldown() <= 0 && !st2.contains(cambc::champion_state::submitting_gems)
+                && !st2.contains(cambc::champion_state::recalling)
+                && !me.restrictions().contains(cambc::buff_restrictions::ward)) {
+                const auto own = cambc::vision::ward_tiles(team::ally);
+                vec2 best{-1, -1};
+                int bd = 99;
+                for (int dx = -2; dx <= 2; ++dx) {
+                    for (int dy = -2; dy <= 2; ++dy) {
+                        const vec2 t{pos.x + dx, pos.y + dy};
+                        if (!in_map(t, width, height) || !cambc::map::bushes().is_set(t) || visible.is_set(t) || own.is_set(t)) continue;
+                        const int d = std::abs(dx) + std::abs(dy);
+                        if (d < bd) bd = d, best = t;
+                    }
+                }
+                if (best.x >= 0) me.place_ward(best);
+            }
+        } catch (const std::exception& e) { warn("ward", e); }
+    }
 
     // Hit by something we cannot see (an enemy in a bush): get out of there.
     if (damaged && enemies.empty() && camp_threat_at(pos) <= 0 && !at_spawn) ambush_until = r + 2;
