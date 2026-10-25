@@ -29,6 +29,9 @@ constexpr float kEngageValue = 150.0f;  // fight when the simulated outcome is w
 constexpr float kRecallHp = 0.3f;
 constexpr int kBankGems = 20;
 constexpr int kChaseTurns = 6;
+constexpr float kHomeWeight = 1.0f;     // retreat step: walking distance home ...
+constexpr float kThreatWeight = 10.0f;  // ... against the damage the step exposes us to (10/3: more deaths)
+constexpr float kCloserPenalty = 0.0f;  // ... and stepping towards an enemy
 constexpr bool kWards = true;           // ward hidden bushes next to us
 constexpr float kOurEfficiency = 1.0f;  // share of our estimated damage that lands in a real fight
 constexpr float kBurstWeight = 0.0f;    // first-turn burst in the fight simulation (off: measured worse)
@@ -901,14 +904,26 @@ void Bot::retreat() {
 bool Bot::step_home() {
     auto& me = cambc::self();
     if (moved || move_blocked || cast_exclusive || !me.can_move()) return false;
+    // Homewards first; threat and stepping towards an enemy break ties.
+    auto nearest_enemy = [&](vec2 p) {
+        int d = 99;
+        for (const auto& e : enemies)
+            if (!e.on_spawn) d = std::min(d, cheb(p, e.pos));
+        return d;
+    };
+    const int here_e = nearest_enemy(pos);
+    auto score = [&](vec2 p, int hd) {
+        return static_cast<float>(hd) * kHomeWeight + threat_at(p) * kThreatWeight
+            + (nearest_enemy(p) < here_e ? kCloserPenalty : 0.0f);
+    };
     vec2 best = pos;
-    float bs = threat_at(pos) * 10.0f + static_cast<float>(home_field.get(pos));
+    float bs = score(pos, home_field.get(pos));
     for (auto d : kDirs) {
         const vec2 n = pos + d;
         if (!free_tile(n)) continue;
         const int hd = home_field.get(n);
         if (hd == cambc::distance_field::unreachable) continue;
-        const float s = threat_at(n) * 10.0f + static_cast<float>(hd);
+        const float s = score(n, hd);
         if (s < bs) bs = s, best = n;
     }
     if (best == pos) return false;
