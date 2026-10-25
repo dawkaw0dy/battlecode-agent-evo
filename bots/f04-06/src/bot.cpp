@@ -163,7 +163,7 @@ void init_map() {
     }
     {
         using ct = cambc::champion_type;
-        static constexpr std::array order{ct::vendetta, ct::ryth, ct::vesper_vale, ct::marcella, ct::varg};
+        static constexpr std::array order{ct::vendetta, ct::tavi, ct::vesper_vale, ct::marcella, ct::varg};
         static constexpr std::array pack_of{0, 0, 0, 1, 1};
         g_pack = 4;
         const auto mine = cambc::self().champion_name();
@@ -547,7 +547,7 @@ void turn_body_impl() {
         // Keep recalling unless a foe is about to interrupt it anyway and we could fight back.
         return;
     }
-    if (at_spawn) shop();
+    if (at_spawn || me.passive() == cambc::passive_type::remote_shop) shop();
 
     // Report enemy sightings to the pack.
     if (!foes.empty()) {
