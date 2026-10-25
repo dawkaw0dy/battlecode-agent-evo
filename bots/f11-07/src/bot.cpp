@@ -29,6 +29,10 @@ constexpr float kOtherLane = 0.6f, kEnemySide = 0.45f;
 constexpr float kHealthBias = 1.6f; // >1 favours strength shards
 constexpr float kMinTripTurns = 5.0f, kMaxTrips = 6.0f;
 constexpr int kMaxChase = 4;
+constexpr int kLockDetour = 12;
+constexpr int kSimTurns = 10;
+constexpr bool kUseSim = true;
+constexpr float kFightMargin = 20.0f, kHuntMargin = 120.0f;
 constexpr std::uint16_t kUnreached = distance_field::unreachable;
 constexpr std::array<vec2, 8> kDirs{vec2{0, 1}, vec2{1, 1}, vec2{1, 0}, vec2{1, -1},
     vec2{0, -1}, vec2{-1, -1}, vec2{-1, 0}, vec2{-1, 1}};
@@ -312,7 +316,27 @@ void compute_group_field(Group& g) {
     g.has_field = true;
 }
 
+// One static field per altar (roots: its free neighbours), filled lazily before group fields.
+std::vector<std::unique_ptr<distance_field>> g_altar_fields;
+
+void compute_altar_field(std::size_t i) {
+    bitboard roots;
+    for (auto d : kDirs) {
+        const vec2 p = g_altars[i] + d;
+        if (in_bounds(p) && !g_block.get(p)) roots.set(p);
+    }
+    auto f = std::make_unique<distance_field>();
+    bitboard visited;
+    f->compute((g_block_board | g_camp_board) & ~roots, roots, visited);
+    if (!visited.is_set(cambc::map::spawn_region(team::ally).positions()[0]))
+        f->compute(g_block_board & ~roots, roots, visited);
+    g_altar_fields[i] = std::move(f);
+}
+
 void lazy_fields(std::uint64_t reserve) {
+    if (g_altar_fields.size() != g_altars.size()) g_altar_fields.resize(g_altars.size());
+    for (std::size_t i = 0; i < g_altars.size() && cambc::fuel_remaining() > reserve; ++i)
+        if (!g_altar_fields[i]) compute_altar_field(i);
     while (g_field_next < g_field_order.size() && cambc::fuel_remaining() > reserve) {
         auto& g = g_groups[g_field_order[g_field_next++]];
         if (!g.has_field) compute_group_field(g);
@@ -725,6 +749,102 @@ Fight assess() {
     f.ours = our_dps * our_hp;
     f.theirs = std::max(1.0f, their_dps * their_hp);
     return f;
+}
+
+// Turn-by-turn focus-fire simulation of the fight around us: every unit walks into reach,
+// opens with its burst (reset hit, damage spell) and then hits the weakest opponent it can.
+struct SimUnit {
+    float hp, dps, burst, worth;
+    int delay;
+    bool ours, me, alive;
+};
+
+float spell_burst(cambc::champion_type t, float focus) {
+    using T = cambc::champion_type;
+    switch (t) {
+    case T::cassi: case T::stellar: case T::marcella: return 2.0f * focus;
+    case T::tavi: return 1.4f * focus;
+    case T::prism: return 1.5f * focus;
+    case T::heart_of_ruin: return 1.5f * focus;
+    case T::ryth: return 1.0f * focus;
+    case T::ren: return 0.75f * focus;
+    default: return 0;
+    }
+}
+
+struct SimResult { float value = 0; bool i_die = false; };
+
+SimResult simulate() {
+    auto& me = cambc::self();
+    std::array<SimUnit, 12> u{};
+    std::array<vec2, 12> pos{};
+    int n = 0;
+    auto add = [&](const Unit& x, bool ours, bool is_me, float burst) {
+        if (n >= 12) return;
+        u[n] = {x.hp + shield_hp(x), x.dps, burst, 160.0f + x.gems * 3.0f, 0, ours, is_me, true};
+        pos[n] = x.pos;
+        ++n;
+    };
+    // Our own burst uses live cooldowns; allies' and enemies' spells are assumed ready.
+    float my_burst = 0;
+    const auto abilities = me.abilities();
+    if (g_reset >= 0 && abilities[g_reset].cooldown() == 0) my_burst += g_str;
+    if (g_nuke >= 0 && abilities[g_nuke].cooldown() == 0) my_burst += spell_burst(g_type, g_focus);
+    Unit self{g_pos, g_hp, g_max_hp, g_str, g_focus, g_range, g_type, g_gems, my_dps()};
+    add(self, true, true, my_burst);
+    for (const auto& a : g_allies)
+        if (cheb(a.pos, g_pos) <= 6)
+            add(a, true, false, 0.5f * ((has_reset(a.type) ? a.str : 0) + spell_burst(a.type, a.focus)));
+    int enemies = 0;
+    for (const auto& e : g_enemies)
+        if (cheb(e.pos, g_pos) <= 8) {
+            add(e, false, false, (has_reset(e.type) ? e.str : 0) + spell_burst(e.type, e.focus));
+            ++enemies;
+        }
+    SimResult r;
+    if (enemies == 0) return r;
+    // Turns before each unit can first hit someone.
+    for (int i = 0; i < n; ++i) {
+        int d = 100;
+        for (int j = 0; j < n; ++j)
+            if (u[j].ours != u[i].ours) d = std::min(d, cheb(pos[i], pos[j]));
+        int range = 1;
+        if (i == 0) range = g_range;
+        else {
+            const auto& src = u[i].ours ? g_allies : g_enemies;
+            for (const auto& x : src)
+                if (x.pos == pos[i]) range = x.range;
+        }
+        u[i].delay = range > 1 ? std::max(0, d - range) : std::max(0, d - 2);
+    }
+    std::array<float, 12> start_hp{};
+    for (int i = 0; i < n; ++i) start_hp[i] = u[i].hp;
+    for (int t = 0; t < kSimTurns; ++t) {
+        std::array<float, 12> dmg{};
+        bool any = false;
+        for (int i = 0; i < n; ++i) {
+            if (!u[i].alive || u[i].delay > t) continue;
+            int best = -1;
+            for (int j = 0; j < n; ++j)
+                if (u[j].alive && u[j].ours != u[i].ours && (best < 0 || u[j].hp < u[best].hp)) best = j;
+            if (best < 0) continue;
+            dmg[best] += u[i].dps + (u[i].delay == t ? u[i].burst : 0);
+            any = true;
+        }
+        if (!any) continue;
+        for (int i = 0; i < n; ++i) {
+            if (!u[i].alive) continue;
+            u[i].hp -= dmg[i];
+            if (u[i].hp <= 0) u[i].alive = false;
+        }
+    }
+    for (int i = 0; i < n; ++i) {
+        const float lost = start_hp[i] - std::max(0.0f, u[i].hp);
+        const float sign = u[i].ours ? -1.0f : 1.0f;
+        r.value += sign * (lost * 0.03f + (u[i].alive ? 0.0f : u[i].worth));
+        if (u[i].me && !u[i].alive) r.i_die = true;
+    }
+    return r;
 }
 
 // Pick the enemy we kill fastest, preferring those already in range.
@@ -1144,38 +1264,71 @@ void work_target() {
 
 bool can_tribute_at(std::size_t i) { return g_round - g_altar_enemy_lock[i] > 60; }
 
+// Walking distance to an altar's tribute tiles (Chebyshev estimate until its field exists).
+int altar_dist(std::size_t i, vec2 p) {
+    if (i < g_altar_fields.size() && g_altar_fields[i]) {
+        const int v = field_value(*g_altar_fields[i], p);
+        if (v < 100000 || !g_camp_board.is_set(p)) return v;
+        int best = 100000;
+        for (auto d : kDirs) {
+            const vec2 n = p + d;
+            if (in_bounds(n)) best = std::min(best, field_value(*g_altar_fields[i], n) + 1);
+        }
+        return best;
+    }
+    return std::max(0, cheb(g_altars[i], p) - 1) * 5 / 4;
+}
+
+bool enemy_lock_on(vec2 a) {
+    for (const auto& lock : cambc::vision::altar_locks(team::enemy))
+        if (lock.position() == a) return true;
+    return false;
+}
+
+// Bank at one chosen altar: the nearest, with a detour penalty for one an enemy lock was seen on.
+// A lock in attack range is knocked off with basic attacks (they reach it from range 3).
 bool bank() {
     auto& me = cambc::self();
+    int best = -1, best_d = 1 << 30;
     for (std::size_t i = 0; i < g_altars.size(); ++i) {
-        const vec2 a = g_altars[i];
-        if (cheb(a, g_pos) > cambc::constants::submit_gems_range) continue;
-        if (g_round - g_altar_enemy_lock[i] <= 0) {
-            // Enemy lock beside us: knock it off with basic attacks.
-            if (!g_attacked && me.can_attack())
-                for (const auto& lock : cambc::vision::altar_locks(team::enemy))
-                    if (lock.position() == a && cheb(a, g_pos) <= g_range) {
-                        me.attack(lock);
-                        g_attacked = true;
-                        return true;
-                    }
-            continue;
+        const int d = altar_dist(i, g_pos) + (can_tribute_at(i) ? 0 : kLockDetour);
+        if (d < best_d) { best_d = d; best = static_cast<int>(i); }
+    }
+    if (best < 0) return false;
+    const vec2 a = g_altars[best];
+    const bool locked = cambc::vision::in_vision(a) && enemy_lock_on(a);
+    if (locked) {
+        g_altar_enemy_lock[best] = g_round;
+        if (cheb(a, g_pos) <= g_range && !g_attacked && me.can_attack() && !(g_ranged && g_moved)) {
+            for (const auto& lock : cambc::vision::altar_locks(team::enemy))
+                if (lock.position() == a) {
+                    me.attack(lock);
+                    g_attacked = true;
+                    return true;
+                }
         }
-        if (cambc::vision::has_altar_lock(a)) continue;
+        bitboard goal;
+        goal.draw_chebyshev(a, static_cast<float>(g_range));
+        if (!step_dynamic(goal) && !g_moved && g_altar_fields.size() > static_cast<std::size_t>(best) && g_altar_fields[best])
+            step_static(*g_altar_fields[best]);
+        return true;
+    }
+    if (cheb(a, g_pos) <= cambc::constants::submit_gems_range) {
+        if (cambc::vision::has_altar_lock(a) && !enemy_lock_on(a)) {
+            // Our own lock: tributes still go through.
+        }
         if (!me.can_move()) return true;
         me.submit_gems(a);
         return true;
     }
-    bitboard goal;
-    bool any = false;
-    for (std::size_t i = 0; i < g_altars.size(); ++i) {
-        if (!can_tribute_at(i)) continue;
-        goal.draw_chebyshev(g_altars[i], static_cast<float>(cambc::constants::submit_gems_range));
-        any = true;
+    if (best_d > 6 && g_altar_fields.size() > static_cast<std::size_t>(best) && g_altar_fields[best]
+        && step_static(*g_altar_fields[best]))
+        return true;
+    if (!g_moved) {
+        bitboard goal;
+        goal.draw_chebyshev(a, static_cast<float>(cambc::constants::submit_gems_range));
+        step_dynamic(goal);
     }
-    if (!any)
-        for (auto a : g_altars) goal.draw_chebyshev(a, 1.0f);
-    if (field_value(g_altar_field, g_pos) > 5 && step_static(g_altar_field)) return true;
-    if (!g_moved) step_dynamic(goal);
     return true;
 }
 
@@ -1347,40 +1500,66 @@ void Bot::play_turn() {
                 g_trace += " allies" + std::to_string(g_allies.size()) + " ";
             }
             const float ratio = f.ours / f.theirs;
-            // Focus fire kills the weakest first: a champion that dies to two turns of burst steps back.
-            const bool fragile = g_hp < f.burst * 1.1f && ratio < 3.0f;
-            if (fragile && f.threatened) {
-                trace("fragile");
-                if (!attack_kill_in_range()) flee();
-                done = true;
-            } else if (f.engaged) {
-                // Equal speeds: running from someone already in reach rarely works.
-                if (ratio > 1.0f + g_gems / 200.0f && g_round >= g_no_chase_until) {
-                    trace("fight");
+            if (kUseSim) {
+                const auto sim = simulate();
+                const float my_worth = 160.0f + g_gems * 3.0f;
+                const bool good = sim.value > kFightMargin + g_gems * 0.5f && (!sim.i_die || sim.value > my_worth * 1.5f);
+                if (kDebug) g_trace += "sim=" + std::to_string(static_cast<int>(sim.value)) + (sim.i_die ? "D " : " ");
+                if (f.engaged || f.threatened) {
+                    if (good && g_round >= g_no_chase_until) {
+                        trace("fight");
+                        done = do_fight();
+                        if (f.engaged) call_help();
+                        if (!done && f.engaged) {
+                            trace("flee");
+                            flee();
+                            done = true;
+                        }
+                    } else {
+                        trace("flee");
+                        if (!attack_kill_in_range()) flee();
+                        done = true;
+                    }
+                } else if (sim.value > kHuntMargin && !sim.i_die && g_hp > g_max_hp * 0.5f) {
+                    trace("hunt");
                     done = do_fight();
-                    call_help();
-                    if (!done) {
+                }
+            } else {
+                // Focus fire kills the weakest first: a champion that dies to two turns of burst steps back.
+                const bool fragile = g_hp < f.burst * 1.1f && ratio < 3.0f;
+                if (fragile && f.threatened) {
+                    trace("fragile");
+                    if (!attack_kill_in_range()) flee();
+                    done = true;
+                } else if (f.engaged) {
+                    // Equal speeds: running from someone already in reach rarely works.
+                    if (ratio > 1.0f + g_gems / 200.0f && g_round >= g_no_chase_until) {
+                        trace("fight");
+                        done = do_fight();
+                        call_help();
+                        if (!done) {
+                            trace("flee");
+                            flee();
+                            done = true;
+                        }
+                    } else {
                         trace("flee");
                         flee();
                         done = true;
                     }
-                } else {
-                    trace("flee");
-                    flee();
-                    done = true;
-                }
-            } else if (f.threatened) {
-                if (ratio > caution + 0.25f) {
-                    trace("fight");
+                } else if (f.threatened) {
+                    if (ratio > caution + 0.25f) {
+                        trace("fight");
+                        done = do_fight();
+                    } else {
+                        trace("flee");
+                        flee();
+                        done = true;
+                    }
+                } else if (ratio > 2.0f && g_hp > g_max_hp * 0.5f) {
+                    trace("hunt");
                     done = do_fight();
-                } else {
-                    trace("flee");
-                    flee();
-                    done = true;
                 }
-            } else if (ratio > 2.0f && g_hp > g_max_hp * 0.5f) {
-                trace("hunt");
-                done = do_fight();
             }
         }
         if (!done && g_enemies.empty()) done = answer_help();
