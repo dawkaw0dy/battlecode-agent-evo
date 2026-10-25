@@ -636,7 +636,7 @@ bool Bot::handle_enemies() {
     if (!fight && !caught && dmin > 7) return false;
     if (fight) {
         spell_on_foe(false);
-        if (weak && me.can_attack()) {
+        if (weak && me.can_attack() && cambc::vision::has_champion(weak->pos)) {
             try {
                 me.attack(cambc::vision::champion_at(weak->pos));
                 attacked_ = true;
@@ -721,7 +721,8 @@ void Bot::lock_altars() {
     if (!has_lock_) return;
     for (std::size_t i = 0; i < altars_.size(); ++i) {
         const vec2 a = altars_[i];
-        if (cheb(a, pos_) > kLockRange || cambc::vision::has_altar_lock(a)) continue;
+        if (cheb(a, pos_) > kLockRange || !raw_bit(vis.ptr(), a) || cambc::vision::has_altar_lock(a)) continue;
+        if (round_ - lock_seen_[i] < 5) continue;  // ours is there (seen from a tile that hides it now)
         try {
             if (lock.use(a)) {
                 lock_seen_[i] = round_;
