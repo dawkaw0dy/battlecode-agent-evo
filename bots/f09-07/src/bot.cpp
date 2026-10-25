@@ -687,7 +687,7 @@ bool Bot::fight_or_flight() {
         fleeing_until = round + 8;
         // The enemy holds this ground: farm elsewhere for a while.
         for (auto& g : groups)
-            if (cheb(g.center, pos) <= 8) g.danger_until = round + 120;
+            if (cheb(g.center, pos) <= 8) g.danger_until = round + 40;
         spells_on_enemy();
         flee_home();
         return true;
@@ -784,7 +784,7 @@ double Bot::group_score(int gi, double& trips_out, double floor) {
         else factor = middle ? 0.6 : 0.7;
     }
     if (gi == target) factor *= round - target_since > 8 ? 1.5 : 1.25;
-    if (g.danger_until > round) factor *= 0.25;
+    if (g.danger_until > round) factor *= 0.6;
     if (report_age <= 20 && report_count >= 2 && cheb(report_pos, g.center) <= 10) factor *= 0.2;
     if (g.state == 1 && (round - g.seen > 10 || cheb(pos, g.center) > 15) && gi != target) return 0;
     const double w = round < 1400 ? 0.35 : 0.1;
