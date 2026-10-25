@@ -25978,7 +25978,9 @@
     "B": [
      "r09-B"
     ],
-    "C": []
+    "C": [
+     "r09-C"
+    ]
    },
    "members": [
     "f08-04",
@@ -27890,6 +27892,152 @@
      ]
     ]
    ],
+   "plan_C": [
+    [
+     [
+      "f09-02",
+      "f09-03"
+     ],
+     [
+      "h-1b58",
+      "h-1b5a",
+      "h-1b5c",
+      "h-1ce8",
+      "h-1ce9",
+      "h-1cea",
+      "h-1ceb",
+      "h-1cee"
+     ]
+    ],
+    [
+     [
+      "f09-02",
+      "starter"
+     ],
+     [
+      "h-1b58",
+      "h-1b5a",
+      "h-1b5c",
+      "h-1ce8",
+      "h-1ce9",
+      "h-1cea",
+      "h-1ceb",
+      "h-1cee"
+     ]
+    ],
+    [
+     [
+      "f09-02",
+      "f06-05"
+     ],
+     [
+      "h-1b58",
+      "h-1b5a",
+      "h-1b5c",
+      "h-1ce8",
+      "h-1ce9",
+      "h-1cea",
+      "h-1ceb",
+      "h-1cee"
+     ]
+    ],
+    [
+     [
+      "f09-02",
+      "f07-02"
+     ],
+     [
+      "h-1b58",
+      "h-1b5a",
+      "h-1b5c",
+      "h-1ce8",
+      "h-1ce9",
+      "h-1cea",
+      "h-1ceb",
+      "h-1cee"
+     ]
+    ],
+    [
+     [
+      "f09-02",
+      "f08-04"
+     ],
+     [
+      "h-1b58",
+      "h-1b5a",
+      "h-1b5c",
+      "h-1ce8",
+      "h-1ce9",
+      "h-1cea",
+      "h-1ceb",
+      "h-1cee"
+     ]
+    ],
+    [
+     [
+      "f09-03",
+      "starter"
+     ],
+     [
+      "h-1b58",
+      "h-1b5a",
+      "h-1b5c",
+      "h-1ce8",
+      "h-1ce9",
+      "h-1cea",
+      "h-1ceb",
+      "h-1cee"
+     ]
+    ],
+    [
+     [
+      "f09-03",
+      "f06-05"
+     ],
+     [
+      "h-1b58",
+      "h-1b5a",
+      "h-1b5c",
+      "h-1ce8",
+      "h-1ce9",
+      "h-1cea",
+      "h-1ceb",
+      "h-1cee"
+     ]
+    ],
+    [
+     [
+      "f09-03",
+      "f07-02"
+     ],
+     [
+      "h-1b58",
+      "h-1b5a",
+      "h-1b5c",
+      "h-1ce8",
+      "h-1ce9",
+      "h-1cea",
+      "h-1ceb",
+      "h-1cee"
+     ]
+    ],
+    [
+     [
+      "f09-03",
+      "f08-04"
+     ],
+     [
+      "h-1b58",
+      "h-1b5a",
+      "h-1b5c",
+      "h-1ce8",
+      "h-1ce9",
+      "h-1cea",
+      "h-1ceb",
+      "h-1cee"
+     ]
+    ]
+   ],
    "ranking": [
     "f09-01",
     "f09-02",
@@ -28915,11 +29063,18 @@
    },
    "stage": "B",
    "status": "verified"
+  },
+  "r09-C": {
+   "generation": 9,
+   "pushed_at": 1792958436,
+   "pushed_commit": "dce4c23cb7499873882c6f0db2983a223279be77",
+   "retries": 0,
+   "stage": "C",
+   "status": "pending"
   }
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-25T10:42:22Z g05 f05-02: launched session_0182PfM3KASh9mvh3J5QwgTt",
   "2026-10-25T10:42:32Z g05 f05-03: launched session_01AgPwQfZCUmjYorzqqBKDqH",
   "2026-10-25T10:42:42Z g05 f05-04: launched session_01FvoKkFvNFyPXqxhvubA3ij",
   "2026-10-25T10:42:51Z g05 f05-05: launched session_019cvvpWK5DtJxeWnyNfoepk",
@@ -29118,7 +29273,8 @@
   "2026-10-25T19:57:39Z g09 phase EVAL_B_DONE: results for r09-B",
   "2026-10-25T19:57:50Z g09 r09-B-spot: pushed 79cf27b8a8 (40 sampled games, 24 shards)",
   "2026-10-25T20:00:10Z g09 r09-B: verified, 1952 rows, spot-check 40 OK",
-  "2026-10-25T20:00:19Z g09 phase EVAL_C_PENDING: stage C for f09-02 vs f09-03"
+  "2026-10-25T20:00:19Z g09 phase EVAL_C_PENDING: stage C for f09-02 vs f09-03",
+  "2026-10-25T20:00:36Z g09 r09-C: pushed dce4c23cb7 with 9 shards"
  ],
  "paused": null,
  "phase": "EVAL_C_PENDING",
