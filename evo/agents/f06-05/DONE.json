@@ -1,0 +1,27 @@
+{
+ "agent": "f06-05",
+ "task_sha256": "adeae9b9c6501efb3ad4922817554350561d739f498e8a3c8673739d1391f6f9",
+ "base_commit": "8ea5f84a9c9994dcece9da33a3c0ebc245df2144",
+ "session_id": "cse_01JC1GLBa5KHGzXXgPFxUF8e",
+ "bot_dir": "bots/f06-05",
+ "self_eval": {
+  "vs": "f05-02",
+  "games": 80,
+  "wins": 45
+ },
+ "games_played": 792,
+ "summary": "f05-03 + combat tweaks: retreating ranged champions take free shots, chases last 8 hitless turns (was 5); vs f05-02 45/80 (parent 34/80), vs f03-05 57/80 (= parent)",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "8da1437926729df349b76cd9c211931c90673786ec5e4c6c97fa449d9ba532c4",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 20.3,
+  "remote": "true",
+  "session_id": "cse_01JC1GLBa5KHGzXXgPFxUF8e",
+  "effort_level": "high",
+  "model": null
+ }
+}
