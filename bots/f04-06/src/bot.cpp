@@ -24,7 +24,7 @@ constexpr float kEngageRatio = 1.1f;     // fight when our square-law power >= t
 constexpr float kCarrierRatio = 1.6f;    // ... when carrying many gems
 constexpr float kRecallHp = 0.50f;       // recall below this share of health with nobody close
 constexpr float kFleeHp = 0.22f;         // always disengage below this share
-constexpr int kBankGems = 30;            // carry at most this many gems before banking
+constexpr int kBankGems = 20;            // carry at most this many gems before banking
 constexpr int kNearAltar = 7;            // bank any gems when an altar is this close
 constexpr int kHuntRange = 14;           // answer a pack sighting this far away
 constexpr int kShopGold = 270;           // recall to shop with this much gold
