@@ -1,0 +1,27 @@
+{
+ "agent": "f05-02",
+ "task_sha256": "9fed51de9841e37a6f99bfcaee5e38e3d95bf834cafdfad622b74f9c0b3e3b52",
+ "base_commit": "eb988a6d870de914fd683b8d104845bef9579798",
+ "session_id": "cse_0182PfM3KASh9mvh3J5QwgTt",
+ "bot_dir": "bots/f05-02",
+ "self_eval": {
+  "vs": "f03-05",
+  "games": 70,
+  "wins": 41
+ },
+ "games_played": 900,
+ "summary": "Spells subsystem rewritten (spells.cpp): one best-scored cast per turn across slots, predicted damage/kills/stun value/channel cancels, resets only with a target left; ~parent strength, 0 faults/errors in 900 games",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "e29689cdcad2cd316aa883dc7a1b92bc3628933c8fd3a82200703046a835d98a",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 19.97,
+  "remote": "true",
+  "session_id": "cse_0182PfM3KASh9mvh3J5QwgTt",
+  "effort_level": "high",
+  "model": null
+ }
+}
