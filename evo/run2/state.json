@@ -5270,7 +5270,9 @@
    "generation": 10,
    "id": "f10-07",
    "kind": "immigrant",
-   "nudged": [],
+   "nudged": [
+    "session_01U78Sckd7oZxrGhFo2MUAxX"
+   ],
    "operator": null,
    "parents": [
     "starter"
@@ -5284,6 +5286,7 @@
      "id": "session_01U78Sckd7oZxrGhFo2MUAxX",
      "launch_output": "Created cloud session: Evolution agent f10-07\nView: https://claude.ai/code/session_01U78Sckd7oZxrGhFo2MUAxX?from=cli&m=0\nResume with: claude --teleport session_01U78Sckd7oZxrGhFo2MUAxX",
      "launched_at": 1792958969,
+     "nudged_at": 1792965003,
      "url": "https://claude.ai/code/session_01U78Sckd7oZxrGhFo2MUAxX"
     }
    ],
