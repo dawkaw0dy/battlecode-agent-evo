@@ -2,6 +2,7 @@
 #include <cambc.h>
 #include <memory>
 #include <vector>
+#include "fight.h"
 #include "world.h"
 
 struct Foe {
@@ -10,11 +11,15 @@ struct Foe {
     int range;
     int dist;
     bool channel;
+    cambc::champion_type type;
+    int gems;
 };
 
 struct Friend {
     vec2 pos;
-    float hp, max_hp, str;
+    float hp, max_hp, str, focus;
+    int range;
+    cambc::champion_type type;
 };
 
 struct CampView {
@@ -48,6 +53,9 @@ class Bot {
 
     int last_enemy_round_ = -1000;
     bool healing_ = false;
+    float fight_value_ = 0;
+    float last_hp_ = 0;
+    int hidden_hit_round_ = -1000;
     bool jungle_ = false;
 
     // Per-turn context.
@@ -60,6 +68,7 @@ class Bot {
     std::vector<Foe> foes_;
     std::vector<Friend> friends_;
     cambc::bitboard blocked_;
+    cambc::bitboard phys_;  // terrain and units only
 
     void init();
     void shop();
@@ -75,9 +84,16 @@ class Bot {
     bool step_away(const cambc::bitboard& danger);
 
     bool handle_enemies();
+    void retreat();
+    bool hit_foe();
+    void foe_spells(bool retreating);
+    void broadcast_sighting();
+    bool sighting(vec2& where);
     bool handle_heal();
+    bool answer_sighting();
     bool should_bank();
     bool bank();
+    bool bank_here();
     void farm();
     void choose_target();
     double score_group(int gi, int dist, int helpers);

@@ -1,6 +1,7 @@
 // Camp sweep: farm camp groups in an efficient loop, bank gems often, avoid fair fights.
 #include <cambc.h>
 #include "bot.h"
+#include "fight.h"
 #include <algorithm>
 #include <array>
 #include <cstdio>
@@ -18,7 +19,20 @@ namespace {
 
 constexpr std::array<vec2, 8> kDirs{vec2{0, 1}, vec2{1, 1}, vec2{1, 0}, vec2{1, -1},
                                     vec2{0, -1}, vec2{-1, -1}, vec2{-1, 0}, vec2{-1, 1}};
-constexpr int kClaimBytes = 6;
+constexpr int kClaimBytes = 5;     // bytes 0..4: target group + 1 per ally slot
+constexpr int kSightByte = 5;      // bytes 5..7: x, y, round & 255 of the latest foe sighting
+constexpr int kSightRounds = 20;
+constexpr float kEngage = 60.0f;   // fight value needed to engage
+constexpr double kCohesion = 0.25; // score bonus per ally target within 10 tiles
+constexpr int kWaryRounds = 15;
+constexpr float kBankPerTile = 1.5f; // carried gems per tile of altar distance that justify a trip
+constexpr int kBankMin = 8;    // after a sighting, heal sooner
+constexpr float kWaryHeal = 0.5f;
+constexpr bool kHelp = false;       // answer allies' sightings
+constexpr int kHelpRange = 12;
+constexpr bool kDumpMap = false;
+constexpr bool kDeathTrace = true;
+constexpr int kTraceFrom = 100000, kTraceTo = 0;
 
 struct Facts {
     bool valid = false;
@@ -138,6 +152,8 @@ void Bot::scan_units() {
             f.range = c.attack_range();
             f.dist = cheb(p, pos_);
             f.channel = c.is_recalling() || c.is_submitting_gems();
+            f.type = c.champion_name();
+            f.gems = static_cast<int>(c.gem_count());
             foes_.push_back(f);
         } catch (...) {}
     }
@@ -145,7 +161,7 @@ void Bot::scan_units() {
         if (p == pos_) continue;
         try {
             auto c = cambc::vision::champion_at(p);
-            friends_.push_back({p, c.health(), c.max_health(), c.strength()});
+            friends_.push_back({p, c.health(), c.max_health(), c.strength(), c.focus(), c.attack_range(), c.champion_name()});
         } catch (...) {}
     }
 }
@@ -356,6 +372,8 @@ void Bot::choose_target() {
     cambc::shared_memory.read(0, std::span<std::uint8_t, kClaimBytes>{buf});
     int best = -1;
     double bs = 0;
+    vec2 seen{};
+    const bool danger = sighting(seen);
     jungle_ = cambc::self().item_count()[cambc::item_type::jungle_emblem_of_health] > 0;
     for (int gi = 0; gi < static_cast<int>(groups.size()); ++gi) {
         const auto& G = groups[gi];
@@ -367,6 +385,11 @@ void Bot::choose_target() {
             if (i != slot_ && buf[i] == gi + 1) ++helpers;
         double s = score_group(gi, dist, helpers);
         if (gi == target_) s *= 1.25;
+        if (danger && cheb(G.center, seen) <= 7) s *= 0.3;
+        // Loose packs: farm near allies so fights are rarely one against several.
+        for (int i = 0; i < kClaimBytes; ++i)
+            if (i != slot_ && buf[i] > 0 && buf[i] - 1 < static_cast<int>(groups.size())
+                && cheb(groups[buf[i] - 1].center, G.center) <= 10) s *= 1.0 + kCohesion;
         if (s > bs) { bs = s; best = gi; }
     }
     if (best != target_) {
@@ -558,150 +581,296 @@ bool Bot::should_bank() {
     if (ours + gems_ >= static_cast<int>(cambc::constants::winning_gems)) return true;
     if (round_ + d + gems_ / 10 + 12 >= static_cast<int>(cambc::constants::max_rounds)) return true;
     if (d <= 3) return true;
-    if (gems_ >= 15 && d <= 12) return true;
-    if (gems_ >= 40) return true;
-    return false;
+    // Worth the detour once the bag outweighs the walk; foes about make bags riskier.
+    const float need = last_enemy_round_ >= round_ - kWaryRounds ? kBankPerTile * 0.6f : kBankPerTile;
+    return gems_ >= std::max(kBankMin, static_cast<int>(need * d));
 }
 
-bool Bot::bank() {
+// Tribute at the nearest altar; an enemy lock on it is broken with basic attacks first.
+bool Bot::bank_here() {
     auto& me = cambc::self();
     for (auto a : world().altars) {
-        if (cheb(a, pos_) > cambc::constants::submit_gems_range) continue;
-        bool enemy_lock = false;
-        try {
-            if (cambc::vision::has_altar_lock(a)) enemy_lock = cambc::vision::altar_lock_at(a).is_enemy();
-        } catch (...) {}
-        if (enemy_lock) continue;
-        if (!exclusive_cast_) {
-            try {
-                me.submit_gems(a);
-                return true;
-            } catch (...) {}
-        }
-    }
-    cambc::bitboard goals = world().altar_adj;
-    for (auto a : world().altars) {
+        const int d = cheb(a, pos_);
+        if (d > std::max(range_, cambc::constants::submit_gems_range)) continue;
         bool enemy_lock = false;
         try {
             if (cambc::vision::has_altar_lock(a)) enemy_lock = cambc::vision::altar_lock_at(a).is_enemy();
         } catch (...) {}
         if (enemy_lock) {
-            cambc::bitboard near;
-            near.draw_chebyshev(a, 1);
-            goals &= ~near;
+            if (!me.can_attack()) continue;
+            try {
+                me.attack(cambc::vision::altar_lock_at(a));
+                attacked_ = true;
+                if (me.can_cast())
+                    for (const auto& ab : me.abilities())
+                        if (ab.is_attack_reset() && ab.is_ready()) {
+                            if (cambc::vision::has_altar_lock(a) && ab.use() && me.can_attack())
+                                me.attack(cambc::vision::altar_lock_at(a));
+                            break;
+                        }
+                return true;
+            } catch (...) {}
+            continue;
         }
-    }
-    if (!travel_on(world().altar, goals, true)) return false;
-    for (auto a : world().altars) {
-        if (cheb(a, pos_) > cambc::constants::submit_gems_range) continue;
+        if (d > cambc::constants::submit_gems_range || exclusive_cast_) continue;
         try {
-            if (cambc::vision::has_altar_lock(a) && cambc::vision::altar_lock_at(a).is_enemy()) continue;
             me.submit_gems(a);
-            break;
+            return true;
         } catch (...) {}
     }
+    return false;
+}
+
+bool Bot::bank() {
+    if (bank_here()) return true;
+    if (!travel_on(world().altar, world().altar_adj, true)) return false;
+    bank_here();
     return true;
+}
+
+void Bot::broadcast_sighting() {
+    const Foe* near = nullptr;
+    for (const auto& f : foes_)
+        if (!near || f.dist < near->dist) near = &f;
+    if (!near) return;
+    std::array<std::uint8_t, 3> v{static_cast<std::uint8_t>(near->pos.x), static_cast<std::uint8_t>(near->pos.y),
+                                  static_cast<std::uint8_t>(round_ & 255)};
+    cambc::shared_memory.write(kSightByte, std::span<std::uint8_t, 3>{v});
+}
+
+bool Bot::sighting(vec2& where) {
+    std::array<std::uint8_t, 3> v{};
+    cambc::shared_memory.read(kSightByte, std::span<std::uint8_t, 3>{v});
+    const int age = (round_ - v[2]) & 255;
+    if (age > kSightRounds || (v[0] == 0 && v[1] == 0 && v[2] == 0)) return false;
+    where = {v[0], v[1]};
+    return true;
+}
+
+// Attack the foe we can finish soonest; channelling and gem-carrying foes first.
+bool Bot::hit_foe() {
+    auto& me = cambc::self();
+    if (!me.can_attack()) return false;
+    const Foe* best = nullptr;
+    float bv = -1;
+    for (const auto& f : foes_) {
+        if (cheb(f.pos, pos_) > range_) continue;
+        const float v = 10000.0f / std::max(1.0f, f.hp) + (f.channel ? 30.0f : 0.0f) + f.gems * 0.5f;
+        if (v > bv) { bv = v; best = &f; }
+    }
+    if (!best) return false;
+    try {
+        me.attack(cambc::vision::champion_at(best->pos));
+        attacked_ = true;
+        if (me.can_cast())
+            for (const auto& a : me.abilities())
+                if (a.is_attack_reset() && a.is_ready()) {
+                    if (cambc::vision::has_champion(best->pos) && a.use() && me.can_attack())
+                        me.attack(cambc::vision::champion_at(best->pos));
+                    break;
+                }
+        return true;
+    } catch (...) { return false; }
+}
+
+void Bot::foe_spells(bool retreating) {
+    auto& me = cambc::self();
+    if (!me.can_cast()) return;
+    int dmin = 99;
+    for (const auto& f : foes_) dmin = std::min(dmin, cheb(f.pos, pos_));
+    for (const auto& a : me.abilities()) {
+        const auto f = facts(a);
+        if (!f.valid || (f.exclusive && (moved_ || retreating))) continue;
+        using K = cambc::ability_kind;
+        if (f.kind != K::damage && f.kind != K::cc && f.kind != K::shield && f.kind != K::aoe_damage) continue;
+        if (!a.is_ready()) continue;
+        try {
+            if (f.kind == K::shield) {
+                if (dmin <= 4 && a.use()) { if (f.exclusive) exclusive_cast_ = true; return; }
+                continue;
+            }
+            const Foe* best = nullptr;
+            float bv = -1;
+            for (const auto& e : foes_) {
+                if (cheb(e.pos, pos_) > f.range) continue;
+                const float v = 10000.0f / std::max(1.0f, e.hp) + e.str + (e.channel ? 50.0f : 0.0f);
+                if (v > bv) { bv = v; best = &e; }
+            }
+            if (!best) continue;
+            const bool ok = f.kind == K::aoe_damage ? a.use(best->pos) : a.use(cambc::vision::champion_at(best->pos));
+            if (ok) {
+                if (f.exclusive) exclusive_cast_ = true;
+                return;
+            }
+        } catch (...) {}
+    }
+}
+
+// Step to the tile that keeps us furthest outside every foe's reach, towards allies and home.
+void Bot::retreat() {
+    auto& me = cambc::self();
+    auto margin_at = [&](vec2 p) {
+        float m = 99;
+        for (const auto& f : foes_) {
+            const int reach = f.range + (f.range > 1 ? 0 : 1);
+            m = std::min(m, static_cast<float>(cheb(p, f.pos) - reach));
+        }
+        return m;
+    };
+    auto tile_value = [&](vec2 p) {
+        const int hd = world().home.get(p);
+        float v = std::min(margin_at(p), 3.0f) * 10.0f - (hd >= kFar ? 500.0f : hd * 1.0f);
+        int ad = 99;
+        for (const auto& f : friends_) ad = std::min(ad, cheb(p, f.pos));
+        if (ad <= 12) v -= 2.0f * ad;
+        return v;
+    };
+    // A dash first when a step alone cannot leave every reach.
+    if (!moved_ && !exclusive_cast_ && me.can_cast()) {
+        float best_step = -1e9f;
+        for (int i = -1; i < 8; ++i) {
+            const vec2 p = i < 0 ? pos_ : pos_ + kDirs[i];
+            if (!in_bounds(p) || (i >= 0 && phys_.is_set(p))) continue;
+            best_step = std::max(best_step, margin_at(p));
+        }
+        if (best_step < 1)
+            for (const auto& a : me.abilities()) {
+                if (!a.is_dash() || !a.is_ready()) continue;
+                vec2 best = pos_;
+                float bv = tile_value(pos_) + 5.0f;
+                for (int dx = -2; dx <= 2; ++dx)
+                    for (int dy = -2; dy <= 2; ++dy) {
+                        const vec2 p{pos_.x + dx, pos_.y + dy};
+                        if (cheb(p, pos_) != 2 || !in_bounds(p) || phys_.is_set(p)) continue;
+                        bool mid = false;
+                        for (auto dd : kDirs) {
+                            const vec2 q = pos_ + dd;
+                            if (in_bounds(q) && !phys_.is_set(q) && cheb(q, p) <= 1) { mid = true; break; }
+                        }
+                        if (!mid) continue;
+                        const float v = tile_value(p);
+                        if (v > bv) { bv = v; best = p; }
+                    }
+                if (best != pos_) {
+                    try {
+                        if (a.use(best)) {
+                            blocked_.set(pos_, true);
+                            pos_ = best;
+                            blocked_.set(pos_, false);
+                        }
+                    } catch (...) {}
+                }
+                break;
+            }
+    }
+    if (me.can_move() && !moved_ && !exclusive_cast_) {
+        vec2 best = pos_;
+        float bv = tile_value(pos_) - 1.0f;
+        for (auto d : kDirs) {
+            const vec2 p = pos_ + d;
+            if (!in_bounds(p) || phys_.is_set(p)) continue;
+            const float v = tile_value(p);
+            if (v > bv) { bv = v; best = p; }
+        }
+        if (best != pos_) {
+            try {
+                if (me.move_absolute(best)) {
+                    blocked_.set(pos_, true);
+                    pos_ = best;
+                    blocked_.set(pos_, false);
+                }
+            } catch (...) {}
+            moved_ = true;
+        }
+    }
+    // Melee can still hit whoever stayed beside us.
+    if (!attacked_) hit_foe();
 }
 
 bool Bot::handle_enemies() {
     if (foes_.empty()) return false;
     auto& me = cambc::self();
     last_enemy_round_ = round_;
-    float a_hp = hp_, a_dps = my_dps();
-    for (const auto& f : friends_)
-        if (cheb(f.pos, pos_) <= 6) { a_hp += f.hp; a_dps += f.str * 1.2f; }
-    float e_hp = 0, e_dps = 0;
+    broadcast_sighting();
+
+    // Local fight model: us within 7 of me, them within 10.
+    std::vector<Body> us, them;
+    auto arrive = [](int d, int range) { return d <= range ? 0 : d - range + (range > 1 ? 1 : 0); };
     int dmin = 99;
-    for (const auto& f : foes_) {
-        if (f.dist > 9) continue;
-        e_hp += f.hp;
-        e_dps += f.str * 1.2f + f.focus * 0.2f;
-        dmin = std::min(dmin, f.dist);
+    for (const auto& f : foes_) dmin = std::min(dmin, f.dist);
+    {
+        Body b;
+        b.pos = pos_;
+        b.hp = hp_ + champ_shield(type_, focus_) * 0.5f;
+        b.dps = champ_dps(type_, str_, focus_);
+        b.range = range_;
+        b.ranged = ranged_;
+        b.arrive = arrive(dmin, range_);
+        b.stake = gems_ * 10.0f;
+        us.push_back(b);
     }
-    if (e_hp <= 0) return false;
-    const bool strong = a_hp * a_dps >= 1.3f * e_hp * e_dps;
+    for (const auto& a : friends_) {
+        if (cheb(a.pos, pos_) > 7) continue;
+        int d = 99;
+        for (const auto& f : foes_) d = std::min(d, cheb(a.pos, f.pos));
+        Body b;
+        b.pos = a.pos;
+        b.hp = a.hp + champ_shield(a.type, a.focus) * 0.5f;
+        b.dps = champ_dps(a.type, a.str, a.focus);
+        b.range = a.range;
+        b.ranged = a.range > 1;
+        b.arrive = arrive(d, a.range) + 1;
+        us.push_back(b);
+    }
+    for (const auto& f : foes_) {
+        if (f.dist > 10) continue;
+        int d = f.dist;
+        for (const auto& a : friends_) d = std::min(d, cheb(a.pos, f.pos));
+        Body b;
+        b.pos = f.pos;
+        b.hp = f.hp + champ_shield(f.type, f.focus) * 0.5f;
+        b.dps = champ_dps(f.type, f.str, f.focus);
+        b.range = f.range;
+        b.ranged = f.range > 1;
+        b.arrive = arrive(d, f.range);
+        b.stake = f.gems * 10.0f;
+        them.push_back(b);
+    }
+    if (them.empty()) return false;
+    const float value = fight_value(us, them, 8);
+    fight_value_ = value;
 
-    // A weak or channelling foe inside our reach is worth a hit either way.
-    auto hit_foe = [&]() {
-        if (!me.can_attack()) return false;
-        const Foe* best = nullptr;
-        float bv = -1;
-        for (const auto& f : foes_) {
-            if (f.dist > range_) continue;
-            const float v = 10000.0f / std::max(1.0f, f.hp) + (f.channel ? 50.0f : 0.0f);
-            if (v > bv) { bv = v; best = &f; }
-        }
-        if (!best) return false;
-        try {
-            me.attack(cambc::vision::champion_at(best->pos));
-            attacked_ = true;
-            if (me.can_cast())
-                for (const auto& a : me.abilities())
-                    if (a.is_attack_reset() && a.is_ready()) {
-                        if (cambc::vision::has_champion(best->pos) && a.use() && me.can_attack())
-                            me.attack(cambc::vision::champion_at(best->pos));
-                        break;
-                    }
-            return true;
-        } catch (...) { return false; }
-    };
-    auto foe_spells = [&]() {
-        if (!me.can_cast()) return;
-        for (const auto& a : me.abilities()) {
-            const auto f = facts(a);
-            if (!f.valid || (f.exclusive && moved_)) continue;
-            using K = cambc::ability_kind;
-            if (f.kind != K::damage && f.kind != K::cc && f.kind != K::shield) continue;
-            if (!a.is_ready()) continue;
-            try {
-                if (f.kind == K::shield) {
-                    if (dmin <= 4 && a.use()) { if (f.exclusive) exclusive_cast_ = true; return; }
-                    continue;
-                }
-                const Foe* best = nullptr;
-                float bv = -1;
-                for (const auto& e : foes_) {
-                    if (e.dist > f.range) continue;
-                    const float v = 10000.0f / std::max(1.0f, e.hp) + e.str;
-                    if (v > bv) { bv = v; best = &e; }
-                }
-                if (best && a.use(cambc::vision::champion_at(best->pos))) {
-                    if (f.exclusive) exclusive_cast_ = true;
-                    return;
-                }
-            } catch (...) {}
-        }
-    };
-
-    if (strong) {
-        bool in_range = false;
-        for (const auto& f : foes_)
-            if (f.dist <= range_) in_range = true;
-        if (in_range) {
-            foe_spells();
-            hit_foe();
-            return true;
-        }
-        if (dmin <= 4) {
+    if (value > kEngage) {
+        foe_spells(false);
+        if (hit_foe()) return true;
+        if (dmin <= 5) {
             const Foe* near = nullptr;
             for (const auto& f : foes_)
                 if (!near || f.dist < near->dist) near = &f;
             cambc::bitboard goals;
             goals.draw_chebyshev(near->pos, static_cast<float>(range_));
             step_toward(goals, false);
-            if (!ranged_) hit_foe();
+            hit_foe();
             return true;
         }
         return false;
     }
 
+    // Keep out of reach of foes we would not fight, whatever we do next (retreat uses phys_).
+    phys_ = blocked_;
+    for (const auto& f : foes_) {
+        cambc::bitboard reach;
+        reach.draw_chebyshev(f.pos, static_cast<float>(f.range + (f.range > 1 ? 1 : 2)));
+        blocked_ |= reach;
+    }
+    blocked_.set(pos_, false);
     bool threat = false;
     for (const auto& f : foes_)
-        if (f.dist <= f.range + 3) threat = true;
+        if (f.dist <= f.range + (f.range > 1 ? 2 : 3)) threat = true;
     if (!threat) return false;
 
     // Outmatched: bank if an altar is right here, otherwise run home.
-    if (gems_ > 0 && dmin >= 2) {
+    if (gems_ > 0 && dmin >= 3) {
         for (auto a : world().altars)
             if (cheb(a, pos_) <= cambc::constants::submit_gems_range) {
                 try {
@@ -712,36 +881,24 @@ bool Bot::handle_enemies() {
                 } catch (...) {}
             }
     }
-    foe_spells();
-    if (ranged_ && !moved_) {
-        // A ranged champion that cannot outrun anyone still shoots the closest threat.
-    }
-    if (me.can_move() && !moved_ && !exclusive_cast_) {
-        vec2 best = pos_;
-        float bv = -1e9f;
-        for (int i = -1; i < 8; ++i) {
-            const vec2 p = i < 0 ? pos_ : pos_ + kDirs[i];
-            if (!in_bounds(p) || (i >= 0 && blocked_.is_set(p))) continue;
-            float margin = 99;
-            for (const auto& f : foes_) margin = std::min(margin, static_cast<float>(cheb(p, f.pos) - f.range));
-            const int hd = world().home.get(p);
-            const float v = std::min(margin, 4.0f) * 10.0f - (hd >= kFar ? 500.0f : hd * 1.0f);
-            if (v > bv) { bv = v; best = p; }
-        }
-        if (best != pos_) {
-            try {
-                if (me.move_absolute(best)) { pos_ = best; }
-            } catch (...) {}
-            moved_ = true;
-        }
-    }
-    if (!attacked_) hit_foe();
-    int dmin2 = 99;
-    for (const auto& f : foes_) dmin2 = std::min(dmin2, cheb(f.pos, pos_));
-    if (dmin2 > 6 && !world().spawn_ally.is_set(pos_) && hp_ < 0.8f * max_hp_) {
-        try { me.recall(); } catch (...) {}
-    }
+    foe_spells(true);
+    retreat();
     return true;
+}
+
+// Healthy champions near a fresh sighting join the fight there.
+bool Bot::answer_sighting() {
+    if (!kHelp || hp_ < 0.6f * max_hp_ || gems_ >= 30) return false;
+    vec2 where;
+    if (!sighting(where)) return false;
+    std::array<std::uint8_t, 3> v{};
+    cambc::shared_memory.read(kSightByte, std::span<std::uint8_t, 3>{v});
+    if (((round_ - v[2]) & 255) > 2) return false;
+    const int d = cheb(where, pos_);
+    if (d > kHelpRange || d <= 3) return false;
+    cambc::bitboard goals;
+    goals.draw_chebyshev(where, 3);
+    return step_toward(goals, true);
 }
 
 bool Bot::handle_heal() {
@@ -753,7 +910,8 @@ bool Bot::handle_heal() {
         return false;
     }
     const float inc = incoming_camp_damage();
-    const bool low = hp_ < 0.3f * max_hp_ || (inc > 0 && hp_ < inc * 2.5f + 40.0f);
+    const float floor = last_enemy_round_ >= round_ - kWaryRounds ? kWaryHeal : 0.3f;
+    const bool low = hp_ < floor * max_hp_ || (inc > 0 && hp_ < inc * 2.5f + 40.0f);
     if (!low && !healing_) return false;
     healing_ = true;
     if (inc > 0) {
@@ -768,7 +926,8 @@ bool Bot::handle_heal() {
     }
     if (gems_ > 0 && altar_distance() <= 2 && bank()) return true;
     const int hd = world().home.get(pos_);
-    if (hd <= 6 || last_enemy_round_ >= round_ - 2) {
+    // Hit by something we cannot see (a foe in a bush): a recall would only be interrupted.
+    if (hd <= 6 || last_enemy_round_ >= round_ - 2 || hidden_hit_round_ >= round_ - 2) {
         travel_on(world().home, world().spawn_ally, true);
         return true;
     }
@@ -797,6 +956,8 @@ void Bot::farm() {
         return;
     }
     if (T.state == kRespawning) {
+        // Spend the wait at an altar when the round trip fits.
+        if (gems_ > 0 && T.ready - round_ > 2 * altar_distance() + 2 && bank()) return;
         bool on_tile = false;
         for (const auto& m : T.m)
             if (m.pos == pos_) on_tile = true;
@@ -810,6 +971,10 @@ void Bot::farm() {
     }
     fight_group(target_);
 }
+
+static std::string g_hist[8];
+static int g_hist_n = 0;
+static bool g_was_alive = true;
 
 static void dump_area(vec2 c, int r, vec2 me) {
     debug_block({
@@ -848,9 +1013,17 @@ void Bot::play_turn() {
     moved_ = exclusive_cast_ = attacked_ = false;
 
     if (!me.is_alive()) {
+        debug_block({
+            if (g_was_alive && kDeathTrace) {
+                std::printf("DEATH r%d %s\n", round_, cambc::to_string(type_).c_str());
+                for (int i = std::max(0, g_hist_n - 6); i < g_hist_n; ++i) std::printf("   %s\n", g_hist[i % 8].c_str());
+            }
+            g_was_alive = false;
+        });
         shop();
         return;
     }
+    debug_block({ g_was_alive = true; });
     pos_ = me.position();
     update_groups(round_, pos_);
     if (me.is_submitting_gems() || me.is_teleporting()) return;
@@ -860,6 +1033,8 @@ void Bot::play_turn() {
     focus_ = me.focus();
     gems_ = static_cast<int>(me.gem_count());
     scan_units();
+    if (hp_ < last_hp_ - 1.0f && foes_.empty() && incoming_camp_damage() <= 0) hidden_hit_round_ = round_;
+    last_hp_ = hp_;
     if (me.is_recalling()) {
         // Keep the channel unless a foe is about to hit us.
         return;
@@ -870,15 +1045,30 @@ void Bot::play_turn() {
 
     const auto f0 = cambc::fuel_remaining();
     int mode = 0;
+    fight_value_ = 0;
     if (handle_enemies()) mode = 1;
     else if (handle_heal()) mode = 2;
+    else if (answer_sighting()) mode = 4;
     else if (should_bank() && bank()) mode = 3;
     else farm();
     fill_group_fields(60000);
     debug_block({
-        if (round_ == 250 && type_ == cambc::champion_type::tavi) {
-            dump_area(pos_, 8, pos_);
-            for (const auto& m : world().groups[target_].m) std::printf("member (%d,%d) hp%.0f reach%d stall%d\n", m.pos.x, m.pos.y, m.hp, reach_, stall_);
+        if (round_ == 3 && slot_ == 0 && kDumpMap) {
+            dump_area({world().w / 2, world().h / 2}, std::max(world().w, world().h) / 2, pos_);
+            for (auto a : world().altars) std::printf("altar (%d,%d) home %d\n", a.x, a.y, world().home.get(a + vec2{1, 0}));
+        }
+        if (kDeathTrace) {
+            char buf[512];
+            int n = std::snprintf(buf, sizeof buf, "r%d (%d,%d) hp%.0f gems%d mode%d fv%.0f |", round_, pos_.x, pos_.y, hp_, gems_, mode, fight_value_);
+            for (const auto& f : foes_)
+                if (n < 400) n += std::snprintf(buf + n, sizeof buf - n, " %s(%d,%d)hp%.0f d%d", cambc::to_string(f.type).substr(0, 4).c_str(), f.pos.x, f.pos.y, f.hp, f.dist);
+            if (n < 480) std::snprintf(buf + n, sizeof buf - n, " fr%d", (int)friends_.size());
+            g_hist[g_hist_n++ % 8] = buf;
+        }
+        if (round_ >= kTraceFrom && round_ <= kTraceTo) {
+            std::printf("T r%d %s (%d,%d) hp%.0f gems%d mode%d tgt%d fv%.0f |", round_, cambc::to_string(type_).c_str(), pos_.x, pos_.y, hp_, gems_, mode, target_, fight_value_);
+            for (const auto& f : foes_) std::printf(" %s(%d,%d) hp%.0f d%d", cambc::to_string(f.type).substr(0, 4).c_str(), f.pos.x, f.pos.y, f.hp, f.dist);
+            std::printf(" friends%d altar%d\n", (int)friends_.size(), altar_distance());
         }
         if (fstart - cambc::fuel_remaining() > 85000 && round_ > 2) {
             std::printf("r%d %s pos(%d,%d) hp%.0f/%.0f gems%d gold%u mode%d tgt%d st%d pre%llu used%llu\n", round_,
