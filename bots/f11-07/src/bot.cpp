@@ -135,6 +135,8 @@ bool g_nuke_exclusive = false, g_nuke_camps = false;
 
 // Per-turn snapshot.
 int g_round = 0;
+// A turn that ran out of fuel resumes in a later round on stale state: act only in our round.
+bool live() { return static_cast<int>(cambc::round_number()) == g_round; }
 vec2 g_pos;
 float g_hp = 0, g_max_hp = 1, g_str = 0, g_focus = 0;
 unsigned g_gems = 0, g_gold = 0;
@@ -599,7 +601,7 @@ bool step_static(const distance_field& f) {
     }
     g_moved = true;
     if (kDebug) g_trace += "->" + std::to_string(best.x) + "," + std::to_string(best.y) + " ";
-    if (!me.move_absolute(best)) { trace("FAIL"); return false; }
+    if (!live() || !me.move_absolute(best)) { trace("FAIL"); return false; }
     g_pos = best;
     return true;
 }
@@ -610,7 +612,7 @@ bool step_dynamic(bitboard goals) {
     trace("sd");
     if (g_moved || !me.can_move()) return false;
     // A turn that runs out of fuel resumes next round on stale state: never start a search late.
-    if (cambc::fuel_remaining() < kDynamicReserve) return false;
+    if (cambc::fuel_remaining() < kDynamicReserve || !live()) return false;
     if (goals.is_set(g_pos)) return false;
     // Remembered live camps block too: a camp out of sight is still standing there.
     bitboard blocked = g_block_board | g_camp_board | cambc::vision::champion_tiles() | cambc::vision::camp_tiles()
@@ -641,7 +643,7 @@ bool step_dynamic(bitboard goals) {
     g_moved = true;
     // Static routes cross live camps; once we route around them, keep doing so for a while.
     g_dyn_until = std::max(g_dyn_until, g_round + 8);
-    if (!me.move_absolute(best)) return false;
+    if (!live() || !me.move_absolute(best)) return false;
     g_pos = best;
     return true;
 }
@@ -673,7 +675,7 @@ bool dash_along(const distance_field& f) {
             best_v = v;
             best = n;
         }
-    if (best == g_pos) return false;
+    if (best == g_pos || !live()) return false;
     g_cast = true;
     if (!ab.use(best)) { g_moved = true; return false; }
     g_pos = me.position();
@@ -703,7 +705,7 @@ bool attack_champion_at(vec2 p) {
     auto& me = cambc::self();
     if (g_attacked || !me.can_attack() || cheb(p, g_pos) > g_range) return false;
     if (g_ranged && g_moved) return false;
-    if (!cambc::vision::has_champion(p)) return false;
+    if (!live() || !cambc::vision::has_champion(p)) return false;
     const auto c = cambc::vision::champion_at(p);
     if (c.team() != team::enemy) return false;
     me.attack(c);
@@ -725,7 +727,7 @@ bool nuke_champion_at(vec2 p) {
     if (g_nuke_exclusive && g_moved) return false;
     if (cheb(p, g_pos) > static_cast<int>(g_nuke_range)) return false;
     const auto ab = me.abilities()[g_nuke];
-    if (ab.cooldown() > 0 || !cambc::vision::has_champion(p)) return false;
+    if (ab.cooldown() > 0 || !live() || !cambc::vision::has_champion(p)) return false;
     const auto c = cambc::vision::champion_at(p);
     if (c.team() != team::enemy) return false;
     g_cast = true;
@@ -967,7 +969,7 @@ bool flee() {
                     const float s = score(n);
                     if (s > dbest_s) { dbest_s = s; dbest = n; }
                 }
-            if (dbest != best && cheb(dbest, g_pos) == 2) {
+            if (dbest != best && cheb(dbest, g_pos) == 2 && live()) {
                 g_cast = true;
                 if (ab.use(dbest)) {
                     g_pos = me.position();
@@ -981,7 +983,7 @@ bool flee() {
     }
     if (best == g_pos || g_moved || !me.can_move()) return false;
     g_moved = true;
-    if (!me.move_absolute(best)) return false;
+    if (!live() || !me.move_absolute(best)) return false;
     g_pos = best;
     return true;
 }
@@ -1168,7 +1170,7 @@ bool attack_camps(Group& g) {
         if (s > best_s) { best_s = s; best = &m; }
     }
     // Any other camp in reach is fair game too (an awake neighbour, a cluster in passing).
-    if (!best) return false;
+    if (!best || !live()) return false;
     const vec2 p = best->pos;
     me.attack(cambc::vision::camp_at(p));
     g_attacked = true;
@@ -1197,7 +1199,7 @@ void nuke_camps(Group& g) {
     if (g_nuke < 0 || !g_nuke_camps || g_cast || !me.can_cast()) return;
     if (g_nuke_exclusive && g_moved) return;
     const auto ab = me.abilities()[g_nuke];
-    if (ab.cooldown() > 0) return;
+    if (ab.cooldown() > 0 || !live()) return;
     for (const auto& m : g.m) {
         if (m.hp <= 0 || cheb(m.pos, g_pos) > static_cast<int>(g_nuke_range)) continue;
         if (!cambc::vision::has_camp(m.pos)) continue;
@@ -1212,7 +1214,7 @@ void shield_if_hit() {
     if (g_shield < 0 || g_cast || !me.can_cast()) return;
     if (g_hp > g_max_hp * 0.9f) return;
     const auto ab = me.abilities()[g_shield];
-    if (ab.cooldown() > 0) return;
+    if (ab.cooldown() > 0 || !live()) return;
     g_cast = true;
     ab.use();
 }
@@ -1256,7 +1258,7 @@ bool leave_camps() {
     }
     if (best == g_pos) return false;
     g_moved = true;
-    if (!me.move_absolute(best)) return false;
+    if (!live() || !me.move_absolute(best)) return false;
     g_pos = best;
     return true;
 }
@@ -1403,7 +1405,7 @@ bool bank() {
     const bool locked = cambc::vision::in_vision(a) && enemy_lock_on(a);
     if (locked) {
         g_altar_enemy_lock[best] = g_round;
-        if (cheb(a, g_pos) <= g_range && !g_attacked && me.can_attack() && !(g_ranged && g_moved)) {
+        if (cheb(a, g_pos) <= g_range && !g_attacked && me.can_attack() && !(g_ranged && g_moved) && live()) {
             for (const auto& lock : cambc::vision::altar_locks(team::enemy))
                 if (lock.position() == a) {
                     me.attack(lock);
@@ -1421,7 +1423,7 @@ bool bank() {
         if (cambc::vision::has_altar_lock(a) && !enemy_lock_on(a)) {
             // Our own lock: tributes still go through.
         }
-        if (!me.can_move()) return true;
+        if (!me.can_move() || !live()) return true;
         me.submit_gems(a);
         return true;
     }
@@ -1466,7 +1468,7 @@ void go_home() {
         if (!step_static(g_spawn_field) && !g_moved) step_dynamic(cambc::map::spawn_region(team::ally));
         return;
     }
-    cambc::self().recall();
+    if (live()) cambc::self().recall();
 }
 
 // Lock every unlocked altar we pass: their carriers must stop and break it, ours tribute freely.
@@ -1486,7 +1488,7 @@ void place_lock() {
         bool ally_near = false;
         for (const auto& u : g_allies)
             if (cheb(u.pos, a) <= 1) ally_near = true;
-        if (ally_near) continue;
+        if (ally_near || !live()) continue;
         lock.use(a);
         return;
     }
@@ -1518,7 +1520,7 @@ bool spawn_defense(float sim_value) {
                 if (cheb(e.pos, n) <= g_range) reach = true;
             if (!reach) continue;
             g_moved = true;
-            if (me.move_absolute(n)) {
+            if (live() && me.move_absolute(n)) {
                 g_pos = n;
                 if (!g_ranged)
                     for (const auto& e : g_enemies)
