@@ -52,7 +52,7 @@ constexpr float kFleeHp = 0.5f;        // ... above this health fraction
 constexpr int kHuntPad = 3;            // engaged, but nobody within our range + this: farm unless a kill is expected
 constexpr float kHelpHp = 0.6f;        // answer an ally's sighting above this health fraction
 constexpr int kSpawnHold = 20;         // turns we hold our spawn against enemies before walking out
-constexpr bool kSafeApproach = true;   // ranged: approach on tiles melee enemies cannot reach next turn
+constexpr bool kSafeApproach = true;   // close in so that they walk into our reach (see the approach)
 constexpr bool kStandAndFight = true;  // a retreat that cannot get away shoots back instead of standing
 
 std::uint32_t handle_of(const cambc::champion& c) {
@@ -386,16 +386,23 @@ void Bot::camp_fire(std::vector<Fighter>& ours, std::vector<Fighter>& theirs) co
     }
 }
 
-// Damage the enemies can put on tile t next turn (melee step and hit, a dash first; ranged from where they
-// stand; spells within 4).
+// Damage the enemies can put on tile t before our next turn. An enemy gets `moves` turns until then (0, 1
+// or 2: equal-rank pairs take turns in pairs). A melee enemy steps and hits in one turn, a dash adds two
+// steps once; a ranged one walks or shoots; its spells reach 4.
+static float hits_before_us(const Fighter& e, int d) {
+    if (e.stunned || e.hp <= 0 || e.moves <= 0) return 0;
+    int steps = std::max(0, d - e.range);
+    if (!e.ranged && e.dasher) steps = std::max(0, steps - 2);
+    const int first = e.ranged ? steps + 1 : std::max(1, steps);  // the turn of its first hit
+    return static_cast<float>(std::max(0, e.moves - first + 1));
+}
 float Bot::threat_at(vec2 t, const std::vector<Fighter>& theirs) const {
     float th = 0;
     for (const auto& e : theirs) {
-        if (e.stunned || e.hp <= 0) continue;
-        const int d = cheb(e.pos, t);
-        const int reach = e.ranged ? e.range : e.range + 1 + (e.dasher ? 2 : 0);
-        if (d <= reach) th += e.str + e.burst * 0.5f;
-        else if (d <= 4 && e.burst > e.str) th += (e.burst - e.str) * 0.5f;  // a ranged spell
+        const float hits = hits_before_us(e, cheb(e.pos, t));
+        if (hits > 0) th += hits * e.str + e.burst * 0.5f;
+        else if (e.moves > 0 && !e.stunned && e.hp > 0 && cheb(e.pos, t) <= 4 && e.burst > e.str)
+            th += (e.burst - e.str) * 0.5f;  // a ranged spell
     }
     return th;
 }
@@ -626,6 +633,9 @@ bool Bot::enemies() {
                 if (!read_fighter(c, p, f)) continue;
                 f.rank = rank_in(rk.enemy, handle_of(c));
                 f.done = c.has_completed_turn();
+                // Its turns before our next one: one, or for the enemy of our rank none after it started
+                // this round (we start the next) and two when we started it.
+                if (f.rank == my_rank) f.moves = f.done ? 0 : 2;
                 // The enemy of our own rank acted before us exactly when its team started this round.
                 if (f.rank == my_rank && rk.parity < 0) {
                     rk.parity = f.done ? (now + 1) % 2 : now % 2;
@@ -752,15 +762,25 @@ bool Bot::enemies() {
         return false;
     }
     const int range = me.attack_range();
-    // Ranged, close: one step to a tile in range of an enemy that no melee enemy reaches next turn.
+    // Close: one step, or none, chosen so that they walk into our reach rather than we into theirs. The first
+    // hit of an even duel decides it, so we stop just outside the reach they have before our next turn (two
+    // turns for the enemy of our rank every other round) unless we can close and hit first. A melee
+    // champion only weighs melee enemies here (a ranged one hits it on the way in whatever it does).
     bool stepped = false;
-    if (kSafeApproach && range > 1 && dmin <= range + 2 && !moved_ && me.can_move()) {
+    if (kSafeApproach && dmin <= range + 3 && !moved_ && me.can_move()) {
         vec2 best = pos_;
         auto tile_score = [&](vec2 t) {
             int gap = 99;
-            for (const auto& e : theirs)
-                if (e.hp > 0) gap = std::min(gap, std::max(0, cheb(e.pos, t) - range));
-            return 60.0f * static_cast<float>(gap) + threat_at(t, theirs);
+            float th = 0;
+            for (const auto& e : theirs) {
+                if (e.hp <= 0) continue;
+                gap = std::min(gap, std::max(0, cheb(e.pos, t) - range));
+                if (range > 1 || !e.ranged) {
+                    const float hits = hits_before_us(e, cheb(e.pos, t));
+                    if (hits > 0) th += hits * e.str + e.burst * 0.5f;
+                }
+            }
+            return 60.0f * static_cast<float>(gap) + th;
         };
         float best_s = tile_score(pos_);
         for (auto d : kDirs) {
@@ -775,10 +795,8 @@ bool Bot::enemies() {
             try { ok = me.move_absolute(best); } catch (const cambc::error& e) { warn("approach move", e); }
             invalidate();
             if (!ok) move_failed_ = true;
-            stepped = true;
-        } else if (best == pos_) {
-            stepped = true;  // the best tile is this one: wait for them to come
         }
+        stepped = true;  // (staying: this tile is the best one, they come to us)
     }
     if (!stepped) {
         auto goal = empty_board();

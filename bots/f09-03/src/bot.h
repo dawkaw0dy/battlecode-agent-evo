@@ -26,6 +26,7 @@ struct Fighter {
     float cycle = 0;        // extra damage every 8th turn after the first (reset hit and spells off cooldown)
     int rank = 0;           // place in its team's turn order (draft order: nobody we meet sets priorities)
     bool done = false;      // already acted this round
+    int moves = 1;          // its turns before our next one
     float threat_reach() const { return ranged ? static_cast<float>(range) : static_cast<float>(range + 1); }
 };
 
