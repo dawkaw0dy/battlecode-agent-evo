@@ -1885,7 +1885,7 @@
    "slot": 1,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "151505d55cd2c3207c40a7489318b8face8954980f189220052e238624f52cdc"
   },
   "f04-02": {
    "archetype": null,
@@ -1951,7 +1951,7 @@
    "slot": 2,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "7267f47a6dfcf5de8f4ce179500c07389ddf6e126b1e76779de5a2673dde2416"
   },
   "f04-03": {
    "archetype": null,
@@ -2016,7 +2016,7 @@
    "slot": 3,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "04b17b6338d72e5c98e67c20f3984abad25226228a769adb1c57e1aebb58bfa0"
   },
   "f04-04": {
    "archetype": null,
@@ -2081,7 +2081,7 @@
    "slot": 4,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "593b837dd1fd0258d9126262d4e5382d6a1c22d97f721911f4486c8925dfae92"
   },
   "f04-05": {
    "archetype": null,
@@ -2146,7 +2146,7 @@
    "slot": 5,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "4386b807c7f235d9caffe06785c897c5cad12845b7f530cdb85a045d3c03d374"
   },
   "f04-06": {
    "archetype": "early-aggression",
@@ -2186,7 +2186,7 @@
    "slot": 6,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "5ee2d77279324db632c1a97f3d4d0bf927ec654405d7229701cd7a680ab23508"
   },
   "f04-07": {
    "archetype": "vision-ambush",
@@ -2226,7 +2226,7 @@
    "slot": 7,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "8ccd26209d08390af9104688782a3c0cfa478d3a71740d226b55a8628617abc5"
   }
  },
  "generation": 4,
@@ -11288,10 +11288,11 @@
   "2026-10-25T08:36:05Z g03 r03-B: verified, 1952 rows, spot-check 40 OK",
   "2026-10-25T08:36:17Z g03 phase SELECTED: final: f03-05, f03-04, f03-03, f03-01, f02-01, f03-02, f01-07, f03-06, f00-03, f03-07, starter",
   "2026-10-25T08:36:27Z g03 survivors ['f03-05', 'f03-04'], hall of fame ['f00-03', 'f01-07', 'f02-01', 'f03-05']",
-  "2026-10-25T08:36:27Z g04 phase PLANNED: 8 slots"
+  "2026-10-25T08:36:27Z g04 phase PLANNED: 8 slots",
+  "2026-10-25T08:36:34Z g04 phase TASKS_PUSHED: 7 task files"
  ],
  "paused": null,
- "phase": "PLANNED",
+ "phase": "TASKS_PUSHED",
  "sessions_launched": 29,
  "version": 1
 }
