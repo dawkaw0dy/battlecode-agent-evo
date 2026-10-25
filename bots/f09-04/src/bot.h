@@ -69,6 +69,7 @@ class Bot {
     int eg_round_ = -1;                 // last round eg_observe() ran
     int hold_i_ = -1;                   // the only altar, whose tribute tiles a boss respawns on
     cambc::bitboard eg_seen_, bank_goal_;
+    cambc::bitboard hold_spots_;        // the boss's spawn tiles beside hold_i_ that take no tribute
 
     // Memory.
     std::vector<Known> k_;

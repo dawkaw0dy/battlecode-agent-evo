@@ -19,6 +19,8 @@
 #include <cmath>
 #include <iostream>
 
+extern const char* g_act;  // death trace tag (bot.cpp)
+
 namespace {
 constexpr int kRecallTicks = 5;      // recall channel (no Home emblem in our builds)
 constexpr int kRecallSafe = 5;       // recall only when every enemy that sees us needs this many turns to hit
@@ -27,6 +29,8 @@ constexpr bool kFreeShots = true;    // retreating ranged: shoot when nobody can
 constexpr int kAmbushRounds = 3;     // rounds an unexplained hit keeps us away from unseen bushes
 constexpr float kAmbushDrop = 30.0f; // health lost beyond the camp fire we expected that counts as a hidden hit
 constexpr float kChannelPad = 40.0f; // health a channel must leave us at the end
+constexpr int kCoverRadius = 4;      // retreats look this far for a bush no enemy sees into
+constexpr float kCoverWeight = 30.0f;  // retreat score per tile between us and that cover
 
 int now_round() { return static_cast<int>(cambc::round_number()); }
 
@@ -153,12 +157,14 @@ void Bot::guard() {
         bool cancel = false;
         for (const auto& e : foes_)
             if (e.hp > 0 && (sees(e, pos_) || cheb(e.pos, pos_) <= kBlindNear) && arrive(e, pos_) < left + 1) cancel = true;
+        if (cancel) g_act = "cxl-recall";
         if (cancel) try { me.cancel_recall(); } catch (const cambc::error& e) { warn("cancel recall", e); }
     }
     if (me.is_submitting_gems() && live() && !foes_.empty()) {
         int left = 1;
         try { left = me.remaining_channel_time(); } catch (const cambc::error&) {}
         // Damage does not stop a tribute, a death does and hands over the bag: cancel only for our life.
+        if (!channel_safe(std::max(1, left)) && me.gem_count() > 0) g_act = "cxl-trib";
         if (!channel_safe(std::max(1, left)) && me.gem_count() > 0)
             try { me.cancel_submit_gems(); } catch (const cambc::error& e) { warn("cancel tribute", e); }
     }
@@ -202,6 +208,7 @@ bool Bot::evade_hidden() {
         if (s < best_s) { best_s = s; best = t; }
     }
     if (best == pos_) return false;
+    g_act = "evade";
     moved_ = true;
     bool ok = false;
     try { ok = me.move_absolute(best); } catch (const cambc::error& e) { warn("evade move", e); }
@@ -221,11 +228,13 @@ bool Bot::retreat(std::vector<Fighter>& theirs, int dmin) {
     if (spawn_local_.at(pos_)) {
         // The spawn heals us every turn and they cannot step on it: hold it and shoot from there.
         if (++spawn_hold_ > 20) return false;
+        g_act = "fl-spawn";
         strike(theirs);
         return true;
     }
     spawn_hold_ = 0;
     if (!moved_ && incoming_ == 0 && now_round() > ambush_until_ && live() && home_.at(pos_) > 6 && recall_safe(theirs)) {
+        g_act = "fl-recall";
         try { me.recall(); } catch (const cambc::error& e) { warn("flee recall", e); }
         return true;
     }
@@ -258,15 +267,55 @@ bool Bot::retreat(std::vector<Fighter>& theirs, int dmin) {
             const auto cs = camp_spec(g_[gi].kinds[static_cast<size_t>(ci)]);
             if (cs.str > 0) hot[n_hot++] = {p, cs};
         }
+    // Cover: bush tiles near us that no enemy sees into (nearest first) and no living camp reaches (camps see
+    // into bushes, and a boss kills a hiding bag-carrier). Inside one we drop out of their sight.
+    std::array<std::pair<vec2, int>, 32> camps;
+    size_t n_camps = 0;
+    for (size_t g = 0; g < g_.size() && n_camps < camps.size(); ++g) {
+        if (cheb(g_[g].center, pos_) > 14 || g_[g].str <= 0) continue;
+        const auto& k = k_[g];
+        if (k.state == Known::reward || (k.state == Known::respawning && k.ready - now_round() > 10)) continue;
+        for (size_t c = 0; c < g_[g].tiles.size() && n_camps < camps.size(); ++c) {
+            const auto cs = camp_spec(g_[g].kinds[c]);
+            if (cs.str <= 0 || (k.state != Known::respawning && k.hp[c] <= 0)) continue;
+            camps[n_camps++] = {g_[g].tiles[c], cs.range};
+        }
+    }
+    std::array<vec2, 24> cover{};
+    size_t n_cover = 0;
+    if (kCoverWeight > 0 && fuel(20000)) {
+        const auto* bushes = cambc::map::bushes().ptr();
+        for (int r = 0; r <= kCoverRadius && n_cover < cover.size(); ++r)
+            for (int dy = -r; dy <= r && n_cover < cover.size(); ++dy)
+                for (int dx = -r; dx <= r && n_cover < cover.size(); ++dx) {
+                    if (std::max(std::abs(dx), std::abs(dy)) != r) continue;
+                    const vec2 t{pos_.x + dx, pos_.y + dy};
+                    if (!inside(t) || !raw_bit(bushes, t) || walls_local().at(t)) continue;
+                    bool seen = false;
+                    for (size_t i = 0; i < n_camps && !seen; ++i) seen = cheb(camps[i].first, t) <= camps[i].second;
+                    for (const auto& e : theirs)
+                        if (!seen && e.hp > 0 && sees(e, t)) seen = true;
+                    if (!seen) cover[n_cover++] = t;
+                }
+    }
     auto score = [&](vec2 t) {
         float s = threat_at(t, theirs);
-        for (size_t i = 0; i < n_hot; ++i)
-            if (cheb(t, hot[i].first) <= hot[i].second.range) s += hot[i].second.str * taken_;
+        // An awake camp hits us every turn until we are out of its reach: count the steps that takes (it sees
+        // into bushes, so hiding from the enemies beside a boss is no escape).
+        for (size_t i = 0; i < n_hot; ++i) {
+            const int out = hot[i].second.range + 1 - cheb(t, hot[i].first);
+            if (out > 0) s += hot[i].second.str * taken_ * static_cast<float>(out);
+        }
         s *= 4.0f;
         if (spawn_local_.at(t)) s *= 0.1f;
         const int hd = home_.at(t);
         s += static_cast<float>(hd >= kFar ? 200 : hd);
         if (camp_block_.is_set(t)) s += 500;
+        if (n_cover > 0) {
+            int cd = kCoverRadius + 2;
+            for (size_t i = 0; i < n_cover; ++i) cd = std::min(cd, cheb(t, cover[i]));
+            s += kCoverWeight * static_cast<float>(cd);
+        }
         return s;
     };
     const float here = score(pos_);
@@ -295,6 +344,7 @@ bool Bot::retreat(std::vector<Fighter>& theirs, int dmin) {
             for (size_t i = 0; i < n && i < 3 && cand[i].first < here - 2; ++i) {
                 if (!live()) return true;
                 try {
+                    g_act = "fl-dash";
                     const bool ok = ab.use(cand[i].second);
                     cast_ = true;
                     invalidate();
@@ -315,7 +365,8 @@ bool Bot::retreat(std::vector<Fighter>& theirs, int dmin) {
         const float s = score(t);
         if (s < best_s) { best_s = s; best = t; }
     }
-    if (best == pos_) return true;
+    if (best == pos_) { g_act = "fl-stay"; return true; }
+    g_act = "fl-step";
     moved_ = true;
     bool ok = false;
     try { ok = me.move_absolute(best); } catch (const cambc::error& e) { warn("flee move", e); }
@@ -340,6 +391,7 @@ bool Bot::recall_or_walk(int walk_limit) {
     if (moved_ || incoming_ > 0 || !live()) return moved_;
     // A hidden attacker beside us or an enemy that will reach us first: walk while it lasts.
     if (now_round() <= ambush_until_ || !recall_safe(foes_)) {
+        g_act = "rw-walk";
         go_home();
         return true;
     }

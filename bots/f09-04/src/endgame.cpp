@@ -94,6 +94,16 @@ void Bot::eg_init() {
         if (boss_tiles) hold_i_ = static_cast<int>(i);
     }
     if (reachable != 1) hold_i_ = -1;
+    // Standing on any spawn tile of the boss delays its respawn: hold one that takes no tribute, when there is one.
+    hold_spots_.clear();
+    if (hold_i_ >= 0)
+        for (auto t : alt_[static_cast<size_t>(hold_i_)].spots) {
+            const int gi = group_at_[static_cast<size_t>(tidx(t))];
+            if (gi < 0) continue;
+            for (auto c : g_[static_cast<size_t>(gi)].tiles)
+                if (!bit(alt_[static_cast<size_t>(hold_i_)].goal, c) && !bit(walk_walls(), c) && home_.at(c) < kFar)
+                    raw_set(hold_spots_.ptr(), c);
+        }
     if (dropped) {
         // Some tribute tiles cannot be walked to (sealed pockets): bank and plan with the others only.
         altar_spots_.clear();
@@ -159,10 +169,24 @@ bool Bot::break_lock(vec2 a) {
 // such a tile the boss cannot respawn, so the altar stays open to us, and the enemy can bank there only by
 // killing us first. Stand there with an empty bag, and step off when an ally with gems waits beside us.
 bool Bot::hold_tile() {
-    if (hold_i_ < 0 || moved_ || !bit(alt_[static_cast<size_t>(hold_i_)].goal, pos_)) return false;
+    if (hold_i_ < 0 || moved_) return false;
+    const bool on_hold = bit(hold_spots_, pos_);
+    if (!on_hold && !bit(alt_[static_cast<size_t>(hold_i_)].goal, pos_)) return false;
     auto& me = cambc::self();
     if (me.health() < me.max_health() * 0.4f || !me.can_move() || !live()) return false;
+    if (on_hold) return true;  // the boss stays down and the tribute tiles stay free
     const auto& goal = alt_[static_cast<size_t>(hold_i_)].goal;
+    // From a tribute tile to a free boss tile beside it that takes no tribute.
+    for (auto d : kDirs) {
+        const vec2 t{pos_.x + d.x, pos_.y + d.y};
+        if (!bit(hold_spots_, t) || !free_tile(t)) continue;
+        bool ok = false;
+        try { ok = me.move_absolute(t); } catch (const cambc::error& e) { warn("hold move", e); }
+        moved_ = true;
+        if (!ok) move_failed_ = true;
+        invalidate();
+        return true;
+    }
     for (const auto& a : others_) {
         cambc::detail::champion_info info{};
         if (!peek(a, info)) continue;
