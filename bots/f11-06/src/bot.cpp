@@ -21,6 +21,14 @@ constexpr int kEvalEvery = EVO_EVAL;
 constexpr float kTimeConst = EVO_TCONST;
 constexpr int kShopGold = 250;
 constexpr int kMaxExtraTrips = 3;
+#ifndef EVO_BANK_WARY
+#define EVO_BANK_WARY 15
+#endif
+constexpr int kBankWary = EVO_BANK_WARY;
+#ifndef EVO_ALTAR_DANGER
+#define EVO_ALTAR_DANGER 25
+#endif
+constexpr int kAltarDanger = EVO_ALTAR_DANGER;   // walking-tile penalty for an altar enemies were seen at   // bank this many gems once enemies were seen lately
 #ifndef EVO_FLEE_PERIOD
 #define EVO_FLEE_PERIOD 0
 #endif
@@ -110,6 +118,7 @@ void Bot::init() {
     gk_.assign(m.groups.size(), GroupKnow{});
     approach_.resize(m.groups.size());
     altar_locked_.assign(m.altars.size(), false);
+    altar_enemy_.assign(m.altars.size(), -1000);
     ranged_ = me.attack_range() > 1;
     tavi_ = me.passive() == cambc::passive_type::remote_shop;
     read_kit();
@@ -261,8 +270,13 @@ void Bot::snapshot() {
         }
     }
     vision::visible_tiles_into(visible_);
+    vision::champion_tiles_into(team::enemy, enemy_tiles_);
     {
         const auto& alt = map_info().altars;
+        if (!enemy_tiles_.is_empty())
+            for (auto p : enemy_tiles_.positions())
+                for (size_t i = 0; i < alt.size(); ++i)
+                    if (cheb(p, alt[i]) <= 7) altar_enemy_[i] = round_;
         for (size_t i = 0; i < alt.size(); ++i) {
             if (!visible_.is_set(alt[i])) continue;
             bool lk = false;
@@ -273,7 +287,6 @@ void Bot::snapshot() {
             altar_locked_[i] = lk;
         }
     }
-    vision::champion_tiles_into(team::enemy, enemy_tiles_);
     vision::champion_tiles_into(team::ally, ally_tiles_);
     vision::camp_tiles_into(camp_tiles_);
 
@@ -748,12 +761,14 @@ bool Bot::bank() {
     const int submitted = static_cast<int>(cambc::global_submitted_gems(team::ally));
     bool need = banking_ != 0 || gems_ >= plan_.bank || submitted + gems_ >= 1000
         || (gems_ >= 8 && near_altar <= 4) || (round_ >= 1930 - near_altar)
-        || (gems_ >= 15 && round_ - last_enemy_round_ < 20);
+        || (gems_ >= kBankWary && round_ - last_enemy_round_ < 20);
     if (!need) return false;
     banking_ = 1;
     act_ = kActBank;
 
-    if (bank_altar_ < 0 || round_ - bank_choice_ >= 12) choose_altar();
+    if (bank_altar_ < 0 || round_ - bank_choice_ >= 12
+        || (round_ == altar_enemy_[static_cast<size_t>(bank_altar_)] && round_ - bank_choice_ >= 3))
+        choose_altar();
     if (bank_altar_ < 0) return false;
     const vec2 a = m.altars[static_cast<size_t>(bank_altar_)];
     const bool locked = altar_locked_[static_cast<size_t>(bank_altar_)];
@@ -807,6 +822,7 @@ void Bot::choose_altar() {
         if (d >= kFar) continue;
         int cost = d;
         if (altar_locked_[i]) cost += 10;
+        if (round_ - altar_enemy_[i] < 40) cost += kAltarDanger;
         if (static_cast<int>(i) == bank_altar_) cost -= 3;
         if (cost < best_cost) {
             best_cost = cost;

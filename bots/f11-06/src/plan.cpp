@@ -20,7 +20,15 @@ constexpr int kGolemPow = EVO_GOLEM_POW, kMonoPow = EVO_MONO_POW, kRaidRound = E
 #ifndef EVO_RAID_ALWAYS
 #define EVO_RAID_ALWAYS 0
 #endif
-constexpr bool kRaidAlways = EVO_RAID_ALWAYS;   // raid bosses on every map (measured worse: deaths at the boss)
+constexpr bool kRaidAlways = EVO_RAID_ALWAYS;
+#ifndef EVO_PICKS
+#define EVO_PICKS 0
+#endif
+constexpr int kPicks = EVO_PICKS;
+#ifndef EVO_BANK_PCT
+#define EVO_BANK_PCT 100
+#endif
+constexpr int kBankPct = EVO_BANK_PCT;   // raid bosses on every map (measured worse: deaths at the boss)
 
 Plan make_plan(const MapInfo& m, int team_size) {
     Plan p;
@@ -80,7 +88,7 @@ Plan make_plan(const MapInfo& m, int team_size) {
         p.raid_round = boss_map ? 200 : kRaidRound;
         if (p.mode == kModeFarm) p.mode = kModeBoss;
     }
-    p.bank = m.spawn_gap <= 30 ? 25 : (m.spawn_gap >= 90 ? 60 : 40);
+    p.bank = (m.spawn_gap <= 30 ? 25 : (m.spawn_gap >= 90 ? 60 : 40)) * kBankPct / 100;
     if (p.mode == kModeSmall) p.flags |= planflag::kAggro;
     // Squads: one ball on small maps, solo farmers elsewhere.
     for (int i = 0; i < 5; ++i) {
@@ -90,7 +98,14 @@ Plan make_plan(const MapInfo& m, int team_size) {
         p.squad[static_cast<size_t>(i)] = static_cast<std::uint8_t>(sq);
     }
 
-    std::vector<cd> order{cd::vendetta, cd::vesper_vale, cd::marcella, cd::tavi, cd::varg};
+    std::vector<cd> order;
+    switch (kPicks) {
+        case 1: order = {cd::vendetta, cd::vesper_vale, cd::ryth, cd::tavi, cd::marcella}; break;
+        case 2: order = {cd::vendetta, cd::vesper_vale, cd::marcella, cd::tavi, cd::heart_of_ruin}; break;
+        case 3: order = {cd::vendetta, cd::vesper_vale, cd::marcella, cd::varg, cd::willow}; break;
+        case 4: order = {cd::vesper_vale, cd::vendetta, cd::tavi, cd::marcella, cd::varg}; break;
+        default: order = {cd::vendetta, cd::vesper_vale, cd::marcella, cd::tavi, cd::varg}; break;
+    }
     order.resize(static_cast<size_t>(std::clamp(team_size, 1, 5)));
     p.picks = order;
     return p;

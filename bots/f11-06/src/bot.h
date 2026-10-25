@@ -128,6 +128,7 @@ private:
     int banking_ = 0;           // 1 while on a bank trip
     int bank_altar_ = -1, bank_choice_ = -100;
     std::vector<bool> altar_locked_;   // enemy lock last seen on each altar
+    std::vector<int> altar_enemy_;     // last round enemies were seen near each altar
     float last_hp_ = 0;
     int warns_ = 0;
     int branch_ = 0;
