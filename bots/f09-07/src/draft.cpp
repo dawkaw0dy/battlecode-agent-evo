@@ -16,8 +16,8 @@ namespace {
 
 // Strongest solo farmers first: sustain, strong basic attacks, cheap resets.
 constexpr std::array<cambc::champion_draft, 5> kPicks{
-    cambc::champion_draft::vendetta, cambc::champion_draft::marcella, cambc::champion_draft::varg,
-    cambc::champion_draft::tavi, cambc::champion_draft::vesper_vale};
+    cambc::champion_draft::vendetta, cambc::champion_draft::vesper_vale, cambc::champion_draft::marcella,
+    cambc::champion_draft::tavi, cambc::champion_draft::varg};
 
 cambc::champion_type type_of(cambc::champion_draft pick) {
     switch (pick) {
@@ -25,7 +25,8 @@ cambc::champion_type type_of(cambc::champion_draft pick) {
     case cambc::champion_draft::marcella: return cambc::champion_type::marcella;
     case cambc::champion_draft::varg: return cambc::champion_type::varg;
     case cambc::champion_draft::tavi: return cambc::champion_type::tavi;
-    default: return cambc::champion_type::vesper_vale;
+    case cambc::champion_draft::vesper_vale: return cambc::champion_type::vesper_vale;
+    default: return cambc::champion_type::varg;
     }
 }
 

@@ -568,20 +568,28 @@ bool Bot::fight_or_flight() {
     std::vector<int> near;
     const auto& their_spawn = cambc::map::spawn_region(team::enemy);
     for (int i = 0; i < static_cast<int>(enemies.size()); ++i)
-        if (cheb(enemies[i].pos, pos) <= 7 && !their_spawn.is_set(enemies[i].pos)) near.push_back(i);
+        if (cheb(enemies[i].pos, pos) <= 9 && !their_spawn.is_set(enemies[i].pos)) near.push_back(i);
     if (near.empty()) return false;
 
-    float mine = hp * (me.strength() + 0.25f * me.focus());
-    for (const auto& a : allies) if (cheb(a.pos, pos) <= 6) mine += a.power;
+    // Camp fire on our tile counts against us.
+    float mine = std::max(0.0f, hp - incoming * 3) * (me.strength() + 0.25f * me.focus());
+    for (const auto& a : allies) if (cheb(a.pos, pos) <= 5) mine += a.power;
     float theirs = 0;
     int closest = near[0];
     for (int i : near) {
         theirs += enemies[i].channel ? enemies[i].power * 0.3f : enemies[i].power;
         if (cheb(enemies[i].pos, pos) < cheb(enemies[closest].pos, pos)) closest = i;
     }
-    float need = 1.3f + me.gem_count() / 150.0f + (hp < 0.5f * max_hp ? 0.4f : 0.0f);
+    float need = 1.5f + me.gem_count() / 100.0f + (hp < 0.5f * max_hp ? 0.5f : 0.0f);
     if (on_our_spawn(pos)) need *= 0.6f;
-    const bool strong = mine >= need * theirs;
+    if (round < fleeing_until) need *= 1.6f;  // once running, keep running unless clearly ahead
+    const bool strong = mine >= need * theirs && hp >= 0.35f * max_hp;
+    debug_block({
+        if (round < 400)
+            std::cout << "FIGHT r" << round << " s" << slot << " hp " << static_cast<int>(hp) << " near " << near.size()
+                      << " allies " << allies.size() << " ratio " << (theirs > 0 ? mine / theirs : 99) << " strong " << strong
+                      << " cd " << cheb(enemies[closest].pos, pos) << " inc " << incoming << "\n";
+    });
 
     // A kill in reach is always worth taking.
     for (int i : near)
@@ -606,13 +614,17 @@ bool Bot::fight_or_flight() {
         }
         return false;
     }
-    // Weaker: run when they are close enough to engage.
+    // Weaker: run when they are close enough to engage, recall once clear.
     const int cd = cheb(enemies[closest].pos, pos);
-    if (cd <= enemies[closest].range + 3) {
-        fleeing_until = round + 6;
+    if (cd <= std::max(6, enemies[closest].range + 4) || (incoming > 0 && cd <= 9)) {
+        fleeing_until = round + 8;
         spells_on_enemy();
         flee_home();
         return true;
+    }
+    if (cd >= 7 && incoming <= 0 && !on_our_spawn(pos)
+        && (round < fleeing_until + 6 || me.gem_count() >= 10 || hp < 0.6f * max_hp)) {
+        try { me.recall(); return true; } catch (const cambc::error&) {}
     }
     return false;
 }
@@ -623,7 +635,10 @@ bool Bot::tribute(bool force) {
     if (gems <= 0) return false;
     int nearest = 999;
     for (auto a : altars) nearest = std::min(nearest, cheb(a, pos));
-    const bool want = force || gems >= 45 || (gems >= 15 && nearest <= 8) || (gems >= 8 && round - last_enemy_seen < 25)
+    int rx, ry, rcount, rage;
+    read_report(rx, ry, rcount, rage);
+    const bool danger = round - last_enemy_seen < 80 || rage <= 20;
+    const bool want = force || gems >= 25 || (gems >= 10 && nearest <= 10) || (gems >= 6 && danger)
         || round > 1850;
     if (!want) return false;
     for (const auto& e : enemies) if (cheb(e.pos, pos) <= 4 && !e.channel) return false;
@@ -667,27 +682,29 @@ double Bot::group_score(int gi, double& trips_out, double floor) {
     if (g.tiles.empty() || g.home_dist >= 999) return 0;
     double factor = 1.0;
     const std::uint8_t own = g.owner;
-    if (own == plan::kEnemySide) factor = 0.3;
+    if (own == plan::kEnemySide) factor = round - last_enemy_seen < 150 ? 0.25 : 0.45;
     else if (own == plan::kNoOwner) factor = 0.5;
     else {
         const int s = own & 0x7F;
         const bool middle = own & plan::kMiddleBit;
-        if (s == slot) factor = middle ? 0.9 : 1.0;
-        else factor = middle ? 0.6 : 0.45;
+        if (s == slot) factor = middle ? 0.8 : 1.0;
+        else factor = middle ? 0.6 : 0.7;
     }
-    if (gi == target) factor *= 1.25;
+    if (gi == target) factor *= round - target_since > 8 ? 1.5 : 1.25;
+    if (report_age <= 20 && report_count >= 2 && cheb(report_pos, g.center) <= 10) factor *= 0.2;
     if (g.state == 1) factor *= 1.3;
-    const double w = round < 600 ? 0.5 : round < 1400 ? 0.3 : 0.1;
+    const double w = round < 600 ? 0.3 : round < 1400 ? 0.15 : 0.05;
     const double value = (g.gems + w * g.gold) * factor;
     if (value <= 0) return 0;
     const double travel = cheb(pos, g.center) * 1.2 + 1;
     double wait = 0;
     if (g.state == 2) {
         wait = std::max(0.0, g.respawn_at - round - travel);
-        if (wait > 50) return 0;
     }
+    // Far groups also cost the walk back to heal and bank.
+    const double away = 0.4 * g.home_dist;
     // Cheap upper bound first: most groups lose before the clear simulation.
-    if (value / (travel + wait + 8) <= floor) return 0;
+    if (value / (travel + wait + away + 8) <= floor) return 0;
     double clear = 0, dmg = 0;
     if (g.state != 1) {
         // Kill order: weakest first; damage taken = remaining strength x time.
@@ -716,13 +733,18 @@ double Bot::group_score(int gi, double& trips_out, double floor) {
     const double first = std::max(0.0, hp - 0.25 * max_hp);
     double trips = 0;
     if (dmg > first) trips = std::ceil((dmg - first) / (0.7 * max_hp));
-    if (trips > 4) return 0;
+    if (trips > (round - last_enemy_seen < 100 ? 1 : 3)) return 0;
     trips_out = trips;
     const double trip_cost = trips * (g.home_dist * 2.0 + 14);
-    return value / (travel + wait + clear + trip_cost + 8);
+    return value / (travel + wait + away + clear + trip_cost + 8);
 }
 
 int Bot::choose_target() {
+    {
+        int rx, ry;
+        read_report(rx, ry, report_count, report_age);
+        report_pos = {rx, ry};
+    }
     std::array<std::uint8_t, 4> claims{};
     cambc::shared_memory.read(4, std::span{claims});
     int best = -1;
@@ -746,7 +768,9 @@ bool Bot::attack_camps(int gi) {
     auto& me = cambc::self();
     auto& g = groups[gi];
     // Retreat before the camps kill us; camps never regenerate, so the next trip finishes the job.
-    if (incoming > 0 && (hp < kRetreatFrac * max_hp || hp < incoming * 2.5f + 0.05f * max_hp)) {
+    float threat = incoming;
+    for (const auto& e : enemies) if (cheb(e.pos, pos) <= e.range + 1) threat += e.str;
+    if (threat > 0 && (hp < kRetreatFrac * max_hp || hp < threat * 3.0f + 0.08f * max_hp)) {
         retreating_until = round + 20;
         ++g.trips;
         escape_camps();
@@ -778,34 +802,52 @@ bool Bot::attack_camps(int gi) {
             spells_on_camp(c);
             if (c.is_visible() && c.health() > 0) {
                 me.attack(c);
+                last_hit_round = round;
                 if (c.is_visible() && c.health() > 0 && use_reset_and_hit() && me.can_attack()) me.attack(c);
             }
             return true;
         } catch (const std::exception&) {}
     }
-    // Walk to the nearest living camp of the group.
-    int near = -1;
-    for (int ci : g.camps)
-        if (camps[ci].hp > 0 && (near < 0 || cheb(camps[ci].pos, pos) < cheb(camps[near].pos, pos))) near = ci;
-    if (near < 0) return false;
-    const auto cpos = camps[near].pos;
+    // Walk towards the nearest living camps of the group; fall back to the next one when no tile reaches.
+    int cand[3] = {-1, -1, -1};
+    for (int ci : g.camps) {
+        if (camps[ci].hp <= 0) continue;
+        const int d = cheb(camps[ci].pos, pos);
+        for (int k = 0; k < 3; ++k) {
+            if (cand[k] < 0 || d < cheb(camps[cand[k]].pos, pos)) {
+                for (int m = 2; m > k; --m) cand[m] = cand[m - 1];
+                cand[k] = ci;
+                break;
+            }
+        }
+    }
+    if (cand[0] < 0) return false;
     // Ranged nukes reach a tile further than basic attacks.
-    if (std::find(visible_camps.begin(), visible_camps.end(), near) != visible_camps.end()) {
-        try { spells_on_camp(cambc::vision::camp_at(cpos)); } catch (const std::exception&) {}
+    if (std::find(visible_camps.begin(), visible_camps.end(), cand[0]) != visible_camps.end()) {
+        try { spells_on_camp(cambc::vision::camp_at(camps[cand[0]].pos)); } catch (const std::exception&) {}
     }
+    // Ranged champions that stopped hitting (no line of sight) close in.
     int reach = r;
-    if (ranged && last_far_target == near && round - last_far_round > 6) reach = std::max(1, r - 1);
-    auto goal = empty_board();
-    try {
-        auto sight = (cambc::map::walls() | cambc::map::bushes()).shadow_cast(cpos, static_cast<std::uint16_t>(reach));
-        auto box = empty_board();
-        add_box(box, cpos, reach, width, height);
-        goal = sight & box;
-    } catch (const std::exception&) {
-        add_box(goal, cpos, reach, width, height);
+    if (ranged && round - last_hit_round > 5 && round - target_since > 5)
+        reach = std::max(1, r - (round - last_hit_round > 12 ? 2 : 1));
+    for (int k = 0; k < 3 && cand[k] >= 0; ++k) {
+        const auto cpos = camps[cand[k]].pos;
+        auto goal = empty_board();
+        try {
+            auto box = empty_board();
+            add_box(box, cpos, reach, width, height);
+            if (reach > 1) {
+                auto sight = (cambc::map::walls() | cambc::map::bushes()).shadow_cast(cpos, static_cast<std::uint16_t>(reach));
+                goal = sight & box;
+            } else {
+                goal = box;
+            }
+        } catch (const std::exception&) {
+            add_box(goal, cpos, reach, width, height);
+        }
+        if (goal.is_set(pos)) break;  // already in place
+        if (route_to(goal) || moved || move_failed) break;
     }
-    if (last_far_target != near) { last_far_target = near; last_far_round = round; }
-    route_to(goal);
     // Melee can still swing after the step.
     if (!ranged && me.can_attack()) {
         for (int ci : g.camps) {
@@ -814,7 +856,7 @@ bool Bot::attack_camps(int gi) {
                     auto c = cambc::vision::camp_at(camps[ci].pos);
                     if (c.is_visible() && c.health() > 0) {
                         me.attack(c);
-                        last_far_round = round;
+                        last_hit_round = round;
                     }
                 } catch (const std::exception&) {}
                 break;
@@ -828,7 +870,7 @@ bool Bot::farm() {
     auto& me = cambc::self();
     if ((target < 0 || round - target_round >= 5) && cambc::fuel_remaining() > 45000) {
         const int t = choose_target();
-        if (t != target) claim(t);
+        if (t != target) { claim(t); target_since = round; }
         target = t;
         target_round = round;
     }
@@ -852,6 +894,11 @@ bool Bot::farm() {
         return true;
     }
     if (g.state == 2) {
+        // A long wait: heal on spawn meanwhile.
+        if (g.respawn_at - round > g.home_dist + 10 && hp < 0.8f * max_hp && incoming <= 0 && enemies.empty()
+            && !on_our_spawn(pos)) {
+            try { me.recall(); return true; } catch (const cambc::error&) {}
+        }
         // Wait near, never on, its spawn tiles.
         if (cheb(pos, g.center) <= 3) {
             for (auto t : g.tiles)
@@ -869,7 +916,6 @@ bool Bot::farm() {
         route_to(goal);
         return true;
     }
-    (void)me;
     return attack_camps(target);
 }
 
@@ -923,9 +969,9 @@ void Bot::play_turn() {
     update_groups();
     write_report();
     debug_block({
-        if (round < 60 || round % 100 == 0)
+        if (round % 10 == 0 && round < 500)
             std::cout << "r" << round << " s" << slot << " pos " << pos.x << "," << pos.y << " hp " << static_cast<int>(hp)
-                      << " tgt " << target << " inc " << static_cast<int>(incoming) << " en " << enemies.size()
+                      << " tgt " << target << "/" << (target >= 0 ? groups[target].state : -1) << "/" << (target >= 0 ? groups[target].gems : 0) << " inc " << static_cast<int>(incoming) << " en " << enemies.size()
                       << " gems " << me.gem_count() << " fuel " << cambc::fuel_remaining() << "\n";
     });
 

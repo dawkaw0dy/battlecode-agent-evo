@@ -87,13 +87,15 @@ private:
     float incoming = 0;              // camp damage per turn on our tile
 
     // Plans.
-    int target = -1, target_round = -1000;
+    int target = -1, target_round = -1000, target_since = 0;
     int retreating_until = -1;
     int fleeing_until = -1;
     int spawn_wait = 0;
     int build_step = 0;
     int last_enemy_seen = -1000;
-    int last_far_target = -1, last_far_round = 0;
+    int last_hit_round = 0;
+    int report_count = 0, report_age = 999;
+    cambc::vec2 report_pos{-100, -100};
 
     void init();
     void init_fields();
