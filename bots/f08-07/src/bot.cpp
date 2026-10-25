@@ -86,7 +86,7 @@ constexpr int kClaimBytes = 5;  // bytes 0-4: each champion's target group + 1; 
 // Initialisation
 
 void Bot::initialise() {
-    PROF(0);
+    PROF(0); g_stage = 0;
     init_ = true;
     init_dims();
     auto& me = cambc::self();
@@ -210,7 +210,7 @@ void Bot::initialise() {
 // Observation
 
 void Bot::observe() {
-    PROF(1);
+    PROF(1); g_stage = 1;
     auto& me = cambc::self();
     round_ = static_cast<int>(cambc::round_number());
     pos_ = me.position();
@@ -241,7 +241,7 @@ void Bot::observe() {
 
     std::vector<std::uint8_t> now(c_.size(), 0);
     {
-        PROF(16);
+        PROF(16); g_stage = 16;
         friends_.clear();
         foes_.clear();
         for (int side = 0; side < 2; ++side) {
@@ -270,7 +270,7 @@ void Bot::observe() {
         }
     }
     {
-        PROF(17);
+        PROF(17); g_stage = 17;
         camp_in_ = 0;
         for (const auto& c : cambc::vision::camps()) {
             const vec2 sp = c.spawn_position();
@@ -297,7 +297,7 @@ void Bot::observe() {
         }
     }
     {
-        PROF(18);
+        PROF(18); g_stage = 18;
         for (int gi = 0; gi < static_cast<int>(g_.size()); ++gi) {
             GroupK& G = g_[gi];
             bool visible = false;
@@ -372,7 +372,7 @@ void Bot::claim(int g) {
 // Shopping and support spells
 
 void Bot::shop() {
-    PROF(2);
+    PROF(2); g_stage = 2;
     auto& me = cambc::self();
     for (int guard = 0; guard < 12 && !g_build.empty(); ++guard) {
         const auto item = g_build[std::min<size_t>(static_cast<size_t>(g_bought), g_build.size() - 1)];
@@ -389,7 +389,7 @@ void Bot::shop() {
 }
 
 void Bot::support_spells() {
-    PROF(3);
+    PROF(3); g_stage = 3;
     auto& me = cambc::self();
     if (!me.can_cast()) return;
     auto abil = me.abilities();
@@ -496,32 +496,79 @@ bool Bot::dash_towards(const Field& f) {
     return false;
 }
 
+// Dash two tiles closer to a tile (chasing).
+bool Bot::dash_towards_tile(vec2 target) {
+    auto& me = cambc::self();
+    if (cast_ || move_fail_ || moved_ || !me.can_cast()) return false;
+    for (const auto& a : ab_) {
+        if (a.kind != ability_kind::dash) continue;
+        auto abil = me.abilities();
+        const auto& ab = abil[static_cast<size_t>(a.slot)];
+        if (!ab.is_ready()) return false;
+        int best = cheb(pos_, target) - 1;
+        vec2 to = pos_;
+        for (int dx = -2; dx <= 2; ++dx)
+            for (int dy = -2; dy <= 2; ++dy) {
+                const vec2 t{pos_.x + dx, pos_.y + dy};
+                if (cheb(t, pos_) != 2 || !free_tile(t)) continue;
+                const vec2 mid{pos_.x + dx / 2, pos_.y + dy / 2};
+                if (raw_bit(cambc::map::walls().ptr(), mid)) continue;
+                const int v = cheb(t, target);
+                if (v < best && v >= 1) { best = v; to = t; }
+            }
+        if (to == pos_) return false;
+        try {
+            if (ab.use(to)) {
+                cast_ = true;
+                pos_ = to;
+                occ_ = cambc::vision::champion_tiles();
+                occ_ |= cambc::vision::camp_tiles();
+                occ_ |= cambc::vision::teleport_tiles();
+                return true;
+            }
+            move_fail_ = true;
+        } catch (const std::exception&) {}
+        return false;
+    }
+    return false;
+}
+
 // Walk to a tile within r of target (with line of sight if los). Returns true if we moved.
 bool Bot::approach(vec2 target, int r, bool los) {
-    PROF(10);
+    PROF(10); g_stage = 10;
     auto& me = cambc::self();
     if (moved_ || move_fail_ || !me.can_move()) return false;
     cambc::bitboard roots;
-    if (los) roots = opaque_.shadow_cast(target, static_cast<std::uint16_t>(r));
+    g_stage = 101;
+    // Shadow casting from an opaque tile (a target in a bush) is rejected by the engine.
+    if (los && inside(target) && !raw_bit(opaque_.ptr(), target)) roots = opaque_.shadow_cast(target, static_cast<std::uint16_t>(r));
     else roots.draw_chebyshev(target, static_cast<float>(r));
+    g_stage = 102;
     roots &= ~block_;
     if (bit(roots, pos_)) return false;
     roots &= ~occ_;
     if (roots.is_empty()) return false;
     cambc::bitboard walls = block_ | occ_;
+    g_stage = 103;
     walls.set(pos_, false);
+    g_stage = 104;
     Field f;
     f.f = std::make_unique<cambc::distance_field>();
     cambc::bitboard seen;
     const int lim = cheb(pos_, target) + 12;
     f.f->compute(walls, roots, seen, static_cast<std::uint16_t>(lim));
     f.q = static_cast<const cambc::distance_field&>(*f.f).ptr();
-    if (f.at(pos_) >= kFar) return false;
+    if (f.at(pos_) >= kFar) {
+        // The way round is long (camps can plug a gap): search the whole map.
+        if (cambc::fuel_remaining() < 35000) return false;
+        f.f->compute(walls, roots, seen);
+        if (f.at(pos_) >= kFar) return false;
+    }
     return step_down(f);
 }
 
 void Bot::ensure_field(int g) {
-    PROF(11);
+    PROF(11); g_stage = 11;
     GroupK& G = g_[g];
     if (G.field.ready()) return;
     if (cambc::fuel_remaining() < 40000) return;
@@ -538,14 +585,18 @@ int Bot::group_dist(int g) {
 }
 
 bool Bot::go_group(int g) {
-    PROF(12);
+    PROF(12); g_stage = 12;
     ensure_field(g);
     GroupK& G = g_[g];
     if (!G.field.ready()) return approach(G.center, 2, false);
-    if (G.field.at(pos_) > 6) dash_towards(G.field);
-    if (step_down(G.field)) return true;
-    // Blocked by units: route around them.
-    return approach(G.center, 2, false);
+    if (round_ > detour_until_) {
+        if (G.field.at(pos_) > 6) dash_towards(G.field);
+        if (step_down(G.field)) return true;
+    }
+    // Blocked by units or camps: route around them for a while.
+    const bool ok = approach(G.center, 2, false);
+    if (ok && round_ > detour_until_) detour_until_ = round_ + 8;
+    return ok;
 }
 
 bool Bot::go_home() {
@@ -602,7 +653,7 @@ bool Bot::cast_on_camp(int g) {
 }
 
 bool Bot::attack_camps(int g) {
-    PROF(13);
+    PROF(13); g_stage = 13;
     auto& me = cambc::self();
     cast_on_camp(g);
     bool any = false;
@@ -725,69 +776,159 @@ bool Bot::retreat_step() {
     return move_to(to);
 }
 
+namespace {
+
+// One fighter in the focus-fire simulation.
+struct FU {
+    float hp = 0, dps = 0, value = 0;
+    int start = 0;  // first turn it can deal damage
+};
+
+// Both sides focus the weakest living enemy each turn (overflow goes to the next). Returns the value
+// side b loses minus the value side a loses, over `turns`.
+float simulate(std::vector<FU> a, std::vector<FU> b, int turns) {
+    auto lost = [](const std::vector<FU>& side, const std::vector<float>& hp0) {
+        float v = 0;
+        for (size_t i = 0; i < side.size(); ++i) {
+            v += (hp0[i] - std::max(0.0f, side[i].hp)) * 0.4f;
+            if (side[i].hp <= 0) v += side[i].value;
+        }
+        return v;
+    };
+    std::vector<float> a0, b0;
+    for (const auto& u : a) a0.push_back(u.hp);
+    for (const auto& u : b) b0.push_back(u.hp);
+    auto hit = [](std::vector<FU>& side, float dmg) {
+        while (dmg > 0) {
+            int t = -1;
+            for (size_t i = 0; i < side.size(); ++i)
+                if (side[i].hp > 0 && (t < 0 || side[i].hp < side[static_cast<size_t>(t)].hp)) t = static_cast<int>(i);
+            if (t < 0) return;
+            const float d = std::min(dmg, side[static_cast<size_t>(t)].hp);
+            side[static_cast<size_t>(t)].hp -= d;
+            dmg -= d;
+            if (side[static_cast<size_t>(t)].hp > 0) return;
+        }
+    };
+    for (int t = 0; t < turns; ++t) {
+        float da = 0, db = 0;
+        for (const auto& u : a) if (u.hp > 0 && t >= u.start) da += u.dps;
+        for (const auto& u : b) if (u.hp > 0 && t >= u.start) db += u.dps;
+        hit(b, da);
+        hit(a, db);
+    }
+    return lost(b, b0) - lost(a, a0);
+}
+
+}  // namespace
+
 bool Bot::fight() {
-    PROF(4);
+    PROF(4); g_stage = 4;
     if (foes_.empty()) return false;
     auto& me = cambc::self();
     lock_tributes();
-    float our_hp = hp_, our_dps = base_dps_;
-    for (const auto& f : friends_) {
-        if (cheb(f.pos, pos_) > 5) continue;
-        our_hp += f.hp;
-        our_dps += f.dps();
-    }
-    float their_hp = 0, their_dps = 0;
-    int dmin = 99;
-    const Seen* weakest = nullptr;
-    float wscore = 1e9f;
-    int carried = 0;
-    for (const auto& f : foes_) {
-        const int d = cheb(f.pos, pos_);
-        dmin = std::min(dmin, d);
-        their_hp += f.hp;
-        their_dps += f.dps();
-        carried += f.gems;
-        const float s = f.hp / (1.0f + f.gems * 0.05f) + d * 40.0f - (f.tribute ? 300.0f : 0.0f);
-        if (s < wscore) { wscore = s; weakest = &f; }
-    }
-    if (their_dps <= 0) return false;
-    // Square law with a margin; camps hitting us count against us.
-    const float P = our_hp * our_dps;
-    const float Q = their_hp * (their_dps + camp_in_);
-    const float ratio = P / std::max(1.0f, Q);
-    const bool rich = carried >= 10;
-    const bool engage = ratio >= (rich ? 1.15f : 1.5f);
-    const bool flee = ratio < 0.8f;
 
-    if (engage && weakest) {
-        if (bit(cambc::map::spawn_region(team::enemy), weakest->pos)) return false;  // never chase into their spawn
-        if (attack_foe(weakest)) return true;
-        const int d = cheb(weakest->pos, pos_);
-        if (d > 7) return false;
+    // Our side: us and allies within 6; theirs: every enemy in view.
+    auto start_turn = [](int d, int range, bool melee) {
+        if (melee) return std::max(0, d - 2);
+        return std::max(0, d - range);
+    };
+    std::vector<FU> ours, theirs;
+    FU self_u;
+    self_u.hp = hp_;
+    self_u.dps = base_dps_;
+    self_u.value = 350.0f + gems_ * 2.0f;
+    int my_d = 99;
+    for (const auto& f : foes_) my_d = std::min(my_d, cheb(f.pos, pos_));
+    self_u.start = start_turn(my_d, me.attack_range(), melee_);
+    ours.push_back(self_u);
+    for (const auto& f : friends_) {
+        if (cheb(f.pos, pos_) > 6) continue;
+        int d = 99;
+        for (const auto& e : foes_) d = std::min(d, cheb(f.pos, e.pos));
+        FU u;
+        u.hp = f.hp;
+        u.dps = f.dps();
+        u.value = 350.0f;
+        u.start = start_turn(d, f.range, f.melee);
+        ours.push_back(u);
+    }
+    const Seen* target = nullptr;
+    float tscore = 1e9f;
+    int dmin = 99, reach_max = 0;
+    float threat_me = 0;  // damage per turn the enemies can put on us if we stay
+    for (const auto& f : foes_) {
+        int d = 99;
+        d = std::min(d, cheb(f.pos, pos_));
+        for (const auto& fr : friends_) if (cheb(fr.pos, pos_) <= 6) d = std::min(d, cheb(f.pos, fr.pos));
+        FU u;
+        u.hp = f.hp;
+        u.dps = f.dps();
+        u.value = 350.0f + f.gems * 2.0f;
+        u.start = f.channel ? 2 : start_turn(d, f.range, f.melee);
+        theirs.push_back(u);
+        const int dm = cheb(f.pos, pos_);
+        dmin = std::min(dmin, dm);
+        const int reach = f.melee ? 2 : f.range + 1;
+        reach_max = std::max(reach_max, reach);
+        if (dm <= reach && !f.channel) threat_me += f.dps();
+        // Weakest first (focus fire), carriers and channelers are worth more, near ones are easier.
+        const float sc = f.hp - f.gems * 4.0f - (f.channel ? 250.0f : 0.0f) + dm * 60.0f;
+        if (sc < tscore) { tscore = sc; target = &f; }
+    }
+    if (camp_in_ > 0) {
+        FU u;
+        u.hp = 100000;  // camps do not die in this window
+        u.dps = camp_in_;
+        theirs.push_back(u);
+    }
+    const float v_fight = simulate(ours, theirs, 8);
+    // Fleeing: melee in contact keep hitting us, ranged get about one shot.
+    float v_flee = 0;
+    for (const auto& f : foes_) {
+        const int dm = cheb(f.pos, pos_);
+        if (f.channel) continue;
+        if (f.melee && dm <= 2) v_flee -= f.dps() * (melee_ ? 2.0f : 3.0f) * 0.4f;
+        else if (!f.melee && dm <= f.range + 1) v_flee -= f.dps() * 1.2f * 0.4f;
+    }
+    if (hp_ + v_flee / 0.4f <= 0) v_flee -= self_u.value;
+    const bool engage = v_fight > v_flee + 40.0f;
+    // A badly hurt champion under focus leaves the fight unless it finishes someone now.
+    const bool doomed = threat_me * 2.0f >= hp_ && !(target && cheb(target->pos, pos_) <= me.attack_range()
+                                                     && target->hp <= base_dps_ * 1.2f);
+    debug_block({
+        if (round_ % 5 == 0)
+            std::cout << "fight r" << round_ << " " << cambc::to_string(type_) << " hp" << static_cast<int>(hp_) << " ours" << ours.size()
+                      << " theirs" << foes_.size() << " vf" << static_cast<int>(v_fight) << " vr" << static_cast<int>(v_flee)
+                      << " thr" << static_cast<int>(threat_me) << " dmin" << dmin << " eng" << engage << " doom" << doomed << "\n";
+    });
+
+    if (engage && !doomed && target) {
+        if (bit(cambc::map::spawn_region(team::enemy), target->pos)) return false;  // never chase into their spawn
+        if (attack_foe(target)) return true;
+        const int d = cheb(target->pos, pos_);
+        if (d > 8) return false;
         if (melee_) {
-            approach(weakest->pos, 1, false);
-            attack_foe(weakest);
+            if (d > 3) dash_towards_tile(target->pos);
+            approach(target->pos, 1, false);
+            attack_foe(target);
         } else {
-            approach(weakest->pos, me.attack_range(), true);
+            approach(target->pos, me.attack_range(), true);
         }
-        hunt_until_ = round_ + 4;
         return true;
     }
-    if (flee) {
-        int reach = 0;
-        for (const auto& f : foes_) reach = std::max(reach, f.melee ? 2 : f.range + 1);
-        if (dmin <= reach + 2) {
-            // Shoot back first when we cannot get away anyway (ranged must choose).
-            if (!melee_ && dmin <= me.attack_range() && hp_ > max_hp_ * 0.5f && attack_foe(weakest)) return true;
-            if (melee_) attack_foe(weakest);
-            if (home_.at(pos_) > 4) dash_towards(home_);
-            retreat_step();
-            return true;
-        }
+    if (threat_me > 0 || dmin <= reach_max + 1) {
+        // Ranged with a shot and little to fear: shoot rather than run.
+        if (!doomed && !melee_ && target && cheb(target->pos, pos_) <= me.attack_range() && threat_me * 3.0f < hp_
+            && attack_foe(target)) return true;
+        if (melee_ && target && cheb(target->pos, pos_) <= 1) attack_foe(target);
+        if (home_.at(pos_) > 3) dash_towards(home_);
+        retreat_step();
+        return true;
     }
-    // Neutral: take free hits.
-    if (weakest && cheb(weakest->pos, pos_) <= me.attack_range()) {
-        if (attack_foe(weakest)) return !melee_;
+    // Out of their reach: carry on, taking free shots.
+    if (target && cheb(target->pos, pos_) <= me.attack_range()) {
+        if (attack_foe(target)) return !melee_;
     }
     return false;
 }
@@ -807,7 +948,7 @@ bool Bot::hunt() {
 // Health, shopping trips, banking
 
 bool Bot::low_health() {
-    PROF(5);
+    PROF(5); g_stage = 5;
     auto& me = cambc::self();
     const bool on_spawn = bit(spawn_, pos_);
     if (on_spawn && hp_ < max_hp_ * 0.92f && foes_.empty()) return true;  // heal up
@@ -850,7 +991,7 @@ bool Bot::want_bank() const {
 }
 
 bool Bot::bank() {
-    PROF(6);
+    PROF(6); g_stage = 6;
     auto& me = cambc::self();
     const int r = cambc::constants::submit_gems_range;
     for (auto a : altars_) {
@@ -870,16 +1011,51 @@ bool Bot::bank() {
             return true;
         } catch (const std::exception&) {}
     }
-    if (altar_.at(pos_) > 5) dash_towards(altar_);
-    if (step_down(altar_)) return true;
+    if (round_ > detour_until_) {
+        if (altar_.at(pos_) > 5) dash_towards(altar_);
+        if (step_down(altar_)) return true;
+    }
     vec2 best = pos_;
     int bd = 9999;
     for (auto a : altars_) if (cheb(a, pos_) < bd) { bd = cheb(a, pos_); best = a; }
-    return bd < 9999 && approach(best, r, false);
+    // The static way is plugged (units or camps): keep routing around for a while.
+    const bool ok = bd < 9999 && approach(best, r, false);
+    if (ok && round_ > detour_until_) detour_until_ = round_ + 8;
+    return ok;
 }
 
 // ---------------------------------------------------------------------------------------------
 // Targets
+
+// Trips needed to clear a group: damage taken while focus-firing its attackers weakest first
+// (incoming drops as they die), against the coalition's health and healing. t = turns to clear.
+float Bot::clear_trips(int g, float dps, float tank, float others_hp, float heal, float& t) const {
+    const GroupK& G = g_[g];
+    float att_hp[32], att_str[32];
+    int n = 0;
+    float rest = 0, inc = 0;
+    for (int ci : G.camps) {
+        const CampK& k = c_[ci];
+        const float h = G.st == GroupK::alive ? (k.alive ? k.hp : 0) : (G.st == GroupK::reward ? 0 : k.max_hp);
+        if (h <= 0) continue;
+        if (k.str > 0 && n < 32) { att_hp[n] = h; att_str[n] = k.str; inc += k.str; ++n; }
+        else rest += h;
+    }
+    for (int i = 1; i < n; ++i)
+        for (int j = i; j > 0 && att_hp[j] < att_hp[j - 1]; --j) { std::swap(att_hp[j], att_hp[j - 1]); std::swap(att_str[j], att_str[j - 1]); }
+    dps = std::max(10.0f, dps);
+    float dmg = 0;
+    t = 0;
+    for (int i = 0; i < n; ++i) {
+        const float dt = att_hp[i] / dps;
+        dmg += dt * inc * 0.85f;
+        t += dt;
+        inc -= att_str[i];
+    }
+    t += rest / dps;
+    const float cap = 0.75f * (tank + 0.5f * others_hp) + heal * t;
+    return dmg / std::max(100.0f, cap);
+}
 
 float Bot::score(int g) const {
     const GroupK& G = g_[g];
@@ -891,42 +1067,30 @@ float Bot::score(int g) const {
         wait = G.ready - round_;
         if (wait > 90) return -1;
     }
-    float hp_left = 0, inc = 0;
-    if (G.st != GroupK::reward) {
-        for (int ci : G.camps) {
-            const CampK& k = c_[ci];
-            const float h = G.st == GroupK::alive ? (k.alive ? k.hp : 0) : k.max_hp;
-            hp_left += h;
-            if (h > 0) inc += k.str;
-        }
-    }
     // Allies who claim it fight with us; if that is not enough, count who else would have to come.
-    float dps = base_dps_, tank = melee_ ? max_hp_ : max_hp_ * 0.8f, heal = healer_ ? 45.0f : 0.0f;
+    float dps = base_dps_, tank = melee_ ? max_hp_ : max_hp_ * 0.8f, others_hp = 0, heal = healer_ ? 45.0f : 0.0f;
     auto add = [&](const Mate& m) {
         dps += m.dps;
-        if (m.melee) tank = std::max(tank, m.hp);
+        if (m.melee && m.hp > tank) { others_hp += tank; tank = m.hp; }
+        else others_hp += m.hp;
         if (m.type == champion_type::willow) heal = 45.0f;
-    };
-    auto trips_for = [&]() {
-        const float kill = hp_left / std::max(10.0f, dps);
-        return std::max(0.0f, inc * 0.85f - heal) * kill / std::max(100.0f, 0.75f * tank);
     };
     for (size_t i = 0; i < mates_.size(); ++i)
         if (mate_alive_[i] && mates_[i].slot < kClaimBytes && claims_[mates_[i].slot] == g + 1) add(mates_[i]);
-    float trips = trips_for();
+    float kill = 0;
+    float trips = clear_trips(g, dps, tank, others_hp, heal, kill);
     int extra_mates = 0;
     if (trips > 1.0f) {
         for (size_t i = 0; i < mates_.size() && trips > 1.0f; ++i) {
             if (!mate_alive_[i] || (mates_[i].slot < kClaimBytes && claims_[mates_[i].slot] == g + 1)) continue;
             add(mates_[i]);
             ++extra_mates;
-            trips = trips_for();
+            trips = clear_trips(g, dps, tank, others_hp, heal, kill);
         }
     }
     if (trips > 3.0f) return -1;
     const int d = G.field.ready() ? G.field.at(pos_) : cheb(pos_, G.center) * 5 / 4 + 2;
     if (d >= kFar) return -1;
-    const float kill = hp_left / std::max(10.0f, dps);
     const float back = static_cast<float>(std::min(60, home_.at(G.center))) * 2 + 10;
     const float extra = std::floor(trips) * back;
     const float bankd = static_cast<float>(std::min(40, altar_.at(G.center))) * 0.3f;
@@ -939,7 +1103,7 @@ float Bot::score(int g) const {
 }
 
 int Bot::choose_target() {
-    PROF(8);
+    PROF(8); g_stage = 8;
     int best = -1;
     float bs = 0;
     for (int g = 0; g < static_cast<int>(g_.size()); ++g) {
@@ -963,12 +1127,13 @@ int Bot::pickup() {
 }
 
 void Bot::work(int g) {
-    PROF(9);
+    PROF(9); g_stage = 9;
     auto& me = cambc::self();
     GroupK& G = g_[g];
     const int d = group_dist(g);
     if (G.st == GroupK::respawning) {
         // Wait outside its reach; a spawn tile we stand on delays the respawn.
+        sub_ = 13;
         int nearest = 99;
         for (auto t : G.tiles) nearest = std::min(nearest, cheb(t, pos_));
         if (nearest > G.reach + 2) go_group(g);
@@ -986,7 +1151,7 @@ void Bot::work(int g) {
         return;
     }
     if (G.st == GroupK::reward) {
-        for (auto t : G.tiles) if (t == pos_) return;  // capturing: hold
+        for (auto t : G.tiles) if (t == pos_) { sub_ = 11; return; }  // capturing: hold
         for (const auto& f : friends_)
             for (auto t : G.tiles)
                 if (f.pos == t) {
@@ -1019,23 +1184,25 @@ void Bot::work(int g) {
     bool started = last_hit_round_ >= round_ - 3;
     for (int ci : G.camps) if (c_[ci].alive && c_[ci].hp < c_[ci].max_hp) started = true;
     if (!started && G.total_str > 0) {
-        float dps = base_dps_, tank = melee_ ? hp_ : hp_ * 0.8f, heal = healer_ ? 45.0f : 0.0f;
-        float hp_left = 0, inc = 0;
-        for (int ci : G.camps) if (c_[ci].alive) { hp_left += c_[ci].hp; inc += c_[ci].str; }
+        float dps = base_dps_, tank = melee_ ? hp_ : hp_ * 0.8f, others_hp = 0, heal = healer_ ? 45.0f : 0.0f;
         bool coming = false;
         for (size_t i = 0; i < mates_.size(); ++i) {
             const Mate& m = mates_[i];
             if (!mate_alive_[i] || m.slot >= kClaimBytes || claims_[m.slot] != g + 1) continue;
-            bool here = false;
-            for (const auto& f : friends_) if (f.type == m.type && cheb(f.pos, pos_) <= 7) { here = true; tank = std::max(tank, m.melee ? f.hp : 0.0f); }
+            const Seen* here = nullptr;
+            for (const auto& f : friends_) if (f.type == m.type && cheb(f.pos, pos_) <= 7) here = &f;
             if (!here) { coming = true; continue; }
             dps += m.dps;
+            if (m.melee && here->hp > tank) { others_hp += tank; tank = here->hp; }
+            else others_hp += here->hp;
             if (m.type == champion_type::willow) heal = 45.0f;
         }
-        const float trips = std::max(0.0f, inc * 0.85f - heal) * (hp_left / std::max(10.0f, dps)) / std::max(100.0f, 0.75f * tank);
+        float tclear = 0;
+        const float trips = clear_trips(g, dps, tank, others_hp, heal, tclear);
         if (wait_g_ != g) { wait_g_ = g; wait_turns_ = 0; }
         if (trips > 1.2f && coming && wait_turns_ < 30 && nearest <= G.reach + 4) {
             ++wait_turns_;
+            sub_ = 12;
             if (nearest <= G.reach + 1) retreat_step();
             return;
         }
@@ -1068,7 +1235,7 @@ void Bot::work(int g) {
 }
 
 void Bot::farm() {
-    PROF(7);
+    PROF(7); g_stage = 7;
     // The healer follows its partner's claim.
     int g = -1;
     if (partner_ >= 0 && mate_alive_[static_cast<size_t>(partner_)]) {
@@ -1099,7 +1266,7 @@ void Bot::farm() {
 // Wards: look into bushes around us.
 
 void Bot::ward() {
-    PROF(14);
+    PROF(14); g_stage = 14;
     auto& me = cambc::self();
     if (round_ < ward_try_) return;
     ward_try_ = round_ + 4;
@@ -1130,17 +1297,28 @@ void Bot::ward() {
 // ---------------------------------------------------------------------------------------------
 
 void Bot::play_turn() {
-    PROF(15);
+    PROF(15); g_stage = 15;
     auto& me = cambc::self();
     if (!init_) {
         initialise();
         if (cambc::fuel_remaining() < 90000) return;
     }
     if (!me.is_alive()) {
+        ++acc_[0];
         shop();
         return;
     }
     observe();
+    debug_block({
+        if (round_ % 400 == 0) {
+            std::cout << "acc r" << round_ << " " << cambc::to_string(type_) << " dead" << acc_[0] << " recall" << acc_[1] << " trib" << acc_[2]
+                      << " fight" << acc_[3] << " low" << acc_[4] << " bankw" << acc_[5] << " shop" << acc_[6] << " hunt" << acc_[7]
+                      << " hit" << acc_[8] << " walk" << acc_[9] << " idle" << acc_[10] << " cap" << acc_[11] << " stage" << acc_[12]
+                      << " respw" << acc_[13] << "\n";
+        }
+    });
+    if (me.is_recalling()) ++acc_[1];
+    if (me.is_submitting_gems()) ++acc_[2];
     if (slot_ == 0 && round_ % 250 == 0) prof_dump(round_);
     if (me.is_recalling() || me.is_submitting_gems() || me.is_teleporting()) return;
     debug_block({
@@ -1159,12 +1337,17 @@ void Bot::play_turn() {
     });
     if (bit(spawn_, pos_) || type_ == champion_type::tavi) shop();
     support_spells();
-    if (fight()) { mode_ = 4; ward(); return; }
-    if (low_health()) { mode_ = 5; return; }
-    if (want_bank()) { mode_ = 1; bank(); ward(); return; }
-    if (shop_trip()) { mode_ = 2; return; }
-    if (hunt()) { mode_ = 6; ward(); return; }
+    if (fight()) { mode_ = 4; ++acc_[3]; ward(); return; }
+    if (low_health()) { mode_ = 5; ++acc_[4]; return; }
+    if (want_bank()) { mode_ = 1; ++acc_[5]; bank(); ward(); return; }
+    if (shop_trip()) { mode_ = 2; ++acc_[6]; return; }
+    if (hunt()) { mode_ = 6; ++acc_[7]; ward(); return; }
     mode_ = 3;
+    sub_ = 0;
     farm();
+    if (sub_) ++acc_[sub_];
+    else if (attacked_) ++acc_[8];
+    else if (moved_) ++acc_[9];
+    else ++acc_[10];
     ward();
 }

@@ -99,8 +99,10 @@ class Bot {
     int last_hit_round_ = -100;
     int hunt_until_ = -1;
     int ward_try_ = 0;
+    int detour_until_ = -1;
     int wait_g_ = -1, wait_turns_ = 0;
-    int mode_ = 0;
+    int mode_ = 0, sub_ = 0;
+    int acc_[16]{};
 
     void initialise();
     void observe();
@@ -121,6 +123,7 @@ class Bot {
     void claim(int g);
     int choose_target();
     float score(int g) const;
+    float clear_trips(int g, float dps, float tank, float others_hp, float heal, float& t) const;
     void work(int g);
     int pickup();
 
@@ -132,6 +135,7 @@ class Bot {
     bool go_group(int g);
     bool go_home();
     bool dash_towards(const Field& f);
+    bool dash_towards_tile(vec2 target);
     bool attack_camps(int g);
     bool attack_foe(const Seen* s);
     void reset_attack();

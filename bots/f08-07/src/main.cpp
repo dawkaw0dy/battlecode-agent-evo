@@ -3,6 +3,7 @@
 #include <iostream>
 #include "bot.h"
 #include "draft.h"
+#include "common.h"
 
 int main() {
     Bot bot;
@@ -13,7 +14,7 @@ int main() {
             else
                 bot.play_turn();
         } catch (const std::exception& error) {
-            std::cout << "bot error: " << error.what() << std::endl;
+            std::cout << "bot error: " << error.what() << " @" << g_stage << std::endl;
         } catch (...) {
             std::cout << "bot error: unknown exception" << std::endl;
         }

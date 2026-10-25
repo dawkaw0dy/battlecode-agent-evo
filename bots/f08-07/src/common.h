@@ -10,6 +10,7 @@
 using cambc::vec2;
 using cambc::team;
 
+inline int g_stage = 0;  // last code stage reached (diagnostics)
 constexpr int kFar = 65535;  // unreached tile in a distance field
 constexpr std::array<vec2, 8> kDirs{vec2{0, 1}, vec2{1, 1}, vec2{1, 0}, vec2{1, -1},
     vec2{0, -1}, vec2{-1, -1}, vec2{-1, 0}, vec2{-1, 1}};
