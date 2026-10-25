@@ -3069,9 +3069,11 @@
   },
   "f06-04": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evo-f06-04-wqv2c3",
+   "commit": "a24591d6c058aca534495a7d523ed59cc20c2ffa",
    "deadline_minutes": 120,
+   "done_at": 1792933765,
+   "effort_level": "high",
    "evidence": [
     {
      "gems_opponent": 1305,
@@ -3119,6 +3121,7 @@
    "generation": 6,
    "id": "f06-04",
    "kind": "child",
+   "model": null,
    "nudged": [],
    "operator": "crossover",
    "parents": [
@@ -3139,7 +3142,7 @@
    ],
    "slot": 4,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "b316a35dd1066a742aeff626f8a165beca8324499281d100944e2a0652da08d6"
   },
   "f06-05": {
@@ -17307,7 +17310,6 @@
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-24T18:35:15Z g01 r01-A: pushed caaed30840 with 35 shards",
   "2026-10-24T18:37:34Z g01 phase EVAL_A_DONE: results for r01-A",
   "2026-10-24T18:37:50Z g01 r01-A-spot: pushed 2337bb258a (23 sampled games, 17 shards)",
   "2026-10-24T18:40:13Z g01 r01-A: verified, 1120 rows, spot-check 23 OK",
@@ -17506,7 +17508,8 @@
   "2026-10-25T12:49:16Z g06 f06-04: launched session_0151MaHNFFqqYy9NC6ypDrTQ",
   "2026-10-25T12:50:01Z g06 f06-05: launched session_01JC1GLBa5KHGzXXgPFxUF8e",
   "2026-10-25T12:50:46Z g06 f06-06: launched session_01GF9qbNn3MXFZHJGBG8jKTc",
-  "2026-10-25T12:51:18Z g06 f06-07: launched session_018LWWLeLvxipigD5zAXQ3tA"
+  "2026-10-25T12:51:18Z g06 f06-07: launched session_018LWWLeLvxipigD5zAXQ3tA",
+  "2026-10-25T13:09:25Z g06 f06-04: done on origin/claude/evo-f06-04-wqv2c3 at a24591d6c0"
  ],
  "paused": null,
  "phase": "RUNNING",
