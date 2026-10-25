@@ -21026,13 +21026,19 @@
    "pushed_commit": "9607d2a2b5eeb7397ea3ae92cd19db2e7062f21b",
    "results_commit": "eb1dfb3ac7b1e5e244fce9390fd26fcd5c20765c",
    "retries": 0,
+   "spotcheck": {
+    "games": 18,
+    "job": "r07-A-spot",
+    "pushed_at": 1792944626,
+    "pushed_commit": "47d0c822fd31b4bc91ee4817dbec9cf920f06685",
+    "status": "pending"
+   },
    "stage": "A",
    "status": "arrived"
   }
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-24T21:38:37Z g03 phase RUNNING",
   "2026-10-24T21:38:55Z g03 f03-01: launched session_01FGqvJS1zArpMRQToBkMguW",
   "2026-10-24T21:39:06Z g03 f03-02: launched session_01QZF6XGS1D5arsvPcdRAy6k",
   "2026-10-24T21:39:17Z g03 f03-03: launched session_01E6WyTLMPo9ZoGRrZg3xEHd",
@@ -21231,7 +21237,8 @@
   "2026-10-25T16:06:36Z g07 f07-07: admitted (9be2a37cf061)",
   "2026-10-25T16:06:44Z g07 phase EVAL_A_PENDING",
   "2026-10-25T16:06:54Z g07 r07-A: pushed 9607d2a2b5 with 28 shards",
-  "2026-10-25T16:10:15Z g07 phase EVAL_A_DONE: results for r07-A"
+  "2026-10-25T16:10:15Z g07 phase EVAL_A_DONE: results for r07-A",
+  "2026-10-25T16:10:26Z g07 r07-A-spot: pushed 47d0c822fd (18 sampled games, 12 shards)"
  ],
  "paused": null,
  "phase": "EVAL_A_DONE",
