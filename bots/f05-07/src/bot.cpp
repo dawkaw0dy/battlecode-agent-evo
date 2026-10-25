@@ -32,7 +32,7 @@ constexpr int kSquads = 1;
 // Solo mode: every champion farms its own claimed group; the whole team only raids bosses.
 // Layout: [0..4] claim per slot (group + 1), [5] flags (bit0 engage, bit1 raid), [6] raid group + 1,
 // [7] bit per slot: near the raid target.
-constexpr bool kSolo = false;
+constexpr bool kSolo = true;
 constexpr int kFlags = 5, kRaid = 6, kNearBits = 7;
 constexpr float kBossBias = 2.0f;
 constexpr float kFightRatio = 1.3f;
@@ -431,28 +431,55 @@ bool Bot::step_to(const bc::bitboard& goals) {
     auto blocked = blocked_now(pos);
     auto g = goals;
     g &= ~blocked;
-    if (g.is_set(pos) || g.is_empty()) return false;
-    // Keep out of the reach of awake camps we are not fighting (unless we already stand in it).
-    if (!awake_.empty()) {
-        bc::bitboard danger;
-        danger.clear();
-        const Group* tg = last_target_ >= 0 ? &groups_[last_target_] : nullptr;
-        for (const auto& [p, r] : awake_) {
-            if (tg && std::find(tg->tiles.begin(), tg->tiles.end(), p) != tg->tiles.end()) continue;
-            box(danger, p, r);
-        }
-        if (!danger.is_set(pos)) {
-            danger &= ~g;
-            blocked |= danger;
-        }
-    }
+    if (g.is_set(pos)) return false;
     bc::distance_field field;
     bc::bitboard visited, dest;
     dest.clear();
     dest.set(pos);
-    field.compute_to(blocked, g, dest, visited);
-    const auto d = field.next_move_from(pos);
-    if (!d) return false;
+    std::optional<vec2> d;
+    if (!g.is_empty()) {
+        // Keep out of the reach of awake camps we are not fighting (unless we already stand in it).
+        bool danger_used = false;
+        if (!awake_.empty()) {
+            bc::bitboard danger;
+            danger.clear();
+            const Group* tg = last_target_ >= 0 ? &groups_[last_target_] : nullptr;
+            for (const auto& [p, r] : awake_) {
+                if (tg && std::find(tg->tiles.begin(), tg->tiles.end(), p) != tg->tiles.end()) continue;
+                box(danger, p, r);
+            }
+            if (!danger.is_set(pos)) {
+                danger &= ~g;
+                auto walls = blocked | danger;
+                field.compute_to(walls, g, dest, visited);
+                d = field.next_move_from(pos);
+                danger_used = true;
+            }
+        }
+        if (!d) {
+            if (danger_used) field = bc::distance_field();
+            field.compute_to(blocked, g, dest, visited);
+            d = field.next_move_from(pos);
+        }
+    }
+    if (!d) {
+        // No free route: path through camps and clear the first one in the way (a plug).
+        auto walls = static_blocked() | bc::vision::champion_tiles();
+        walls.set(pos, false);
+        auto g2 = goals;
+        g2 &= ~walls;
+        if (g2.is_empty() || g2.is_set(pos)) return false;
+        bc::distance_field f2;
+        f2.compute_to(walls, g2, dest, visited);
+        const auto d2 = f2.next_move_from(pos);
+        if (!d2) return false;
+        const vec2 nxt = pos + *d2;
+        if (bc::vision::has_camp(nxt)) {
+            attack_unit_camp(nxt);
+            return false;
+        }
+        d = d2;
+    }
     const bool ok = me.move(*d);
     if (ok) moved_ = true;
     else move_failed_ = true;
@@ -748,6 +775,13 @@ bool Bot::bank() {
     auto& me = bc::self();
     const vec2 pos = me.position();
     const auto locked = bc::vision::altar_lock_tiles(team::enemy);
+    debug_block({
+        if (round_ % 20 == 0) {
+            std::cout << "BANK r" << round_ << " s" << slot_ << " p" << pos.x << "," << pos.y << " altars";
+            for (auto a : altars_) std::cout << " " << a.x << "," << a.y << (locked.is_set(a) ? "L" : "");
+            std::cout << "\n";
+        }
+    });
     bc::bitboard goals;
     goals.clear();
     for (auto a : altars_) {
@@ -896,7 +930,7 @@ bool Bot::work_target(int t, bool engage) {
 void Bot::trace(char mode, int target) {
     debug_block({
         auto& me = bc::self();
-        if (round_ <= 250)
+        if (round_ <= 2000)
             std::cout << "r" << round_ << " s" << slot_ << " " << mode << " t" << target << " m" << int(mem_[1])
                       << " p" << me.position().x << "," << me.position().y << " hp" << static_cast<int>(me.health())
                       << " g" << me.gem_count() << " au" << me.gold_count()
@@ -1092,10 +1126,12 @@ void Bot::play_turn() {
     int altar_d = 999;
     for (auto a : altars_) altar_d = std::min(altar_d, dist(pos, a));
     const int total = static_cast<int>(bc::global_submitted_gems(team::ally));
+    if (gems == 0) banking_ = false;
     const bool want_bank = gems > 0
-        && (gems >= kBankGems || (gems >= 5 && hp < 0.5f * mh) || (gems >= 8 && altar_d <= 8) || altar_d <= 2 || round_ > 1850
+        && (banking_ || gems >= kBankGems || (gems >= 5 && hp < 0.5f * mh) || (gems >= 8 && altar_d <= 8) || altar_d <= 2 || round_ > 1850
             || total + gems >= 1000 || (boss_target && (gems >= 5) && !(near && engage)));
     if (want_bank && !capturing && incoming == 0) {
+        banking_ = true;
         bank();
         write_status(true, false, true);
         trace('B', target);

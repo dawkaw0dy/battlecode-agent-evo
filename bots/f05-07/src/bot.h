@@ -39,6 +39,7 @@ class Bot {
     int engage_since_ = -1;     // leader: round the staging for the current boss target started
     int last_target_ = -1;
     bool retreat_ = false;
+    bool banking_ = false;
     float last_hp_ = 0;
     int flee_until_ = 0;
     std::vector<std::pair<cambc::vec2, int>> awake_;  // awake camps near us: tile, attack range
