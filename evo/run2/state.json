@@ -3891,7 +3891,7 @@
    "slot": 1,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "a20d902539cfe37224b2ed015488568cf019095da60b0d174dfe01ab587e3aa0"
   },
   "f08-02": {
    "archetype": null,
@@ -3956,7 +3956,7 @@
    "slot": 2,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "02a3fd11c1ea4cb6a02c3210dcbbb730db8ef8cbadd5ee502277d75a050e4b50"
   },
   "f08-03": {
    "archetype": null,
@@ -4021,7 +4021,7 @@
    "slot": 3,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "bcefd791e51c06b088625af943b6d2b055d6b929d92ca92623c75ae2e6ab1219"
   },
   "f08-04": {
    "archetype": null,
@@ -4086,7 +4086,7 @@
    "slot": 4,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "fb2e5d2f6880c24cb2c2a8b81bb3e6efaae7d968912aeccbdd7a07a8755dc753"
   },
   "f08-05": {
    "archetype": null,
@@ -4151,7 +4151,7 @@
    "slot": 5,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "634b7dcca05df4a9d115fc5b235dd8060da09bd15a5b681e4e588e5262a4029f"
   },
   "f08-06": {
    "archetype": "map-reader",
@@ -4191,7 +4191,7 @@
    "slot": 6,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "0264c0524f99f62d86650c38a110c1caf86bac375d8bbbb7bfec13b91e898f71"
   },
   "f08-07": {
    "archetype": "vision-ambush",
@@ -4231,7 +4231,7 @@
    "slot": 7,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "61b28407e5c784c46c5e855486eac5983eb02adff0da898d54b34c83fc041a12"
   }
  },
  "generation": 8,
@@ -23336,7 +23336,6 @@
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-25T07:51:29Z g03 phase ADMITTED",
   "2026-10-25T07:51:54Z g03 PAUSED: only 1 admitted bots (need 3); not evaluating",
   "2026-10-25T08:17:02Z g03 phase RUNNING",
   "2026-10-25T08:17:02Z g03 owner revived f03-01..f03-07 (D42): the app was closed at nudge time; each session gets the nudge now and 20 minutes after it",
@@ -23535,10 +23534,11 @@
   "2026-10-25T16:25:12Z g07 r07-C: verified, 144 rows, spot-check 4 OK",
   "2026-10-25T16:25:23Z g07 phase SELECTED: final: f07-02, f07-03, f07-01, f07-05, f06-05, f05-02, f04-05, f07-04, f07-07, f07-06, starter",
   "2026-10-25T16:25:34Z g07 survivors ['f07-02', 'f07-03'], hall of fame ['f00-03', 'f01-07', 'f02-01', 'f03-05', 'f04-05', 'f05-02', 'f06-05', 'f07-02']",
-  "2026-10-25T16:25:34Z g08 phase PLANNED: 8 slots"
+  "2026-10-25T16:25:34Z g08 phase PLANNED: 8 slots",
+  "2026-10-25T16:25:40Z g08 phase TASKS_PUSHED: 7 task files"
  ],
  "paused": null,
- "phase": "PLANNED",
+ "phase": "TASKS_PUSHED",
  "sessions_launched": 57,
  "version": 1
 }
