@@ -414,6 +414,7 @@ bool Bot::hit_group(int group, bool force) {
     if (!found) return false;
     try {
         auto c = cambc::vision::camp_at(best);
+        if (!c.is_visible() || !c.is_alive()) return false;
         me.attack(c);
         attacked_ = true;
         invalidate();
