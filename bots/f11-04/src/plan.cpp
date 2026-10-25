@@ -187,7 +187,7 @@ std::vector<std::vector<std::uint8_t>> plan_routes(const std::vector<GroupInfo>&
     constexpr std::uint64_t kFieldReserve = 300000;  // fuel kept for the routing below
     constexpr std::uint64_t kLoopReserve = 40000;    // ... and for writing the plan
     constexpr size_t kMaxCand = 48;
-    constexpr float kMaxTrips = 3.0f;    // heal trips one solo clear may take
+    constexpr float kMaxTrips = 0.0f;    // heal trips one solo clear may take
     std::vector<std::vector<std::uint8_t>> routes(static_cast<size_t>(std::max(0, slots)));
     if (slots <= 0) return routes;
     const auto picks = pick_order(slots);
