@@ -14404,7 +14404,6 @@
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-24T16:49:01Z g00 survivors ['f00-03', 'f00-00'], hall of fame ['f00-03']",
   "2026-10-24T16:49:01Z g01 phase PLANNED: 8 slots",
   "2026-10-24T16:49:06Z g01 phase TASKS_PUSHED: 7 task files",
   "2026-10-24T16:49:16Z g01 phase RUNNING",
@@ -14603,10 +14602,11 @@
   "2026-10-25T12:26:16Z g05 f05-04: admitted (7cdbd62cfedf)",
   "2026-10-25T12:26:21Z g05 f05-05: admitted (a02a16de909c)",
   "2026-10-25T12:26:25Z g05 f05-06: admitted (d6095b0abe52)",
-  "2026-10-25T12:26:29Z g05 f05-07: admitted (b370eceec339)"
+  "2026-10-25T12:26:29Z g05 f05-07: admitted (b370eceec339)",
+  "2026-10-25T12:26:37Z g05 phase EVAL_A_PENDING"
  ],
  "paused": null,
- "phase": "ADMITTED",
+ "phase": "EVAL_A_PENDING",
  "sessions_launched": 43,
  "version": 1
 }
