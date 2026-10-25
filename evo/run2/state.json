@@ -5184,9 +5184,11 @@
   },
   "f10-06": {
    "archetype": "big-game-hunter",
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evolution-f10-06-dj1l1u",
+   "commit": "ac15014ffd72b85a4731976a5781fed242095818",
    "deadline_minutes": 120,
+   "done_at": 1792961378,
+   "effort_level": "high",
    "evidence": [],
    "failed_ideas": [
     "f08-04: Fuel: host calls cost ~30\u201340 fuel, but every bitboard temporary (&, |, ~, shift) ~600 and a grow(r) ~4k\u00b7r;",
@@ -5209,6 +5211,7 @@
    "generation": 10,
    "id": "f10-06",
    "kind": "immigrant",
+   "model": null,
    "nudged": [],
    "operator": null,
    "parents": [
@@ -5228,7 +5231,7 @@
    ],
    "slot": 6,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "a26c943e82382b52cdf91d19b1f046724cca6a42fbe5be44d6e1c8524caa3b63"
   },
   "f10-07": {
@@ -29717,7 +29720,6 @@
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-25T12:26:21Z g05 f05-05: admitted (a02a16de909c)",
   "2026-10-25T12:26:25Z g05 f05-06: admitted (d6095b0abe52)",
   "2026-10-25T12:26:29Z g05 f05-07: admitted (b370eceec339)",
   "2026-10-25T12:26:37Z g05 phase EVAL_A_PENDING",
@@ -29916,7 +29918,8 @@
   "2026-10-25T20:09:13Z g10 f10-06: launched session_01LmMqsaFHTJ2NLNxo3c5qo7",
   "2026-10-25T20:09:29Z g10 f10-07: launched session_01U78Sckd7oZxrGhFo2MUAxX",
   "2026-10-25T20:34:35Z g10 f10-04: done on origin/claude/evo-task-f10-04-t81xq3 at 1679784925",
-  "2026-10-25T20:44:30Z g10 f10-01: done on origin/claude/evolution-agent-f10-01-o37iwu at fc79e1d80c"
+  "2026-10-25T20:44:30Z g10 f10-01: done on origin/claude/evolution-agent-f10-01-o37iwu at fc79e1d80c",
+  "2026-10-25T20:49:38Z g10 f10-06: done on origin/claude/evolution-f10-06-dj1l1u at ac15014ffd"
  ],
  "paused": null,
  "phase": "RUNNING",
