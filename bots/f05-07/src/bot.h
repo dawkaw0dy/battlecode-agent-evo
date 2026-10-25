@@ -1,6 +1,7 @@
 #pragma once
 #include <cambc.h>
 #include <cstdint>
+#include <utility>
 #include <vector>
 
 // One camp group as the bot remembers it.
@@ -38,6 +39,10 @@ class Bot {
     int engage_since_ = -1;     // leader: round the staging for the current boss target started
     int last_target_ = -1;
     bool retreat_ = false;
+    float last_hp_ = 0;
+    int flee_until_ = 0;
+    std::vector<std::pair<cambc::vec2, int>> awake_;  // awake camps near us: tile, attack range
+    int raid_target_ = -1, raid_start_ = 0, raid_cool_ = 0;
     int last_scan_ = -100;
     std::uint8_t mem_[8]{};
 
@@ -45,6 +50,8 @@ class Bot {
     void shop();
     void scan_groups(bool all);
     void lead(int squad);
+    int choose_solo();
+    void lead_raid();
     bool step_to(const cambc::bitboard& goals);
     bool step_away(cambc::vec2 from, int want);
     void box(cambc::bitboard& b, cambc::vec2 p, int r) const;

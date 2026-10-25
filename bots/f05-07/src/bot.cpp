@@ -29,12 +29,20 @@ constexpr int kSlots = 5;
 constexpr std::uint8_t kAlive = 0x80, kNear = 0x40, kBusy = 0x20;
 constexpr int kTarget1 = 7;      // squad 1 target + 1
 constexpr int kSquads = 1;
+// Solo mode: every champion farms its own claimed group; the whole team only raids bosses.
+// Layout: [0..4] claim per slot (group + 1), [5] flags (bit0 engage, bit1 raid), [6] raid group + 1,
+// [7] bit per slot: near the raid target.
+constexpr bool kSolo = false;
+constexpr int kFlags = 5, kRaid = 6, kNearBits = 7;
 constexpr float kBossBias = 2.0f;
 constexpr float kFightRatio = 1.3f;
 constexpr float kRetreatFrac = 0.35f;
 constexpr int kBankGems = 15;
 constexpr float kSwitch = 2.0f;     // a new target must score this many times the current one
 constexpr float kStageStr = 60.f;   // groups at least this strong are engaged together
+constexpr float kSoloBudget = 0.6f;  // share of max health a solo champion may lose on one group
+constexpr int kGolemRound = 150, kMonoRound = 400;
+constexpr int kFleeCommit = 5;
 
 int pick_order(bc::champion_type t) {
     switch (t) {
@@ -183,6 +191,16 @@ void Bot::shop() {
 
 void Bot::write_status(bool alive, bool near, bool busy) {
     if (slot_ >= kSlots) return;
+    if (kSolo) {
+        const std::uint8_t bit = static_cast<std::uint8_t>(1 << slot_);
+        const std::uint8_t v = static_cast<std::uint8_t>(near && alive && !busy && raid_target_ >= 0
+            ? (mem_[kNearBits] | bit) : (mem_[kNearBits] & ~bit));
+        if (v != mem_[kNearBits]) {
+            mem_[kNearBits] = v;
+            bc::shared_memory[kNearBits] = v;
+        }
+        return;
+    }
     std::uint8_t v = 0x01;
     if (alive) {
         auto& me = bc::self();
@@ -197,7 +215,7 @@ void Bot::write_status(bool alive, bool near, bool busy) {
 // Refresh remembered state of visible groups (all of them, or just the pack target).
 void Bot::scan_groups(bool all) {
     const auto visible = bc::vision::visible_tiles();
-    const int t0 = mem_[0] - 1, t1 = mem_[kTarget1] - 1;
+    const int t0 = kSolo ? last_target_ : mem_[0] - 1, t1 = kSolo ? -1 : mem_[kTarget1] - 1;
     for (int i = 0; i < static_cast<int>(groups_.size()); ++i) {
         if (!all && i != t0 && i != t1) continue;
         auto& G = groups_[i];
@@ -318,14 +336,116 @@ void Bot::lead(int squad) {
     bc::shared_memory[tb] = mem_[tb];
 }
 
+// Solo: score groups for this champion alone, skipping groups claimed by allies and bosses.
+int Bot::choose_solo() {
+    auto& me = bc::self();
+    const vec2 pos = me.is_alive() ? me.position() : home_;
+    const float dps = std::max(30.f, me.strength()) * 1.1f;
+    const float budget = me.max_health() * kSoloBudget;
+    const float gold_w = round_ < 900 ? 0.5f : 0.25f;
+    const int cur = slot_ < kSlots ? mem_[slot_] - 1 : -1;
+    int best = -1;
+    float best_score = 0, cur_score = 0;
+    for (int i = 0; i < static_cast<int>(groups_.size()); ++i) {
+        const auto& G = groups_[i];
+        if (G.tiles.empty() || G.boss || G.home_dist >= 60000 || bad_until_[i] > round_) continue;
+        bool claimed = false;
+        for (int s = 0; s < std::min(team_n_, kSlots); ++s)
+            if (s != slot_ && mem_[s] == i + 1) claimed = true;
+        if (claimed) continue;
+        const int travel = dist(pos, G.center);
+        const int wait = G.respawn_at > round_ ? G.respawn_at - round_ : 0;
+        const int eff_wait = std::max(0, wait - travel);
+        if (eff_wait > 40) continue;
+        float clear = 0;
+        if (!G.reward_ready) {
+            clear = G.hp / dps;
+            if (G.str * clear * 0.5f > budget) continue;
+        }
+        const float value = static_cast<float>(G.gems) + gold_w * static_cast<float>(G.gold);
+        if (value <= 0) continue;
+        const float score = value / (static_cast<float>(travel + eff_wait) + clear + 8.f);
+        if (i == cur) cur_score = score;
+        if (score > best_score) { best_score = score; best = i; }
+    }
+    if (cur >= 0 && cur_score > 0 && best_score < kSwitch * cur_score) best = cur;
+    if (slot_ < kSlots) {
+        mem_[slot_] = static_cast<std::uint8_t>(best + 1);
+        bc::shared_memory[slot_] = mem_[slot_];
+    }
+    return best;
+}
+
+// Solo: slot 0 calls whole-team raids on golems and monoliths and the engage.
+void Bot::lead_raid() {
+    auto& me = bc::self();
+    const vec2 pos = me.is_alive() ? me.position() : home_;
+    int cur = mem_[kRaid] - 1;
+    if (cur >= static_cast<int>(groups_.size())) cur = -1;
+    if (cur >= 0) {
+        const auto& G = groups_[cur];
+        const bool done = G.respawn_at > round_ + 5;
+        if (done || round_ - raid_start_ > 300) {
+            if (!done) raid_cool_ = round_ + 300;
+            mem_[kRaid] = 0;
+            mem_[kFlags] = 0;
+            engage_since_ = -1;
+        } else if (!(mem_[kFlags] & 1)) {
+            int near = 0;
+            for (int s = 0; s < std::min(team_n_, kSlots); ++s)
+                if (mem_[kNearBits] & (1 << s)) ++near;
+            if (near > 0 && engage_since_ < 0) engage_since_ = round_;
+            if (near >= std::max(2, team_n_ - 1) || (engage_since_ >= 0 && round_ - engage_since_ > 30))
+                mem_[kFlags] |= 1;
+        }
+    } else if (round_ >= raid_cool_) {
+        const float dps = std::max(30.f, me.strength()) * 1.1f * static_cast<float>(team_n_);
+        const float budget = me.max_health() * 0.55f * static_cast<float>(team_n_);
+        int best = -1;
+        int best_d = 1 << 20;
+        for (int i = 0; i < static_cast<int>(groups_.size()); ++i) {
+            const auto& G = groups_[i];
+            if (!G.boss || G.home_dist >= 60000 || team_n_ < 3) continue;
+            if (G.monolith ? (round_ < kMonoRound || bought_ < 10) : (round_ < kGolemRound || bought_ < 5)) continue;
+            if (G.respawn_at > round_ + dist(pos, G.center)) continue;
+            const float hp = G.known_hp >= 0 ? G.known_hp : G.hp;
+            const float trips = G.str * (hp / dps) / budget;
+            if (trips > (G.monolith ? 3.0f : 1.5f)) continue;
+            if (G.home_dist < best_d) { best_d = G.home_dist; best = i; }
+        }
+        if (best >= 0) {
+            mem_[kRaid] = static_cast<std::uint8_t>(best + 1);
+            mem_[kFlags] = 2;
+            raid_start_ = round_;
+            engage_since_ = -1;
+        }
+    }
+    bc::shared_memory[kRaid] = mem_[kRaid];
+    bc::shared_memory[kFlags] = mem_[kFlags];
+}
+
 bool Bot::step_to(const bc::bitboard& goals) {
     auto& me = bc::self();
     if (moved_ || move_failed_ || cast_excl_ || !me.can_move()) return false;
     const vec2 pos = me.position();
-    const auto blocked = blocked_now(pos);
+    auto blocked = blocked_now(pos);
     auto g = goals;
     g &= ~blocked;
     if (g.is_set(pos) || g.is_empty()) return false;
+    // Keep out of the reach of awake camps we are not fighting (unless we already stand in it).
+    if (!awake_.empty()) {
+        bc::bitboard danger;
+        danger.clear();
+        const Group* tg = last_target_ >= 0 ? &groups_[last_target_] : nullptr;
+        for (const auto& [p, r] : awake_) {
+            if (tg && std::find(tg->tiles.begin(), tg->tiles.end(), p) != tg->tiles.end()) continue;
+            box(danger, p, r);
+        }
+        if (!danger.is_set(pos)) {
+            danger &= ~g;
+            blocked |= danger;
+        }
+    }
     bc::distance_field field;
     bc::bitboard visited, dest;
     dest.clear();
@@ -439,15 +559,17 @@ float Bot::incoming_damage(bool& boss_awake) {
     auto& me = bc::self();
     const vec2 pos = me.position();
     boss_awake = false;
+    awake_.clear();
     bc::bitboard near;
     near.clear();
-    box(near, pos, 5);
+    box(near, pos, 8);
     near &= bc::vision::camp_tiles();
     float sum = 0;
     for (auto p : near.positions()) {
         try {
             auto c = bc::vision::camp_at(p);
             if (!c.is_awake()) continue;
+            awake_.push_back({p, c.attack_range()});
             if (dist(pos, p) <= c.attack_range()) {
                 sum += c.strength();
                 if (c.is_monolith() || c.kind() == bc::camp_type::golem) boss_awake = true;
@@ -735,7 +857,7 @@ bool Bot::work_target(int t, bool engage) {
         return true;
     }
     // Staging: hold outside camp range until the leader calls the engage.
-    if (G.str >= kStageStr && !any_awake && !engage) {
+    if ((kSolo ? G.boss : G.str >= kStageStr) && !any_awake && !engage) {
         const vec2 ref = boss_pos.x >= 0 ? boss_pos : tgt;
         const int d = dist(pos, ref);
         if (d <= G.range) step_away(ref, G.range + 1);
@@ -774,7 +896,7 @@ bool Bot::work_target(int t, bool engage) {
 void Bot::trace(char mode, int target) {
     debug_block({
         auto& me = bc::self();
-        if (round_ <= 300 && round_ % 4 == 0)
+        if (round_ <= 250)
             std::cout << "r" << round_ << " s" << slot_ << " " << mode << " t" << target << " m" << int(mem_[1])
                       << " p" << me.position().x << "," << me.position().y << " hp" << static_cast<int>(me.health())
                       << " g" << me.gem_count() << " au" << me.gold_count()
@@ -806,6 +928,7 @@ void Bot::play_turn() {
 
     if (!me.is_alive()) {
         shop();
+        if (kSolo && slot_ == 0) lead_raid();
         write_status(false, false, false);
         return;
     }
@@ -824,9 +947,25 @@ void Bot::play_turn() {
         }
     }
 
+    int target = -1, leader = -1, squad = 0;
+    bool raid = false;
+    if (kSolo) {
+        if (round_ - last_scan_ >= 3) {
+            scan_groups(true);
+            last_scan_ = round_;
+        } else {
+            scan_groups(false);
+        }
+        if (slot_ == 0) lead_raid();
+        raid_target_ = mem_[kRaid] - 1;
+        if (raid_target_ >= static_cast<int>(groups_.size())) raid_target_ = -1;
+        raid = raid_target_ >= 0;
+        target = raid ? raid_target_ : choose_solo();
+        leader = slot_;
+    } else {
     // Leader election per squad: lowest slot that is alive and not busy (unknown counts as available).
-    const int squad = slot_ % kSquads;
-    int leader = -1;
+    squad = slot_ % kSquads;
+    leader = -1;
     for (int s = squad; s < std::min(team_n_, kSlots); s += kSquads) {
         const std::uint8_t v = mem_[kStatus + s];
         if (s == slot_ || v == 0 || ((v & kAlive) && !(v & kBusy))) { leader = s; break; }
@@ -842,8 +981,9 @@ void Bot::play_turn() {
     } else {
         scan_groups(false);
     }
-    const bool raid = (mem_[1] & 2) != 0;
-    int target = (squad == 0 || raid) ? mem_[0] - 1 : mem_[kTarget1] - 1;
+    raid = (mem_[1] & 2) != 0;
+    target = (squad == 0 || raid) ? mem_[0] - 1 : mem_[kTarget1] - 1;
+    }
     if (target >= static_cast<int>(groups_.size())) target = -1;
     if (target != last_target_) {
         last_target_ = target;
@@ -864,7 +1004,7 @@ void Bot::play_turn() {
             prog_since_ = round_;
         }
     }
-    const bool engage = (mem_[1] & ((squad == 0 || raid) ? 1 : 4)) != 0;
+    const bool engage = kSolo ? (mem_[kFlags] & 1) != 0 : (mem_[1] & ((squad == 0 || raid) ? 1 : 4)) != 0;
 
     bool boss_awake = false;
     const float incoming = incoming_damage(boss_awake);
@@ -877,14 +1017,20 @@ void Bot::play_turn() {
 
     // Retreat from camp damage when it would kill us soon; keep retreating until healed.
     if (retreat_ && at_spawn) retreat_ = false;
+    const bool hurt_now = hp < last_hp_ - 1.f;
+    last_hp_ = hp;
     if (incoming > 0 && hp < std::max(kRetreatFrac * mh, 4.f * incoming + 0.1f * mh)) retreat_ = true;
+    if (hurt_now && hp < kRetreatFrac * mh) retreat_ = true;
     if (retreat_ && incoming == 0) {
         bc::bitboard area;
         area.clear();
         box(area, pos, 6);
         area &= bc::vision::champion_tiles(team::enemy);
         if (area.is_empty()) {
-            if (!try_recall()) retreat_ = hp < 0.5f * mh;
+            // Damage from something unseen interrupts a recall: walk home instead.
+            if (hurt_now || !try_recall()) {
+                if (!step_to(bc::map::spawn_region(team::ally))) retreat_ = hp < 0.5f * mh;
+            }
             write_status(true, false, true);
             trace('R', -1);
             return;
@@ -906,7 +1052,22 @@ void Bot::play_turn() {
     }
 
     bool flee = false;
+    if (flee_until_ > round_ && !at_spawn) {
+        bc::bitboard area;
+        area.clear();
+        box(area, pos, 7);
+        area &= bc::vision::champion_tiles(team::enemy);
+        if (!area.is_empty()) {
+            if (!step_to(bc::map::spawn_region(team::ally))) {
+                fight_enemies(flee);
+            }
+            write_status(true, false, true);
+            trace('f', target);
+            return;
+        }
+    }
     if (fight_enemies(flee)) {
+        if (flee) flee_until_ = round_ + kFleeCommit;
         write_status(true, near, flee);
         trace(flee ? 'F' : 'A', target);
         return;
