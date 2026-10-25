@@ -16931,7 +16931,9 @@
     "B": [
      "r06-B"
     ],
-    "C": []
+    "C": [
+     "r06-C"
+    ]
    },
    "members": [
     "f05-02",
@@ -18651,6 +18653,120 @@
      ]
     ]
    ],
+   "plan_C": [
+    [
+     [
+      "f05-02",
+      "f06-01"
+     ],
+     [
+      "h-1b59",
+      "h-1ceb",
+      "h-1cec",
+      "h-1cee",
+      "h-1cef",
+      "h-1e78",
+      "h-1e7b",
+      "h-1e7e"
+     ]
+    ],
+    [
+     [
+      "f05-02",
+      "starter"
+     ],
+     [
+      "h-1b59",
+      "h-1ceb",
+      "h-1cec",
+      "h-1cee",
+      "h-1cef",
+      "h-1e78",
+      "h-1e7b",
+      "h-1e7e"
+     ]
+    ],
+    [
+     [
+      "f05-02",
+      "f03-05"
+     ],
+     [
+      "h-1b59",
+      "h-1ceb",
+      "h-1cec",
+      "h-1cee",
+      "h-1cef",
+      "h-1e78",
+      "h-1e7b",
+      "h-1e7e"
+     ]
+    ],
+    [
+     [
+      "f05-02",
+      "f04-05"
+     ],
+     [
+      "h-1b59",
+      "h-1ceb",
+      "h-1cec",
+      "h-1cee",
+      "h-1cef",
+      "h-1e78",
+      "h-1e7b",
+      "h-1e7e"
+     ]
+    ],
+    [
+     [
+      "f06-01",
+      "starter"
+     ],
+     [
+      "h-1b59",
+      "h-1ceb",
+      "h-1cec",
+      "h-1cee",
+      "h-1cef",
+      "h-1e78",
+      "h-1e7b",
+      "h-1e7e"
+     ]
+    ],
+    [
+     [
+      "f06-01",
+      "f03-05"
+     ],
+     [
+      "h-1b59",
+      "h-1ceb",
+      "h-1cec",
+      "h-1cee",
+      "h-1cef",
+      "h-1e78",
+      "h-1e7b",
+      "h-1e7e"
+     ]
+    ],
+    [
+     [
+      "f06-01",
+      "f04-05"
+     ],
+     [
+      "h-1b59",
+      "h-1ceb",
+      "h-1cec",
+      "h-1cee",
+      "h-1cef",
+      "h-1e78",
+      "h-1e7b",
+      "h-1e7e"
+     ]
+    ]
+   ],
    "ranking": [
     "f06-05",
     "f05-02",
@@ -19475,11 +19591,18 @@
    },
    "stage": "B",
    "status": "verified"
+  },
+  "r06-C": {
+   "generation": 6,
+   "pushed_at": 1792937833,
+   "pushed_commit": "70489379d7c0ff255d1ae7ba3e404cac6b3a8593",
+   "retries": 0,
+   "stage": "C",
+   "status": "pending"
   }
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-24T21:15:44Z g02 f02-01: done on origin/claude/evolution-agent-f02-01-xc7p7z at 959c7c67a1",
   "2026-10-24T21:15:47Z g02 f02-02: done on origin/claude/evolution-agent-f02-02-95plho at 7e13f21db8",
   "2026-10-24T21:17:48Z g02 f02-03: done on origin/claude/evo-task-f02-03-9a8ifn at d6a9bac5b0",
   "2026-10-24T21:17:52Z g02 f02-04: done on origin/claude/evo-task-f02-04-h95nr8 at 881f7665dd",
@@ -19678,7 +19801,8 @@
   "2026-10-25T14:14:08Z g06 phase EVAL_B_DONE: results for r06-B",
   "2026-10-25T14:14:19Z g06 r06-B-spot: pushed f223de9c91 (27 sampled games, 20 shards)",
   "2026-10-25T14:16:40Z g06 r06-B: verified, 1332 rows, spot-check 27 OK",
-  "2026-10-25T14:16:55Z g06 phase EVAL_C_PENDING: stage C for f05-02 vs f06-01"
+  "2026-10-25T14:16:55Z g06 phase EVAL_C_PENDING: stage C for f05-02 vs f06-01",
+  "2026-10-25T14:17:13Z g06 r06-C: pushed 70489379d7 with 7 shards"
  ],
  "paused": null,
  "phase": "EVAL_C_PENDING",
