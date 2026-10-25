@@ -63,6 +63,7 @@ constexpr int kRangedApproach = 2;
 constexpr int kSight = 3;  // shared-memory offset of the 4 sighting bytes (0..2 hold squad targets)
 constexpr bool kFuelProbe = false;
 constexpr int kShopGold = 180;
+constexpr float kCampRetreatRounds = 5.0f;  // leave when awake camps in range would kill us within this many rounds
 
 // ---------------------------------------------------------------- static map knowledge
 struct Group {
@@ -941,16 +942,24 @@ void Bot::play_turn() {
 
     // Recall when hurt and nothing is close enough to interrupt.
     bool camp_threat = false;
-    for (int dy = -5; dy <= 5 && !camp_threat; ++dy)
+    float camp_dps = 0;  // awake camps that can hit us now (they hit the nearest champion)
+    for (int dy = -5; dy <= 5; ++dy)
         for (int dx = -5; dx <= 5; ++dx) {
             const vec2 p{v.me.x + dx, v.me.y + dy};
             if (!v.camp_bits.get(p)) continue;
             try {
                 auto c = bc::vision::camp_at(p);
-                if (c.is_awake() && dist(p, v.me) <= c.attack_range()) { camp_threat = true; break; }
+                const int dc = dist(p, v.me);
+                if (c.is_awake() && dc <= c.attack_range()) {
+                    camp_threat = true;
+                    bool nearest = true;
+                    for (const auto& a : v.allies)
+                        if (dist(a.pos, p) < dc) { nearest = false; break; }
+                    if (nearest) camp_dps += c.strength();
+                }
             } catch (const std::exception& e) { warn("threat", e); }
         }
-    if (!at_spawn && hp < max_hp * kRetreatHp) {
+    if (!at_spawn && (hp < max_hp * kRetreatHp || hp < camp_dps * kCampRetreatRounds)) {
         set_mode(1);
         if (!camp_threat && v.enemies.empty()) {
             try { me.recall(); } catch (const std::exception& e) { warn("recall", e); }
