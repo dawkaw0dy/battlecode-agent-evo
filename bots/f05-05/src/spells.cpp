@@ -281,19 +281,19 @@ bool Bot::try_dash(const cambc::distance_field& f, const cambc::bitboard& seen) 
     auto& me = cambc::self();
     if (cast_ || !dasher_ || !me.can_cast() || !fuel(12000)) return false;
     const vec2 pos = me.position();
-    if (!seen.is_set(pos)) return false;
+    if (!board_at(seen, pos)) return false;
     const auto abs = me.abilities();
     const auto* ab = ready_slot(abs, kit_, ability_kind::dash);
     if (!ab) return false;
-    const int here = f.get(pos);
+    const int here = field_at(f, pos);
     std::array<std::pair<int, vec2>, 16> cand;
     size_t n = 0;
     for (int dx = -2; dx <= 2; ++dx)
         for (int dy = -2; dy <= 2; ++dy) {
             if (std::max(std::abs(dx), std::abs(dy)) != 2) continue;
             const vec2 t{pos.x + dx, pos.y + dy};
-            if (!free_tile(t) || !seen.is_set(t)) continue;
-            const int d = f.get(t);
+            if (!free_tile(t) || !board_at(seen, t)) continue;
+            const int d = field_at(f, t);
             if (d > here - 2) continue;
             // Need a passable middle tile (holes may be jumped, walls not).
             bool path = false;

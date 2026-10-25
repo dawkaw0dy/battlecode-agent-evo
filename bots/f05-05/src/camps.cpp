@@ -19,8 +19,8 @@
 #include <span>
 #include <utility>
 
-const Bits& walls_local();
 extern int g_mode;
+void fp(const char* tag);
 
 namespace {
 constexpr float kCaptureTurns = 6.0f;  // five capture phases and the step onto the region
@@ -303,38 +303,6 @@ const cambc::bitboard& Bot::rally_goal(int group) {
     return rally_goal_;
 }
 
-// Far from the group: one step down its cached walking field instead of a fresh route search (a host
-// BFS each turn is most of our fuel). Not while a dash is ready (the routed walk uses it), and not for a
-// while after the static step was blocked.
-bool Bot::walk_static(int group, int far) {
-    auto& me = cambc::self();
-    const int now = static_cast<int>(cambc::round_number());
-    if (far <= 6 || now < static_off_until_ || moved_ || move_failed_ || !live() || !me.can_move()) return false;
-    const auto& f = gfield_[group];
-    if (f.empty()) return false;
-    if (dasher_ && !cast_ && me.can_cast())
-        for (const auto& ab : me.abilities())
-            if (ab.is_dash() && ab.is_ready()) return false;
-    const vec2 pos = me.position();
-    vec2 best = pos;
-    int best_d = f.at(pos);
-    if (best_d >= kFar) return false;
-    for (auto d : kDirs) {
-        const vec2 t{pos.x + d.x, pos.y + d.y};
-        const int fd = f.at(t);
-        if (fd >= best_d || !free_tile(t) || camp_block_.is_set(t)) continue;
-        best_d = fd;
-        best = t;
-    }
-    if (best == pos) { static_off_until_ = now + 12; return false; }
-    moved_ = true;
-    bool ok = false;
-    try { ok = me.move_absolute(best); } catch (const cambc::error& e) { warn("move", e); }
-    invalidate();
-    if (!ok) { move_failed_ = true; static_off_until_ = now + 12; }
-    return true;
-}
-
 bool Bot::group_awake(int group) const { return !(awake_ & gtiles_[group]).is_empty(); }
 
 // Champions (us included) close enough to join the group's fight within a few turns; pool gets their health.
@@ -348,16 +316,10 @@ int Bot::raiders_near(int group, float* pool) const {
             if (cheb(a, g_[group].center) <= r) ++n;
         return n;
     }
-    const int self_h = static_cast<int>(static_cast<cambc::handle_champion_t>(me));
-    for (const auto& a : cambc::champions(team::ally)) {
-        if (static_cast<int>(static_cast<cambc::handle_champion_t>(a)) == self_h) continue;
-        try {
-            if (!a.is_alive()) continue;
-            const vec2 p = a.position();
-            if (!inside(p) || cheb(p, g_[group].center) > r) continue;
-            ++n;
-            *pool += a.health();
-        } catch (const cambc::error&) {}
+    for (const auto& a : allies_seen()) {
+        if (cheb(a.pos, g_[group].center) > r) continue;
+        ++n;
+        *pool += a.hp;
     }
     return n;
 }
@@ -626,7 +588,9 @@ void Bot::farm(int group) {
             if (fresh.ok && here.trips > fresh.trips && incoming_ == 0 && recall_or_walk(5)) return;
         }
     }
+    fp("f-pre");
     spells_on_group(group);
+    fp("f-spells");
     if (hit_group(group)) {
         g_mode = 12;
         reset_hit(group);
@@ -643,8 +607,10 @@ void Bot::farm(int group) {
         --r;
     }
     const auto& goal2 = approach_goal(group, r);
+    fp("f-goal");
     const bool moved_before = moved_;
     if (walk_static(group, e - r)) return;
+    fp("f-static");
     // The last camp: finish it from one of the group's spawn tiles, so the capture starts at once.
     int living = 0;
     for (float h : k.hp) living += h > 0 ? 1 : 0;
@@ -656,5 +622,6 @@ void Bot::farm(int group) {
     if (!moved_) ok = go(goal2, e > 3);
     // The safest spots cannot be reached: fall back to any spot in range for a while.
     if (!ok && !moved_before && !moved_ && !goal2.is_set(pos_) && !goal_plain_) plain_until_ = now + 12;
+    fp("f-go");
     if (hit_group(group)) reset_hit(group);
 }

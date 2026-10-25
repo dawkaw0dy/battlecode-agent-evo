@@ -11,8 +11,10 @@ const cambc::bitboard& walk_walls() {
 namespace {
 int nearest(const cambc::distance_field& f, const cambc::bitboard& seen, const std::vector<vec2>& tiles) {
     int best = kFar;
-    for (auto t : tiles)
-        if (seen.is_set(t)) best = std::min<int>(best, f.get(t));
+    for (auto t : tiles) {
+        if (g_raw) best = std::min(best, raw_dist(f.ptr(), t));  // unreached reads kFar
+        else if (seen.is_set(t)) best = std::min<int>(best, f.get(t));
+    }
     return best;
 }
 }  // namespace
@@ -27,6 +29,7 @@ std::vector<GroupInfo> analyse_map() {
     cambc::bitboard sa, se;
     fa.compute(walk_walls(), cambc::map::spawn_region(team::ally), sa);
     fe.compute(walls_e, cambc::map::spawn_region(team::enemy), se);
+    g_raw = raw_check(walk_walls(), fa);  // every later tile read relies on this
     for (const auto& g : groups) {
         GroupInfo d;
         long sx = 0, sy = 0;

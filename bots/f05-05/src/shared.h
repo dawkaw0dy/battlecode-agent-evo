@@ -23,12 +23,22 @@ struct View {
 const View& view();
 void invalidate();
 bool free_tile(vec2 p);
-const Bits& hard_local();  // what a dash cannot cross
+const Bits& walls_local();  // walk_walls()
+const Bits& hard_local();   // what a dash cannot cross
+const cambc::bitboard& open_tiles();  // ~walk_walls(), kept
+void nav_setup();           // after init_dims(): the boards above
+// Tile reads of host-format boards and fields (raw when the layout check passed); outside reads unreached.
+int field_at(const cambc::distance_field& f, vec2 p);
+bool board_at(const cambc::bitboard& b, vec2 p);
 
 // A visible champion; power is a rough damage per turn. chan: channelling a tribute (it cannot act
 // until it finishes or cancels); recall: channelling a recall; gems: what a kill would take.
 struct Foe { vec2 pos; float hp, max_hp, power; int range; bool chan = false, recall = false; int gems = 0; };
 std::vector<Foe> foes(team side);
+
+// Allies whose position we can read this round (read once a round: they only move between our turns).
+struct AllySeen { vec2 pos; cambc::champion_type type; float hp; };
+const std::vector<AllySeen>& allies_seen();
 
 // The latest enemy sighting any of us wrote to shared memory.
 struct Sighting { bool ok = false; vec2 where{}; int age = 999; };

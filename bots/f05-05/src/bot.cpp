@@ -15,12 +15,25 @@ constexpr bool kDebugMap = false;
 constexpr bool kStats = false;  // activity counters and positions in stdout
 constexpr bool kTrace = false;
 constexpr bool kTraceChoose = false;
+constexpr bool kVisBench = false;
 std::uint64_t g_f0 = 0;
 const char* g_phase_tag = "";
 int now_dbg() { return static_cast<int>(cambc::round_number()); }
 std::string g_fp_log;
+// Measurement builds only: fuel per phase (between fp tags) and failed fuel gates, every 500 rounds.
+constexpr bool kPhase = false;
+struct PhaseAcc { const char* tag; std::uint64_t sum; std::uint32_t n; };
+std::array<PhaseAcc, 40> g_phase{};
 void fp(const char* tag) {
     g_phase_tag = tag;
+    if (kPhase) {
+        const auto f = cambc::fuel_remaining();
+        const std::uint64_t d = g_f0 > f ? g_f0 - f : 0;
+        for (auto& a : g_phase)
+            if (a.tag == tag || !a.tag) { a.tag = tag; a.sum += d; ++a.n; break; }
+        g_f0 = f;
+        return;
+    }
     if (!kTrace) return;
     const auto f = cambc::fuel_remaining();
     if (g_f0 > f && g_f0 - f > 3000) { g_fp_log += ' '; g_fp_log += tag; g_fp_log += '='; g_fp_log += std::to_string((g_f0 - f) / 1000); }
@@ -49,6 +62,15 @@ const char* kModeNames[20] = {"dead", "chan", "enemy", "fuel", "spwait", "hurt",
 struct ModeCount {
     std::uint64_t f0 = kStats ? cambc::fuel_remaining() : 0;
     ~ModeCount() {
+        if (kPhase) {
+            fp("end");
+            const int r = static_cast<int>(cambc::round_number());
+            if (r % 500 == 0 || r == 1990) {
+                std::cout << "phase r" << r << ' ' << cambc::to_string(cambc::self().champion_name());
+                for (const auto& a : g_phase) if (a.tag) std::cout << ' ' << a.tag << '=' << a.sum / 1000 << "k/" << a.n;
+                std::cout << '\n';
+            }
+        }
         if (kStats) {
             const auto used = f0 - cambc::fuel_remaining();
             if (used > 70000)
@@ -69,70 +91,9 @@ struct ModeCount {
 
 using it = cambc::item_type;
 
-// A turn that ran out of fuel resumes next round on stale data: act only in the round we started.
-std::uint32_t g_round = 0;
-bool live() { return cambc::round_number() == g_round; }
-bool fuel(std::uint64_t need) { return cambc::fuel_remaining() > need; }
-
 void warn(const char* where, const std::exception& e) {
     static int count = 0;
     if (++count <= 20) std::cout << "warn: " << where << ": " << e.what() << '\n';
-}
-
-View g_view;
-void invalidate() { g_view.ok = false; }
-const View& view() {
-    if (!g_view.ok) {
-        g_view.vis = cambc::vision::visible_tiles();
-        g_view.camps = cambc::vision::camp_tiles();
-        g_view.champs = cambc::vision::champion_tiles();
-        g_view.tele = cambc::vision::teleport_tiles();
-        g_view.allies.clear();
-        g_view.ally_types.clear();
-        static std::vector<cambc::champion> others;  // allied handles other than ours, built once
-        static bool built = false;
-        if (!built) {
-            built = true;
-            const int me = static_cast<int>(static_cast<cambc::handle_champion_t>(cambc::self()));
-            for (const auto& a : cambc::champions(team::ally))
-                if (static_cast<int>(static_cast<cambc::handle_champion_t>(a)) != me) others.push_back(a);
-        }
-        for (const auto& a : others) {
-            try {
-                if (!a.is_alive()) continue;
-                const vec2 p = a.position();
-                if (inside(p)) {
-                    g_view.allies.push_back(p);
-                    g_view.ally_types.push_back(a.champion_name());
-                    g_view.champs.set(p);
-                }
-            } catch (const cambc::error&) {}
-        }
-        g_view.lvis.load(g_view.vis);
-        g_view.lcamps.load(g_view.camps);
-        g_view.lchamps.load(g_view.champs);
-        g_view.ltele.load(g_view.tele);
-        g_view.ok = true;
-    }
-    return g_view;
-}
-
-Bits g_walls_local, g_hard_local;  // filled in initialise()
-const Bits& walls_local() { return g_walls_local; }
-const Bits& hard_local() { return g_hard_local; }  // what a dash cannot cross
-
-bool free_tile(vec2 p) {
-    if (!inside(p)) return false;
-    if (p == cambc::self().position()) return true;
-    const auto& v = view();
-    return !walls_local().at(p) && !v.lcamps.at(p) && !v.lchamps.at(p) && !v.ltele.at(p);
-}
-
-cambc::bitboard blocked_now(const cambc::bitboard& camps) {
-    const auto& v = view();
-    auto b = walk_walls() | camps | v.camps | v.champs | v.tele;
-    b.set(cambc::self().position(), false);
-    return b;
 }
 
 float ability_range(const cambc::ability& ab) {
@@ -147,29 +108,6 @@ float ability_range(const cambc::ability& ab) {
         }
     } catch (const std::exception&) {}
     return r;
-}
-
-std::vector<Foe> foes(team side) {
-    std::vector<Foe> out;
-    const vec2 me = cambc::self().position();
-    for (auto p : cambc::vision::champion_tiles(side).positions()) {
-        if (p == me) continue;
-        try {
-            auto c = cambc::vision::champion_at(p);
-            if (!c.is_alive()) continue;
-            Foe f{p, c.health(), c.max_health(), 1.1f * c.strength() + 0.25f * c.focus(), c.attack_range()};
-            if (side == team::enemy) {
-                try {
-                    const auto st = c.state();
-                    f.chan = st.contains(cambc::champion_state::submitting_gems);
-                    f.recall = st.contains(cambc::champion_state::recalling);
-                } catch (const cambc::error&) {}
-                try { f.gems = static_cast<int>(c.gem_count()); } catch (const cambc::error&) {}
-            }
-            out.push_back(f);
-        } catch (const cambc::error&) {}
-    }
-    return out;
 }
 
 bool has_lock() {
@@ -221,15 +159,15 @@ bool has_any(const cambc::enum_map<it>& c, it a, it b, it d) { return c[a] + c[b
 void Bot::initialise() {
     init_ = true;
     init_dims();
-    g_walls_local.load(walk_walls());
-    g_hard_local.load(cambc::map::walls() | cambc::map::altars());
+    nav_setup();
     auto& me = cambc::self();
     g_ = analyse_map();
     h_ = cambc::map::camp_groups();
     k_.assign(g_.size(), Known{});
     for (size_t i = 0; i < g_.size(); ++i)
         for (auto kind : g_[i].kinds) k_[i].hp.push_back(camp_spec(kind).hp);
-    gfield_.assign(g_.size(), Dist{});
+    gfield_.clear();
+    gfield_.resize(g_.size());
     group_at_.assign(static_cast<size_t>(map_w() * map_h()), -1);
     camp_at_.assign(static_cast<size_t>(map_w() * map_h()), -1);
     for (size_t i = 0; i < g_.size(); ++i) {
@@ -260,19 +198,11 @@ void Bot::initialise() {
     my_range_ = me.attack_range();
     build_threats();
 
-    cambc::distance_field f;
-    cambc::bitboard seen;
-    f.compute(walk_walls(), cambc::map::spawn_region(team::ally), seen);
-    home_.load(f);
-    auto spots = empty_board();
-    for (auto a : cambc::map::altars().positions()) {
-        auto one = empty_board();
-        one.set(a);
-        spots |= grow(one, cambc::constants::submit_gems_range);
-    }
+    home_.compute(walk_walls(), cambc::map::spawn_region(team::ally));
+    auto spots = cambc::map::altars();
+    grow_in_place(spots, cambc::constants::submit_gems_range);
     spots &= ~walk_walls();
-    f.compute(walk_walls(), spots, seen);
-    altar_.load(f);
+    altar_.compute(walk_walls(), spots);
     altar_spots_ = spots;
     for (auto t : cambc::map::spawn_region(team::ally).positions()) home_altar_ = std::min(home_altar_, altar_.at(t));
     for (auto a : cambc::map::altars().positions()) altars_.push_back(a);
@@ -288,26 +218,6 @@ void Bot::initialise() {
     });
 }
 
-void Bot::fill_fields(std::uint64_t reserve) {
-    for (int i : fill_order_) {
-        if (!gfield_[i].empty()) continue;
-        if (!fuel(reserve)) return;
-        cambc::distance_field f;
-        cambc::bitboard seen;
-        f.compute(walk_walls(), gtiles_[i], seen);
-        gfield_[i].load(f);
-    }
-}
-
-int Bot::eta(int group) const {
-    if (!gfield_[group].empty()) {
-        const int d = gfield_[group].at(pos_);
-        return d >= kFar ? kFar : d;
-    }
-    if (g_[group].d_ally >= kFar) return kFar;
-    return cheb(pos_, g_[group].center) * 5 / 4 + 2;
-}
-
 // ---------------------------------------------------------------- knowledge
 
 void Bot::observe() {
@@ -315,6 +225,7 @@ void Bot::observe() {
     for (auto& k : k_)
         if (k.state == Known::respawning && now >= k.ready) { k.state = Known::unknown; block_dirty_ = true; }
     const auto& v = view();
+    fp("o-view");
     for (size_t i = 0; i < g_.size(); ++i) {
         if (cheb(g_[i].center, pos_) > 8 + reach_[i]) continue;
         auto& k = k_[i];
@@ -501,94 +412,6 @@ void Bot::shop() {
 
 // ---------------------------------------------------------------- movement
 
-// One step (and a dash when it gains two) along the shortest route around known camps and
-// visible units. When only living camps close the way, remember their group in plug_.
-bool Bot::go(const cambc::bitboard& goals_in, bool dash) {
-    auto& me = cambc::self();
-    if (moved_ || move_failed_ || !me.can_move() || !live()) return false;
-    if (!fuel(25000)) return false;
-    const vec2 pos = me.position();
-    auto blocked = blocked_now(camp_block_);
-    auto goals = goals_in & ~blocked;
-    if (goals.is_empty() || goals.is_set(pos)) return false;
-    cambc::distance_field f;
-    cambc::bitboard seen;
-    auto here = empty_board();
-    here.set(pos);
-    fp("go-compute");
-    f.compute_to(blocked, goals, here, seen);
-    fp("go-computed");
-    if (!seen.is_set(pos)) {
-        // Camps (or units) close the way: find what plugs the walk-only route.
-        cambc::distance_field w;
-        cambc::bitboard wseen;
-        fp("go-fallback");
-        w.compute_to(walk_walls(), goals_in & ~walk_walls(), here, wseen);
-        fp("go-plugwalk");
-        if (!wseen.is_set(pos)) return false;
-        // Follow that route through tiles until the first camp on it (on a local copy: host reads add up).
-        Dist wl;
-        wl.load(w);
-        vec2 at = pos;
-        for (int steps = 0; steps < 60; ++steps) {
-            vec2 next = at;
-            int nd = wl.at(at);
-            for (auto d : kDirs) {
-                const vec2 t{at.x + d.x, at.y + d.y};
-                const int fd = wl.at(t);
-                if (fd < nd && !walls_local().at(t)) { nd = fd; next = t; }
-            }
-            if (next == at) break;
-            const int gi = group_at_[static_cast<size_t>(tidx(next))];
-            if (gi >= 0 && camp_block_.is_set(next)) {
-                if (plug_ != gi) { plug_ = gi; plug_since_ = static_cast<int>(cambc::round_number()); plug_altar_ = false; }
-                return false;
-            }
-            at = next;
-        }
-        // Units in the gap: walk the plain route and wait there for them to move.
-        cambc::distance_field plain;
-        cambc::bitboard plain_seen;
-        plain.compute_to(walk_walls(), goals_in & ~walk_walls(), here, plain_seen);
-        return step_on(plain, plain_seen, goals, blocked, dash);
-    }
-    return step_on(f, seen, goals, blocked, dash);
-}
-
-// Dash and/or walk one step down field f (reached tiles in seen) towards goals.
-bool Bot::step_on(const cambc::distance_field& f, const cambc::bitboard& seen, const cambc::bitboard& goals,
-                  const cambc::bitboard& blocked, bool dash) {
-    auto& me = cambc::self();
-    const vec2 pos = me.position();
-    fp("go-dash");
-    if (!live() || !inside(pos)) return false;
-    if (dash && f.get(pos) >= 3 && try_dash(f, seen)) {
-        fp("go-dashed");
-        moved_ = true;
-        if (move_failed_ || !me.can_move()) return true;
-    }
-    const vec2 from = me.position();
-    if (goals.is_set(from)) return true;
-    fp("go-step");
-    vec2 best = from;
-    int best_d = seen.is_set(from) ? f.get(from) : kFar;
-    for (auto d : kDirs) {
-        const vec2 t{from.x + d.x, from.y + d.y};
-        if (!free_tile(t) || !seen.is_set(t) || blocked.is_set(t)) continue;
-        const int fd = f.get(t);
-        if (fd < best_d) { best_d = fd; best = t; }
-    }
-    if (best == from || !live()) return moved_;
-    moved_ = true;
-    bool ok = false;
-    try { ok = me.move_absolute(best); } catch (const cambc::error& e) { warn("move", e); }
-    invalidate();
-    if (!ok) move_failed_ = true;
-    return ok;
-}
-
-void Bot::go_home() { go(cambc::map::spawn_region(team::ally), true); }
-
 // Walk home when it is close, otherwise recall. True when the turn is used.
 bool Bot::recall_or_walk(int walk_limit) {
     auto& me = cambc::self();
@@ -657,7 +480,7 @@ bool Bot::enemies() {
     }
     last_enemy_seen_ = now;
     // Remember sightings for a few rounds: vision flickers and one turn's view undercounts.
-    {
+    if (kFoeMemory) {
         const auto all = cambc::champions(team::enemy);
         if (foe_mem_.size() != all.size()) foe_mem_.assign(all.size(), Seen{});
         for (size_t i = 0; i < all.size(); ++i) {
@@ -1037,6 +860,40 @@ void Bot::turn() {
     }
     moved_ = attacked_ = cast_ = move_failed_ = false;
     invalidate();
+    if (kVisBench && now_dbg() % 100 == 50) {
+        auto F = [] { return cambc::fuel_remaining(); };
+        static cambc::bitboard* b1 = new cambc::bitboard;
+        std::uint64_t t[12]; int k = 0;
+        t[k++] = F();
+        cambc::vision::camp_tiles_into(*b1);
+        t[k++] = F();
+        cambc::vision::visible_tiles_into(*b1);
+        t[k++] = F();
+        cambc::vision::visible_tiles_into(*b1);
+        t[k++] = F();
+        cambc::vision::champion_tiles_into(team::ally, *b1);
+        t[k++] = F();
+        cambc::vision::champion_tiles_into(team::enemy, *b1);
+        t[k++] = F();
+        cambc::vision::teleport_tiles_into(*b1);
+        t[k++] = F();
+        cambc::vision::awake_camp_tiles_into(*b1);
+        t[k++] = F();
+        { auto x = me.health(); (void)x; }
+        t[k++] = F();
+        invalidate(); (void)view();
+        t[k++] = F();
+        invalidate(); (void)view();
+        t[k++] = F();
+        { auto l = foes(team::enemy); (void)l; }
+        t[k++] = F();
+        { auto& vv = view(); int c = 0; for (int i = 0; i < 100; ++i) c += vv.lvis.at(vec2{i % 50, i / 50}); (void)c; }
+        t[k++] = F();
+        const char* names[] = {"camps", "vis1", "vis2", "ally", "enemy", "tele", "awake", "health", "view1", "view2", "foes", "lvis x100"};
+        std::cout << "visbench r" << now_dbg();
+        for (int i = 0; i + 1 < k; ++i) std::cout << ' ' << names[i] << '=' << (t[i] - t[i + 1]);
+        std::cout << '\n';
+    }
 
     if (!me.is_alive()) {
         g_mode = 0;
