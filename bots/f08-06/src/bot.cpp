@@ -16,6 +16,7 @@ using cambc::team;
 
 constexpr bool kDebug = false;
 constexpr float kMaxTrips = 6;
+constexpr float kStick = 1.5f;
 constexpr float kGoldEarly = 0.5f, kGoldLate = 0.2f;
 int dbg_engage = 0, dbg_flee = 0, dbg_ignore = 0;
 namespace {
@@ -103,6 +104,8 @@ void Bot::init() {
         groups.push_back(grp);
     }
 
+    if (kDebug && type == 1) for (std::size_t g = 0; g < groups.size(); ++g)
+        std::printf("G%zu c %d,%d gems %d gold %d hp %d flags %d du %d dt %d\n", g, groups[g].center.x, groups[g].center.y, (int)groups[g].gems, (int)groups[g].gold, (int)groups[g].hp, groups[g].flags, groups[g].dist_us, groups[g].dist_them);
     cambc::bitboard visited;
     const auto altars = cambc::map::altars();
     altar_field.compute(terrain & ~altars, altars, visited);
@@ -186,6 +189,7 @@ int Bot::choose_target() {
     std::array<std::uint8_t, 8> claims{};
     cambc::shared_memory.read(0, std::span{claims});
 
+    const int my_home = spawn_field.get(pos);
     const float gold_w = round < 600 ? kGoldEarly : kGoldLate;
     const float camp_taken = shards >= 10 ? 0.7f : 1.f; // jungle emblem
     int best = -1;
@@ -194,7 +198,9 @@ int Bot::choose_target() {
         const auto& grp = groups[gi];
         if ((grp.flags & plan::f_skip) || grp.blocked_until > round) continue;
         // Same estimate for every group, so the current target is not judged by a different measure.
-        const int eta = std::max(0, cheb(pos, grp.center) - grp.radius) * 5 / 4 + 2;
+        // Walking distance is at least the difference of both distances from our spawn.
+        const int by_spawn = my_home == kUnreached ? 0 : std::abs(grp.dist_us - my_home) - grp.radius;
+        const int eta = std::max(std::max(0, cheb(pos, grp.center) - grp.radius) * 5 / 4, by_spawn * 11 / 10) + 2;
         if (grp.ready_round > round + eta + 8) continue;
         int others = 0;
         for (int s = 0; s < 8; ++s)
@@ -220,7 +226,7 @@ int Bot::choose_target() {
         if (grp.dist_them < grp.dist_us) score *= plan_kind == plan::aggro ? 0.5f : 0.3f;
         else if (grp.dist_them < grp.dist_us + 8) score *= 0.75f;
         if (others > 0 && (grp.dps == 0 || grp.hp_left < 1500)) score *= 0.35f;
-        if (static_cast<int>(gi) == target) score *= 1.3f;
+        if (static_cast<int>(gi) == target) score *= kStick;
         if (score > best_score) { best_score = score; best = static_cast<int>(gi); }
     }
     return best;
@@ -619,6 +625,15 @@ void Bot::play_turn() {
     static int hist[12] = {};
     int st = turn_inner();
     hist[st]++;
+    if (kDebug && cambc::round_number() % 25 == 1) {
+        auto& me = cambc::self();
+        std::printf("DBG r%u c%d st %d pos %d,%d tgt %d hp %d gems %u gold %u plan %d", cambc::round_number(), (int)me.champion_name(), st,
+            me.position().x, me.position().y, target, (int)me.health(), me.gem_count(), me.gold_count(), plan_kind);
+        if (target >= 0) std::printf(" | c %d,%d hpl %d dps %d rdy %d rw %d fd %d idle %d", groups[target].center.x, groups[target].center.y,
+            (int)groups[target].hp_left, (int)groups[target].dps, groups[target].ready_round, (int)groups[target].reward,
+            me.is_alive() ? (int)target_field.get(me.position()) : -1, idle_hits);
+        std::printf("\n");
+    }
     if (kDebug && (cambc::round_number() == 1000 || cambc::round_number() == 600)) {
         std::printf("HIST c%d", (int)cambc::self().champion_name());
         for (int k = 0; k < 12; ++k) std::printf(" %d", hist[k]);
