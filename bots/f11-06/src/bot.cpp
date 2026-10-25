@@ -20,34 +20,38 @@ namespace {
 constexpr int kEvalEvery = EVO_EVAL;
 constexpr float kTimeConst = EVO_TCONST;
 constexpr int kShopGold = 250;
-constexpr int kNavSpawn = 5000, kNavAltar = 6000;
-constexpr std::uint16_t kChooseRadius = 70;
+constexpr int kNavSpawn = 5000, kNavAltar = 6000;   // cached-route keys (groups use their index)
+constexpr std::uint16_t kChooseRadius = 70;   // target search radius in walking steps
 #ifndef EVO_NAV_CACHE
 #define EVO_NAV_CACHE 1
 #endif
 constexpr bool kNavCache = EVO_NAV_CACHE;
-constexpr int kNavCacheArea = 6400;   // cached routes only on big maps (fuel); elsewhere exact searches   // target search radius in walking steps   // cached-route keys (groups use their index)
+constexpr int kNavCacheArea = 6400;   // cached routes only on big maps (fuel); elsewhere exact searches
 constexpr int kMaxExtraTrips = 3;
 #ifndef EVO_BANK_WARY
 #define EVO_BANK_WARY 15
 #endif
-constexpr int kBankWary = EVO_BANK_WARY;
+constexpr int kBankWary = EVO_BANK_WARY;   // bank this many gems once enemies were seen lately
 #ifndef EVO_ALTAR_DANGER
 #define EVO_ALTAR_DANGER 15
 #endif
-constexpr int kAltarDanger = EVO_ALTAR_DANGER;
+constexpr int kAltarDanger = EVO_ALTAR_DANGER;   // walking-tile penalty for an altar enemies were seen at
 #ifndef EVO_LOCKS
 #define EVO_LOCKS 1
 #endif
-constexpr bool kLocks = EVO_LOCKS;
+constexpr bool kLocks = EVO_LOCKS;   // carry an altar lock and place it on altars we pass
 #ifndef EVO_BUDDY
 #define EVO_BUDDY 0.0f
 #endif
-constexpr float kBuddy = EVO_BUDDY;   // value bonus for groups near an ally's target   // carry an altar lock and place it on altars we pass
+constexpr float kBuddy = EVO_BUDDY;   // value bonus for groups near an ally's target
+#ifndef EVO_RACE_ENEMY
+#define EVO_RACE_ENEMY 800
+#endif
+constexpr int kRaceEnemy = EVO_RACE_ENEMY, kRaceOurs = 750, kRaceBag = 5;   // bank everything late in the race
 #ifndef EVO_OTHER_SECTOR
 #define EVO_OTHER_SECTOR 0.5f
 #endif
-constexpr float kOtherSector = EVO_OTHER_SECTOR, kSharedSector = 0.75f;   // value factors outside our sector   // walking-tile penalty for an altar enemies were seen at   // bank this many gems once enemies were seen lately
+constexpr float kOtherSector = EVO_OTHER_SECTOR, kSharedSector = 0.75f;   // value factors outside our sector
 #ifndef EVO_FLEE_PERIOD
 #define EVO_FLEE_PERIOD 0
 #endif
@@ -924,7 +928,10 @@ bool Bot::bank() {
     int near_altar = kFar;
     for (auto a : m.altars) near_altar = std::min(near_altar, cheb(a, pos_));
     const int submitted = static_cast<int>(cambc::global_submitted_gems(team::ally));
-    bool need = banking_ != 0 || gems_ >= plan_.bank || submitted + gems_ >= 1000
+    const int enemy_sub = static_cast<int>(cambc::global_submitted_gems(team::enemy));
+    // The race's last stretch: carried gems are worth nothing when the game ends.
+    const bool race = enemy_sub >= kRaceEnemy || submitted >= kRaceOurs;
+    bool need = banking_ != 0 || gems_ >= plan_.bank || submitted + gems_ >= 1000 || (race && gems_ >= kRaceBag)
         || (gems_ >= 8 && near_altar <= 4) || (round_ >= 1930 - near_altar)
         || (gems_ >= kBankWary && round_ - last_enemy_round_ < 20);
     if (!need) return false;
