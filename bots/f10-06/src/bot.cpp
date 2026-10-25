@@ -16,6 +16,7 @@ namespace {
 constexpr bool kDebug = false;
 constexpr int kFar = 65535;
 constexpr float kPack = 0.0f;
+constexpr int kRaidParty = 3;      // champions a boss raid waits for
 constexpr bool kScout = true;      // ward unseen bushes beside us while enemies are about
 constexpr int kAvoidRounds = 15;   // skip groups where an enemy was seen this recently
 constexpr int kHelpRange = 0;      // answer an ally's fight within this many tiles
@@ -198,7 +199,26 @@ void Bot::observe() {
                 g.hp[i] = 0;
             }
         }
-        if (!seen) continue;
+        if (!seen) {
+            // A teammate's report on a boss group we cannot see.
+            const int gi = static_cast<int>(&g - g_.data());
+            if (g.big && g.state == Group::alive && mem_[5] == gi + 1) {
+                const float shared = static_cast<float>(mem_[6] | (mem_[7] << 8)) * 2.0f;
+                const float mine = g.hp_left();
+                if (shared > 0 && shared < mine - 1) {
+                    const float k = shared / mine;
+                    for (auto& h : g.hp) h *= k;
+                }
+            }
+            continue;
+        }
+        if (g.big && g.state == Group::alive) {
+            const int gi = static_cast<int>(&g - g_.data());
+            const int v = std::min(65535, static_cast<int>(g.hp_left() / 2.0f));
+            mem_put(5, static_cast<std::uint8_t>(gi + 1));
+            mem_put(6, static_cast<std::uint8_t>(v & 255));
+            mem_put(7, static_cast<std::uint8_t>(v >> 8));
+        }
         // Find the group handle lazily through a visible camp tile.
         try {
             const auto st = cambc::map::camp(g.tiles[0]).camp_group().state();
@@ -473,7 +493,7 @@ void Bot::reveal(int min_n) {
 
 // An ally fights nearby: join it while healthy.
 bool Bot::answer_call() {
-    if (kHelpRange <= 0) return false;
+    if (kHelpRange <= 0) return false;  // off: bytes 5-7 now carry the boss report
     const int age = (now_ - mem_[7]) & 255;
     if (age > 2) return false;
     const vec2 at{mem_[5], mem_[6]};
@@ -543,11 +563,6 @@ bool Bot::fight() {
         std::cout << "F r" << now_ << " s" << slot_ << " hp" << static_cast<int>(hp_) << "/" << static_cast<int>(max_hp_)
                   << " near" << near << " d" << nearest << " ohp" << static_cast<int>(our_hp) << " odps" << static_cast<int>(our_dps)
                   << " thp" << static_cast<int>(their_hp) << " tdps" << static_cast<int>(their_dps) << " eng" << engage << "\n";
-    if (nearest <= 6) {
-        mem_put(5, static_cast<std::uint8_t>(pos_.x));
-        mem_put(6, static_cast<std::uint8_t>(pos_.y));
-        mem_put(7, static_cast<std::uint8_t>(now_ & 255));
-    }
     if (engage) {
         if (nearest > 5 && !threatened) return false;
         spells(true, -1);
@@ -892,7 +907,7 @@ void Bot::farm(int gi) {
     for (size_t i = 0; i < g.tiles.size(); ++i)
         if (g.hp[i] > 0) max_range = std::max(max_range, spec(g.kind[i]).range);
 
-    if (g.big && need > 1 && !awake && with_me < need) {
+    if (g.big && need > 1 && !awake && with_me < std::min(need, kRaidParty)) {
         if (rally_since_ < 0) rally_since_ = now_;
         if (now_ - rally_since_ < 40) {
             // Wait just outside the camps' reach.
@@ -903,7 +918,7 @@ void Bot::farm(int gi) {
             return;
         }
     }
-    if (with_me >= need) rally_since_ = -1;
+    if (with_me >= std::min(need, kRaidParty)) rally_since_ = -1;
 
     const int r = std::max(1, me.attack_range() - shrink_);
     bool can_hit = false;
