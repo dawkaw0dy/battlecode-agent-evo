@@ -59,6 +59,7 @@ private:
     // Decisions.
     bool handle_fight();           // true when the turn is spent on enemies
     bool handle_locks();           // place our altar lock against enemy tributes
+    bool lock_detour();            // walk a few steps to lock an altar the enemy uses
     bool handle_health();          // retreat / recall / heal on spawn
     bool handle_bank();
     void handle_farm();

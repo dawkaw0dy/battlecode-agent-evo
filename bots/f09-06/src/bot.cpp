@@ -52,7 +52,8 @@ constexpr bool kUseLocks = true;           // place altar locks at all (A/B swit
 constexpr int kLockRange = 2;              // altar locks are placed within this distance
 constexpr int kLockGems = 15;
 constexpr bool kPreLock = true;            // lock altars the enemy uses whenever we pass them
-constexpr int kPreLockSlack = 10;          // ... when their spawn is at most this much farther than ours
+constexpr int kPreLockSlack = 10;
+constexpr int kLockDetour = 0;             // walk this far to lock such an altar (6 measured worse: 8/20 vs 11/20)          // ... when their spawn is at most this much farther than ours
 constexpr int kBreakCost = 12;             // turns an enemy lock adds to an altar (5 hits and the risk)
 constexpr int kBankStick = 6;              // keep the chosen altar unless another is this much closer              // lock ahead of an enemy carrying at least this many gems
 constexpr float kForeignValue = 0.5f;      // groups on the enemy side
@@ -410,6 +411,28 @@ bool Bot::handle_locks() {
             a.ally_lock_seen = W.round;
             act = "lock";
             ++locks_placed;
+            return true;
+        }
+    }
+    return false;
+}
+
+// A short walk to lock an enemy-usable altar close by.
+bool Bot::lock_detour() {
+    if (!kLockDetour || !has_lock() || W.round < 20) return false;
+    const vec2 pos = cambc::self().position();
+    for (const auto& a : W.altars) {
+        if (a.theirs > a.ours + kPreLockSlack || a.approach.empty()) continue;
+        if (cheb(a.pos, pos) > kLockDetour || cheb(a.pos, pos) <= kLockRange) continue;
+        if (bit(W.visible, a.pos) && cambc::vision::has_altar_lock(a.pos)) continue;
+        if (W.round - a.ally_lock_seen < 60) continue;
+        cambc::bitboard goal;
+        add_square(goal, a.pos, kLockRange);
+        goal &= ~W.blocked;
+        if (N.step(goal)) {
+            walked = true;
+            act = "lock-detour";
+            handle_locks();
             return true;
         }
     }
@@ -1047,6 +1070,7 @@ void Bot::play_turn() {
     if (handle_fight()) mode = "fight";
     else if (handle_health()) mode = "health";
     else if (handle_bank()) mode = "bank";
+    else if (lock_detour()) mode = "lock";
     else handle_farm();
     prof_mark();
     debug_block({
