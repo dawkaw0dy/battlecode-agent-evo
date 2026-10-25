@@ -67,10 +67,16 @@ private:
     vec2 pos_{0, 0};
     bool moved_ = false, attacked_ = false, cast_ = false, blocked_move_ = false;
     std::vector<Foe> foes_, friends_;
+    std::vector<vec2> prev_foes_;
+    int foes_round_ = -10, prev_foes_round_ = -10;
+    vec2 last_pos_{-1, -1}, cur_pos_{-1, -1};
+    bool avoid_foes_ = false;
+    bool hold_spawn_ = false;
+    int osc_ = 0, banned_ = -1, banned_until_ = -1;
     cambc::bitboard vis_, camps_now_, units_;
     float incoming_ = 0;  // camp damage that can hit our tile next round (estimate)
     float incoming_other_ = 0;  // part of it from camps outside the target group
-    struct Awake { vec2 pos; int range; int group; };
+    struct Awake { vec2 pos; int range; int group; int seen; };
     std::vector<Awake> awake_;
 
     // ---- plans
@@ -90,6 +96,8 @@ private:
     void lap(int i) { const auto f = cambc::fuel_remaining(); prof_[i] += double(pf_ - f); pf_ = f; }
     int flee_until_ = -1;
     vec2 flee_from_{-100, -100};
+    int avoid_until_ = -1;
+    vec2 avoid_pos_{-100, -100};
     int fight_round_ = -1000;
     int shards_ = 0;
     int heal_wait_ = 0;
@@ -128,7 +136,9 @@ private:
     void after_attack();
     bool cast_on_camp(const cambc::camp& c);
     void maybe_shield();
-    bool try_recall();
+    bool try_recall(int why = 0);
+    std::array<int, 8> recalls_{};
+    void try_ward_bush();
     bool on_spawn() const;
 
     // shared memory sighting: x, y, count, round&255

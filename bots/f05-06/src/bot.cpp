@@ -214,6 +214,13 @@ void Bot::observe() {
     units_ |= camps_now_;
     units_ |= cambc::vision::teleport_tiles();
 
+    if (prev_foes_round_ != round_) {
+        prev_foes_.clear();
+        if (foes_round_ == round_ - 1)
+            for (const auto& f : foes_) prev_foes_.push_back(f.pos);
+        prev_foes_round_ = round_;
+    }
+    foes_round_ = round_;
     foes_.clear();
     friends_.clear();
     for (const auto side : {team::enemy, team::ally}) {
@@ -245,7 +252,12 @@ void Bot::observe() {
 
     // Damage that awake camps can deal to us next round.
     incoming_ = incoming_other_ = 0;
-    awake_.clear();
+    {
+        std::vector<Awake> keep;
+        for (const auto& a : awake_)
+            if (round_ - a.seen <= 3 && !Raw::bit(vis_, a.pos)) keep.push_back(a);
+        awake_.swap(keep);
+    }
     float reduce = 1.0f;
     {
         const auto items = me.item_count();
@@ -260,7 +272,7 @@ void Bot::observe() {
             if (!c.is_awake()) continue;
             const int r = c.attack_range();
             const int gi = tile_group_[static_cast<size_t>(p.y) * Raw::W + p.x];
-            awake_.push_back({p, r, gi});
+            awake_.push_back({p, r, gi, round_});
             if (cheb(p, pos_) <= r) {
                 incoming_ += c.strength() * reduce;
                 if (gi != target_) incoming_other_ += c.strength() * reduce;
@@ -276,6 +288,8 @@ void Bot::add_danger(cambc::bitboard& walls) const {
         if (a.group == target_ && target_ >= 0) continue;
         box(walls, a.pos, a.range);
     }
+    if (avoid_foes_)
+        for (const auto& f : foes_) box(walls, f.pos, f.ranged ? 2 : 1);
 }
 
 // ------------------------------------------------------------------ economy
@@ -366,7 +380,7 @@ bool Bot::go(const cambc::bitboard& goals, bool allow_dash) {
     root.set(pos_);
     cambc::distance_field field;
     bool routed = false;
-    if (!awake_.empty() && fuel(40000)) {
+    if ((!awake_.empty() || (avoid_foes_ && !foes_.empty())) && fuel(40000)) {
         // Prefer routes outside the reach of awake camps we are not fighting.
         cambc::bitboard safe = walls;
         add_danger(safe);
@@ -525,13 +539,38 @@ void Bot::maybe_shield() {
         }
 }
 
-bool Bot::try_recall() {
+void Bot::try_ward_bush() {
+    auto& me = cambc::self();
+    if (!live() || me.ward_cooldown() > 0) return;
+    const auto& bushes = cambc::map::bushes();
+    vec2 best{-1, -1};
+    int bd = 99;
+    for (int dy = -2; dy <= 2; ++dy)
+        for (int dx = -2; dx <= 2; ++dx) {
+            const vec2 q{pos_.x + dx, pos_.y + dy};
+            if (!Raw::in(q) || !Raw::bit(bushes, q) || Raw::bit(vis_, q)) continue;
+            if (Raw::bit(units_, q) || Raw::bit(static_blocked_, q)) continue;
+            const int d = std::abs(dx) + std::abs(dy);
+            if (d < bd) bd = d, best = q;
+        }
+    if (best.x < 0) return;
+    try {
+        g_where = "ward";
+        me.place_ward(best);
+    } catch (const cambc::error&) {
+    }
+}
+
+bool Bot::try_recall(int why) {
     auto& me = cambc::self();
     if (on_spawn() || me.is_recalling() || me.is_submitting_gems() || me.is_teleporting() || !live()) return false;
     if (moved_ || attacked_ || cast_ || blocked_move_) return false;
     if (stunned()) return false;
+    for (const auto& f : foes_)
+        if (cheb(f.pos, pos_) <= 9 && !f.channel) return false;  // they would interrupt it
     g_where = "recall";
     me.recall();
+    ++recalls_[why & 7];
     return true;
 }
 
@@ -666,6 +705,15 @@ bool Bot::engage(const std::vector<const Foe*>& near) {
         if (c < best) best = c, tgt = f;
     }
     if (!tgt || cheb(tgt->pos, pos_) > 6) return false;
+    if (hold_spawn_) {
+        // Only shuffle within the spawn towards them.
+        cambc::bitboard goals;
+        box(goals, tgt->pos, ranged_ ? range_ : 1);
+        goals &= spawn_board_;
+        if (!goals.is_empty()) go(goals, false);
+        if (!ranged_ || !moved_) hit_in_range();
+        return true;
+    }
     if (!go_tile(tgt->pos, ranged_ ? range_ : 1, true)) return false;
     if (!ranged_) hit_in_range();
     return true;
@@ -680,15 +728,49 @@ bool Bot::fight_or_flee() {
         if (cheb(f.pos, pos_) <= 8 && !Raw::bit(espawn, f.pos)) {
             near.push_back(&f);
             if (cheb(f.pos, pos_) <= f.range + 2 || f.channel) threat = true;
+            // Closing in on us since last round?
+            const int d = cheb(f.pos, pos_);
+            if (d <= 5)
+                for (const vec2 q : prev_foes_)
+                    if (cheb(q, f.pos) <= 1 && d < cheb(q, last_pos_)) { threat = true; break; }
         }
-    if (near.empty()) return false;
+    if (near.empty()) {
+        // Hit by someone we cannot see (a bush): reveal it with the ward and back off.
+        if (dmg_taken_ > incoming_ + 15 && !on_spawn()) {
+            try_ward_bush();
+            flee_until_ = round_ + 8;
+            flee_from_ = pos_;
+            mode_ = 4;
+            if (me.health() < me.max_health() * 0.6f || me.gem_count() >= 15) {
+                avoid_foes_ = true;
+                go(spawn_board_, true);
+                avoid_foes_ = false;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // On our spawn we heal fully every turn and they cannot step on it: hold and shoot from here.
+    if (on_spawn()) {
+        int closest = 99;
+        for (const Foe* f : near) closest = std::min(closest, cheb(f->pos, pos_));
+        if (closest <= 7) {
+            mode_ = 3;
+            hold_spawn_ = true;
+            engage(near);
+            hold_spawn_ = false;
+            return true;
+        }
+    }
 
     auto dps_of = [](float str, float focus) { return str * 1.1f + focus * 0.25f; };
     const float my_hp = me.health();
     double hp_us = my_hp, dps_us = dps_of(me.strength(), me.focus());
     int n_us = 1;
     for (const auto& a : friends_)
-        if (cheb(a.pos, pos_) <= 6 && !a.channel) hp_us += a.hp, dps_us += dps_of(a.str, a.focus), ++n_us;
+        if (cheb(a.pos, pos_) <= 4 && !a.channel && a.hp > a.maxhp * 0.4f)
+            hp_us += a.hp, dps_us += dps_of(a.str, a.focus), ++n_us;
     double hp_them = 0, dps_them = 0;
     int n_them = 0, closest = 99;
     for (const Foe* f : near) {
@@ -699,14 +781,16 @@ bool Bot::fight_or_flee() {
     // Camps hitting us fight for nobody.
     hp_us -= incoming_ * 4;
     const double ratio = (std::max(0.0, hp_us) * dps_us) / std::max(1.0, hp_them * dps_them);
-    double need = 1.2 + me.gem_count() / 150.0;
+    double need = 1.25 + me.gem_count() / 150.0;
+    if (my_hp < me.max_health() * 0.5f) need += 0.5;
     if (n_us == 1 && n_them >= 2) need += 0.4;
+    if (on_spawn()) need *= 0.5;  // we heal here every turn
     report(near[0]->pos, static_cast<int>(near.size()), threat && ratio >= need);
 
     if (!threat && ratio < need * 1.3) {
         // Busy foes at a distance: keep farming, but stay away from them.
-        flee_until_ = round_ + 6;
-        flee_from_ = near[0]->pos;
+        avoid_until_ = round_ + 6;
+        avoid_pos_ = near[0]->pos;
         return false;
     }
     if (ratio >= need) {
@@ -728,10 +812,12 @@ bool Bot::fight_or_flee() {
         flee_from_ = c->pos;
     }
     if (closest >= 6 && incoming_ <= 0 && dmg_taken_ <= 0 && !on_spawn()) {
-        if (try_recall()) return true;
+        if (try_recall(1)) return true;
     }
     maybe_shield();
-    go(spawn_board_, true);
+    avoid_foes_ = true;
+    if (!on_spawn()) go(spawn_board_, true);
+    avoid_foes_ = false;
     // Melee can still swing at an adjacent chaser while running.
     if (me.can_attack() && live() && (!ranged_ || !moved_)) {
         for (const Foe* f : near)
@@ -825,7 +911,7 @@ int Bot::choose_target() {
     int rc = 0, rage = 99;
     const bool rep = read_report(rp, rc, rage);
     const auto taken = claims();
-    const float wgold = round_ < 700 ? 0.5f : round_ < 1300 ? 0.3f : round_ < 1750 ? 0.15f : 0.03f;
+    const float wgold = round_ < 400 ? 0.4f : round_ < 1000 ? 0.25f : round_ < 1600 ? 0.1f : 0.02f;
     int best = -1;
     float bests = 0;
     for (size_t gi = 0; gi < groups_.size(); ++gi) {
@@ -853,7 +939,7 @@ int Bot::choose_target() {
             if (g.plan_time <= 0 && g.status == 0) continue;
             const float budget = maxhp * 0.8f;
             const int trips = static_cast<int>(std::ceil((g.plan_dmg + 1) / budget));
-            if (trips > (round_ < 400 ? 2 : 3)) continue;
+            if (trips > 3) continue;
             trip = (trips - 1) * (12.0f + g.dspawn);
             if (g.plan_dmg > hp - maxhp * 0.15f && hp < maxhp * 0.9f)
                 trip += 10.0f + std::min<int>(g.dspawn, 60);  // heal first
@@ -866,10 +952,12 @@ int Bot::choose_target() {
         else if (g.owner == dm::kEnemySide) factor = 0.45f;
         else factor = 0.55f;
         if (static_cast<int>(gi) == target_) factor *= 1.25f;
+        if (static_cast<int>(gi) == banned_ && round_ < banned_until_) continue;
         for (int c : taken)
             if (c == static_cast<int>(gi % 255) + 1) factor *= 0.3f;
         if (g.status == 1) factor *= (round_ - g.my_hit < 40) ? 1.3f : 0.4f;
         if (round_ <= flee_until_ + 20 && cheb(flee_from_, g.center) <= 10) factor *= 0.2f;
+        if (round_ <= avoid_until_ && cheb(avoid_pos_, g.center) <= 5) factor *= 0.5f;
         if (rep && rc >= 2 && cheb(rp, g.center) <= 9) factor *= 0.3f;
         const float time = eta + wait + clear + 5 + trip + 8;
         const float s = value * factor / time;
@@ -890,10 +978,10 @@ void Bot::farm() {
             for (const vec2 p : camps_now_.positions())
                 if (cheb(p, pos_) <= 4) { camp_close = true; break; }
             if (!camp_close || hp < maxhp * 0.5f) {
-                if (try_recall()) { retreat_until_ = -1; return; }
+                if (try_recall(2)) { retreat_until_ = -1; return; }
             }
         }
-        if (!step_away_from_camps() && incoming_ <= 0 && try_recall()) retreat_until_ = -1;
+        if (!step_away_from_camps() && incoming_ <= 0 && try_recall(2)) retreat_until_ = -1;
         return;
     }
 
@@ -929,6 +1017,12 @@ void Bot::farm() {
         }
     }
 
+    if (osc_ >= 4 && target_ >= 0) {
+        banned_ = target_;
+        banned_until_ = round_ + 25;
+        osc_ = 0;
+        target_ = -1;
+    }
     if (target_ < 0 || round_ - target_round_ >= 4 || (target_ >= 0 && groups_[target_].status == 2
             && groups_[target_].respawn_at - round_ > 12)) {
         const int t = choose_target();
@@ -939,7 +1033,7 @@ void Bot::farm() {
     }
     if (target_ < 0) {
         mode_ = 14;
-        if (!on_spawn() && hp < maxhp * 0.7f) try_recall();
+        if (!on_spawn() && hp < maxhp * 0.7f) try_recall(3);
         return;
     }
     auto& g = groups_[target_];
@@ -961,7 +1055,7 @@ void Bot::farm() {
     }
     if (g.status == 2) {
         mode_ = 10;
-        if (hp < maxhp * 0.6f && g.respawn_at - round_ > 6 && try_recall()) return;
+        if (hp < maxhp * 0.6f && g.respawn_at - round_ > 6 && try_recall(4)) return;
         // Wait nearby, never on a spawn tile (an occupied tile blocks the respawn).
         bool on_tile = false;
         for (vec2 t : g.tiles)
@@ -979,7 +1073,7 @@ void Bot::farm() {
     if (g.dirty) plan_group(g);
     const bool engaged = incoming_ > 0;
     if (!engaged && !on_spawn() && hp < maxhp * 0.45f && g.plan_dmg > hp * 0.8f) {
-        if (try_recall()) return;
+        if (try_recall(5)) return;
     }
     if (on_spawn() && hp < maxhp * 0.97f && heal_wait_ < 2) {
         mode_ = 13;
@@ -997,7 +1091,7 @@ void Bot::farm() {
         const bool will_finish = hp > incoming_ * (finish + 1) + margin;
         if (!will_finish && hp < incoming_ * 3.5f + margin) {
             retreat_until_ = round_ + 12;
-            if (!step_away_from_camps() && incoming_ <= 0) try_recall();
+            if (!step_away_from_camps() && incoming_ <= 0) try_recall(2);
             return;
         }
     }
@@ -1050,6 +1144,7 @@ void Bot::play_turn() {
         std::uint64_t f0;
         ~Trace() {
             ++b->act_[b->mode_ & 15];
+            if (b->mode_ == 12 && !b->moved_) ++b->act_[14];
             b->lap(4);
             debug_block({
                 if (b->round_ == 1 && b->slot_ == 0) {
@@ -1067,19 +1162,22 @@ void Bot::play_turn() {
                 if (b->round_ == 1000) {
                     std::cout << "ACT k" << b->kind_;
                     for (int v : b->act_) std::cout << ' ' << v;
+                    std::cout << " REC";
+                    for (int v : b->recalls_) std::cout << ' ' << v;
                     std::cout << " PROF";
                     for (double v : b->prof_) std::cout << ' ' << (long)(v / 1000);
                     std::cout << "\n";
                 }
                 static int last_mode = -1, last_tg = -2;
-                const bool change = b->kind_ == 2 && b->round_ < 700 && (b->mode_ != last_mode || b->target_ != last_tg);
+                const bool change = b->round_ >= 200 && b->round_ < 520 && b->kind_ == 7 && (b->mode_ != last_mode || b->target_ != last_tg);
+                if (b->kind_ == 7) last_mode = b->mode_, last_tg = b->target_;
                 if (b->kind_ == 2) last_mode = b->mode_, last_tg = b->target_;
                 if (change || f0 - cambc::fuel_remaining() > 90000) {
                     auto& me = cambc::self();
                     std::cout << "T r" << b->round_ << " k" << b->kind_ << " s" << b->slot_ << " p" << b->pos_.x << ","
                               << b->pos_.y << " hp" << (int)me.health() << " g" << me.gem_count() << " $" << me.gold_count()
                               << " tg" << b->target_ << " st" << (b->target_ >= 0 ? b->groups_[b->target_].status : -1)
-                              << " inc" << (int)b->incoming_ << " ret" << b->retreat_until_ << " foes" << b->foes_.size() << " m" << b->mode_ << " fuel"
+                              << " inc" << (int)b->incoming_ << " ret" << b->retreat_until_ << " foes" << b->foes_.size() << " fr" << b->friends_.size() << " dmg" << (int)b->dmg_taken_ << " m" << b->mode_ << " fuel"
                               << (f0 - cambc::fuel_remaining()) << "\n";
                 }
             });
@@ -1103,6 +1201,11 @@ void Bot::play_turn() {
     }
     pos_ = me.position();
     if (!Raw::in(pos_)) return;
+    // Two-tile oscillation: back where we were two turns ago after moving away.
+    if (pos_.x == last_pos_.x && pos_.y == last_pos_.y && (cur_pos_.x != pos_.x || cur_pos_.y != pos_.y)) ++osc_;
+    else if (round_ % 8 == 0) osc_ = std::max(0, osc_ - 1);
+    last_pos_ = cur_pos_;
+    cur_pos_ = pos_;
     {
         const float hp = me.health();
         dmg_taken_ = (last_hp_round_ == round_ - 1) ? std::max(0.0f, last_hp_ - hp) : 0.0f;
@@ -1125,8 +1228,8 @@ void Bot::play_turn() {
     lap(2);
     if (!fuel(12000)) return;
     if (round_ <= flee_until_ && !on_spawn() && incoming_ <= 0
-        && (me.health() < me.max_health() * 0.75f || me.gem_count() >= 20)) {
-        if (try_recall()) return;
+        && (me.health() < me.max_health() * 0.5f || me.gem_count() >= 30)) {
+        if (try_recall(6)) return;
     }
 
     // Answer an invasion reported near us when healthy.
@@ -1151,7 +1254,7 @@ void Bot::play_turn() {
     // Shopping trip when rich and not in a fight (sooner when hurt anyway).
     const int gold_need = me.health() < me.max_health() * 0.6f ? 150 : 300;
     if (!tavi && !on_spawn() && incoming_ <= 0 && static_cast<int>(me.gold_count()) >= gold_need && round_ < 1850) {
-        if (try_recall()) return;
+        if (try_recall(7)) return;
     }
     farm();
 }
