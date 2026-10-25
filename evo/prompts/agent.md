@@ -17,9 +17,10 @@ The sha256 of this file (`sha256sum evo/tasks/{{id}}.md`) goes into DONE.json as
 - Test with: python3 tools/benchmark.py {{id}} <opponent> --maps <…> --jobs $(nproc) --output /tmp/<dir>
   Opponents to test against (the bots you are evaluated with): {{opponents}}.
   Budget: at most {{game_budget}} games in total, all tools together. Your self-reported results are not used for selection.
-- Use all your time to make the bot as strong as you can: keep improving and testing it until you receive the
-  message "20 minutes left". Then start no new work and do the Finish steps at once. Do not write DONE.json
-  before that message. Commit and push work in progress to your branch now and then.
+- Use your time well: there is no prize for finishing early, so keep improving and testing the bot for as long as
+  you still find real gains. Do the Finish steps when you are out of ideas that are worth testing, or at once
+  when you receive the message "20 minutes left" (then start no new work). Commit and push work in progress to
+  your branch now and then.
 
 ## How you are scored
 - Your bot is evaluated in GitHub Actions, not here: release builds, both sides of every map, against a
