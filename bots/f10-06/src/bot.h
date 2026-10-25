@@ -99,7 +99,6 @@ class Bot {
     bool fight();
     bool bank();
     int choose();
-    int raid_target();
     void farm(int gi);
     bool attack_group(int gi, bool any_awake);
     bool attack_foe();
