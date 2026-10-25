@@ -1023,9 +1023,15 @@ bool Bot::farm() {
         return true;
     }
     if (g.state == 2) {
-        // A long wait: heal on spawn meanwhile.
-        if (g.respawn_at - round > g.home_dist + 10 && hp < 0.8f * max_hp && incoming <= 0 && enemies.empty()
-            && !on_our_spawn(pos)) {
+        // A long wait: bank gems, or heal and shop on spawn meanwhile.
+        const int left = g.respawn_at - round;
+        if (me.gem_count() > 0) {
+            int nearest = 999;
+            for (auto a : altars) nearest = std::min(nearest, cheb(a, pos));
+            if (left > 2 * nearest + 4 && tribute(true)) return true;
+        }
+        if (left > g.home_dist + 10 && (hp < 0.8f * max_hp || (me.gold_count() >= 120 && left > 2 * g.home_dist + 10))
+            && incoming <= 0 && enemies.empty() && !on_our_spawn(pos)) {
             try { me.recall(); return true; } catch (const cambc::error&) {}
         }
         // Wait near, never on, its spawn tiles.
