@@ -94,10 +94,6 @@ private:
     float last_hp_ = 0;
     float dmg_taken_ = 0;
     int mode_ = 0;
-    std::array<int, 16> act_{};
-    std::array<double, 8> prof_{};
-    std::uint64_t pf_ = 0;
-    void lap(int i) { const auto f = cambc::fuel_remaining(); prof_[i] += double(pf_ - f); pf_ = f; }
     int flee_until_ = -1;
     vec2 flee_from_{-100, -100};
     int avoid_until_ = -1;
@@ -141,7 +137,6 @@ private:
     bool cast_on_camp(const cambc::camp& c);
     void maybe_shield();
     bool try_recall(int why = 0);
-    std::array<int, 8> recalls_{};
     void try_ward_bush();
     void place_lock();
     bool on_spawn() const;

@@ -6,7 +6,6 @@
 #include <cmath>
 #include <span>
 #include <variant>
-#include <iostream>
 
 using cambc::item_type;
 
@@ -612,7 +611,6 @@ bool Bot::try_recall(int why) {
         if (cheb(f.pos, pos_) <= 9 && !f.channel) return false;  // they would interrupt it
     g_where = "recall";
     me.recall();
-    ++recalls_[why & 7];
     return true;
 }
 
@@ -1236,54 +1234,9 @@ void Bot::farm() {
 
 void Bot::play_turn() {
     round_ = static_cast<int>(cambc::round_number());
-    struct Trace {
-        Bot* b;
-        std::uint64_t f0;
-        ~Trace() {
-            ++b->act_[b->mode_ & 15];
-            if (b->mode_ == 12 && !b->moved_) ++b->act_[14];
-            b->lap(4);
-            debug_block({
-                if (b->round_ == 1 && b->slot_ == 0) {
-                    std::cout << "MAP altars";
-                    for (auto a : b->altars_) std::cout << " " << a.x << "," << a.y;
-                    std::cout << " home" << b->home_altar_ << "\n";
-                    for (size_t i = 0; i < b->groups_.size(); ++i) {
-                        const auto& g = b->groups_[i];
-                        std::cout << "G" << i << " c" << g.center.x << "," << g.center.y << " n" << g.camps.size() << " k";
-                        for (auto& c : g.camps) std::cout << c.kind;
-                        std::cout << " gem" << g.gems << " gold" << g.gold << " own" << g.owner << " ds" << g.dspawn << " dt" << g.dthem << "\n";
-                    }
-                }
-                std::cout.flush();
-                if (b->round_ == 300) {
-                    std::cout << "ACT k" << b->kind_;
-                    for (int v : b->act_) std::cout << ' ' << v;
-                    std::cout << " REC";
-                    for (int v : b->recalls_) std::cout << ' ' << v;
-                    std::cout << " PROF";
-                    for (double v : b->prof_) std::cout << ' ' << (long)(v / 1000);
-                    std::cout << "\n";
-                }
-                static int last_mode = -1, last_tg = -2;
-                const bool change = b->round_ % 25 == 0;
-                if (b->kind_ == 7) last_mode = b->mode_, last_tg = b->target_;
-                if (b->kind_ == 2) last_mode = b->mode_, last_tg = b->target_;
-                if (change || f0 - cambc::fuel_remaining() > 90000) {
-                    auto& me = cambc::self();
-                    std::cout << "T r" << b->round_ << " k" << b->kind_ << " s" << b->slot_ << " p" << b->pos_.x << ","
-                              << b->pos_.y << " hp" << (int)me.health() << " g" << me.gem_count() << " $" << me.gold_count()
-                              << " tg" << b->target_ << " st" << (b->target_ >= 0 ? b->groups_[b->target_].status : -1)
-                              << " inc" << (int)b->incoming_ << " ret" << b->retreat_until_ << " foes" << b->foes_.size() << " fr" << b->friends_.size() << " dmg" << (int)b->dmg_taken_ << " m" << b->mode_ << " fuel"
-                              << (f0 - cambc::fuel_remaining()) << "\n";
-                }
-            });
-        }
-    } trace{this, cambc::fuel_remaining()};
     auto& me = cambc::self();
     moved_ = attacked_ = cast_ = blocked_move_ = false;
     g_where = "init";
-    pf_ = cambc::fuel_remaining();
     if (!init_) initialize();
     g_where = "turn";
 
@@ -1309,9 +1262,7 @@ void Bot::play_turn() {
         last_hp_ = hp;
         last_hp_round_ = round_;
     }
-    lap(0);
     observe();
-    lap(1);
     if (me.is_recalling() || me.is_submitting_gems() || me.is_teleporting()) {
         mode_ = me.is_submitting_gems() ? 2 : 1;
         return;
@@ -1322,7 +1273,6 @@ void Bot::play_turn() {
 
     if (!fuel(12000)) return;
     if (fight_or_flee()) return;
-    lap(2);
     if (!fuel(12000)) return;
     if (round_ <= flee_until_ && !on_spawn() && incoming_ <= 0
         && (me.health() < me.max_health() * 0.5f || me.gem_count() >= 30)) {
@@ -1344,7 +1294,6 @@ void Bot::play_turn() {
 
     mode_ = 6;
     if (tribute()) return;
-    lap(3);
     if (fuel(20000)) place_lock();
     mode_ = 7;
     if (!fuel(12000)) return;
