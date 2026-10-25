@@ -20,7 +20,7 @@ using cambc::bitboard;
 namespace {
 
 // ---- tuning ---------------------------------------------------------------------------------------
-constexpr float kEngageRatio = 0.9f;     // fight when our square-law power >= this × theirs
+constexpr float kEngageRatio = 1.1f;     // fight when our square-law power >= this × theirs
 constexpr float kCarrierRatio = 1.6f;    // ... when carrying many gems
 constexpr float kRecallHp = 0.50f;       // recall below this share of health with nobody close
 constexpr float kFleeHp = 0.22f;         // always disengage below this share
