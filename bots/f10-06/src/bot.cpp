@@ -16,6 +16,8 @@ namespace {
 constexpr bool kDebug = false;
 constexpr int kFar = 65535;
 constexpr float kPack = 0.0f;
+constexpr int kAvoidRounds = 15;   // skip groups where an enemy was seen this recently
+constexpr int kHelpRange = 0;      // answer an ally's fight within this many tiles
 constexpr int kThreatPad = 5;      // retreat from a fight we would lose once enemies are this far beyond their range
 constexpr float kEngage = 1.2f;   // fight when we kill them in this fraction of the time they need
 constexpr int kBankGems = 12, kBankGemsHot = 6;
@@ -419,6 +421,47 @@ bool Bot::flee() {
     return true;
 }
 
+// Hit by someone we cannot see: put the ward into the nearest unseen bush to reveal the shooter.
+void Bot::reveal() {
+    auto& me = cambc::self();
+    try {
+        if (me.ward_cooldown() > 0) return;
+        const auto tiles = me.ward_placement_tiles();
+        const auto& bushes = cambc::map::bushes();
+        vec2 best{-1, -1};
+        int bd = kFar;
+        for (auto t : tiles.positions()) {
+            if (!bit(bushes, t) || bit(vis_, t)) continue;
+            // Prefer bush tiles with more unseen bush around them.
+            int n = 0;
+            for (auto d : kDirs) {
+                const vec2 q = t + d;
+                if (bit(bushes, q) && !bit(vis_, q)) ++n;
+            }
+            const int v = cheb(t, pos_) * 4 - n;
+            if (v < bd) { bd = v; best = t; }
+        }
+        if (best.x >= 0 && me.place_ward(best)) {
+            vis_ = cambc::vision::visible_tiles();
+            read_units();
+        }
+    } catch (const std::exception&) {}
+}
+
+// An ally fights nearby: join it while healthy.
+bool Bot::answer_call() {
+    if (kHelpRange <= 0) return false;
+    const int age = (now_ - mem_[7]) & 255;
+    if (age > 2) return false;
+    const vec2 at{mem_[5], mem_[6]};
+    if (!inside(at)) return false;
+    const int d = cheb(at, pos_);
+    if (d > kHelpRange || d <= 2) return false;
+    if (hp_ < 0.6f * max_hp_ || cambc::self().gem_count() >= 20) return false;
+    g_act_now = 14;
+    return go_to(at, 2);
+}
+
 bool Bot::attack_foe() {
     auto& me = cambc::self();
     if (!me.can_attack() || foes_.empty()) return false;
@@ -477,6 +520,11 @@ bool Bot::fight() {
         std::cout << "F r" << now_ << " s" << slot_ << " hp" << static_cast<int>(hp_) << "/" << static_cast<int>(max_hp_)
                   << " near" << near << " d" << nearest << " ohp" << static_cast<int>(our_hp) << " odps" << static_cast<int>(our_dps)
                   << " thp" << static_cast<int>(their_hp) << " tdps" << static_cast<int>(their_dps) << " eng" << engage << "\n";
+    if (nearest <= 6) {
+        mem_put(5, static_cast<std::uint8_t>(pos_.x));
+        mem_put(6, static_cast<std::uint8_t>(pos_.y));
+        mem_put(7, static_cast<std::uint8_t>(now_ & 255));
+    }
     if (engage) {
         if (nearest > 5 && !threatened) return false;
         spells(true, -1);
@@ -587,7 +635,7 @@ int Bot::choose() {
         if (travel >= kFar) travel = cheb(pos_, g.center) * 3;
         travel = std::max(0, travel - cheb(path_from_, pos_));
         if (g.state == Group::respawning && g.ready > now_ + travel + 2) continue;
-        if (g.enemy_seen > now_ - 15 && static_cast<int>(i) != target_) continue;
+        if (g.enemy_seen > now_ - kAvoidRounds && static_cast<int>(i) != target_) continue;
         const int c = claims(static_cast<int>(i));
         float score;
         if (g.state == Group::reward) {
@@ -889,7 +937,7 @@ void Bot::play_turn() {
         g_act[g_act_now]++;
         if (now_ == 1500) {
             std::cout << "ACT s" << slot_;
-            for (int i = 0; i < 14; ++i) std::cout << ' ' << g_act[i];
+            for (int i = 0; i < 15; ++i) std::cout << ' ' << g_act[i];
             std::cout << '\n';
         }
     }
@@ -925,7 +973,10 @@ void Bot::turn() {
         bool seen_cause = danger_at(pos_) > 0;
         for (const auto& f : foes_)
             if (cheb(f.pos, pos_) <= f.range + 1) seen_cause = true;
-        if (!seen_cause) ambush_until_ = now_ + 4;
+        if (!seen_cause) {
+            ambush_until_ = now_ + 4;
+            reveal();
+        }
     }
     last_hp_ = hp_;
     last_round_ = now_;
@@ -980,6 +1031,8 @@ void Bot::turn() {
         flee();
         return;
     }
+
+    if (answer_call()) return;
 
     g_act_now = 5;
     if (bank()) return;
