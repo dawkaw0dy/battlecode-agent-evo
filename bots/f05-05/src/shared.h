@@ -36,6 +36,9 @@ bool board_at(const cambc::bitboard& b, vec2 p);
 struct Foe { vec2 pos; float hp, max_hp, power; int range; bool chan = false, recall = false; int gems = 0; };
 std::vector<Foe> foes(team side);
 
+// A camp group's state when a tile of it is in view: 1 alive, 2 reward, 3 respawning (timer), 0 unknown.
+int group_state(const cambc::map::camp_group& g, int& timer);
+
 // Allies whose position we can read this round (read once a round: they only move between our turns).
 struct AllySeen { vec2 pos; cambc::champion_type type; float hp; };
 const std::vector<AllySeen>& allies_seen();

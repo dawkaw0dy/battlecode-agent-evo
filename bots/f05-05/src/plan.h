@@ -15,7 +15,8 @@ struct GroupInfo {
 
 // Static walls for our walking: terrain plus the enemy spawn.
 const cambc::bitboard& walk_walls();
-std::vector<GroupInfo> analyse_map();
+// groups_out (optional) receives the engine's group list: building it costs ~40k fuel on big maps.
+std::vector<GroupInfo> analyse_map(std::vector<cambc::map::camp_group>* groups_out = nullptr);
 
 // Champion picks in slot order for a team of `size`.
 std::vector<cambc::champion_draft> pick_order(int size);

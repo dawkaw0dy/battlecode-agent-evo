@@ -46,6 +46,15 @@ inline int raw_dist(const std::uint16_t* f, vec2 p) {
     return f[(((p.y >> 3) * g_field_stride + (p.x >> 3)) << 6) | ((p.y & 7) << 3) | (p.x & 7)];
 }
 
+// Set a tile of a board in place: a raw write when the layout check passed (a host set costs about as
+// much as a whole-board operation). p must be inside the map.
+inline void board_set(cambc::bitboard& b, vec2 p, bool on = true) {
+    if (!g_raw) { b.set(p, on); return; }
+    std::uint64_t& w = b.ptr()[(p.y >> 3) * g_board_stride + (p.x >> 3)];
+    const std::uint64_t bit = std::uint64_t{1} << (((p.y & 7) << 3) | (p.x & 7));
+    w = on ? (w | bit) : (w & ~bit);
+}
+
 // Fuel a full distance-field search costs on this map (~3 per tile, measured), with a margin.
 inline std::uint64_t field_cost() { return 3500 + 4 * static_cast<std::uint64_t>(g_map_w * g_map_h); }
 
@@ -83,36 +92,44 @@ inline cambc::bitboard grow(const cambc::bitboard& b, int r) {
 // storage never moves); load() keeps its own copy. Reads are raw when the layout check passed.
 struct Bits {
     const cambc::bitboard* b = nullptr;
+    const std::uint64_t* w = nullptr;  // b's storage (it never moves) when raw reads are on
     std::unique_ptr<cambc::bitboard> own;
-    void ref(const cambc::bitboard& src) { b = &src; }
+    void ref(const cambc::bitboard& src) { b = &src; w = g_raw ? src.ptr() : nullptr; }
     void load(const cambc::bitboard& src) {
         if (!own) own = std::make_unique<cambc::bitboard>();
         own->clear();
         *own |= src;
-        b = own.get();
+        ref(*own);
     }
     bool at(vec2 p) const {
-        if (!b || !inside(p)) return false;
-        return g_raw ? raw_bit(b->ptr(), p) : b->is_set(p);
+        if (static_cast<unsigned>(p.x) >= static_cast<unsigned>(g_map_w) || static_cast<unsigned>(p.y) >= static_cast<unsigned>(g_map_h))
+            return false;
+        if (w) return raw_bit(w, p);
+        return b && b->is_set(p);
     }
 };
 
 // A distance field we keep (walking distance to a fixed goal); unreached reads kFar.
 struct Dist {
     std::unique_ptr<cambc::distance_field> f;
+    const std::uint16_t* raw = nullptr;  // f's storage when raw reads are on
     // Search from roots around walls straight into our own storage.
     void compute(const cambc::bitboard& walls, const cambc::bitboard& roots) {
         if (!f) f = std::make_unique<cambc::distance_field>();
         cambc::bitboard seen;
         f->compute(walls, roots, seen);
+        raw = g_raw ? f->ptr() : nullptr;
     }
     void load(const cambc::distance_field& src) {
         if (!f) f = std::make_unique<cambc::distance_field>();
         f->copy_from(src);
+        raw = g_raw ? f->ptr() : nullptr;
     }
     int at(vec2 p) const {
-        if (!f || !inside(p)) return kFar;
-        return g_raw ? raw_dist(f->ptr(), p) : f->get(p);
+        if (static_cast<unsigned>(p.x) >= static_cast<unsigned>(g_map_w) || static_cast<unsigned>(p.y) >= static_cast<unsigned>(g_map_h))
+            return kFar;
+        if (raw) return raw_dist(raw, p);
+        return f ? f->get(p) : kFar;
     }
     bool empty() const { return !f; }
 };

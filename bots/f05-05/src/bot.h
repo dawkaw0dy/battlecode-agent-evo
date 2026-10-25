@@ -36,13 +36,18 @@ class Bot {
     // Memory.
     std::vector<Known> k_;
     int target_ = -1, target_wait_ = 0, chosen_at_ = -100;
+    std::uint64_t choose_cost_ = 20000; // moving average of choose()'s fuel
+    int choose_defer_ = 0;
     int capture_g_ = -1, capture_since_ = 0;
     int spawn_wait_ = 0;
     int stuck_g_ = -1, stuck_since_ = 0, best_eta_ = kFar;
     bool cant_buy_ = false;
     int last_enemy_seen_ = -1000;
     cambc::bitboard camp_block_;        // tiles of camps we believe alive, seen or not
-    bool block_dirty_ = true;
+    bool block_dirty_ = true;           // rebuild camp_block_ whole (first turn)
+    std::vector<int> block_groups_;     // ... or just these groups' tiles
+    std::vector<std::uint8_t> block_mark_;
+    void mark_block(int group);
     std::vector<std::uint8_t> block_buf_;
     std::vector<int> reach_;            // largest distance from a group's centre to its camps
     cambc::bitboard awake_;             // awake camps in view this turn, and ones seen awake lately
@@ -101,7 +106,7 @@ class Bot {
 
     // Camp farming (camps.cpp).
     struct KillStep { float hp, rate; };       // one kill of the clear: camp health, strength reaching us meanwhile
-    struct ClearCost { float hp_sum = -1, peak = 0; std::vector<KillStep> steps; };
+    struct ClearCost { float hp_sum = -1, peak = 0; std::vector<KillStep> steps; int ver = 0; };
     struct Sim { bool ok = false; float turns = 0, trips = 0, first = 0, each = 0; };
     std::vector<std::vector<std::uint8_t>> threat_;  // [group][m * n + c]: camp m reaches us while we hit c
     std::vector<int> exit_;             // steps out of the group's reach from where we hit it
@@ -116,6 +121,15 @@ class Bot {
     int plain_until_ = -1;
     int static_off_until_ = -1;         // walk routed (not down the cached field) until then
     std::vector<std::uint8_t> goal_buf_;
+
+    // simulate() is pure in its inputs: remembered per group (choose() repeats most of them while health holds).
+    struct SimMemo { int n, ver; float pool, dps, full, taken; Sim sim; };
+    int cost_ver_ = 0;
+    std::vector<std::vector<SimMemo>> sim_memo_;
+    std::vector<std::uint8_t> sim_next_;
+    struct Cand { float key; int group, eta; float rem; };
+    std::vector<Cand> order_;            // choose(): groups by optimistic rate
+    Sim simulate_now(int group, int n, float pool_now, float full_hp);
 
     void build_threats();
     const ClearCost& clear_cost(int group);

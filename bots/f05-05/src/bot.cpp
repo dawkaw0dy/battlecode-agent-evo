@@ -15,17 +15,30 @@ constexpr bool kDebugMap = false;
 constexpr bool kStats = false;  // activity counters and positions in stdout
 constexpr bool kTrace = false;
 constexpr bool kTraceChoose = false;
-constexpr bool kVisBench = false;
 std::uint64_t g_f0 = 0;
 const char* g_phase_tag = "";
 int now_dbg() { return static_cast<int>(cambc::round_number()); }
 std::string g_fp_log;
 // Measurement builds only: fuel per phase (between fp tags) and failed fuel gates, every 500 rounds.
 constexpr bool kPhase = false;
+extern std::array<std::uint32_t, 128> g_fuel_fail;
+extern std::uint64_t g_sim_fuel, g_sim_n, g_cc_n, g_ag_fuel, g_ag_work, g_ag_n, g_ch_sim0, g_ch_n0;
+extern int g_ch_groups, g_ch_pruned, g_ch_cc;
+extern std::uint64_t g_ch_tstart, g_ch_t0, g_ch_t1, g_ch_t2;
 struct PhaseAcc { const char* tag; std::uint64_t sum; std::uint32_t n; };
 std::array<PhaseAcc, 40> g_phase{};
+// Measurement builds only: the phases of every turn above 85k fuel or cut short.
+constexpr bool kHeavy = false;
+std::array<std::pair<const char*, std::uint32_t>, 48> g_turn_log{};
+size_t g_turn_n = 0;
 void fp(const char* tag) {
     g_phase_tag = tag;
+    if (kHeavy) {
+        const auto f = cambc::fuel_remaining();
+        if (g_turn_n < g_turn_log.size()) g_turn_log[g_turn_n++] = {tag, static_cast<std::uint32_t>(g_f0 > f ? g_f0 - f : 0)};
+        g_f0 = f;
+        return;
+    }
     if (kPhase) {
         const auto f = cambc::fuel_remaining();
         const std::uint64_t d = g_f0 > f ? g_f0 - f : 0;
@@ -60,14 +73,31 @@ std::array<int, 20> g_modes{};
 const char* kModeNames[20] = {"dead", "chan", "enemy", "fuel", "spwait", "hurt", "bank", "idle", "shop", "heal",
     "stuck", "travel", "fight", "capture", "respawn", "approach", "rally", "", "", ""};
 struct ModeCount {
-    std::uint64_t f0 = kStats ? cambc::fuel_remaining() : 0;
+    std::uint64_t f0 = kStats || kHeavy ? cambc::fuel_remaining() : 0;
+    std::uint32_t r0 = cambc::round_number();
     ~ModeCount() {
+        if (kHeavy) {
+            fp("end");
+            const auto f = cambc::fuel_remaining();
+            const bool cut = cambc::round_number() != r0;
+            if (cut || f0 - f > 85000) {
+                std::cout << "heavy r" << r0 << ' ' << cambc::to_string(cambc::self().champion_name()) << (cut ? " CUT" : "") << " used " << (cut ? 0 : f0 - f) << " mode " << kModeNames[g_mode];
+                for (size_t i = 0; i < g_turn_n; ++i) if (g_turn_log[i].second > 2000) std::cout << ' ' << g_turn_log[i].first << '=' << g_turn_log[i].second / 1000;
+                std::cout << " [ch sims " << g_sim_n - g_ch_n0 << " simfuel " << (g_sim_fuel - g_ch_sim0) / 1000 << "k groups " << g_ch_groups << " pruned " << g_ch_pruned << " cc " << static_cast<int>(g_cc_n) - g_ch_cc << " head " << (g_ch_tstart - g_ch_t0) / 1000 << " pre " << (g_ch_t0 - g_ch_t1) / 1000 << " loop " << (g_ch_t1 - g_ch_t2) / 1000 << "]";
+                std::cout << '\n';
+            }
+            g_turn_n = 0;
+        }
         if (kPhase) {
             fp("end");
             const int r = static_cast<int>(cambc::round_number());
             if (r % 500 == 0 || r == 1990) {
                 std::cout << "phase r" << r << ' ' << cambc::to_string(cambc::self().champion_name());
                 for (const auto& a : g_phase) if (a.tag) std::cout << ' ' << a.tag << '=' << a.sum / 1000 << "k/" << a.n;
+                std::cout << " | sim " << g_sim_n << " avg " << g_sim_fuel / (g_sim_n + 1) << " cc " << g_cc_n
+                          << " | ag " << g_ag_n << " fuel/work " << (g_ag_fuel * 100) / (g_ag_work + 1) << "% avgwork " << g_ag_work / (g_ag_n + 1);
+                std::cout << " | fail";
+                for (int i = 0; i < 128; ++i) if (g_fuel_fail[static_cast<size_t>(i)]) std::cout << ' ' << i << "k:" << g_fuel_fail[static_cast<size_t>(i)];
                 std::cout << '\n';
             }
         }
@@ -159,10 +189,12 @@ bool has_any(const cambc::enum_map<it>& c, it a, it b, it d) { return c[a] + c[b
 void Bot::initialise() {
     init_ = true;
     init_dims();
-    nav_setup();
     auto& me = cambc::self();
-    g_ = analyse_map();
-    h_ = cambc::map::camp_groups();
+    g_ = analyse_map(&h_);  // also checks the raw tile layout (g_raw)
+    fp("i-analyse");
+    nav_setup();
+    fp("i-nav");
+    fp("i-groups");
     k_.assign(g_.size(), Known{});
     for (size_t i = 0; i < g_.size(); ++i)
         for (auto kind : g_[i].kinds) k_[i].hp.push_back(camp_spec(kind).hp);
@@ -196,7 +228,9 @@ void Bot::initialise() {
     for (const auto& sl : kit_)
         if (sl.kind == cambc::ability_kind::dash) dasher_ = true;
     my_range_ = me.attack_range();
+    fp("i-misc");
     build_threats();
+    fp("i-threats");
 
     home_.compute(walk_walls(), cambc::map::spawn_region(team::ally));
     auto spots = cambc::map::altars();
@@ -204,6 +238,7 @@ void Bot::initialise() {
     spots &= ~walk_walls();
     altar_.compute(walk_walls(), spots);
     altar_spots_ = spots;
+    fp("i-fields");
     for (auto t : cambc::map::spawn_region(team::ally).positions()) home_altar_ = std::min(home_altar_, altar_.at(t));
     for (auto a : cambc::map::altars().positions()) altars_.push_back(a);
     bank_d_.assign(g_.size(), kFar);
@@ -223,7 +258,7 @@ void Bot::initialise() {
 void Bot::observe() {
     const int now = static_cast<int>(cambc::round_number());
     for (auto& k : k_)
-        if (k.state == Known::respawning && now >= k.ready) { k.state = Known::unknown; block_dirty_ = true; }
+        if (k.state == Known::respawning && now >= k.ready) { k.state = Known::unknown; mark_block(static_cast<int>(&k - k_.data())); }
     const auto& v = view();
     fp("o-view");
     for (size_t i = 0; i < g_.size(); ++i) {
@@ -236,10 +271,10 @@ void Bot::observe() {
             seen = true;
             if (v.lcamps.at(p)) {
                 living = true;
-                if (k.hp[c] <= 0) { k.hp[c] = camp_spec(g_[i].kinds[c]).hp; block_dirty_ = true; }
+                if (k.hp[c] <= 0) { k.hp[c] = camp_spec(g_[i].kinds[c]).hp; mark_block(static_cast<int>(i)); }
             } else if (k.state == Known::alive && k.hp[c] > 0) {
                 k.hp[c] = 0;
-                block_dirty_ = true;
+                mark_block(static_cast<int>(i));
             }
         }
         if (!seen) continue;
@@ -252,27 +287,27 @@ void Bot::observe() {
                     else if (!v.lcamps.at(p)) k.hp[c] = 0;
                 }
                 k.state = Known::alive;
-                block_dirty_ = true;
+                mark_block(static_cast<int>(i));
             }
             continue;
         }
         if (k.state == Known::respawning) continue;
         // A reward we are not after only needs an occasional look.
         if (k.state == Known::reward && static_cast<int>(i) != target_ && (now + static_cast<int>(i)) % 4 != 0) continue;
-        try {
-            const auto st = h_[i].state();
-            const auto before = k.state;
-            if (std::holds_alternative<cambc::map::camp_group_alive>(st)) {
-                k.state = Known::alive;
-            } else if (std::holds_alternative<cambc::map::camp_group_reward_available>(st)) {
-                k.state = Known::reward;
-            } else {
-                k.state = Known::respawning;
-                k.ready = now + std::max(1, std::get<cambc::map::camp_group_respawning>(st).timer);
-                for (size_t c = 0; c < g_[i].tiles.size(); ++c) k.hp[c] = camp_spec(g_[i].kinds[c]).hp;
-            }
-            if (k.state != before) block_dirty_ = true;
-        } catch (const std::exception&) {}
+        int timer = 0;
+        const int st = group_state(h_[i], timer);  // a tile of it is in view
+        if (st == 0) continue;
+        const auto before = k.state;
+        if (st == 1) {
+            k.state = Known::alive;
+        } else if (st == 2) {
+            k.state = Known::reward;
+        } else {
+            k.state = Known::respawning;
+            k.ready = now + std::max(1, timer);
+            for (size_t c = 0; c < g_[i].tiles.size(); ++c) k.hp[c] = camp_spec(g_[i].kinds[c]).hp;
+        }
+        if (k.state != before) mark_block(static_cast<int>(i));
     }
     // Health of the camps of the group we fight.
     if (target_ >= 0 && cheb(g_[target_].center, pos_) <= 8 + reach_[target_]) {
@@ -285,20 +320,30 @@ void Bot::observe() {
     }
 }
 
+void Bot::mark_block(int group) {
+    if (block_mark_.size() != g_.size()) block_mark_.assign(g_.size(), 0);
+    if (block_mark_[static_cast<size_t>(group)]) return;
+    block_mark_[static_cast<size_t>(group)] = 1;
+    block_groups_.push_back(group);
+}
+
+// Tiles of camps we believe alive. Kept up to date group by group (~95 fuel a tile in wasm loops: a
+// whole rebuild costs ~15k on camp-dense maps).
 void Bot::rebuild_camp_block() {
-    if (!block_dirty_) return;
-    block_dirty_ = false;
-    block_buf_.assign(cambc::bitboard::linear_buffer_size(), 0);
-    for (size_t i = 0; i < g_.size(); ++i) {
+    auto put = [&](size_t i) {
         const auto& k = k_[i];
-        if (k.state == Known::respawning || k.state == Known::reward) continue;
-        for (size_t c = 0; c < g_[i].tiles.size(); ++c)
-            if (k.hp[c] > 0) {
-                const int t = tidx(g_[i].tiles[c]);
-                block_buf_[static_cast<size_t>(t >> 3)] |= static_cast<std::uint8_t>(1u << (t & 7));
-            }
+        const bool gone = k.state == Known::respawning || k.state == Known::reward;
+        for (size_t c = 0; c < g_[i].tiles.size(); ++c) board_set(camp_block_, g_[i].tiles[c], !gone && k.hp[c] > 0);
+    };
+    if (block_dirty_) {
+        block_dirty_ = false;
+        camp_block_.clear();
+        for (size_t i = 0; i < g_.size(); ++i) put(i);
+    } else {
+        for (int i : block_groups_) put(static_cast<size_t>(i));
     }
-    camp_block_.import_linear_buffer(std::span<const std::uint8_t>{block_buf_});
+    for (int i : block_groups_) block_mark_[static_cast<size_t>(i)] = 0;
+    block_groups_.clear();
 }
 
 void Bot::measure() {
@@ -834,7 +879,10 @@ void Bot::turn() {
     auto& me = cambc::self();
     pos_ = me.position();
     if (!init_) {
+        g_f0 = cambc::fuel_remaining();
+        if (kHeavy) std::cout << "init r" << cambc::round_number() << ' ' << cambc::to_string(me.champion_name()) << '\n';
         initialise();
+        fp("init");
         if (slot_ == 0 && kDebugMap) {
             Bits wl, ho, al, sa, se, bu;
             wl.load(cambc::map::walls()); ho.load(cambc::map::holes()); al.load(cambc::map::altars());
@@ -860,40 +908,6 @@ void Bot::turn() {
     }
     moved_ = attacked_ = cast_ = move_failed_ = false;
     invalidate();
-    if (kVisBench && now_dbg() % 100 == 50) {
-        auto F = [] { return cambc::fuel_remaining(); };
-        static cambc::bitboard* b1 = new cambc::bitboard;
-        std::uint64_t t[12]; int k = 0;
-        t[k++] = F();
-        cambc::vision::camp_tiles_into(*b1);
-        t[k++] = F();
-        cambc::vision::visible_tiles_into(*b1);
-        t[k++] = F();
-        cambc::vision::visible_tiles_into(*b1);
-        t[k++] = F();
-        cambc::vision::champion_tiles_into(team::ally, *b1);
-        t[k++] = F();
-        cambc::vision::champion_tiles_into(team::enemy, *b1);
-        t[k++] = F();
-        cambc::vision::teleport_tiles_into(*b1);
-        t[k++] = F();
-        cambc::vision::awake_camp_tiles_into(*b1);
-        t[k++] = F();
-        { auto x = me.health(); (void)x; }
-        t[k++] = F();
-        invalidate(); (void)view();
-        t[k++] = F();
-        invalidate(); (void)view();
-        t[k++] = F();
-        { auto l = foes(team::enemy); (void)l; }
-        t[k++] = F();
-        { auto& vv = view(); int c = 0; for (int i = 0; i < 100; ++i) c += vv.lvis.at(vec2{i % 50, i / 50}); (void)c; }
-        t[k++] = F();
-        const char* names[] = {"camps", "vis1", "vis2", "ally", "enemy", "tele", "awake", "health", "view1", "view2", "foes", "lvis x100"};
-        std::cout << "visbench r" << now_dbg();
-        for (int i = 0; i + 1 < k; ++i) std::cout << ' ' << names[i] << '=' << (t[i] - t[i + 1]);
-        std::cout << '\n';
-    }
 
     if (!me.is_alive()) {
         g_mode = 0;
@@ -963,17 +977,30 @@ void Bot::turn() {
     // Badly hurt: leave camp range, then recall.
     g_mode = 5;
     if (!at_spawn && (hp < max_hp * 0.2f || (incoming_ > 0 && hp < incoming_ * taken_ * (exit_steps_ + 2) + 40))) {
-        if (escape_camps()) return;
-        if (incoming_ == 0 && recall_or_walk(4)) return;
+        const bool esc = escape_camps();
+        fp("hurt-esc");
+        if (esc) return;
+        const bool rec = incoming_ == 0 && recall_or_walk(4);
+        fp("hurt-rec");
+        if (rec) return;
     }
 
     const int now = static_cast<int>(cambc::round_number());
-    if (target_ < 0 || now - chosen_at_ >= 4 || k_[target_].state == Known::respawning) {
+    // A due re-plan waits a turn (twice at most) while the fuel left would not cover it and the rest of
+    // the turn: a turn that runs out loses the next round, a target one turn older costs little.
+    const bool must = target_ < 0 || k_[target_].state == Known::respawning;
+    const bool due = must || now - chosen_at_ >= 4;
+    if (due && !must && choose_defer_ < 2 && !fuel(choose_cost_ + 35000)) ++choose_defer_;
+    else if (due) {
+        choose_defer_ = 0;
         int wait = 0;
         fp("prechoose");
+        const std::uint64_t c0 = cambc::fuel_remaining();
         const int t = choose(wait);
+        const std::uint64_t c1 = cambc::fuel_remaining();
         fp("choose");
-    if (!live()) return;
+        if (!live()) return;
+        if (c0 > c1) choose_cost_ = (3 * choose_cost_ + (c0 - c1)) / 4;
         if (t != target_) { stuck_g_ = t; stuck_since_ = now; best_eta_ = kFar; }
         target_ = t;
         target_wait_ = wait;

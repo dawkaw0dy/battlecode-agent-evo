@@ -19,7 +19,7 @@ int nearest(const cambc::distance_field& f, const cambc::bitboard& seen, const s
 }
 }  // namespace
 
-std::vector<GroupInfo> analyse_map() {
+std::vector<GroupInfo> analyse_map(std::vector<cambc::map::camp_group>* groups_out) {
     init_dims();
     std::vector<GroupInfo> out;
     const auto groups = cambc::map::camp_groups();
@@ -56,6 +56,7 @@ std::vector<GroupInfo> analyse_map() {
         d.d_enemy = nearest(fe, se, d.tiles);
         out.push_back(std::move(d));
     }
+    if (groups_out) *groups_out = groups;
     return out;
 }
 

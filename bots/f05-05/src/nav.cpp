@@ -16,7 +16,12 @@
 // A turn that ran out of fuel resumes next round on stale data: act only in the round we started.
 std::uint32_t g_round = 0;
 bool live() { return cambc::round_number() == g_round; }
-bool fuel(std::uint64_t need) { return cambc::fuel_remaining() > need; }
+std::array<std::uint32_t, 128> g_fuel_fail{};  // measurement builds: failed guards by need (k)
+bool fuel(std::uint64_t need) {
+    const bool ok = cambc::fuel_remaining() > need;
+    if (!ok) ++g_fuel_fail[std::min<std::uint64_t>(127, need / 1000)];
+    return ok;
+}
 
 namespace {
 View* g_view = nullptr;              // allocated on first use: boards need the map layout
@@ -197,6 +202,20 @@ std::vector<Foe> foes(team side) {
     return out;
 }
 
+// The group's state in two host calls, without the SDK's own vision check (the caller has a tile of the
+// group in view) and without throwing: 1 alive, 2 reward, 3 respawning (timer set), 0 unknown.
+int group_state(const cambc::map::camp_group& g, int& timer) {
+    const auto h = static_cast<std::uint32_t>(static_cast<cambc::handle_camp_group_t>(g));
+    std::uint32_t st = 0;
+    if (cambc::detail::sdk_camp_group_state(h, &st) != 0 || st < 1 || st > 3) return 0;
+    if (st == 3) {
+        std::int32_t t = 0;
+        if (cambc::detail::sdk_camp_group_cooldown(h, &t) != 0) return 0;
+        timer = t;
+    }
+    return static_cast<int>(st);
+}
+
 // ---------------------------------------------------------------- kept fields
 
 // Walking fields to the groups, best ones first, while the fuel left covers a whole search.
@@ -224,7 +243,8 @@ int Bot::eta(int group) const {
 bool Bot::go(const cambc::bitboard& goals_in, bool dash) {
     auto& me = cambc::self();
     if (moved_ || move_failed_ || !me.can_move() || !live()) return false;
-    if (!fuel(25000)) return false;
+    // The search below costs up to a whole field on this map (~1/3 of it on average, measured).
+    if (!fuel(12000 + field_cost() / 2)) return false;
     auto& r = rs();
     const vec2 pos = self_pos();
     const auto& blocked = blocked_now(camp_block_);

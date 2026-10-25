@@ -39,6 +39,7 @@ float territory(int rel, int n) {
 }
 }  // namespace
 
+std::uint64_t g_sim_fuel = 0, g_sim_n = 0, g_cc_fuel = 0, g_cc_n = 0, g_ag_fuel = 0, g_ag_work = 0, g_ag_n = 0;
 void Bot::build_threats() {
     threat_.assign(g_.size(), {});
     exit_.assign(g_.size(), 1);
@@ -71,7 +72,9 @@ const Bot::ClearCost& Bot::clear_cost(int group) {
     auto& cc = cost_[group];
     const float left = remaining(group);
     if (cc.hp_sum == left) return cc;
+    ++g_cc_n;
     cc.hp_sum = left;
+    cc.ver = ++cost_ver_;
     cc.steps.clear();
     cc.peak = 0;
     const auto& g = g_[group];
@@ -102,11 +105,29 @@ const Bot::ClearCost& Bot::clear_cost(int group) {
 
 // n champions of our strength clear the group, starting with pool_now health between them (full health
 // after each trip home). Each fights down to the reserve that walks it out of reach.
+struct SimMeter {
+    std::uint64_t f0 = cambc::fuel_remaining();
+    ~SimMeter() { g_sim_fuel += f0 - cambc::fuel_remaining(); ++g_sim_n; }
+};
 Bot::Sim Bot::simulate(int group, int n, float pool_now) {
+    SimMeter meter;
+    const float full_hp = cambc::self().max_health();
+    const int ver = clear_cost(group).ver;
+    if (sim_memo_.size() != g_.size()) { sim_memo_.assign(g_.size(), {}); sim_next_.assign(g_.size(), 0); }
+    auto& memo = sim_memo_[static_cast<size_t>(group)];
+    for (const auto& m : memo)
+        if (m.n == n && m.ver == ver && m.pool == pool_now && m.dps == dps_ && m.full == full_hp && m.taken == taken_)
+            return m.sim;
+    const Sim s = simulate_now(group, n, pool_now, full_hp);
+    const SimMemo entry{n, ver, pool_now, dps_, full_hp, taken_, s};
+    if (memo.size() < 12) memo.push_back(entry);
+    else memo[sim_next_[static_cast<size_t>(group)]++ % 12] = entry;
+    return s;
+}
+
+Bot::Sim Bot::simulate_now(int group, int n, float pool_now, float full_hp) {
     Sim s;
     const auto& cc = clear_cost(group);
-    auto& me = cambc::self();
-    const float full_hp = me.max_health();
     const float dps = dps_ * static_cast<float>(n);
     const float exit = static_cast<float>(exit_[group]);
     float used = 0, total = 0;
@@ -200,8 +221,16 @@ const cambc::bitboard& Bot::approach_goal(int group, int r) {
     };
     const int bw = x1 - x0 + 2 * r + 1, bh = y1 - y0 + 2 * r + 1;
     const long work = static_cast<long>(living) * (2 * r + 1) * (2 * r + 1) + static_cast<long>(hostile) * 121 + 2L * bw * bh;
-    if (living == 0 || plain || hostile == 0 || work > 2500 || !fuel(60000 + 40 * static_cast<std::uint64_t>(work)))
-        return plain_goal();
+    if (living == 0 || plain || hostile == 0 || work > 2500) return plain_goal();
+    // Measured 15-30 fuel per unit of work: leave the rest of the turn 25k. Short of that, the plain goal
+    // serves this turn only (not cached), and the next turn tries again.
+    if (!fuel(25000 + 35 * static_cast<std::uint64_t>(work))) {
+        plain_goal();
+        goal_group_ = -1;
+        return goal_;
+    }
+    const std::uint64_t ag_f0 = cambc::fuel_remaining();
+    struct AgMeter { std::uint64_t f0; long work; ~AgMeter() { g_ag_fuel += f0 - cambc::fuel_remaining(); g_ag_work += work; ++g_ag_n; } } ag_meter{ag_f0, work};
     const int bx = x0 - r, by = y0 - r;
     // reach: within r of a living camp; danger: strength of the fighters reaching the tile.
     std::vector<std::uint8_t> reach(static_cast<size_t>(bw * bh), 0);
@@ -394,7 +423,10 @@ namespace {
 struct Plan { float score = 0; int n = 1; };
 }  // namespace
 
+std::uint64_t g_ch_sim0 = 0, g_ch_n0 = 0, g_ch_tstart = 0, g_ch_t0 = 0, g_ch_t1 = 0, g_ch_t2 = 0; int g_ch_groups = 0, g_ch_pruned = 0, g_ch_cc = 0;
 int Bot::choose(int& wait_out) {
+    g_ch_tstart = cambc::fuel_remaining();
+    g_ch_sim0 = g_sim_fuel; g_ch_n0 = g_sim_n; g_ch_groups = 0; g_ch_pruned = 0; g_ch_cc = static_cast<int>(g_cc_n);
     auto& me = cambc::self();
     const int now = static_cast<int>(cambc::round_number());
     const float hp = me.health(), max_hp = me.max_health();
@@ -423,16 +455,38 @@ int Bot::choose(int& wait_out) {
     const float bud_hp = paired ? 0.9f * max_hp : 0.0f;
     const int unit = paired ? 2 : 1;
     const int n_groups = static_cast<int>(g_.size());
-    // The current target first: a good early best prunes most of the others cheaply.
-    for (int j = -1; j < n_groups; ++j) {
-        const int i = j < 0 ? target_ : j;
-        if (i < 0 || (j >= 0 && i == target_)) continue;
+    g_ch_t0 = cambc::fuel_remaining();
+    // The current target first, then the others by a cheap optimistic rate (travel, wait, banking and the
+    // clear shared by everyone alive): a good early best lets the exact bounds below skip most of the
+    // simulations, which are most of this function's fuel.
+    order_.clear();
+    {
+        const float n_all = static_cast<float>(std::max(alive, 5));
+        for (int i = 0; i < n_groups; ++i) {
+            if (i == target_ || k_[i].blocked_until > now) continue;
+            const auto& g = g_[i];
+            const float value = g.gems + gold_w * g.gold;
+            const int e = eta(i);
+            if (value <= 0 || e >= kFar) continue;
+            const int avail = k_[i].state == Known::respawning ? k_[i].ready : now;
+            const float bank = g.gems / 45.0f * std::min(bank_d_[static_cast<size_t>(i)], 6 + home_altar_);
+            const float rem = remaining(i);
+            const float t = e + std::max(0, avail - (now + e)) + kCaptureTurns + (bank + rem / dps_) / n_all;
+            order_.push_back({value / t, i, e, rem});
+        }
+        std::sort(order_.begin(), order_.end(), [](const auto& a, const auto& b) { return a.key > b.key; });
+    }
+    g_ch_t1 = cambc::fuel_remaining();
+    for (int j = -1; j < static_cast<int>(order_.size()); ++j) {
+        const int i = j < 0 ? target_ : order_[static_cast<size_t>(j)].group;
+        if (i < 0) continue;
         const auto& g = g_[i];
         const auto& k = k_[i];
         if (k.blocked_until > now) continue;
         const float value = g.gems + gold_w * g.gold;
         if (value <= 0) continue;
-        const int e = eta(i);
+        const int e = j < 0 ? eta(i) : order_[static_cast<size_t>(j)].eta;
+        const float rem = j < 0 ? remaining(i) : order_[static_cast<size_t>(j)].rem;
         if (e >= kFar) continue;
         if (value * 1.7f / (e + kCaptureTurns) <= best_plan.score) continue;  // cannot beat the best
         const int avail = k.state == Known::respawning ? k.ready : now;
@@ -475,8 +529,22 @@ int Bot::choose(int& wait_out) {
             plan.score = value / plan.n * f * territory(rel, plan.n) / (e + kCaptureTurns + bank / plan.n);
         } else {
             if (value * f / (base_t + bank) <= best_plan.score) continue;
+            // Exact bound before any simulation: a clear that succeeds takes remaining / (dps_ * n) turns,
+            // a raid's share is at most half the value (with the join bonus), and n never exceeds the
+            // larger of the champions alive and the claimers plus us. No plan of this group can beat it.
+            {
+                const float n_max = static_cast<float>(std::max(alive, claimers + unit));
+                const float join_max = std::max(1.0f, (1.0f + 0.5f * claimers) / 2.0f);
+                const float bound = value * f * join_max / (base_t + (bank + rem / dps_) / n_max);
+                ++g_ch_groups;
+                if (bound * 1.001f <= best_plan.score) { ++g_ch_pruned; continue; }
+            }
+            // Exact skip: with no claimers the solo plan only competes through its score, which a successful
+            // clear bounds by remaining / dps_ turns of fighting.
+            const bool solo_hopeless = claimers == 0
+                && value * f * territory(rel, unit) / (base_t + bank + rem / (dps_ * unit)) * 1.001f <= best_plan.score;
             // Alone (or as a pair), from the health we have now (a trip home first when it is not enough).
-            if (!g.boss) {
+            if (!g.boss && !solo_hopeless) {
                 const Sim one = simulate(i, unit, hp + bud_hp);
                 if (one.ok) {
                     const float tf = territory(rel, unit);
@@ -501,12 +569,19 @@ int Bot::choose(int& wait_out) {
             }
             // Raid: the team gathers outside the fighters' reach, then engages together.
             if (alive >= 2 && (g.boss || plan.score <= 0 || plan.n == 1)) {
+                const float join = waiting ? 1.0f : 1.0f + 0.5f * claimers;
                 for (int n = std::max(unit + 1, claimers + 1); n <= alive; ++n) {
+                    // Exact stop: this bound on a successful raid of n never grows with n.
+                    {
+                        const float gather = n > claimers + unit ? kGatherTurns : 0.0f;
+                        const float bound = value / (n - unit + 1) * f * join * territory(rel, n)
+                            / (base_t + bank / n + gather + rem / (dps_ * n));
+                        if (bound * 1.001f <= std::max(plan.score, best_plan.score)) break;
+                    }
                     const Sim sim = simulate(i, n, hp + (n - 1) * 0.9f * max_hp);
                     if (!sim.ok || sim.trips > 3) continue;
                     const float gather = n > claimers + unit ? kGatherTurns : 0.0f;
-                    // Join a raid that is forming rather than start a second one.
-                    const float join = waiting ? 1.0f : 1.0f + 0.5f * claimers;
+                    // Join a raid that is forming rather than start a second one (join, above).
                     const float sc = value / (n - unit + 1) * f * join * territory(rel, n)
                         / (base_t + bank / n + gather + sim.turns + 0.5f * sim.trips * trip);
                     if (sc > plan.score) { plan.score = sc; plan.n = n; }
@@ -517,6 +592,7 @@ int Bot::choose(int& wait_out) {
         if (plan.score > best_plan.score) { best_plan = plan; best = i; wait_out = wait; }
     }
     raid_n_ = best_plan.n;
+    g_ch_t2 = cambc::fuel_remaining();
     return best;
 }
 
