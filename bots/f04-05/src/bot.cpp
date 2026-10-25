@@ -275,6 +275,21 @@ void Bot::build_threats() {
                 if (m == c || cheb(g.tiles[m], g.tiles[c]) + my_range_ <= s.range) t[m * n + c] = 1;
         }
     }
+    // The same relation as bit masks, so clear_cost() is a few popcounts per camp instead of a loop over pairs
+    // (~20k fuel per evaluation of a 20-camp group otherwise, and it reruns whenever a camp loses health).
+    tmask_.assign(g_.size(), {});
+    kmask_.assign(g_.size(), {});
+    for (size_t i = 0; i < g_.size(); ++i) {
+        const auto& g = g_[i];
+        const size_t n = g.tiles.size();
+        auto& tm = tmask_[i];
+        tm.assign(std::min<size_t>(n, 64), 0);
+        for (size_t c = 0; c < n && c < 64; ++c) {
+            kmask_[i][std::min<size_t>(static_cast<size_t>(g.kinds[c]), 5)] |= std::uint64_t{1} << c;
+            for (size_t m = 0; m < n && m < 64; ++m)
+                if (threat_[i][m * n + c]) tm[c] |= std::uint64_t{1} << m;
+        }
+    }
     cost_.assign(g_.size(), ClearCost{});
 }
 
@@ -294,25 +309,29 @@ const Bot::ClearCost& Bot::clear_cost(int group) {
     const auto& k = k_[group];
     const size_t n = g.tiles.size();
     std::array<std::pair<float, std::uint8_t>, 64> order;
-    std::array<std::uint8_t, 64> alive{};
+    std::uint64_t alive = 0;
     size_t m = 0;
     for (size_t c = 0; c < n && c < 64; ++c) {
         if (k.hp[c] <= 0) continue;
-        alive[c] = 1;
+        alive |= std::uint64_t{1} << c;
         order[m++] = {camp_spec(g.kinds[c]).str / std::max(1.0f, k.hp[c]), static_cast<std::uint8_t>(c)};
     }
     std::sort(order.begin(), order.begin() + m, [](auto a, auto b) { return a.first > b.first; });
-    const auto& t = threat_[group];
+    const auto& tm = tmask_[group];
+    const auto& km = kmask_[group];
+    std::array<float, 6> str{};
+    for (size_t ty = 0; ty < 6; ++ty) str[ty] = camp_spec(static_cast<cambc::camp_type>(ty)).str;
     cc.base = 0;
     cc.peak = 0;
     for (size_t j = 0; j < m; ++j) {
         const size_t c = order[j].second;
+        const std::uint64_t reach = tm[c] & alive;
         float rate = 0;
-        for (size_t o = 0; o < n && o < 64; ++o)
-            if (alive[o] && t[o * n + c]) rate += camp_spec(g.kinds[o]).str;
+        for (size_t ty = 0; ty < 6; ++ty)
+            if (str[ty] > 0) rate += str[ty] * static_cast<float>(__builtin_popcountll(reach & km[ty]));
         cc.base += k.hp[c] * rate;
         cc.peak = std::max(cc.peak, rate);
-        alive[c] = 0;
+        alive &= ~(std::uint64_t{1} << c);
     }
     return cc;
 }

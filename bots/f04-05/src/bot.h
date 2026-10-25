@@ -1,5 +1,6 @@
 #pragma once
 #include <cambc.h>
+#include <array>
 #include <cstdint>
 #include <vector>
 #include "common.h"
@@ -39,6 +40,9 @@ class Bot {
     std::vector<int> fill_order_;
     std::vector<std::int16_t> group_at_; // tile -> group of the camp spawned there
     std::vector<std::int16_t> camp_at_;  // tile -> index of that camp inside its group
+    std::vector<std::uint32_t> gstart_;  // group -> first index into the flat per-camp arrays below
+    std::vector<std::uint32_t> cword_;   // camp spawn tile -> word of a raw bitboard ...
+    std::vector<std::uint64_t> cbit_;    // ... and its bit there
     Dist home_, altar_;
     int home_altar_ = kFar;             // walk from our spawn to the nearest altar
     cambc::bitboard altar_spots_;
@@ -120,6 +124,8 @@ class Bot {
     // Camp farming (see the camps section of bot.cpp).
     struct ClearCost { float hp_sum = -1, base = 0, peak = 0; };
     std::vector<std::vector<std::uint8_t>> threat_;  // [group][m * n + c]: camp m reaches us while we hit c
+    std::vector<std::vector<std::uint64_t>> tmask_;  // [group][c]: bit m set when threat_[group][m * n + c] (first 64)
+    std::vector<std::array<std::uint64_t, 6>> kmask_;  // [group][camp type]: camps of that type (first 64)
     std::vector<ClearCost> cost_;
     int my_range_ = 1;
     std::vector<int> bank_d_;           // walk from each group to the nearest altar

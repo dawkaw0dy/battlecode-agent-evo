@@ -127,6 +127,14 @@ void Bot::initialise() {
     group_at_.assign(static_cast<size_t>(map_w() * map_h()), -1);
     camp_at_.assign(static_cast<size_t>(map_w() * map_h()), -1);
     gtiles_.reserve(ng);
+    gstart_.assign(ng + 1, 0);
+    for (size_t i = 0; i < ng; ++i) {
+        gstart_[i + 1] = gstart_[i] + static_cast<std::uint32_t>(g_[i].tiles.size());
+        for (auto t : g_[i].tiles) {
+            cword_.push_back(static_cast<std::uint32_t>((t.y >> 3) * g_bstride + (t.x >> 3)));
+            cbit_.push_back(std::uint64_t{1} << (((t.y & 7) << 3) | (t.x & 7)));
+        }
+    }
     for (size_t i = 0; i < ng; ++i) {
         int r = 0;
         for (auto t : g_[i].tiles) r = std::max(r, cheb(t, g_[i].center));
@@ -225,19 +233,26 @@ void Bot::observe() {
     for (auto& k : k_)
         if (k.state == Known::respawning && now >= k.ready) { k.state = Known::unknown; block_dirty_ = true; }
     const auto& v = view();
+    // Tile tests are a load and a mask on the snapshot's own words (positions precomputed at init).
+    const std::uint64_t* vis = v.vis.ptr();
+    const std::uint64_t* camps = v.camps.ptr();
     for (size_t i = 0; i < g_.size(); ++i) {
         if (cheb(g_[i].center, pos_) > 8 + reach_[i]) continue;
         auto& k = k_[i];
+        float* hp = k.hp.data();
+        const std::uint32_t base = gstart_[i];
+        const size_t n = g_[i].tiles.size();
         bool seen = false, living = false;
-        for (size_t c = 0; c < g_[i].tiles.size(); ++c) {
-            const vec2 p = g_[i].tiles[c];
-            if (!v.lvis.at(p)) continue;
+        for (size_t c = 0; c < n; ++c) {
+            const std::uint32_t w = cword_[base + c];
+            const std::uint64_t b = cbit_[base + c];
+            if (!(vis[w] & b)) continue;
             seen = true;
-            if (v.lcamps.at(p)) {
+            if (camps[w] & b) {
                 living = true;
-                if (k.hp[c] <= 0) { k.hp[c] = camp_spec(g_[i].kinds[c]).hp; block_dirty_ = true; }
-            } else if (k.state == Known::alive && k.hp[c] > 0) {
-                k.hp[c] = 0;
+                if (hp[c] <= 0) { hp[c] = camp_spec(g_[i].kinds[c]).hp; block_dirty_ = true; }
+            } else if (k.state == Known::alive && hp[c] > 0) {
+                hp[c] = 0;
                 block_dirty_ = true;
             }
         }
@@ -245,10 +260,11 @@ void Bot::observe() {
         if (living) {
             if (k.state != Known::alive) {
                 // Back alive: unseen camps at full health, visible empty tiles dead.
-                for (size_t c = 0; c < g_[i].tiles.size(); ++c) {
-                    const vec2 p = g_[i].tiles[c];
-                    if (!v.lvis.at(p)) k.hp[c] = camp_spec(g_[i].kinds[c]).hp;
-                    else if (!v.lcamps.at(p)) k.hp[c] = 0;
+                for (size_t c = 0; c < n; ++c) {
+                    const std::uint32_t w = cword_[base + c];
+                    const std::uint64_t b = cbit_[base + c];
+                    if (!(vis[w] & b)) hp[c] = camp_spec(g_[i].kinds[c]).hp;
+                    else if (!(camps[w] & b)) hp[c] = 0;
                 }
                 k.state = Known::alive;
                 block_dirty_ = true;
@@ -296,8 +312,10 @@ void Bot::rebuild_camp_block() {
     for (size_t i = 0; i < g_.size(); ++i) {
         const auto& k = k_[i];
         if (k.state == Known::respawning || k.state == Known::reward) continue;
-        for (size_t c = 0; c < g_[i].tiles.size(); ++c)
-            if (k.hp[c] > 0) raw_set(w, g_[i].tiles[c]);
+        const float* hp = k.hp.data();
+        const std::uint32_t base = gstart_[i], n = gstart_[i + 1] - base;
+        for (std::uint32_t c = 0; c < n; ++c)
+            if (hp[c] > 0) w[cword_[base + c]] |= cbit_[base + c];
     }
 }
 
