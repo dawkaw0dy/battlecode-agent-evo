@@ -1314,9 +1314,11 @@
   },
   "f03-01": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evolution-agent-f03-01-w0yh7y",
+   "commit": "f74057a7408d0983a3523af550964051cddaf718",
    "deadline_minutes": 120,
+   "done_at": 1792916327,
+   "effort_level": "high",
    "evidence": [
     {
      "gems_opponent": 1022,
@@ -1364,6 +1366,7 @@
    "generation": 3,
    "id": "f03-01",
    "kind": "child",
+   "model": null,
    "nudged": [
     "session_01FGqvJS1zArpMRQToBkMguW"
    ],
@@ -1386,14 +1389,16 @@
    ],
    "slot": 1,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "80023abb225efc332b55543b1d9578210adf5c3219cf4eab309b0dedd658bb7e"
   },
   "f03-02": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evo-f03-02-xwq6gh",
+   "commit": "ed994fb803368e8bf2d0ffa3b0adc819a465555a",
    "deadline_minutes": 120,
+   "done_at": 1792916330,
+   "effort_level": "high",
    "evidence": [
     {
      "gems_opponent": 1022,
@@ -1441,6 +1446,7 @@
    "generation": 3,
    "id": "f03-02",
    "kind": "child",
+   "model": null,
    "nudged": [
     "session_01QZF6XGS1D5arsvPcdRAy6k"
    ],
@@ -1463,14 +1469,16 @@
    ],
    "slot": 2,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "0ae20e0b430b3a5dcad0bb4341af1da48e1bbc8f987145e2b7bce780524311f7"
   },
   "f03-03": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evo-task-f03-03-ss7iip",
+   "commit": "e5b3734779f6b7c0411462ade3210a74b2a30832",
    "deadline_minutes": 120,
+   "done_at": 1792916334,
+   "effort_level": "high",
    "evidence": [
     {
      "gems_opponent": 1022,
@@ -1518,6 +1526,7 @@
    "generation": 3,
    "id": "f03-03",
    "kind": "child",
+   "model": null,
    "nudged": [
     "session_01E6WyTLMPo9ZoGRrZg3xEHd"
    ],
@@ -1540,14 +1549,16 @@
    ],
    "slot": 3,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "4e0f9bcd6a01fbdcc781801dae89d024459bdb6dcfc5db2c9ad0d0853f58c2c1"
   },
   "f03-04": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evolution-f03-04-adhpua",
+   "commit": "98f72a054a1afdf998b5db795189a0c52bc06cbb",
    "deadline_minutes": 120,
+   "done_at": 1792916337,
+   "effort_level": "high",
    "evidence": [
     {
      "gems_opponent": 2234,
@@ -1595,6 +1606,7 @@
    "generation": 3,
    "id": "f03-04",
    "kind": "child",
+   "model": null,
    "nudged": [
     "session_01875JNraJyUkpaPhTXWCFT6"
    ],
@@ -1617,14 +1629,16 @@
    ],
    "slot": 4,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "ebd0929c221b9c7118a74e9c76c6f87e718b92dda52e91ec88b809b933e693c3"
   },
   "f03-05": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/f03-05-evolution-ya7i1u",
+   "commit": "75d5a52ae97268c77c887bbe63e7cd2e4fe025ef",
    "deadline_minutes": 120,
+   "done_at": 1792916341,
+   "effort_level": "high",
    "evidence": [
     {
      "gems_opponent": 2234,
@@ -1672,6 +1686,7 @@
    "generation": 3,
    "id": "f03-05",
    "kind": "child",
+   "model": null,
    "nudged": [
     "session_015r4sVf8gYwNVq7dif5kzRc"
    ],
@@ -1694,7 +1709,7 @@
    ],
    "slot": 5,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "1b3f7f33dc0b5e6fa4abd7c43af8070de4f9137926884431c546e010879aa77d"
   },
   "f03-06": {
@@ -1751,9 +1766,11 @@
   },
   "f03-07": {
    "archetype": "safe-banker",
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evolution-f03-07-k57ufb",
+   "commit": "de026503f625169462ce5de88c61b70c8db6336a",
    "deadline_minutes": 120,
+   "done_at": 1792916347,
+   "effort_level": "high",
    "evidence": [],
    "failed_ideas": [
     "f01-07: Fuel: host calls cost ~30\u201340 fuel, but every bitboard temporary (&, |, ~, shift) ~600 and a grow(r) ~4k\u00b7r;",
@@ -1776,6 +1793,7 @@
    "generation": 3,
    "id": "f03-07",
    "kind": "immigrant",
+   "model": null,
    "nudged": [
     "session_01MjZHm1Rje8pqAEJzafDNA1"
    ],
@@ -1798,7 +1816,7 @@
    ],
    "slot": 7,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "e8484361de65305c646fce31306113d1485cfc989fab76a85b78d700d1c4f5a3"
   }
  },
@@ -8468,7 +8486,13 @@
   "2026-10-25T07:51:29Z g03 phase ADMITTED",
   "2026-10-25T07:51:54Z g03 PAUSED: only 1 admitted bots (need 3); not evaluating",
   "2026-10-25T08:17:02Z g03 phase RUNNING",
-  "2026-10-25T08:17:02Z g03 owner revived f03-01..f03-07 (D42): the app was closed at nudge time; each session gets the nudge now and 20 minutes after it"
+  "2026-10-25T08:17:02Z g03 owner revived f03-01..f03-07 (D42): the app was closed at nudge time; each session gets the nudge now and 20 minutes after it",
+  "2026-10-25T08:18:47Z g03 f03-01: done on origin/claude/evolution-agent-f03-01-w0yh7y at f74057a740",
+  "2026-10-25T08:18:50Z g03 f03-02: done on origin/claude/evo-f03-02-xwq6gh at ed994fb803",
+  "2026-10-25T08:18:54Z g03 f03-03: done on origin/claude/evo-task-f03-03-ss7iip at e5b3734779",
+  "2026-10-25T08:18:57Z g03 f03-04: done on origin/claude/evolution-f03-04-adhpua at 98f72a054a",
+  "2026-10-25T08:19:01Z g03 f03-05: done on origin/claude/f03-05-evolution-ya7i1u at 75d5a52ae9",
+  "2026-10-25T08:19:07Z g03 f03-07: done on origin/claude/evolution-f03-07-k57ufb at de026503f6"
  ],
  "paused": null,
  "phase": "RUNNING",
