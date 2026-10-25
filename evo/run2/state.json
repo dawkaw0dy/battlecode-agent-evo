@@ -4052,9 +4052,11 @@
   },
   "f08-04": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evo-f08-04-kz7umf",
+   "commit": "32b472c795bb3fe15b5e31c3fe0a3008fcec1511",
    "deadline_minutes": 120,
+   "done_at": 1792947400,
+   "effort_level": "high",
    "evidence": [
     {
      "gems_opponent": 1401,
@@ -4102,6 +4104,7 @@
    "generation": 8,
    "id": "f08-04",
    "kind": "child",
+   "model": null,
    "nudged": [],
    "operator": "subsystem",
    "parents": [
@@ -4121,7 +4124,7 @@
    ],
    "slot": 4,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "fb2e5d2f6880c24cb2c2a8b81bb3e6efaae7d968912aeccbdd7a07a8755dc753"
   },
   "f08-05": {
@@ -23402,7 +23405,6 @@
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-25T08:20:28Z g03 f03-06: done on origin/claude/evo-task-f03-06-2fgtld at 5984f49e6f",
   "2026-10-25T08:20:28Z g03 phase ADMITTED",
   "2026-10-25T08:20:42Z g03 f03-01: admitted (9707009f36d3)",
   "2026-10-25T08:20:49Z g03 f03-02: admitted (68a074163008)",
@@ -23601,7 +23603,8 @@
   "2026-10-25T16:26:55Z g08 f08-05: launched session_01NL2NcyWHemE55iHL8KymWr",
   "2026-10-25T16:27:06Z g08 f08-06: launched session_01AKxis1E5ob2Q9xFobNNQNw",
   "2026-10-25T16:27:16Z g08 f08-07: launched session_01DtHWJhXNVPmkCPNCqikvcA",
-  "2026-10-25T16:55:20Z g08 f08-05: done on origin/claude/evolution-task-f08-05-t78fcs at a6ea0a6648"
+  "2026-10-25T16:55:20Z g08 f08-05: done on origin/claude/evolution-task-f08-05-t78fcs at a6ea0a6648",
+  "2026-10-25T16:56:40Z g08 f08-04: done on origin/claude/evo-f08-04-kz7umf at 32b472c795"
  ],
  "paused": null,
  "phase": "RUNNING",
