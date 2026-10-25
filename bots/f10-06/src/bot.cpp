@@ -13,10 +13,13 @@
 
 namespace {
 
-constexpr bool kDebug = true;
+constexpr bool kDebug = false;
 constexpr int kFar = 65535;
 constexpr float kPack = 0.0f;
-constexpr int kBankGems = 15, kBankGemsHot = 6;
+constexpr int kThreatPad = 5;      // retreat from a fight we would lose once enemies are this far beyond their range
+constexpr float kEngage = 1.2f;   // fight when we kill them in this fraction of the time they need
+constexpr int kBankGems = 12, kBankGemsHot = 6;
+constexpr float kBankPerTile = 1.0f;  // bank once the bag holds this many gems per tile of walk to the altar
 constexpr float kFleeHp = 0.3f, kFleeHpHot = 0.45f;
 constexpr float kFleeHits = 4.0f;  // leave a camp fight with this many camp hits of health left   // score bonus per ally already on a group
 constexpr std::array<vec2, 8> kDirs{vec2{0, 1}, vec2{1, 1}, vec2{1, 0}, vec2{1, -1},
@@ -459,7 +462,7 @@ bool Bot::fight() {
     const float gems = static_cast<float>(me.gem_count());
     const float t_kill = their_hp / std::max(1.0f, our_dps);
     const float t_die = our_hp / std::max(1.0f, their_dps);
-    bool engage = t_kill < t_die * (gems > 20 ? 0.7f : 0.95f);
+    bool engage = t_kill < t_die * (gems > 20 ? 0.7f : kEngage);
     // Finish anyone low in reach.
     for (const auto& f : foes_)
         if (cheb(f.pos, pos_) <= me.attack_range() + 1 && f.hp <= our_dps * 1.2f && hp_ > 0.3f * max_hp_) engage = true;
@@ -468,7 +471,7 @@ bool Bot::fight() {
     // Foes far from us that cannot reach: ignore.
     bool threatened = false;
     for (const auto& f : foes_)
-        if (cheb(f.pos, pos_) <= f.range + 3) threatened = true;
+        if (cheb(f.pos, pos_) <= f.range + kThreatPad) threatened = true;
 
     if (kDebug)
         std::cout << "F r" << now_ << " s" << slot_ << " hp" << static_cast<int>(hp_) << "/" << static_cast<int>(max_hp_)
@@ -493,6 +496,7 @@ bool Bot::fight() {
     }
     if (!threatened) return false;
     fleeing_until_ = now_ + 3;
+    g_act_now = 13;
     spells(false, -1);
     flee();
     if (me.attack_range() <= 1 || !moved_) attack_foe();
@@ -511,7 +515,10 @@ bool Bot::bank() {
         if (dd < d) { d = dd; near = a; }
     }
     const bool hot = now_ - last_enemy_ < 25;
-    bool want = gems >= kBankGems || (hot && gems >= kBankGemsHot) || d <= 6 || now_ > 1800;
+    const float fd = static_cast<float>(d);
+    bool want = gems >= std::max(static_cast<float>(kBankGems), fd * kBankPerTile)
+        || (hot && gems >= std::max(static_cast<float>(kBankGemsHot), fd * kBankPerTile * 0.5f)) || gems >= 45 || d <= 4
+        || now_ > 1800;
     if (target_ >= 0 && target_ < static_cast<int>(g_.size())) {
         const auto& g = g_[static_cast<size_t>(target_)];
         if (g.str_left() >= 100 && gems >= 8) want = true;  // a camp kill would destroy the bag
@@ -866,7 +873,7 @@ void Bot::play_turn() {
         g_act[g_act_now]++;
         if (now_ == 1500) {
             std::cout << "ACT s" << slot_;
-            for (int i = 0; i < 13; ++i) std::cout << ' ' << g_act[i];
+            for (int i = 0; i < 14; ++i) std::cout << ' ' << g_act[i];
             std::cout << '\n';
         }
     }
@@ -975,7 +982,7 @@ void Bot::turn() {
     farm(gi);
     if (kDebug && now_ % 25 == 0) {
         std::cout << "r" << now_ << " s" << slot_ << " p" << pos_.x << "," << pos_.y << " t" << gi;
-        if (gi >= 0) std::cout << " st" << g_[gi].state << " hp" << static_cast<int>(g_[gi].hp_left()) << " need" << need_for(g_[gi], camp_dps_, max_hp_, size_) << " c" << g_[gi].center.x << "," << g_[gi].center.y;
+        if (gi >= 0) std::cout << " st" << g_[gi].state << " hp" << static_cast<int>(g_[gi].hp_left()) << " need" << need_for(g_[gi], camp_dps_, max_hp_, size_) << " big" << g_[gi].big << " c" << g_[gi].center.x << "," << g_[gi].center.y;
         std::cout << " mv" << moved_ << " at" << attacked_ << " fail" << move_failed_ << " gold" << me.gold_count() << " b" << build_ << " dps" << static_cast<int>(camp_dps_) << "\n";
     }
 }
