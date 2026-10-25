@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
+#include <cstdio>
 #include <iostream>
 #include <optional>
 #include <span>
@@ -19,9 +20,9 @@ using cambc::bitboard;
 namespace {
 
 // ---- tuning ---------------------------------------------------------------------------------------
-constexpr float kEngageRatio = 1.2f;     // fight when our square-law power >= this × theirs
+constexpr float kEngageRatio = 0.9f;     // fight when our square-law power >= this × theirs
 constexpr float kCarrierRatio = 1.6f;    // ... when carrying many gems
-constexpr float kRecallHp = 0.33f;       // recall below this share of health with nobody close
+constexpr float kRecallHp = 0.40f;       // recall below this share of health with nobody close
 constexpr float kFleeHp = 0.22f;         // always disengage below this share
 constexpr int kBankGems = 30;            // carry at most this many gems before banking
 constexpr int kNearAltar = 7;            // bank any gems when an altar is this close
@@ -30,6 +31,10 @@ constexpr int kShopGold = 270;           // recall to shop with this much gold
 constexpr int kPackSize = 1;             // champions per farming pack
 constexpr int kGemWeight = 5;            // a gem is worth this much gold when choosing camps
 constexpr int kKeepAway = 5;             // back off from stronger foes this close
+constexpr int kWalkHome = 10;            // walk instead of recalling this close to spawn
+constexpr int kShadowRounds = -1;        // walk home rather than recall this soon after seeing a foe
+constexpr int kEnemySideSlack = 99;      // skip camps this much closer to the enemy spawn than ours
+constexpr int kTraceFrom = 60, kTraceTo = 80;
 constexpr bool kHunt = false;            // answer pack sightings
 constexpr int kHuntAge = 6;              // rounds a sighting stays valid
 
@@ -65,6 +70,10 @@ bool g_move_failed = false;
 bool g_attacked = false;
 float g_last_hp = 0;
 int g_shards = 0;
+const char* g_mode = "";
+char g_last[160] = "";
+bool g_was_alive = true;
+int g_foe_seen = -100;            // last round this champion saw an enemy
 int g_pack = 0;                   // champions farm in packs: {0,2}, {1,3}, {4} by draft slot
 constexpr std::array<int, 5> kPackByte{0, 1, 5, 6, 7};
 
@@ -447,6 +456,7 @@ float power_of(const std::vector<Foe>& v, vec2 around, int radius) {
     return hp * dps;
 }
 
+extern bool g_allow_far;
 int pick_group(int team_n, const std::array<int, 5>& taken) {
     int best = -1;
     float bs = 0;
@@ -465,11 +475,24 @@ int pick_group(int team_n, const std::array<int, 5>& taken) {
         const int de = dist(g.center, g_enemy_home), dh = home_dist(g.center);
         if (dh == 65535) continue;
         float value = static_cast<float>(g.gems * kGemWeight + g.gold) + (g.reward ? 40.0f : 0.0f);
+        if (de + kEnemySideSlack < dh && !g_allow_far) continue;
         value *= de < dh ? 0.85f : 1.1f;
         const float s = value / (static_cast<float>(d) + turns + 6.0f);
         if (s > bs) { bs = s; best = static_cast<int>(i); }
     }
     return best;
+}
+
+bool g_allow_far = false;
+int pick_group_any(int team_n, const std::array<int, 5>& taken) {
+    g_allow_far = false;
+    int t = pick_group(team_n, taken);
+    if (t < 0) {
+        g_allow_far = true;
+        t = pick_group(team_n, taken);
+        g_allow_far = false;
+    }
+    return t;
 }
 
 bool group_valid(int i) {
@@ -488,9 +511,12 @@ void turn_body_impl() {
     g_attacked = false;
 
     if (!me.is_alive()) {
+        if (g_was_alive) std::cout << "dbg died r" << g_round << " last: " << g_last << "\n";
+        g_was_alive = false;
         shop();
         return;
     }
+    g_was_alive = true;
     if (me.is_submitting_gems() || me.is_teleporting()) return;
     g_pos = me.position();
     const vec2 start = g_pos;
@@ -515,6 +541,7 @@ void turn_body_impl() {
 
     // Report enemy sightings to the pack.
     if (!foes.empty()) {
+        g_foe_seen = g_round;
         int sx = 0, sy = 0;
         for (const auto& f : foes) { sx += f.p.x; sy += f.p.y; }
         const int n = static_cast<int>(foes.size());
@@ -541,6 +568,16 @@ void turn_body_impl() {
     // ---- combat -----------------------------------------------------------------------------------
     int nearest_foe = 99;
     for (const auto& f : foes) nearest_foe = std::min(nearest_foe, dist(g_pos, f.p));
+    struct Trace {
+        ~Trace() {
+            int awake_n = 0;
+            try { awake_n = cambc::vision::awake_camp_tiles().count(); } catch (...) {}
+            std::snprintf(g_last, sizeof g_last, "r%d %s hp%d foes%d nf%d al%d awake%d pos%d,%d", g_round, g_mode,
+                hp, nf_count, nf, al, awake_n, g_pos.x, g_pos.y);
+        }
+        int hp, nf_count, nf, al;
+    } trace{static_cast<int>(hp), static_cast<int>(foes.size()), nearest_foe, static_cast<int>(allies.size())};
+    g_mode = "none";
 
     // Path distance to a tile within `r` of each foe; foes we cannot reach soon are not targets.
     int ti = -1;
@@ -567,7 +604,9 @@ void turn_body_impl() {
                 }
             // Do not chase: only foes that are close, busy channelling, or hurt enough to finish.
             const bool weak = f.hp < 0.35f * f.max_hp;
-            const bool threat = dist(f.p, g_pos) <= std::max(f.range, 3) + 1;
+            // Ranged foes shooting us are worth closing on (they stand still to shoot); melee foes
+            // two or more tiles away are baiting a chase into their team: let them come to us.
+            const bool threat = f.range >= 2 && dist(f.p, g_pos) <= f.range + 1;
             if (pd > (f.channel ? 6 : weak ? 3 : threat ? 4 : 1)) continue;
             float s = f.hp + 80.0f * static_cast<float>(pd);
             if (f.channel) s -= 400.0f;
@@ -584,8 +623,16 @@ void turn_body_impl() {
         const float my_burst = me.strength() * 2.0f + me.focus() * 1.5f;
         const bool killable = t.hp <= my_burst && dist(g_pos, t.p) <= my_range + 1;
         const bool fight = (ours >= theirs * need && hp > max_hp * kFleeHp) || killable;
-        std::cout << "dbg f r" << g_round << " " << static_cast<int>(me.champion_name()) << " a" << allies.size() << " e" << foes.size() << " d" << nearest_foe << " hp" << int(hp) << " t" << int(t.hp) << " " << (fight ? "FIGHT" : "flee") << " " << int(ours/1000) << "/" << int(theirs/1000) << "\n";
+        if (g_round >= kTraceFrom && g_round <= kTraceTo) {
+            std::cout << "dbg F r" << g_round << " c" << static_cast<int>(me.champion_name()) << " @" << g_pos.x << "," << g_pos.y << " hp" << int(hp) << (fight ? " FIGHT " : " flee ") << int(ours / 1000) << "/" << int(theirs / 1000) << " foes:";
+            for (const auto& f : foes) std::cout << " " << f.p.x << "," << f.p.y << "h" << int(f.hp) << "r" << f.range;
+            std::cout << " allies:";
+            for (const auto& f : allies) std::cout << " " << f.p.x << "," << f.p.y << "h" << int(f.hp);
+            std::cout << "\n";
+        }
+        if (false) std::cout << "dbg f r" << g_round << " " << static_cast<int>(me.champion_name()) << " a" << allies.size() << " e" << foes.size() << " d" << nearest_foe << " hp" << int(hp) << " t" << int(t.hp) << " " << (fight ? "FIGHT" : "flee") << " " << int(ours/1000) << "/" << int(theirs/1000) << "\n";
         if (fight) {
+            g_mode = "fight";
             if (hurt_now || nearest_foe <= 3) use_shield();
             const int d0 = dist(g_pos, t.p);
             if (melee) {
@@ -612,15 +659,37 @@ void turn_body_impl() {
                     }
                 }
             }
-            std::cout << "dbg mv r" << g_round << " " << start.x << "," << start.y << " -> " << g_pos.x << "," << g_pos.y << " t " << t.p.x << "," << t.p.y << " att " << g_attacked << " mf " << g_move_failed << "\n";
+            if (false) std::cout << "dbg mv r" << g_round << " " << start.x << "," << start.y << " -> " << g_pos.x << "," << g_pos.y << " t " << t.p.x << "," << t.p.y << " att " << g_attacked << " mf " << g_move_failed << "\n";
             return;
         }
-        // Losing fight: hit what is next to us if melee, then back off.
-        if (melee && dist(g_pos, t.p) <= 1) hit(t.p, true);
+        g_mode = "flee";
+        // Losing fight: punish whoever is in reach, stun the closest chaser, then back off.
+        int ai = -1;
+        for (size_t i = 0; i < foes.size(); ++i)
+            if (dist(g_pos, foes[i].p) <= my_range && (ai < 0 || foes[i].hp < foes[static_cast<size_t>(ai)].hp))
+                ai = static_cast<int>(i);
+        int ci = -1;
+        for (size_t i = 0; i < foes.size(); ++i)
+            if (ci < 0 || dist(g_pos, foes[i].p) < dist(g_pos, foes[static_cast<size_t>(ci)].p)) ci = static_cast<int>(i);
         if (hurt_now || nearest_foe <= 3) use_shield();
-        if (!step_away(foes)) dash_away(foes);
-        else if (nearest_foe <= 2) dash_away(foes);
-        if (!melee && !moved_this_turn(start) && dist(g_pos, t.p) <= my_range) hit(t.p, true);
+        bool melee_chaser = false;
+        for (const auto& f : foes) melee_chaser |= f.range <= 1 && dist(g_pos, f.p) <= 2;
+        if (melee) {
+            // A melee chaser at our speed hits us every turn anyway: trade back while retreating.
+            if (melee_chaser) cast_offensive(foes[static_cast<size_t>(ci)].p, true, true, start);
+            if (ai >= 0) hit(foes[static_cast<size_t>(ai)].p, true);
+            if (!step_away(foes)) dash_away(foes);
+            else if (nearest_foe <= 2) dash_away(foes);
+        } else {
+            if (nearest_foe <= 2) {
+                if (!dash_away(foes)) step_away(foes);
+            } else if (ai >= 0) {
+                cast_offensive(foes[static_cast<size_t>(ai)].p, true, true, start);
+                hit(foes[static_cast<size_t>(ai)].p, true);
+            } else {
+                step_away(foes);
+            }
+        }
         if (hp < max_hp * kRecallHp && nearest_foe >= 7 && me.can_move()) safe("recall", [&] { me.recall(); return true; });
         return;
     }
@@ -629,6 +698,7 @@ void turn_body_impl() {
     if (ti < 0 && nearest_foe <= kKeepAway) {
         const float ours = power_of(allies, g_pos, 6), theirs = power_of(foes, g_pos, 8);
         if (theirs > ours * kEngageRatio) {
+            g_mode = "keepaway";
             if (step_away(foes)) return;
         }
     }
@@ -640,6 +710,7 @@ void turn_body_impl() {
         for (auto p : cambc::vision::awake_camp_tiles().positions())
             if (dist(p, g_pos) <= 6) camps.push_back(Foe{p, 0, 0, 0, 0, 4, false});
         if (!camps.empty()) {
+            g_mode = "campexit";
             if (!step_away(camps)) dash_away(camps);
             return;
         }
@@ -647,6 +718,13 @@ void turn_body_impl() {
     if (!at_spawn && nearest_foe > 6 && (hp < max_hp * kRecallHp
             || (static_cast<int>(me.gold_count()) >= kShopGold && me.gem_count() < 10)
             || (static_cast<int>(me.gold_count()) >= kShopGold / 2 && hp < max_hp * 0.6f))) {
+        g_mode = "home";
+        // Close to spawn, walking is as fast as a recall and cannot be interrupted.
+        // A foe seen lately is likely still following: a recall would only be interrupted.
+        const bool shadowed = g_round - g_foe_seen <= kShadowRounds
+;
+        if ((home_dist(g_pos) <= kWalkHome || shadowed) && step_to(g_ally_spawn)) return;
+        g_mode = "recall";
         safe("recall", [&] { me.recall(); return true; });
         return;
     }
@@ -656,6 +734,7 @@ void turn_body_impl() {
     if (gems > 0) {
         int nearest_altar = 99;
         for (auto a : g_altars) nearest_altar = std::min(nearest_altar, dist(g_pos, a));
+        g_mode = "bank";
         if (gems >= kBankGems || nearest_altar <= kNearAltar || g_round > 1850) {
             for (auto a : g_altars)
                 if (dist(g_pos, a) <= cambc::constants::submit_gems_range && nearest_foe > 5) {
@@ -689,8 +768,8 @@ void turn_body_impl() {
         std::array<int, 5> taken{-1, -1, -1, -1, -1};
         for (int k = 0; k < 5; ++k)
             if (k != g_pack) taken[static_cast<size_t>(k)] = static_cast<int>(g_mem[static_cast<size_t>(kPackByte[static_cast<size_t>(k)])]) - 1;
-        target = pick_group(kPackSize, taken);
-        if (target < 0) target = pick_group(kPackSize, std::array<int, 5>{-1, -1, -1, -1, -1});
+        target = pick_group_any(kPackSize, taken);
+        if (target < 0) target = pick_group_any(kPackSize, std::array<int, 5>{-1, -1, -1, -1, -1});
         g_mem[static_cast<size_t>(byte)] = static_cast<std::uint8_t>(target + 1);
         mem_store();
     }
@@ -719,12 +798,14 @@ void turn_body_impl() {
         bitboard alive_tiles = g.tiles & camp_tiles;
         const bool visible = !(g.tiles & cambc::vision::visible_tiles()).is_empty();
         if (visible && alive_tiles.is_empty() && g.reward) {
+            g_mode = "capture";
             // Capture: stand on a spawn tile of the group.
             if (best_camp.x >= 0 && dist(g_pos, best_camp) <= my_range) hit(best_camp, false);
             if (!g.tiles.is_set(g_pos)) step_to(g.tiles);
             return;
         }
         if (best_camp.x >= 0) {
+            g_mode = "farm";
             const int d = dist(g_pos, best_camp);
             if (d <= my_range) {
                 cast_offensive(best_camp, false, false, start);
@@ -740,6 +821,7 @@ void turn_body_impl() {
             if (dist(g_pos, best_camp) <= my_range && (melee || !moved_this_turn(start))) hit(best_camp, false);
             return;
         }
+        g_mode = "approach";
         // Approach the group.
         bitboard goals = alive_tiles.is_empty() ? g.tiles : alive_tiles;
         bitboard approach;
