@@ -1,16 +1,21 @@
-// Defense: the score we have tributed and the gems we carry.
+// Defense: the score we have tributed and the gems we carry (rewritten in f09-01 behind the parent's calls:
+// retreat(), tribute(), deny()/contest(), plus guard_channel(), evade()/scout(), bag_need() from turn()).
 //
-// Everything here works from one model of the enemies we can see (read_fighter()): for a tile and an
-// enemy, the first enemy turn on which it can damage a champion standing there if it chases (melee walk one
-// step a turn and hit on arrival, a dash adds two once; ranged champions and walk-excluding spells cannot
-// walk and hit in the same turn), and the damage it pours in from then on. That one number drives:
-// - retreat(): the tile to flee to scores the damage taken there next turn, the walk home, and the margin
-//   left beyond every chaser's reach (equal speeds keep a margin while we keep running, so we never stand
-//   still on a tie or walk home through the chasers); recall once nobody can break it before it lands.
-// - our channels: a tribute is started (also mid-retreat, beside an altar) only when we live to its end,
-//   because a tribute survives damage but a death hands the whole bag to the killer; a running recall or
-//   tribute is cancelled as soon as an enemy will break it or kill us in it (guard_channel()).
-// - recover(): hurt champions go home while enemies are about instead of farming into them.
+// - Ambushes: enemies standing in bushes see and hit us while we cannot see them (14% of the parent's deaths
+//   vs f08-05: it recalled in place, the next hit broke the recall, and it stood there until dead). Damage
+//   between our turns that no visible enemy and no camp in reach explains marks an ambush (sense_ambush()):
+//   our ward goes into the unseen bush within reach (a hidden occupant is revealed even when the placement
+//   fails) so the fight model sees the shooter; failing that, no recall while it lasts, and a hurt champion
+//   steps away from unseen bushes towards home (evade()). While enemies are about, our ward also goes into
+//   unseen bushes beside us before they shoot (scout()).
+// - Carried gems change hands on death (the parent lost ~130 a game that way): a carried bag raises the fight
+//   value needed to engage (bag_need()), a fleeing carrier runs for the nearest altar when it is nearer than
+//   home and banks under fire beside it when it outlives the channel (a tribute survives damage, not death
+//   or a stun), no tribute is started that we would die in, and a running one we would die in is cancelled.
+// - One enemy model (read_fighter()): for a tile, the first enemy turn on which each enemy can hit it if it
+//   chases (hit_turn()), and the damage it pours in from then on (channel_damage()).
+// - retreat() keeps the parent's tile score and recall rule (the margin score and chase-based recall timing
+//   below measured no better); a champion boxed in where it stands hits back instead of idling.
 // - tribute(): when and where the bag is banked; deny()/contest(): enemy tributes we see.
 #include <cambc.h>
 #include "bot.h"
@@ -44,18 +49,18 @@ constexpr float kRecoverHp = 0.45f;    // enemies about: go home below this heal
 constexpr int kRecoverRounds = 12;     // ... "about": seen by us this recently
 constexpr bool kRecover = false;       // recover() on
 constexpr bool kNewScore = false;      // retreat tile score with margins and death tiles (else the parent's)
-constexpr bool kStayStrike = false;    // boxed in: hit back
+constexpr bool kStayStrike = true;     // boxed in: hit back
 constexpr float kBagNeed = 3.0f;       // fight value needed to engage, per carried gem
 constexpr bool kEvade = true;          // hit by an unseen enemy: walk away from the bushes it hides in
-constexpr int kAmbushRounds = 4;
+constexpr int kAmbushRounds = 4;       // ... for this long after the last such hit
 constexpr bool kWardReveal = true;     // ... and ward the bush it shoots from
 constexpr bool kScout = true;          // ward unseen bushes beside us while enemies are about
 constexpr int kScoutRounds = 40;       // ... "about": seen by us, or reported near us, this recently
 constexpr int kScoutMin = 3;           // ... a bush of at least this many unseen tiles around the ward
-constexpr int kScoutKeep = 5;          // ... unless our ward is already this close       // ... for this long after the last such hit
+constexpr int kScoutKeep = 5;          // ... unless our ward is already this close
 constexpr int kFleeAltarGems = 10;     // fleeing with this many gems: run for the nearest altar when nearer than home
 constexpr bool kChaseRecall = false;   // recall timing from hit_turn() (else: everyone at least kRecallDist away)
-constexpr int kRecallDist = 7;
+constexpr int kRecallDist = 7;         // retreat: recall once every enemy is at least this far
 constexpr int kCancelDist = 5;         // ... and a running recall stops when an enemy comes this close
 
 int round_now() { return static_cast<int>(cambc::round_number()); }
