@@ -17,7 +17,7 @@ skipped, and walled-off altars no longer count when deciding that every usable a
   reachable altar is locked we walk to the nearest one and break it.
 
 ## Changes this generation
-All runs tools/benchmark.py, both sides, release; 0 faults and 0 `bot error:` lines in all 875 games.
+All runs tools/benchmark.py, both sides, release; 0 faults and 0 `bot error:` lines in all 874 games.
 - Parent copy vs f03-05 (40 maps): 37/80, margin −130. The evidence losses (0 gems on 01boss-battle, 00stampede,
   00collision) were mostly f03-05's altar locks: the parent skipped locked altars, recalled to bank, found nothing
   and walked out again, carrying up to 1900 gems to the end.
