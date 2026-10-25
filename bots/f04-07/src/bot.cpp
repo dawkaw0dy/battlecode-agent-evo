@@ -45,8 +45,8 @@ constexpr float kCampStr[6] = {20, 60, 0, 0, 200, 120};
 constexpr int kCampRange[6] = {3, 4, 0, 0, 5, 4};
 
 // ---------------------------------------------------------------- tuning
-constexpr float kDangerPool = 0.7f;   // expected camp damage vs the squad's health
-constexpr float kTankRounds = 5.0f;  // one champion must survive this many rounds of the group's hits
+constexpr float kDangerPool = 2.5f;   // expected camp damage vs the squad's health
+constexpr float kTankRounds = 3.0f;  // one champion must survive this many rounds of the group's hits
 constexpr float kFightNeed = 1.3f;    // square-law advantage needed to start a fight
 constexpr int kFleeRadius = 7;
 constexpr int kSquads = 2;
@@ -61,6 +61,7 @@ constexpr float kOtherSquadFactor = 1.0f;
 constexpr bool kSplitCapture = true;
 constexpr int kRangedApproach = 2;
 constexpr int kSight = 3;  // shared-memory offset of the 4 sighting bytes (0..2 hold squad targets)
+constexpr bool kFuelProbe = false;
 
 // ---------------------------------------------------------------- static map knowledge
 struct Group {
@@ -74,6 +75,8 @@ struct Group {
     float hp_seen = -1;       // remaining health when last seen alive
     bool reward = false;      // seen dead with the reward waiting
     int skip_until = -1;      // contested: leave it alone until this round
+    std::vector<int> approach; // walkable tiles next to the group (row-major indices)
+    std::vector<vec2> wait_ring; // just outside camp range, never on a spawn tile
     int capture_turns = 0;
 };
 
@@ -86,6 +89,7 @@ std::vector<int> altar_enemy_use;    // sightings of enemies next to the altar
 bc::bitboard terrain;                // walls | holes | altars | enemy spawn
 Bits terrain_bits, bush_bits, wall_bits, hole_bits, ally_spawn_bits;
 std::vector<vec2> ally_spawn_tiles, enemy_spawn_tiles;
+std::vector<std::uint16_t> spawn_field;  // walking distance from our spawn over terrain (0xFFFF unreachable)
 vec2 ally_spawn_center, enemy_spawn_center;
 
 // ---------------------------------------------------------------- per champion
@@ -136,6 +140,12 @@ void init_static() {
     };
     ally_spawn_center = centre(ally_spawn_tiles);
     enemy_spawn_center = centre(enemy_spawn_tiles);
+    {
+        bc::distance_field field;
+        bc::bitboard visited;
+        field.compute(terrain, bc::map::spawn_region(team::ally), visited);
+        spawn_field = field.export_linear_buffer();
+    }
     altars = bc::map::altars().positions();
     altar_enemy_lock.assign(altars.size(), -1);
     altar_enemy_use.assign(altars.size(), 0);
@@ -163,6 +173,32 @@ void init_static() {
         gr.center = best;
         for (auto t : gr.tiles) group_at[t.y * W + t.x] = static_cast<std::int16_t>(groups.size());
         groups.push_back(std::move(gr));
+    }
+    for (auto& gr : groups) {
+        const int inner = std::max(1, gr.range);
+        int x0 = W, y0 = H, x1 = -1, y1 = -1;
+        for (auto t : gr.tiles) x0 = std::min(x0, t.x), y0 = std::min(y0, t.y), x1 = std::max(x1, t.x), y1 = std::max(y1, t.y);
+        for (int y = y0 - inner - 1; y <= y1 + inner + 1; ++y)
+            for (int x = x0 - inner - 1; x <= x1 + inner + 1; ++x) {
+                const vec2 p{x, y};
+                if (!inb(p) || terrain_bits.get(p) || group_at[y * W + x] >= 0) continue;
+                int dmin = 1 << 20;
+                for (auto t : gr.tiles) dmin = std::min(dmin, dist(t, p));
+                if (dmin == inner + 1) gr.wait_ring.push_back(p);
+            }
+        for (auto t : gr.tiles)
+            for (auto d : kDirs) {
+                const vec2 n = t + d;
+                if (!inb(n) || terrain_bits.get(n) || group_at[n.y * W + n.x] >= 0) continue;
+                const int idx = n.y * W + n.x;
+                if (std::find(gr.approach.begin(), gr.approach.end(), idx) == gr.approach.end()) gr.approach.push_back(idx);
+            }
+        // Keep the travel scan cheap: at most 8 evenly spread approach tiles per group.
+        if (gr.approach.size() > 8) {
+            std::vector<int> thin;
+            for (std::size_t i = 0; i < 8; ++i) thin.push_back(gr.approach[i * gr.approach.size() / 8]);
+            gr.approach = std::move(thin);
+        }
     }
 }
 
@@ -741,7 +777,7 @@ bool handle_enemies() {
 // ---------------------------------------------------------------- farming
 float squad_dps_est() { return my_base_dps * static_cast<float>(std::max(1, squad_size)); }
 
-int choose_target(const std::vector<std::uint16_t>& field) {
+int choose_target() {
     auto& me = bc::self();
     const float gold_w = v.round < 700 ? 0.6f : (v.round < 1300 ? 0.35f : 0.15f);
     const float dps = std::max(20.0f, squad_dps_est());
@@ -751,15 +787,18 @@ int choose_target(const std::vector<std::uint16_t>& field) {
     const int other_target = squads == 2 ? static_cast<int>(mem_get(1 - squad)) - 1 : -1;
     for (std::size_t gi = 0; gi < groups.size(); ++gi) {
         const auto& g = groups[gi];
+        // Travel estimate without a per-turn BFS: Chebyshev distance, or the difference of walking distances
+        // from our spawn when that is larger (a lower bound that sees around walls).
         int travel = 1 << 15;
-        for (auto t : g.tiles)
-            for (auto d : kDirs) {
-                const vec2 n = t + d;
-                if (!inb(n)) continue;
-                const int f = field[n.y * W + n.x];
-                if (f < travel) travel = f;
-            }
-        if (travel >= 60000) continue;
+        const int here = spawn_field[v.me.y * W + v.me.x];
+        for (int idx : g.approach) {
+            const int f = spawn_field[idx];
+            if (f == 0xFFFF) continue;
+            const vec2 t{idx % W, idx / W};
+            const int est = std::max(dist(t, v.me), here == 0xFFFF ? 0 : std::abs(f - here));
+            if (est < travel) travel = est;
+        }
+        if (travel >= (1 << 15)) continue;
         if (g.skip_until > v.round) continue;
         if (v.round + travel > 1990) continue;
         float wait = 0;
@@ -782,14 +821,6 @@ int choose_target(const std::vector<std::uint16_t>& field) {
     return best;
 }
 
-std::vector<std::uint16_t> distance_from_me() {
-    bc::bitboard start;
-    start.set(v.me);
-    bc::distance_field field;
-    bc::bitboard visited;
-    field.compute(terrain, start, visited);
-    return field.export_linear_buffer();
-}
 
 // Attack camps in range: awake ones first, then the target group's.
 bool fight_camps() {
@@ -825,7 +856,34 @@ int mode_counts[12] = {};
 const char* mode_names[12] = {"pvp","recall","bank","answer","campfight","capture","respawn","gather","approach","ambush","heal","other"};
 void set_mode(int m) { g_mode = mode_names[m]; ++mode_counts[m]; }
 
+std::uint64_t sec_max[9] = {};
+std::uint64_t sec_last = 0;
+void sec(int i) {
+    if (!kFuelProbe) return;
+    const std::uint64_t left = bc::fuel_remaining();
+    if (sec_last > left && sec_last - left > sec_max[i]) sec_max[i] = sec_last - left;
+    sec_last = left;
+}
+struct FuelProbe {
+    static inline std::uint64_t max_used = 0;
+    static inline int over = 0;
+    ~FuelProbe() {
+        const std::uint64_t left = bc::fuel_remaining();
+        const std::uint64_t used = left < 100000 ? 100000 - left : 0;
+        if (used > max_used) max_used = used;
+        if (used > 90000) ++over;
+        if (kFuelProbe && bc::round_number() % 250 == 0) {
+            std::cout << "fuel max " << max_used << " over " << over << " sec";
+            for (auto x : sec_max) std::cout << ' ' << x;
+            std::cout << '\n';
+        }
+    }
+};
+
 void Bot::play_turn() {
+    FuelProbe probe;
+    struct EndSec { ~EndSec() { sec(6); } } end_sec;
+    struct ChooseTimer {};
     if (!g_init) {
         init_static();
         init_self();
@@ -844,12 +902,16 @@ void Bot::play_turn() {
         return;
     }
     if (!me.can_move() && !me.can_attack() && !me.can_cast()) return;
+    sec_last = bc::fuel_remaining();
     read_view();
+    sec(0);
     if (v.round % 25 == 1) {
         debug_block({ std::cout << "r" << v.round << " me" << my_index << " (" << v.me.x << "," << v.me.y << ") tg=" << target_group << " hp=" << me.health() << " gems=" << me.gem_count() << " en=" << v.enemies.size() << '\n'; });
     }
     update_groups();
+    sec(1);
     update_altars();
+    sec(2);
 
     const bool at_spawn = ally_spawn_bits.get(v.me);
     if (at_spawn || me.passive() == bc::passive_type::remote_shop) shop();
@@ -871,7 +933,10 @@ void Bot::play_turn() {
     if (v.round % 200 == 0) {
         debug_block({ std::cout << "modes me" << my_index; for (int i = 0; i < 12; ++i) std::cout << ' ' << mode_names[i] << '=' << mode_counts[i]; std::cout << '\n'; });
     }
-    if (handle_enemies()) { set_mode(0); return; }
+    sec(3);
+    const bool pvp = handle_enemies();
+    sec(4);
+    if (pvp) { set_mode(0); return; }
 
     // Recall when hurt and nothing is close enough to interrupt.
     bool camp_threat = false;
@@ -919,6 +984,8 @@ void Bot::play_turn() {
             if (!(altar_enemy_lock[i] >= 0 && v.round - altar_enemy_lock[i] < 150)) targets.push_back(altars[i]);
         if (targets.empty()) targets = altars;
         bc::bitboard g = ring_around(targets, 1);
+        long key = 2;
+        for (auto t : targets) key = key * 31 + t.x * 128 + t.y;
         if (step_towards(g)) {
             for (std::size_t i = 0; i < altars.size(); ++i)
                 if (dist(v.me, altars[i]) <= bc::constants::submit_gems_range) {
@@ -951,8 +1018,9 @@ void Bot::play_turn() {
         return;
     }
 
+    sec(5);
     // Choose a camp group (shared per squad).
-    const auto field = distance_from_me();
+
     int shared = kSquads == 0 ? -1 : static_cast<int>(mem_get(squad)) - 1;
     if (shared >= static_cast<int>(groups.size())) shared = -1;
     if (shared >= 0) {
@@ -966,7 +1034,9 @@ void Bot::play_turn() {
     }
     if (shared >= 0) target_group = shared;
     if (target_group < 0 || v.round % 20 == 0) {
-        const int pick = choose_target(field);
+        sec(5);
+        const int pick = choose_target();
+        sec(8);
         if (pick != target_group) {
             target_group = pick;
             wait_turns = 0;
@@ -974,6 +1044,7 @@ void Bot::play_turn() {
         if (kSquads != 0) mem_set(squad, static_cast<std::uint8_t>(target_group + 1));
     }
 
+    sec(7);
     if (target_group >= 0) {
         auto& g = groups[target_group];
         if (v.round % 25 == 1) {
@@ -1001,7 +1072,7 @@ void Bot::play_turn() {
                     if (a.pos == t) ally_capturing = true;
             if (ally_capturing && kSplitCapture) {
                 g.skip_until = v.round + 8;
-                const int next = choose_target(field);
+                const int next = choose_target();
                 g.skip_until = -1;
                 if (next >= 0 && next != target_group) {
                     auto& n = groups[next];
@@ -1022,19 +1093,9 @@ void Bot::play_turn() {
         if (g.respawn_until >= 0 && g.respawn_until > v.round) {
             set_mode(6);
             // Never stand on a spawn tile: an occupied tile delays the whole group's respawn.
-            const int inner = std::max(1, g.range);
             bc::bitboard goal;
-            for (auto c : g.tiles)
-                for (int dy = -inner - 1; dy <= inner + 1; ++dy)
-                    for (int dx = -inner - 1; dx <= inner + 1; ++dx) {
-                        const vec2 p{c.x + dx, c.y + dy};
-                        if (!inb(p) || terrain_bits.get(p) || group_at[p.y * W + p.x] >= 0) continue;
-                        bool close = false;
-                        for (auto t : g.tiles)
-                            if (dist(t, p) <= inner) { close = true; break; }
-                        if (!close) goal.set(p);
-                    }
-            if (goal.is_empty()) goal = ring_around(g.tiles, inner + 1);
+            for (auto p : g.wait_ring) goal.set(p);
+            if (g.wait_ring.empty()) goal = ring_around(g.tiles, std::max(1, g.range) + 1);
             if (!goal.is_set(v.me)) step_towards(goal);
             place_ward(g.center);
             return;
