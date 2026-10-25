@@ -49,6 +49,8 @@ struct Group {
     int seen = -1000;       // round of the last observation
     float hp_left = -1;     // last seen remaining monster health (-1: assume full)
     int danger_until = 0;   // enemies were seen near it
+    int blocked_until = 0;  // we could not get there
+    bool guards_altar = false; // holds the only way onto an altar
 };
 
 // One of our ability slots, decoded once.
@@ -71,6 +73,7 @@ private:
     cambc::bitboard terrain;          // walls, holes, altars
     cambc::bitboard ally_spawn, enemy_spawn;
     cambc::bitboard altar_goals;      // free tiles next to an altar
+    cambc::bitboard camp_spawns;      // every camp's spawn tile
     cambc::distance_field home_field; // walking distance to our spawn (terrain only)
     cambc::distance_field enemy_field;// walking distance to the enemy spawn (terrain only)
     cambc::distance_field altar_field;// walking distance to the nearest altar tile
@@ -116,6 +119,9 @@ private:
     cambc::distance_field my_field;
     int my_field_round = -100;
     bool banking = false;
+    int bank_blocked_until = 0;
+    cambc::vec2 stuck_pos{-1, -1};
+    int stuck_turns = 0;
 
     // ---- combat memory ----
     unsigned chase_id = 0xFFFFFFFF;

@@ -110,6 +110,7 @@ void Bot::init() {
             G.max_camp_strength = std::max(G.max_camp_strength, cstr);
             G.range = std::max(G.range, crange);
             group_at[static_cast<std::size_t>(p.y * width + p.x)] = static_cast<std::int16_t>(groups.size());
+            camp_spawns.set(p);
         }
         G.center = centre(G.spawns);
         G.home_dist = G.enemy_dist = 1000;
@@ -123,6 +124,16 @@ void Bot::init() {
             }
         }
         groups.push_back(std::move(G));
+    }
+
+    // Groups standing on the only free tiles next to every altar must die before anyone banks.
+    {
+        const auto open = altar_goals & ~camp_spawns;
+        if (open.is_empty() && !altar_goals.is_empty()) {
+            for (auto& g : groups)
+                for (auto t : g.spawns)
+                    if (altar_goals.is_set(t)) g.guards_altar = true;
+        }
     }
 
     const auto mates = cambc::champions(team::ally);
@@ -152,6 +163,25 @@ void Bot::init() {
     type = static_cast<int>(me.champion_name());
     ready = true;
     debug_block({
+        if (my_index == 0) {
+            for (auto a : altars) std::printf("ALTAR (%d,%d)\n", a.x, a.y);
+            for (int y = height - 1; y >= 0; --y) {
+                char row[128] = {};
+                for (int x = 0; x < width && x < 127; ++x) {
+                    const vec2 p{x, y};
+                    char ch = '.';
+                    if (cambc::map::walls().is_set(p)) ch = '#';
+                    else if (cambc::map::holes().is_set(p)) ch = 'o';
+                    else if (cambc::map::altars().is_set(p)) ch = 'A';
+                    else if (camp_spawns.is_set(p)) ch = 'c';
+                    else if (cambc::map::bushes().is_set(p)) ch = '"';
+                    else if (ally_spawn.is_set(p)) ch = 'S';
+                    else if (enemy_spawn.is_set(p)) ch = 'E';
+                    row[x] = ch;
+                }
+                std::printf("M %s\n", row);
+            }
+        }
         if (my_index == 0)
             for (const auto& g : groups)
                 std::printf("G%u gems%d gold%d hp%.0f str%.0f n%zu home%d enemy%d c(%d,%d)\n", g.handle, g.gems, g.gold, g.max_hp, g.strength, g.spawns.size(), g.home_dist, g.enemy_dist, g.center.x, g.center.y);
@@ -370,11 +400,20 @@ float Bot::threat_at(vec2 p) const {
     return t + camp_threat_at(p);
 }
 
+// Monsters hit the nearest champion: count a camp only if nobody visible stands closer to it.
 float Bot::camp_threat_at(vec2 p) const {
     float t = 0;
     for (const auto& c : camps) {
         if (!c.awake || c.range == 0) continue;
-        if (cheb(p, c.pos) <= c.range) t += c.strength;
+        const int d = cheb(p, c.pos);
+        if (d > c.range) continue;
+        bool shielded = false;
+        for (const auto& a : allies)
+            if (cheb(a.pos, c.pos) < d) { shielded = true; break; }
+        if (!shielded)
+            for (const auto& e : enemies)
+                if (cheb(e.pos, c.pos) < d) { shielded = true; break; }
+        if (!shielded) t += c.strength;
     }
     return t;
 }
@@ -921,7 +960,12 @@ bool Bot::bank() {
 bool Bot::go_bank() {
     if (altar_goals.is_empty()) return false;
     if (bank()) return true;
-    step_to(altar_goals);
+    if (!step_to(altar_goals) && !move_blocked && !moved) {
+        // Every altar tile is taken (monsters guarding it, or allies): farm on meanwhile.
+        bank_blocked_until = static_cast<int>(round) + 25;
+        banking = false;
+        return false;
+    }
     if (bank()) return true;
     return true;
 }
@@ -931,9 +975,15 @@ void Bot::choose_target() {
     const int r = static_cast<int>(round);
     last_plan = r;
     if (r - my_field_round >= 4 || target < 0) {
+        // Monsters we believe alive block the way like walls.
+        cambc::bitboard walls = static_block | camp_spawns;
+        for (const auto& g : groups)
+            if (g.dead_until > r || g.state == 2)
+                for (auto t : g.spawns) walls.set(t, false);
+        walls.set(pos, false);
         cambc::bitboard roots, visited;
         roots.set(pos);
-        my_field.compute(static_block, roots, visited);
+        my_field.compute(walls, roots, visited);
         my_field_round = r;
     }
     // Gold buys shards early; gems win the game.
@@ -942,7 +992,7 @@ void Bot::choose_target() {
     int best_i = -1;
     for (int i = 0; i < static_cast<int>(groups.size()); ++i) {
         const auto& g = groups[static_cast<std::size_t>(i)];
-        if (g.gems + g.gold <= 0) continue;
+        if (g.gems + g.gold <= 0 || g.blocked_until > r) continue;
         int d = 1 << 20;
         for (auto s : g.spawns) {
             for (auto dir : kDirs) {
@@ -962,7 +1012,9 @@ void Bot::choose_target() {
         const float share = big ? 1.0f + static_cast<float>(claimers) : 1.0f;
         const float clear = left / (my_dps * share);
         // From the group's edge only a few monsters reach us.
-        const float hits = g.spawns.size() >= 3 ? std::min(g.strength, 2.0f * g.max_camp_strength) : g.strength;
+        float hits = g.spawns.size() >= 3 ? std::min(g.strength, 2.0f * g.max_camp_strength) : g.strength;
+        // Raiders take turns being the nearest target.
+        if (big) hits /= share;
         // Trips: each one lasts until camp damage takes us to the recall threshold.
         float overhead = 0;
         if (hits > 0) {
@@ -970,12 +1022,13 @@ void Bot::choose_target() {
             const float full = std::max(1.0f, max_hp * (1.0f - kRecallHp) / hits);
             if (first * my_dps * share < left) {
                 const float extra = std::ceil((left - first * my_dps * share) / (full * my_dps * share));
-                if (extra > (big ? 10 : 6)) continue;
+                if (extra > (big ? (g.guards_altar ? 30 : 10) : 6)) continue;
                 overhead = extra * (6.0f + 2.0f * static_cast<float>(g.home_dist));
             }
         }
         const int wait = std::max(0, g.dead_until - r - d);
-        const float value = (static_cast<float>(g.gems) + static_cast<float>(g.gold) * gold_w) / share;
+        float value = (static_cast<float>(g.gems) + static_cast<float>(g.gold) * gold_w) / share;
+        if (g.guards_altar) value += 300.0f;
         float score = value / (static_cast<float>(d + wait) + clear + overhead + 6.0f);
         // Allies already on a small group: leave it to them.
         if (!big && claimers > 0) score *= 0.3f;
@@ -1061,7 +1114,16 @@ bool Bot::farm() {
     }
     cambc::bitboard goals;
     for (auto s : g.spawns) goals.draw_chebyshev(s, static_cast<float>(std::max(range, 1)));
-    step_to(goals);
+    if (!step_to(goals) && !move_blocked) {
+        // No way through (monsters or units in the way): try another group for a while.
+        if (++stuck_turns >= 4) {
+            g.blocked_until = r + 60;
+            stuck_turns = 0;
+            target = -1;
+        }
+    } else {
+        stuck_turns = 0;
+    }
     return true;
 }
 
@@ -1191,7 +1253,7 @@ void Bot::play_turn() {
             if (gems > 0 && (gems >= kBankGems || late || (threatened && gems >= 10)
                              || (ad != cambc::distance_field::unreachable && ad <= 5)))
                 banking = true;
-            if (gems == 0) banking = false;
+            if (gems == 0 || r < bank_blocked_until) banking = false;
             if (banking) done = go_bank();
             debug_block({ if (banking) last_act = "bank"; });
         } catch (const std::exception& e) { warn("bank", e); }
