@@ -5,7 +5,7 @@
 // Switches of the map plan (measured: see NOTES.md).
 constexpr int kRunnerAltars = 2;     // most altar tiles for the lock runner and lock detours
 constexpr int kLockDetour = 8;       // detour for a lock on those maps
-constexpr bool kRoleHomes = false;    // forward home regions to the sturdiest picks
+constexpr bool kRoleHomes = true;    // forward home regions to the sturdiest picks
 constexpr int kSmallArea = 1300;     // map classes by area
 constexpr int kLargeArea = 3000;
 
