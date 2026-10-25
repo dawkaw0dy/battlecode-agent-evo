@@ -3233,9 +3233,11 @@
   },
   "f06-06": {
    "archetype": "safe-banker",
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evo-f06-06-a2z7fv",
+   "commit": "f4544f452f20aa13fba8928d683f43e0a7460dbc",
    "deadline_minutes": 120,
+   "done_at": 1792936987,
+   "effort_level": "high",
    "evidence": [],
    "failed_ideas": [
     "f04-05: Fuel: host calls cost ~30\u201340 fuel, but every bitboard temporary (&, |, ~, shift) ~600 and a grow(r) ~4k\u00b7r;",
@@ -3258,6 +3260,7 @@
    "generation": 6,
    "id": "f06-06",
    "kind": "immigrant",
+   "model": null,
    "nudged": [],
    "operator": null,
    "parents": [
@@ -3277,7 +3280,7 @@
    ],
    "slot": 6,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "b8e7aa31b5e8d4473ddde4037d7eb33e016f27847780a9cda47d20a18c235c37"
   },
   "f06-07": {
@@ -17325,8 +17328,6 @@
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-24T18:43:08Z g01 phase EVAL_B_DONE: results for r01-B",
-  "2026-10-24T18:43:27Z g01 r01-B-spot: pushed c0e0d6e861 (23 sampled games, 17 shards)",
   "2026-10-24T18:46:06Z g01 r01-B: verified, 1120 rows, spot-check 23 OK",
   "2026-10-24T18:46:21Z g01 phase EVAL_C_PENDING: stage C for f01-03 vs f01-01",
   "2026-10-24T18:46:38Z g01 r01-C: pushed e67dbc2d49 with 5 shards",
@@ -17524,10 +17525,12 @@
   "2026-10-25T13:16:03Z g06 f06-05: done on origin/claude/evo-task-f06-05-ykoxvg at 9014f4f62b",
   "2026-10-25T13:17:21Z g06 f06-02: done on origin/claude/evolution-f06-02-qrgrps at 1876747fda",
   "2026-10-25T13:19:56Z g06 f06-03: done on origin/claude/evo-f06-03-83ifrz at d5dd0bcf23",
-  "2026-10-25T13:26:06Z g06 f06-01: done on origin/claude/evo-task-f06-01-sj4nxy at 435dab9d8e"
+  "2026-10-25T13:26:06Z g06 f06-01: done on origin/claude/evo-task-f06-01-sj4nxy at 435dab9d8e",
+  "2026-10-25T14:03:07Z g06 f06-06: done on origin/claude/evo-f06-06-a2z7fv at f4544f452f",
+  "2026-10-25T14:03:07Z g06 phase ADMITTED"
  ],
  "paused": null,
- "phase": "RUNNING",
+ "phase": "ADMITTED",
  "sessions_launched": 50,
  "version": 1
 }
