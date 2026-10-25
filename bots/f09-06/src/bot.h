@@ -40,6 +40,7 @@ private:
     int chase_turns = 0, chase_block_until = -1;
     bool banking = false;
     bool healing = false;
+    const char* act = "";         // what this turn was spent on (debug)
 
     void init();
     void shop();

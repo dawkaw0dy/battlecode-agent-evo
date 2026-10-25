@@ -118,9 +118,10 @@ bool Nav::step(const cambc::bitboard& goals, const Field* f) {
             last_dist = here;
             if (descend(*f, here)) return true;
             if (blocked_this_turn) return false;
-            dynamic_until_ = W.round + 12;
         }
     }
+    // Once the search with units takes over, stay with it: the terrain field may point through camps.
+    dynamic_until_ = W.round + 8;
     return dynamic_step(goals);
 }
 

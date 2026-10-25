@@ -49,7 +49,9 @@ constexpr int kChaseTurns = 4;             // approach turns without a hit befor
 constexpr int kChaseReach = 2;
 constexpr int kRallyTurns = 12;
 constexpr bool kUseDanger = false;
-constexpr float kGateValue = 400.0f;        // bonus for a group that blocks every altar         // keep farming/banking steps out of enemy reach (measured worse)            // wait this long for helpers at a strong group             // close in only on targets this far beyond our range  // share of camp damage we expect to take (jungle emblem, stuns)
+constexpr float kGateValue = 400.0f;
+constexpr int kExtraHelpers = 2;           // teammates a strong group may call in
+constexpr float kCallCost = 10.0f;         // turns lost waiting for called helpers        // bonus for a group that blocks every altar         // keep farming/banking steps out of enemy reach (measured worse)            // wait this long for helpers at a strong group             // close in only on targets this far beyond our range  // share of camp damage we expect to take (jungle emblem, stuns)
 
 Field g_from_altars;  // static distance to the nearest altar approach tile
 std::vector<int> g_bad_until;
@@ -426,6 +428,7 @@ bool Bot::handle_fight() {
         std::cout << "\n";
     });
     if (engage && tgt) {
+        act = "engage";
         const Unit e = *tgt;
         const int d = cheb(e.pos, pos);
         if (d <= me.attack_range()) {
@@ -452,6 +455,7 @@ bool Bot::handle_fight() {
     }
 
     if (ratio < kFleeRatio && threatened) {
+        act = "flee";
         // Hit something first when that costs nothing (melee may still walk), then run.
         if (!ranged && tgt && cheb(tgt->pos, pos) <= 1) attack_unit_at(tgt->pos);
         for (const auto& e : W.enemies)
@@ -473,6 +477,7 @@ bool Bot::handle_fight() {
     }
     // Even fight: trade only what is already in reach, keep farming otherwise.
     if (in_reach) {
+        act = "trade";
         cast_on_enemy(*tgt);
         attack_unit_at(tgt->pos);
         reset_and_hit(tgt->pos);
@@ -489,7 +494,7 @@ bool Bot::handle_health() {
     const float r = me.health() / std::max(1.0f, me.max_health());
     const bool at_spawn = bit(W.our_spawn, pos);
     if (at_spawn) {
-        if (r < 0.9f && (healing || r < 0.6f)) { healing = true; return true; }
+        if (r < 0.9f && (healing || r < 0.6f)) { healing = true; act = "heal"; return true; }
         healing = false;
         return false;
     }
@@ -515,10 +520,12 @@ bool Bot::handle_health() {
             if (cheb(c.pos, pos) <= me.attack_range() && c.hp <= me.strength() * 2 && r > 0.15f) return false;
     }
     if (camp_hits || enemy_near) {
+        act = camp_hits ? "low-camp-flee" : "low-enemy-flee";
         if (enemy_near) dash_towards(threats.back(), true);
         if (N.flee(threats, reach)) walked = true;
         return true;
     }
+    act = "recall";
     try {
         if (!me.is_recalling()) me.recall();
     } catch (const std::exception& e) {
@@ -563,6 +570,7 @@ bool Bot::handle_bank() {
     if (gi >= 0 && W.groups[gi].state == GroupState::reward) return false;
     if (!want || d >= kFar) return false;
     banking = true;
+    act = "bank-walk";
 
     const int ar = cambc::constants::submit_gems_range;
     const auto enemy_locks = cambc::vision::altar_lock_tiles(team::enemy);
@@ -572,10 +580,11 @@ bool Bot::handle_bank() {
         if (locked) a.enemy_lock_seen = W.round;
         try {
             if (locked) {
-                if (me.can_attack()) { me.submit_gems(a.pos); attacked = true; return true; }
+                if (me.can_attack()) { me.submit_gems(a.pos); attacked = true; act = "break-lock"; return true; }
                 continue;
             }
             if (!can_tribute_safely(g)) return false;
+            act = "tribute";
             me.submit_gems(a.pos);
             banking = false;
             return true;
@@ -641,20 +650,25 @@ int Bot::choose_group() {
         } else if (G.state == GroupState::reward) {
             hpv = 0; str = 0;
         }
-        // Everyone already on it shares the work, the hits and the reward.
-        float n = static_cast<float>(helpers_on(G.id) + 1);
-        // A gate is a raid: judge it as if the whole team comes (the rally waits for it).
-        if (G.gate) n = std::max(n, static_cast<float>(team_n));
-        const float T = hpv / (dps1 * n * 0.9f);
-        const float share_dmg = str * T / n * kCampDamageTaken;
-        // Camps do not heal: a share too big for one trip takes several, each a recall and a walk back.
-        const float trips = std::max(0.0f, std::ceil(share_dmg / (0.7f * hp1)) - 1.0f);
-        float value = (static_cast<float>(G.gems) + gold_w * static_cast<float>(G.gold)) / n;
-        // A camp on the only way to an altar: nobody scores until it falls.
-        if (G.gate && G.state == GroupState::alive) value += kGateValue / n;
-        if (G.sector != pack) value *= G.sector < 0 && G.ours > G.theirs + 6 ? kForeignValue : kOtherSectorValue;
-        const float time = static_cast<float>(std::max(d, wait)) + T + trips * (static_cast<float>(std::min(G.ours, 150)) + 8.0f) + 6.0f;
-        const float s = value / time;
+        // Everyone on it shares the work, the hits and the reward. A strong group may be worth calling
+        // more teammates to: score it at its best team size (they see our target and the rally waits).
+        const int have = helpers_on(G.id) + 1;
+        const int most = G.gate ? team_n : std::min(team_n, have + kExtraHelpers);
+        float base = static_cast<float>(G.gems) + gold_w * static_cast<float>(G.gold);
+        if (G.sector != pack) base *= G.sector < 0 && G.ours > G.theirs + 6 ? kForeignValue : kOtherSectorValue;
+        if (G.gate && G.state == GroupState::alive) base += kGateValue;
+        float s = -1;
+        for (int k = have; k <= std::max(have, most); ++k) {
+            const float n = static_cast<float>(k);
+            const float T = hpv / (dps1 * n * 0.9f);
+            const float share_dmg = str * T / n * kCampDamageTaken;
+            // Camps do not heal: a share too big for one trip takes several, each a recall and a walk back.
+            const float trips = std::max(0.0f, std::ceil(share_dmg / (0.7f * hp1)) - 1.0f);
+            const float time = static_cast<float>(std::max(d, wait)) + T + trips * (static_cast<float>(std::min(G.ours, 150)) + 8.0f) + 6.0f;
+            // Waiting for helpers who are not there yet costs a little.
+            const float sk = base / n / (time + (k > have ? kCallCost : 0.0f));
+            s = std::max(s, sk);
+        }
         if (s > best_s) { best_s = s; best = G.id; }
     }
     return best;
@@ -666,6 +680,7 @@ bool Bot::work_group(int gi) {
     const vec2 pos = me.position();
     if (G.state == GroupState::respawning) {
         if (G.respawn_at - W.round > 12) return false;
+        act = "wait-respawn";
         // Wait next to it.
         cambc::bitboard goal;
         for (auto t : G.tiles) add_square(goal, t, ranged ? 3 : 1);
@@ -675,7 +690,9 @@ bool Bot::work_group(int gi) {
     }
     if (G.state == GroupState::reward || G.alive_count() == 0) {
         if (G.state != GroupState::reward && G.seen == W.round) return false;
+        act = "capture";
         if (bit(G.spawn, pos)) return true;  // capturing
+        act = "to-capture";
         if (N.step(G.spawn, W.group_field(gi))) walked = true;
         return true;
     }
@@ -697,6 +714,7 @@ bool Bot::work_group(int gi) {
         const float solo_dmg = G.str() * G.hp() / (std::max(10.0f, my_dps()) * static_cast<float>(present));
         if (assigned > present && solo_dmg / static_cast<float>(present) > me.health() * 0.8f && rally_turns < kRallyTurns) {
             ++rally_turns;
+            act = "rally";
             return true;
         }
     }
@@ -706,11 +724,12 @@ bool Bot::work_group(int gi) {
         if (approach_target != gi) { approach_target = gi; approach_r = me.attack_range(); }
         cast_on_camp(c);
         if (cheb(c.pos, pos) <= me.attack_range()) {
-            if (attack_unit_at(c.pos)) { reset_and_hit(c.pos); return true; }
+            if (attack_unit_at(c.pos)) { reset_and_hit(c.pos); act = "hit-camp"; return true; }
             // In range but unseen: come closer.
             if (approach_r > 1) --approach_r;
         }
-        if (casted && (kit[0].excl || kit[1].excl)) return true;
+        if (casted && (kit[0].excl || kit[1].excl)) { act = "cast-camp"; return true; }
+        act = "approach-camp";
         cambc::bitboard goal;
         const int r = std::min(approach_r, me.attack_range());
         add_square(goal, c.pos, r);
@@ -729,21 +748,25 @@ bool Bot::work_group(int gi) {
         } else if (!bit(goal, me.position())) {
             if (++stuck_turns > 8) { g_bad_until[gi] = W.round + 60; stuck_turns = 0; return false; }
         }
-        if (cheb(c.pos, me.position()) <= me.attack_range() && attack_unit_at(c.pos)) reset_and_hit(c.pos);
+        if (cheb(c.pos, me.position()) <= me.attack_range() && attack_unit_at(c.pos)) { reset_and_hit(c.pos); act = "step-hit-camp"; }
         return true;
     }
 
-    // Walk to the group.
+    // Walk to the group: arrival by walking distance, not by a square that may reach through walls.
+    const Field* gf = W.group_field(gi);
     cambc::bitboard goal;
-    for (auto t : G.tiles) add_square(goal, t, 2);
-    if (bit(goal, pos)) {
-        // Close but nothing in sight: the camps are gone or hidden.
-        add_square(goal, pos, 0);
+    for (auto t : G.tiles) add_square(goal, t, 1);
+    goal &= ~W.blocked;
+    const int wd = gf ? gf->at(pos) : (bit(goal, pos) ? 0 : kFar);
+    if (wd == 0) {
+        // Beside the group but no camp in sight: they are hidden or gone. Stand on a spawn tile.
+        act = "search";
         if (N.step(G.spawn)) walked = true;
-        if (++stuck_turns > 6) { stuck_turns = 0; for (auto& m : G.m) if (bit(W.visible, m.pos)) m.hp = 0; }
+        if (++stuck_turns > 6) { stuck_turns = 0; for (auto& m : G.m) m.hp = 0; }
         return true;
     }
-    if (N.step(goal, W.group_field(gi))) { walked = true; stuck_turns = 0; }
+    act = "travel";
+    if (N.step(goal, gf)) { walked = true; stuck_turns = 0; }
     else if (++stuck_turns > 10) { g_bad_until[gi] = W.round + 60; stuck_turns = 0; return false; }
     return true;
 }
@@ -782,9 +805,11 @@ void Bot::play_turn() {
         if (W.round <= 2) for (int k = 0; k < 5; ++k) sm_set(k, 0xFF);
     }
     casted = walked = attacked = false;
+    act = "idle";
     g_prof_n = 0;
     prof_mark();
     if (!me.is_alive()) {
+        debug_block({ std::cout << "A " << cambc::round_number() << " " << static_cast<int>(me.champion_name()) << " dead\n"; });
         shop();
         if (W.ready && fuel_left() > 80000) { W.round = static_cast<int>(cambc::round_number()); W.precompute_some(); }
         return;
@@ -797,8 +822,19 @@ void Bot::play_turn() {
         for (const auto& a : W.altars)
             for (auto q : a.approach) roots.set(q);
         if (!roots.is_empty()) g_from_altars.compute(W.blocked, roots);
+        debug_block({
+            int bad = 0, n = 0;
+            for (int y = 0; y < g_h; ++y)
+                for (int x = 0; x < g_w; ++x) {
+                    const vec2 q{x, y};
+                    ++n;
+                    if (g_from_altars.at(q) != g_from_altars.f->get(q)) { if (bad < 3) std::cout << "  mismatch " << x << "," << y << " raw " << g_from_altars.at(q) << " get " << g_from_altars.f->get(q) << "\n"; ++bad; }
+                }
+            std::cout << "field check " << bad << "/" << n << " w " << g_w << " h " << g_h << " fcw " << g_fcw << " bstride " << g_bstride << "\n";
+        });
     }
     if (me.is_recalling() || me.is_submitting_gems() || me.is_teleporting()) {
+        debug_block({ std::cout << "A " << W.round << " " << static_cast<int>(me.champion_name()) << (me.is_recalling() ? " recalling" : " channel") << "\n"; });
         if (fuel_left() > 80000) W.precompute_some();
         return;
     }
@@ -812,6 +848,8 @@ void Bot::play_turn() {
     else handle_farm();
     prof_mark();
     debug_block({
+        std::cout << "A " << W.round << " " << static_cast<int>(me.champion_name()) << " " << act << (walked ? " w" : "") << (attacked ? " a" : "") << "\n";
+        std::cout << "P " << W.round << " " << static_cast<int>(me.champion_name()) << " " << me.position().x << "," << me.position().y << " ld " << N.last_dist << " f " << N.fail << " g " << me.gem_count() << "\n";
         if (W.round % 10 == 0) {
             const vec2 p = me.position();
             std::cout << "r" << W.round << " c" << static_cast<int>(me.champion_name()) << " " << mode << " pos " << p.x << "," << p.y
