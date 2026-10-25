@@ -44,6 +44,7 @@ class Bot {
     cambc::bitboard altar_spots_;
     std::vector<vec2> altars_;
     std::vector<std::uint8_t> enemy_lock_;  // per altar: an enemy lock was on it when we last looked
+    std::vector<std::uint8_t> altar_ok_;    // per altar: some tile in tribute range is walkable from our spawn
 
     // Memory.
     std::vector<Known> k_;

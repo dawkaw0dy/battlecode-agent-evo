@@ -260,6 +260,15 @@ void Bot::initialise() {
     altar_.load(f);
     altar_spots_ = spots;
     for (auto t : cambc::map::spawn_region(team::ally).positions()) home_altar_ = std::min(home_altar_, altar_.at(t));
+    altar_ok_.assign(altars_.size(), 0);
+    for (size_t i = 0; i < altars_.size(); ++i) {
+        const int r = cambc::constants::submit_gems_range;
+        for (int dy = -r; dy <= r; ++dy)
+            for (int dx = -r; dx <= r; ++dx) {
+                const vec2 t{altars_[i].x + dx, altars_[i].y + dy};
+                if (inside(t) && !walls_local().at(t) && home_.at(t) < kFar) altar_ok_[i] = 1;
+            }
+    }
     bank_d_.assign(g_.size(), kFar);
     for (size_t i = 0; i < g_.size(); ++i)
         for (auto t : g_[i].tiles) bank_d_[i] = std::min(bank_d_[i], altar_.at(t));
@@ -1883,9 +1892,14 @@ bool Bot::tribute() {
     // Enemy locks seen earlier: skip those altars, or break the nearest when every altar is locked.
     {
         int near = -1, near_d = 1 << 20;
-        bool all = !altars_.empty();
+        bool all = false;
         for (size_t i = 0; i < altars_.size(); ++i) {
-            if (!enemy_lock_[i]) { all = false; continue; }
+            if (!altar_ok_[i]) continue;  // walled off: never ours to use
+            if (!enemy_lock_[i]) { all = false; break; }
+            all = true;
+        }
+        for (size_t i = 0; i < altars_.size(); ++i) {
+            if (!altar_ok_[i] || !enemy_lock_[i]) continue;
             auto one = empty_board();
             one.set(altars_[i]);
             goal &= ~grow(one, cambc::constants::submit_gems_range);
