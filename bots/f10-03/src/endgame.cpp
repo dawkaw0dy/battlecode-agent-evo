@@ -34,7 +34,7 @@ constexpr bool kTraceEg = false;
 constexpr bool kTrack = false;          // keep our record and the score history (bank model, race posture)
 constexpr bool kBankModel = false;      // bank_due(): risk against detour (else the parent's thresholds)
 constexpr bool kRaceDeny = false;       // behind in the race: deny every enemy tribute, detour further for locks
-constexpr int kHoldMode = 0;           // boss altar: 0 the parent's (stay after banking), 1 take up the hold actively
+constexpr int kHoldMode = 1;           // boss altar: 0 the parent's (stay after banking), 1 take up the hold actively
 constexpr int kLockRange = 2;          // altar lock placement range
 constexpr int kEnemyLockMemory = 200;  // an enemy lock seen this long ago may still stand
 constexpr int kOurLockMemory = 150;    // ... and ours
@@ -48,11 +48,11 @@ constexpr float kClearTurns = 12.0f;   // turns to clear and capture the next ta
 constexpr int kFullBag = 60;           // always bank a bag this big
 constexpr int kRaceGap = 120;          // this close to 1000 tributed, every bag is banked promptly
 constexpr int kClockPad = 15;          // turns to spare when banking before round 2000
-constexpr bool kWinAnyway = false;      // a bag that wins the game is tributed beside an altar whatever the danger
+constexpr bool kWinAnyway = true;       // a bag that wins the game is tributed beside an altar whatever the danger
 // Locks.
-constexpr bool kAttackLock = false;     // hit enemy locks with basic attacks from attack range
-constexpr bool kRunner = true;         // the last pick carries locks to far altars (bot.cpp asks with a long reach)
-constexpr int kLockDetour = 8;         // a lock detour for anybody else (bot.cpp's kLockDetour)
+constexpr bool kAttackLock = true;      // hit enemy locks with basic attacks from attack range
+constexpr bool kRunner = false;        // the last pick carries locks to far altars (bot.cpp asks with a long reach)
+constexpr int kLockDetour = 2;         // longest lock detour (bot.cpp asks for 8, the runner 60)
 constexpr int kDenyDetour = 16;        // ... while the enemy is about to win the race
 // Enemy tributes.
 constexpr bool kContest = true;        // go for channelling enemies we can kill before the channel ends
@@ -357,9 +357,6 @@ bool Bot::hold_tile() {
     auto& me = cambc::self();
     for (auto t : g_[static_cast<size_t>(hold_g_)].tiles)
         if (bit(camp_block_, t)) return false;  // the boss stands: nothing to hold
-    // The boss comes back only when its timer runs out: hold from shortly before.
-    const auto& k = k_[static_cast<size_t>(hold_g_)];
-    if (k.state == Known::respawning && k.ready - round_now() > kHoldEarly) return false;
     const auto& A = alt_[static_cast<size_t>(hold_i_)];
     const bool healthy = me.health() >= me.max_health() * kHoldHp;
     bool on = false;
@@ -395,6 +392,9 @@ bool Bot::hold_tile() {
         }
         return true;
     }
+    // The boss comes back only when its timer runs out: take up the hold from shortly before.
+    const auto& k = k_[static_cast<size_t>(hold_g_)];
+    if (k.state == Known::respawning && k.ready - round_now() > kHoldEarly) return false;
     // Somebody of ours holds it already?
     for (auto a : view().allies)
         for (auto t : hold_spots_)
@@ -698,7 +698,7 @@ bool Bot::lock_altars(bool detour, int reach) {
     const int now = round_now();
     const auto& v = view();
     const auto any = cambc::vision::altar_lock_tiles();
-    if (!kRunner && reach > kLockDetour) reach = kLockDetour;
+    if (!kRunner) reach = std::min(reach, kLockDetour);
     if (detour && behind_race()) reach = std::max(reach, kDenyDetour);
     int best = -1, best_d = 99;
     for (size_t i = 0; i < alt_.size(); ++i) {
