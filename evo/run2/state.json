@@ -23336,7 +23336,6 @@
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-25T07:51:54Z g03 PAUSED: only 1 admitted bots (need 3); not evaluating",
   "2026-10-25T08:17:02Z g03 phase RUNNING",
   "2026-10-25T08:17:02Z g03 owner revived f03-01..f03-07 (D42): the app was closed at nudge time; each session gets the nudge now and 20 minutes after it",
   "2026-10-25T08:18:47Z g03 f03-01: done on origin/claude/evolution-agent-f03-01-w0yh7y at f74057a740",
@@ -23535,10 +23534,11 @@
   "2026-10-25T16:25:23Z g07 phase SELECTED: final: f07-02, f07-03, f07-01, f07-05, f06-05, f05-02, f04-05, f07-04, f07-07, f07-06, starter",
   "2026-10-25T16:25:34Z g07 survivors ['f07-02', 'f07-03'], hall of fame ['f00-03', 'f01-07', 'f02-01', 'f03-05', 'f04-05', 'f05-02', 'f06-05', 'f07-02']",
   "2026-10-25T16:25:34Z g08 phase PLANNED: 8 slots",
-  "2026-10-25T16:25:40Z g08 phase TASKS_PUSHED: 7 task files"
+  "2026-10-25T16:25:40Z g08 phase TASKS_PUSHED: 7 task files",
+  "2026-10-25T16:25:51Z g08 phase RUNNING"
  ],
  "paused": null,
- "phase": "TASKS_PUSHED",
+ "phase": "RUNNING",
  "sessions_launched": 57,
  "version": 1
 }
