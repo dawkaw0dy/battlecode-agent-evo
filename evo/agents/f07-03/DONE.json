@@ -1,0 +1,27 @@
+{
+ "agent": "f07-03",
+ "task_sha256": "0f8ec73ca80da67d07db2cdf864a9ae54aba3954bc5c8698d4a6e74b1514f241",
+ "base_commit": "194af326312330e09464a6236152a14ef0782c66",
+ "session_id": "cse_01MQQndPscCUDqcdLahguEDm",
+ "bot_dir": "bots/f07-03",
+ "self_eval": {
+  "vs": "f06-05",
+  "games": 48,
+  "wins": 25
+ },
+ "games_played": 866,
+ "summary": "f06-05 + fight simulation counts only allies within 3 turns of reach (vs f05-02 29/48, f04-05 36/48; parent 25, 29)",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "331e00405e703e1ed11507ef735572c37471ba802364d72d1aff92349dd5efba",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 16.02,
+  "remote": "true",
+  "session_id": "cse_01MQQndPscCUDqcdLahguEDm",
+  "effort_level": "high",
+  "model": null
+ }
+}
