@@ -713,8 +713,8 @@ bool Bot::tribute(bool force) {
     }
     auto goals = empty_board();
     bool any = false;
-    const bool home_ok = in_bounds(home_altar) && !enemy_locked(home_altar)
-        && cheb(home_altar, pos) <= nearest + 10;
+    // The host search picks the nearest reachable altar from the union of approach tiles.
+    const bool home_ok = false;
     for (auto a : altars) {
         if (home_ok && !(a.x == home_altar.x && a.y == home_altar.y)) continue;
         if (enemy_locked(a)) continue;
