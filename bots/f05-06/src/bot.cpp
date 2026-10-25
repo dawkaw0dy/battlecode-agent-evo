@@ -909,8 +909,8 @@ bool Bot::tribute() {
     vec2 rp;
     int rc = 0, rage = 99;
     const bool danger = read_report(rp, rc, rage) && cheb(rp, pos_) <= 14;
-    const bool go_now = gems >= 45 || (gems >= 15 && best_eta <= 10) || (gems >= 5 && best_eta <= 3)
-        || (danger && gems >= 8) || round_ >= 1880 || (gems >= 25 && best_eta <= 18);
+    const bool go_now = gems >= 32 || (gems >= 10 && best_eta <= 12) || (gems >= 5 && best_eta <= 3)
+        || (danger && gems >= 8) || round_ >= 1880 || (gems >= 20 && best_eta <= 25);
     if (!go_now) return false;
     return go_tile(altars_[best], range, true) || moved_;
 }
