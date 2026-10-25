@@ -1824,9 +1824,11 @@
   },
   "f04-01": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evolution-agent-f04-01-8bdn1t",
+   "commit": "8212f146f61ddbc09748563654999c875f03dd90",
    "deadline_minutes": 120,
+   "done_at": 1792923582,
+   "effort_level": "high",
    "evidence": [
     {
      "gems_opponent": 1035,
@@ -1874,6 +1876,7 @@
    "generation": 4,
    "id": "f04-01",
    "kind": "child",
+   "model": null,
    "nudged": [
     "session_01QHWMB1CZj5xpfvvEKkD8fQ"
    ],
@@ -1896,14 +1899,16 @@
    ],
    "slot": 1,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "151505d55cd2c3207c40a7489318b8face8954980f189220052e238624f52cdc"
   },
   "f04-02": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evolution-task-f04-02-pes1td",
+   "commit": "3c14532e62d07061fb5acdbbaac1d81b7149de21",
    "deadline_minutes": 120,
+   "done_at": 1792923585,
+   "effort_level": "high",
    "evidence": [
     {
      "gems_opponent": 1035,
@@ -1951,6 +1956,7 @@
    "generation": 4,
    "id": "f04-02",
    "kind": "child",
+   "model": null,
    "nudged": [
     "session_011B2jubn2kQGMAfXcBsmiEa"
    ],
@@ -1974,14 +1980,16 @@
    ],
    "slot": 2,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "7267f47a6dfcf5de8f4ce179500c07389ddf6e126b1e76779de5a2673dde2416"
   },
   "f04-03": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evolution-agent-f04-03-8c434x",
+   "commit": "349cf6f2c05fe4a56dff2f7560c7d86982362dd8",
    "deadline_minutes": 120,
+   "done_at": 1792923588,
+   "effort_level": "high",
    "evidence": [
     {
      "gems_opponent": 1035,
@@ -2029,6 +2037,7 @@
    "generation": 4,
    "id": "f04-03",
    "kind": "child",
+   "model": null,
    "nudged": [
     "session_01Aj8kzpM3dwnJ2b5rZXuMQ1"
    ],
@@ -2051,14 +2060,16 @@
    ],
    "slot": 3,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "04b17b6338d72e5c98e67c20f3984abad25226228a769adb1c57e1aebb58bfa0"
   },
   "f04-04": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evolution-f04-04-thg6on",
+   "commit": "1620fe260ffc7159b31cd0739bc23ed812c52161",
    "deadline_minutes": 120,
+   "done_at": 1792923594,
+   "effort_level": "high",
    "evidence": [
     {
      "gems_opponent": 1135,
@@ -2106,6 +2117,7 @@
    "generation": 4,
    "id": "f04-04",
    "kind": "child",
+   "model": null,
    "nudged": [
     "session_01AkmucjDbQzsy6kxG372xnd"
    ],
@@ -2128,7 +2140,7 @@
    ],
    "slot": 4,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "593b837dd1fd0258d9126262d4e5382d6a1c22d97f721911f4486c8925dfae92"
   },
   "f04-05": {
@@ -2183,7 +2195,9 @@
    "generation": 4,
    "id": "f04-05",
    "kind": "child",
-   "nudged": [],
+   "nudged": [
+    "session_01Winrb6m3K71KbQwzDaiM8a"
+   ],
    "operator": "subsystem",
    "parents": [
     "f03-04"
@@ -2197,6 +2211,7 @@
      "id": "session_01Winrb6m3K71KbQwzDaiM8a",
      "launch_output": "Created cloud session: Evolution agent f04-05\nView: https://claude.ai/code/session_01Winrb6m3K71KbQwzDaiM8a?from=cli&m=0\nResume with: claude --teleport session_01Winrb6m3K71KbQwzDaiM8a",
      "launched_at": 1792917489,
+     "nudged_at": 1792923579,
      "url": "https://claude.ai/code/session_01Winrb6m3K71KbQwzDaiM8a"
     }
    ],
@@ -2232,7 +2247,9 @@
    "generation": 4,
    "id": "f04-06",
    "kind": "immigrant",
-   "nudged": [],
+   "nudged": [
+    "session_013pJi6b3rXrK6nFdM8jEW1a"
+   ],
    "operator": null,
    "parents": [
     "starter"
@@ -2246,6 +2263,7 @@
      "id": "session_013pJi6b3rXrK6nFdM8jEW1a",
      "launch_output": "Created cloud session: Evolution agent f04-06\nView: https://claude.ai/code/session_013pJi6b3rXrK6nFdM8jEW1a?from=cli&m=0\nResume with: claude --teleport session_013pJi6b3rXrK6nFdM8jEW1a",
      "launched_at": 1792917500,
+     "nudged_at": 1792923579,
      "url": "https://claude.ai/code/session_013pJi6b3rXrK6nFdM8jEW1a"
     }
    ],
@@ -2281,7 +2299,9 @@
    "generation": 4,
    "id": "f04-07",
    "kind": "immigrant",
-   "nudged": [],
+   "nudged": [
+    "session_01JbTePEteoJaNKpNmfXAd4T"
+   ],
    "operator": null,
    "parents": [
     "starter"
@@ -2295,6 +2315,7 @@
      "id": "session_01JbTePEteoJaNKpNmfXAd4T",
      "launch_output": "Created cloud session: Evolution agent f04-07\nView: https://claude.ai/code/session_01JbTePEteoJaNKpNmfXAd4T?from=cli&m=0\nResume with: claude --teleport session_01JbTePEteoJaNKpNmfXAd4T",
      "launched_at": 1792917511,
+     "nudged_at": 1792923579,
      "url": "https://claude.ai/code/session_01JbTePEteoJaNKpNmfXAd4T"
     }
    ],
@@ -11372,7 +11393,11 @@
   "2026-10-25T08:37:58Z g04 f04-04: launched session_01AkmucjDbQzsy6kxG372xnd",
   "2026-10-25T08:38:09Z g04 f04-05: launched session_01Winrb6m3K71KbQwzDaiM8a",
   "2026-10-25T08:38:20Z g04 f04-06: launched session_013pJi6b3rXrK6nFdM8jEW1a",
-  "2026-10-25T08:38:32Z g04 f04-07: launched session_01JbTePEteoJaNKpNmfXAd4T"
+  "2026-10-25T08:38:32Z g04 f04-07: launched session_01JbTePEteoJaNKpNmfXAd4T",
+  "2026-10-25T10:19:42Z g04 f04-01: done on origin/claude/evolution-agent-f04-01-8bdn1t at 8212f146f6",
+  "2026-10-25T10:19:45Z g04 f04-02: done on origin/claude/evolution-task-f04-02-pes1td at 3c14532e62",
+  "2026-10-25T10:19:48Z g04 f04-03: done on origin/claude/evolution-agent-f04-03-8c434x at 349cf6f2c0",
+  "2026-10-25T10:19:54Z g04 f04-04: done on origin/claude/evolution-f04-04-thg6on at 1620fe260f"
  ],
  "paused": null,
  "phase": "RUNNING",
