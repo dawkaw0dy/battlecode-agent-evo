@@ -6,14 +6,14 @@
 // next round) or not at all. has_completed_turn() plus last round's flag tells which.
 //
 // Every visible fighter near us is read into a small model (health with shields, basic damage, ready burst,
-// ready stun and dash, reach, camp fire it takes, what its death is worth). The decision compares two
-// estimates: a fight simulated action by action in the real turn order (kills land before the victim acts,
-// focus fire on the weakest, stuns take a turn away, spawn tiles heal), and the cost of running: the hits we
-// take before we are out of reach, where melee chasers and dashers keep hitting us all the way home while
-// ranged ones get their shots only while we are in range. Tactics then use the threat on each tile, counted
-// over the actions every enemy really has before our next turn: a ranged champion shoots while no enemy can
-// answer before it moves again, nobody walks into reach of an enemy about to act twice unless it can hit
-// first, and a retreat steps to the tile that takes the fewest hits.
+// ready stun and dash, reach, camp fire it takes, what its death is worth, actions before our next turn).
+// A focus-fire simulation decides engage or retreat against a fixed bias. Tactics use the threat on each
+// tile counted over the actions every enemy really has before our next turn: a retreat steps to the tile
+// that takes the fewest hits (an enemy that waits now acts twice after our next turn, so we keep away from
+// it too), and a retreating ranged champion shoots while nobody can answer, if it can still step out of
+// reach before the enemy's double turn. Measured variants are kept behind switches below: the fight
+// simulated action by action in turn order, the cost of running in the engage decision, duels played move
+// by move with a two-action lookahead, and new spell and retreat rules (all measured worse or neutral).
 #include <cambc.h>
 #include "bot.h"
 #include "fuel.h"
@@ -685,7 +685,8 @@ bool Bot::retreat(std::vector<Fighter>& theirs, int dmin) {
         const float s = score(t);
         if (s < best_s) { best_s = s; best = t; }
     }
-    if (best == pos_) return true;
+    // A turn that ran out of fuel above resumes next round: the world has moved on.
+    if (best == pos_ || !live() || !me.can_move()) return true;
     moved_ = true;
     bool ok = false;
     try { ok = me.move_absolute(best); } catch (const cambc::error& e) { warn("flee move", e); }
