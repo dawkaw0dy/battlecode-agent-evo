@@ -1,0 +1,27 @@
+{
+ "agent": "f07-04",
+ "task_sha256": "0b890fec61a76356689f79b0890f05b8e5ad228cde91fea31ed74c11bdefb574",
+ "base_commit": "194af326312330e09464a6236152a14ef0782c66",
+ "session_id": "cse_012abcbCvejseLqxfFHp8FZe",
+ "bot_dir": "bots/f07-04",
+ "self_eval": {
+  "vs": "f03-05",
+  "games": 80,
+  "wins": 54
+ },
+ "games_played": 854,
+ "summary": "Fuel: cheaper first-turn map analysis, yield after it, no route/rally search on drained turns; capped turns ~200 -> 0-3 per 80 games, W/L within noise (f03-05 54/80 vs parent 48)",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "331e00405e703e1ed11507ef735572c37471ba802364d72d1aff92349dd5efba",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 18.09,
+  "remote": "true",
+  "session_id": "cse_012abcbCvejseLqxfFHp8FZe",
+  "effort_level": "high",
+  "model": null
+ }
+}
