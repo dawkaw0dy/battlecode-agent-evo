@@ -136,6 +136,10 @@ int g_target_since = 0;
 int g_last_enemy_round = -1000;
 std::array<std::uint8_t, 8> g_shared{};
 std::string g_trace;
+std::array<int, 12> g_act{}; // debug: turns per activity
+enum Act { aDead, aBusy, aFight, aFlee, aBank, aHome, aTravel, aAttack, aCapture, aWaitResp, aIdle, aOther };
+const char* kActNames[12] = {"dead", "busy", "fight", "flee", "bank", "home", "travel", "attack", "capture", "waitresp", "idle", "other"};
+int g_cur_act = aOther;
 void trace(const char* what) {
     if (kDebug) g_trace += std::string(what) + ":" + std::to_string(cambc::fuel_remaining() / 1000) + " ";
 }
@@ -363,7 +367,17 @@ int field_value(const distance_field& f, vec2 p) {
 
 // Path distance from p to the group's spawn tiles, or a Chebyshev estimate before the field exists.
 int group_dist(const Group& g, vec2 p) {
-    if (g.has_field) return field_value(*g.field, p);
+    if (g.has_field) {
+        const int v = field_value(*g.field, p);
+        if (v < 100000 || !g_camp_board.is_set(p)) return v;
+        // Standing on a dead camp's tile (a wall in static fields): go by the neighbours.
+        int best = 100000;
+        for (auto d : kDirs) {
+            const vec2 n = p + d;
+            if (in_bounds(n)) best = std::min(best, field_value(*g.field, n) + 1);
+        }
+        return best;
+    }
     int best = 1000;
     for (const auto& m : g.m) best = std::min(best, cheb(m.pos, p));
     return best + best / 4;
@@ -859,7 +873,7 @@ float group_score(int gi, int dist) {
     int wait = 0;
     if (g.state == 3) {
         wait = std::max(0, g.ready - g_round - dist);
-        if (wait > 40) return -1;
+        if (wait > 20) return -1;
     }
     const int n = g_squad_alive;
     float hp = 0;
@@ -1243,7 +1257,13 @@ void Bot::play_turn() {
 
     static std::string last_line;
     static bool was_alive = true;
+    if (kDebug && g_round % 500 == 0) {
+        std::cout << "ACT r" << g_round << " me" << g_index;
+        for (int i = 0; i < 12; ++i) std::cout << ' ' << kActNames[i] << '=' << g_act[i];
+        std::cout << '\n';
+    }
     if (!me.is_alive()) {
+        ++g_act[aDead];
         if (kDebug && was_alive) std::cout << "DEATH r" << g_round << " me" << g_index << " last: " << last_line << '\n';
         was_alive = false;
         shop();
@@ -1292,6 +1312,7 @@ void Bot::play_turn() {
     const bool busy = state.contains(cambc::champion_state::recalling)
         || state.contains(cambc::champion_state::submitting_gems)
         || state.contains(cambc::champion_state::teleporting);
+    g_cur_act = busy ? aBusy : aOther;
     if (!busy) {
         bool done = false;
         // Stay on spawn for a turn end to heal after a recall.
@@ -1344,11 +1365,13 @@ void Bot::play_turn() {
         }
         if (!done && !capturing()) {
             if (want_bank()) {
+                g_cur_act = aBank;
                 trace("bank");
                 bank();
                 done = true;
             } else if (want_home()) {
                 trace("home");
+                g_cur_act = aHome;
                 go_home();
                 done = true;
             }
@@ -1356,17 +1379,25 @@ void Bot::play_turn() {
         if (!done) {
             choose_target();
             trace("choose");
-            if (g_target >= 0) work_target();
-            else if (!g_spawn.get(g_pos)) step_static(g_spawn_field);
+            if (g_target >= 0) {
+                const auto& tg = g_groups[g_target];
+                g_cur_act = tg.state == 3 ? aWaitResp : (tg.state == 2 || alive_count(tg) == 0) ? aCapture : aTravel;
+                work_target();
+                if (g_attacked) g_cur_act = aAttack;
+            } else {
+                g_cur_act = aIdle;
+                if (!g_spawn.get(g_pos)) step_static(g_spawn_field);
+            }
             trace("work");
         }
     }
 
-    if (kDebug && (g_round % 25 == 0 || g_round < 4 || !g_enemies.empty()))
+    ++g_act[g_cur_act];
+    if (kDebug && (g_round % 25 == 0 || g_round < 4 || !g_enemies.empty() || (g_index == 1 && g_round >= 100 && g_round < 220)))
         std::cout << "dbg r" << g_round << " me" << g_index << " pos " << g_pos.x << "," << g_pos.y << " hp " << g_hp
                   << " gold " << g_gold << " gems " << g_gems << " tgt " << g_target
                   << (g_target >= 0 ? " st " + std::to_string(g_groups[g_target].state) + " d " + std::to_string(group_dist(g_groups[g_target], g_pos)) : std::string())
-                  << " en " << g_enemies.size() << " fuel " << cambc::fuel_remaining() << " | " << g_trace << '\n';
+                  << " act " << kActNames[g_cur_act] << " en " << g_enemies.size() << " fuel " << cambc::fuel_remaining() << " | " << g_trace << '\n';
     if (kDebug) last_line = "r" + std::to_string(g_round) + " hp" + std::to_string(static_cast<int>(g_hp)) + " gems" + std::to_string(g_gems) + " tgt" + std::to_string(g_target) + " " + g_trace;
     g_trace.clear();
     // The squad leader publishes the squad target.
