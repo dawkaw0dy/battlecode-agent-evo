@@ -1,14 +1,17 @@
 // The opening subsystem (see plan.h).
 //
-// Rules it is built on: the draft turn sees the whole map with 10x fuel and writes 1024 bytes the
-// champions read at init; everyone starts on the spawn at full health; camps sleep until hit, then hit
-// the nearest champion; a cleared group pays everyone standing on it at capture (split), the lowest id
-// the remainder. Every panel opponent drafts the same five and opens the same way: each champion walks
-// alone to its own best group, three or so meet at the richest contested one. Fights there are decided
-// by numbers at the point of contact, so the opening keeps our team together: the draft plans a short
-// route of groups for the whole team (best value per team-turn: walk + clear at the team's damage +
-// capture), every champion takes the route's current group above all others until it is taken or late,
-// then the ordinary group scoring (home regions per slot) takes over.
+// Rules it is built on: the draft sees the whole map with 10x fuel on its first turn and writes 1024
+// bytes the champions read at init; picks are one by one and revealed; each champion's first turn has 2x
+// fuel and a turn that runs out resumes next round on stale data (a lost turn). The parent's champions
+// each read camp_groups() and ran analyse_map() at init (~150k fuel on a big camp layout): on 26 of the
+// 40 maps champions lost round 1 (on most all five), on some rounds 2-4 as well. Here the draft does
+// that analysis once and packs it into draft memory (header, route, 13 bytes per group, 3 per camp; home
+// slots only when it does not fit), champions decode it, and a first turn that ran over ends at once
+// instead of acting stale.
+// Picks: Vesper Vale, Vendetta, Marcella, Tavi, then Ryth (area stun, 1200 health) instead of Varg on
+// five-pick maps. Home regions per slot are the parent's balanced k-means. A team opening route (the
+// whole team takes the same first groups, kRouteSteps) and home regions by exposure (kExposureHomes)
+// are wired in but off: both measured worse.
 #include "plan.h"
 #include <algorithm>
 #include <array>
@@ -23,6 +26,7 @@ constexpr float kCapture = 6.0f;      // capture phases and the step onto the re
 constexpr int kDueSlack = 25;         // a step not done this long after its planned end is skipped
 constexpr float kRouteBoost = 1000.0f;  // the route's group beats every other
 constexpr int kEnemySide = 4;         // groups this much nearer the enemy spawn stay out of the route
+constexpr bool kExposureHomes = false;  // home regions by exposure and sturdiness (else in seeding order)
 
 // Draft memory layout: a header, the route, then either every group in full (with its camps) or, when
 // that does not fit, the home slots alone (champions then analyse the map themselves).
@@ -72,6 +76,20 @@ int nearest(const cambc::distance_field& f, const cambc::bitboard& seen, const s
     return best;
 }
 float group_value(const GroupInfo& g) { return g.gems + 0.35f * g.gold; }
+
+// How much early fighting a pick takes (base health, stun immunity): who gets the most exposed home region.
+int sturdiness(cambc::champion_draft c) {
+    using cd = cambc::champion_draft;
+    switch (c) {
+    case cd::marcella: return 6;
+    case cd::ryth: return 5;
+    case cd::vendetta: return 4;
+    case cd::varg: return 4;
+    case cd::vesper_vale: return 3;
+    case cd::tavi: return 2;
+    default: return 1;
+    }
+}
 }  // namespace
 
 const cambc::bitboard& walk_walls() {
@@ -184,13 +202,35 @@ std::vector<std::uint8_t> assign_homes(const std::vector<GroupInfo>& groups, int
             if (w > 0) centers[k] = {sx / w, sy / w};
         }
     }
-    for (int i : el) home[i] = static_cast<std::uint8_t>(owner[i]);
+    // Regions by exposure: the one nearest the enemy (value-weighted d_ally - d_enemy) to the sturdiest pick.
+    std::vector<int> slot_of_region(static_cast<size_t>(slots));
+    for (int k = 0; k < slots; ++k) slot_of_region[static_cast<size_t>(k)] = k;
+    if (kExposureHomes) {
+        std::vector<double> fwd(static_cast<size_t>(slots), 0), w(static_cast<size_t>(slots), 0);
+        for (int i : el) {
+            fwd[static_cast<size_t>(owner[i])] += value(i) * (groups[i].d_ally - groups[i].d_enemy);
+            w[static_cast<size_t>(owner[i])] += value(i);
+        }
+        std::vector<int> regions(static_cast<size_t>(slots)), picks(static_cast<size_t>(slots));
+        for (int k = 0; k < slots; ++k) {
+            regions[static_cast<size_t>(k)] = k;
+            picks[static_cast<size_t>(k)] = k;
+            if (w[static_cast<size_t>(k)] > 0) fwd[static_cast<size_t>(k)] /= w[static_cast<size_t>(k)];
+        }
+        const auto order = pick_order(slots);
+        std::stable_sort(regions.begin(), regions.end(), [&](int a, int b) { return fwd[static_cast<size_t>(a)] > fwd[static_cast<size_t>(b)]; });
+        std::stable_sort(picks.begin(), picks.end(), [&](int a, int b) {
+            return sturdiness(order[static_cast<size_t>(a)]) > sturdiness(order[static_cast<size_t>(b)]);
+        });
+        for (int k = 0; k < slots; ++k) slot_of_region[static_cast<size_t>(regions[static_cast<size_t>(k)])] = picks[static_cast<size_t>(k)];
+    }
+    for (int i : el) home[i] = static_cast<std::uint8_t>(slot_of_region[static_cast<size_t>(owner[i])]);
     return home;
 }
 
 Opening plan_opening(const std::vector<GroupInfo>& groups, int size) {
     Opening o;
-    if (size <= 1 || groups.empty()) return o;
+    if (kRouteSteps <= 0 || size <= 1 || groups.empty()) return o;
     const float dps = kTeamDps * static_cast<float>(size);
     cambc::distance_field f;
     cambc::bitboard seen;
