@@ -1,0 +1,27 @@
+{
+ "agent": "f10-05",
+ "task_sha256": "b359ac5714eec2cbea0b8cfe671a5e55188e1485e9133b388625aba20effd47b",
+ "base_commit": "4aaa39a9751e20d6b742ae4c5943352e35e134ff",
+ "session_id": "cse_01K6doinSko6bQ1SUNnVws9B",
+ "bot_dir": "bots/f10-05",
+ "self_eval": {
+  "vs": "f08-04",
+  "games": 32,
+  "wins": 21
+ },
+ "games_played": 735,
+ "summary": "Pathing rewrite (path.cpp): near-only unit blocking, awake-camp avoidance, hidden-unit retry, and dash/teleport-crystal routes over thin holes (dashers' eta on jump fields); big gains on hole maps.",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "115cd88fd4114caf0cb6833b9f885905db7678fd9dc70e4949b4f7e7f4141a60",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 18.24,
+  "remote": "true",
+  "session_id": "cse_01K6doinSko6bQ1SUNnVws9B",
+  "effort_level": "high",
+  "model": null
+ }
+}
