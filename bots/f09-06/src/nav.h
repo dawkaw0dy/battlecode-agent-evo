@@ -12,10 +12,14 @@ struct Nav {
     // Step to a neighbour that keeps out of the threats' reach, preferring the way home.
     bool flee(const std::vector<vec2>& threats, const std::vector<int>& reach);
     bool move_to(vec2 p);            // single step to an adjacent free tile
-    void new_turn() { blocked_this_turn = false; }
+    void new_turn() { blocked_this_turn = false; danger_on = false; }
+    // Tiles enemies we do not want to meet can hit next turn; walking avoids entering them.
+    void set_danger(const std::vector<vec2>& at, const std::vector<int>& reach);
     bool free(vec2 p) const;         // free and not a tile where a hidden unit blocked us lately
 
 private:
+    cambc::bitboard danger_;
+    bool danger_on = false;
     Field dyn_;
     vec2 bad_tile_{-1, -1};
     int bad_round_ = -1000;

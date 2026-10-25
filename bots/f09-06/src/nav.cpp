@@ -12,8 +12,17 @@ void add_square(cambc::bitboard& b, vec2 c, int r) {
         }
 }
 
+void Nav::set_danger(const std::vector<vec2>& at, const std::vector<int>& reach) {
+    danger_.clear();
+    danger_on = false;
+    for (std::size_t i = 0; i < at.size(); ++i) { add_square(danger_, at[i], reach[i]); danger_on = true; }
+    // Already inside: let the flee logic get us out instead of freezing.
+    if (danger_on && bit(danger_, cambc::self().position())) danger_on = false;
+}
+
 bool Nav::free(vec2 p) const {
     if (!W.free(p)) return false;
+    if (danger_on && raw_bit(danger_.ptr(), p)) return false;
     return !(p == bad_tile_ && W.round - bad_round_ <= 3);
 }
 
@@ -109,7 +118,7 @@ bool Nav::step(const cambc::bitboard& goals, const Field* f) {
             last_dist = here;
             if (descend(*f, here)) return true;
             if (blocked_this_turn) return false;
-            dynamic_until_ = W.round + 4;
+            dynamic_until_ = W.round + 12;
         }
     }
     return dynamic_step(goals);
@@ -120,22 +129,21 @@ bool Nav::flee(const std::vector<vec2>& threats, const std::vector<int>& reach) 
     if (blocked_this_turn || !me.can_move()) return false;
     const vec2 pos = me.position();
     auto score = [&](vec2 q) {
-        float s = 0;
+        // Head home unless that walks into someone's reach.
+        float s = -2.0f * static_cast<float>(std::min(W.from_spawn.at(q), 300));
         for (std::size_t i = 0; i < threats.size(); ++i) {
             const int d = cheb(q, threats[i]);
             const int r = reach[i];
-            if (d <= r) s -= 100.0f + 20.0f * static_cast<float>(r - d);
-            else if (d <= r + 1) s -= 30.0f;
-            s += static_cast<float>(std::min(d, 10));
+            if (d <= r) s -= 60.0f + 15.0f * static_cast<float>(r - d);
+            s += static_cast<float>(std::min(d, 8));
         }
-        s -= 1.5f * static_cast<float>(std::min(W.from_spawn.at(q), 200));
         return s;
     };
     vec2 best = pos;
     float best_s = score(pos);
     for (auto d : kDirs) {
         const vec2 q = pos + d;
-        if (!free(q)) continue;
+        if (!W.free(q) || (q == bad_tile_ && W.round - bad_round_ <= 3)) continue;
         const float s = score(q);
         if (s > best_s) { best_s = s; best = q; }
     }

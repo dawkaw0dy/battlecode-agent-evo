@@ -47,7 +47,9 @@ constexpr float kFleeRatio = 0.85f;        // run when below this and they can r
 constexpr int kDeepChase = 7;              // never chase targets this close to their spawn
 constexpr int kChaseTurns = 4;             // approach turns without a hit before giving up
 constexpr int kChaseReach = 2;
-constexpr int kRallyTurns = 12;            // wait this long for helpers at a strong group             // close in only on targets this far beyond our range  // share of camp damage we expect to take (jungle emblem, stuns)
+constexpr int kRallyTurns = 12;
+constexpr bool kUseDanger = false;
+constexpr float kGateValue = 400.0f;        // bonus for a group that blocks every altar         // keep farming/banking steps out of enemy reach (measured worse)            // wait this long for helpers at a strong group             // close in only on targets this far beyond our range  // share of camp damage we expect to take (jungle emblem, stuns)
 
 Field g_from_altars;  // static distance to the nearest altar approach tile
 std::vector<int> g_bad_until;
@@ -141,7 +143,7 @@ void Bot::init() {
             for (const auto& G : W.groups) {
                 std::cout << "  G" << G.id << " (" << G.center.x << "," << G.center.y << ") gems " << G.gems << " gold " << G.gold
                           << " resp " << G.respawn_max << " hp " << static_cast<int>(G.hp()) << " str " << static_cast<int>(G.str())
-                          << " ours " << G.ours << " theirs " << G.theirs << " sec " << G.sector << (G.island ? " island" : "") << " :";
+                          << " ours " << G.ours << " theirs " << G.theirs << " sec " << G.sector << (G.island ? " island" : "") << (G.gate ? " GATE" : "") << " :";
                 for (const auto& m : G.m) std::cout << " " << static_cast<int>(m.kind);
                 std::cout << "\n";
             }
@@ -463,6 +465,12 @@ bool Bot::handle_fight() {
         return true;
     }
 
+    // Not engaging: keep out of their reach while we farm or bank.
+    if (kUseDanger && ratio < kEngageRatio) {
+        std::vector<int> keep;
+        for (std::size_t i = 0; i < reach.size(); ++i) keep.push_back(reach[i] + 1);
+        N.set_danger(threats, keep);
+    }
     // Even fight: trade only what is already in reach, keep farming otherwise.
     if (in_reach) {
         cast_on_enemy(*tgt);
@@ -513,7 +521,9 @@ bool Bot::handle_health() {
     }
     try {
         if (!me.is_recalling()) me.recall();
-    } catch (const std::exception&) {}
+    } catch (const std::exception& e) {
+        debug_block({ std::cout << "  recall error " << e.what() << "\n"; });
+    }
     return true;
 }
 
@@ -541,6 +551,11 @@ bool Bot::handle_bank() {
     if (!g_from_altars.ready()) {
         d = kFar;
         for (const auto& a : W.altars) d = std::min(d, cheb(a.pos, pos) * 5 / 4);
+    }
+    if (W.all_gated) {
+        bool open = false;
+        for (const auto& G : W.groups) if (G.gate && G.state != GroupState::alive) open = true;
+        if (!open) return false;
     }
     bool want = banking || g >= 45 || (g >= 15 && d <= 8) || W.round >= 1800 || score + g >= 1000;
     // Stay on a reward we are capturing.
@@ -627,12 +642,16 @@ int Bot::choose_group() {
             hpv = 0; str = 0;
         }
         // Everyone already on it shares the work, the hits and the reward.
-        const float n = static_cast<float>(helpers_on(G.id) + 1);
+        float n = static_cast<float>(helpers_on(G.id) + 1);
+        // A gate is a raid: judge it as if the whole team comes (the rally waits for it).
+        if (G.gate) n = std::max(n, static_cast<float>(team_n));
         const float T = hpv / (dps1 * n * 0.9f);
         const float share_dmg = str * T / n * kCampDamageTaken;
         // Camps do not heal: a share too big for one trip takes several, each a recall and a walk back.
         const float trips = std::max(0.0f, std::ceil(share_dmg / (0.7f * hp1)) - 1.0f);
         float value = (static_cast<float>(G.gems) + gold_w * static_cast<float>(G.gold)) / n;
+        // A camp on the only way to an altar: nobody scores until it falls.
+        if (G.gate && G.state == GroupState::alive) value += kGateValue / n;
         if (G.sector != pack) value *= G.sector < 0 && G.ours > G.theirs + 6 ? kForeignValue : kOtherSectorValue;
         const float time = static_cast<float>(std::max(d, wait)) + T + trips * (static_cast<float>(std::min(G.ours, 150)) + 8.0f) + 6.0f;
         const float s = value / time;

@@ -64,7 +64,7 @@ void World::init() {
         if (G.m.empty()) continue;
         handles.push_back(g);
         G.center = {static_cast<int>(sx / static_cast<long>(G.m.size())), static_cast<int>(sy / static_cast<long>(G.m.size()))};
-        for (auto t : G.tiles) { G.radius = std::max(G.radius, cheb(t, G.center)); alive_camps.set(t); }
+        for (auto t : G.tiles) { G.radius = std::max(G.radius, cheb(t, G.center)); alive_camps.set(t); camp_walls.set(t); }
         int a = kFar, b = kFar;
         for (auto t : G.tiles) {
             for (auto d : kDirs) {
@@ -94,6 +94,20 @@ void World::init() {
             }
         altars.push_back(std::move(A));
     }
+    // An altar whose every approach tile is a camp tile opens only when that camp dies.
+    all_gated = !altars.empty();
+    for (auto& A : altars) {
+        A.gated = true;
+        for (auto q : A.approach)
+            if (!raw_bit(camp_walls.ptr(), q) && from_spawn.at(q) < kFar) A.gated = false;
+        if (!A.gated) all_gated = false;
+    }
+    if (all_gated)
+        for (auto& A : altars)
+            for (auto q : A.approach) {
+                const int gi = group_at(q);
+                if (gi >= 0) groups[static_cast<std::size_t>(gi)].gate = true;
+            }
     ready = true;
 }
 

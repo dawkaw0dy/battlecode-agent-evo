@@ -28,6 +28,7 @@ struct Group {
     int radius = 0;               // Chebyshev radius of the spawn tiles around the centre
     bool island = false;          // no spawn tile can be walked to from our spawn
     int sector = -1;              // pack that owns this group (-1: anyone)
+    bool gate = false;            // stands on the only way to tribute
     Field field;                  // terrain distance to the tiles around the group (filled lazily)
     float hp() const { float s = 0; for (auto& x : m) if (x.hp > 0) s += x.hp; return s; }
     float str() const { float s = 0; for (auto& x : m) if (x.hp > 0) s += x.str; return s; }
@@ -40,6 +41,7 @@ struct Altar {
     int ours = kFar, theirs = kFar;  // static distance from each spawn to the approach tiles
     int enemy_lock_seen = -1000;  // last round we saw an enemy lock here
     int ally_lock_seen = -1000;
+    bool gated = false;           // every approach tile is a camp tile
 };
 
 // A visible champion this turn.
@@ -82,6 +84,8 @@ struct World {
     int round = 0;
     cambc::bitboard visible, occupied, campb;
     cambc::bitboard alive_camps;  // tiles of camps we believe alive
+    cambc::bitboard camp_walls;   // every camp spawn tile
+    bool all_gated = false;       // no altar can be used before a camp dies
     int camps_version = 0;        // bumps when alive_camps changes
     std::vector<Unit> enemies, allies;
     std::vector<CampSeen> camps;
