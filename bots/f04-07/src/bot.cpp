@@ -62,6 +62,7 @@ constexpr bool kSplitCapture = true;
 constexpr int kRangedApproach = 2;
 constexpr int kSight = 3;  // shared-memory offset of the 4 sighting bytes (0..2 hold squad targets)
 constexpr bool kFuelProbe = false;
+constexpr int kShopGold = 180;
 
 // ---------------------------------------------------------------- static map knowledge
 struct Group {
@@ -959,6 +960,15 @@ void Bot::play_turn() {
         bc::bitboard home;
         for (auto p : ally_spawn_tiles) home.set(p);
         step_towards(home);
+        return;
+    }
+
+    // Recall to turn a pile of gold into shards (Tavi shops anywhere).
+    if (!at_spawn && gems == 0 && !camp_threat && v.enemies.empty() && me.passive() != bc::passive_type::remote_shop
+        && static_cast<int>(me.gold_count()) >= kShopGold && dist(v.me, ally_spawn_center) > 8
+        && !(target_group >= 0 && groups[target_group].reward)) {
+        set_mode(1);
+        try { me.recall(); } catch (const std::exception& e) { warn("shop recall", e); }
         return;
     }
 
