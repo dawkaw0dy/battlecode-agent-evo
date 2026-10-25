@@ -564,12 +564,28 @@ static int need_for(const Group& g, float dps, float hp, int size) {
 
 int Bot::choose() {
     auto& me = cambc::self();
+    // Walking distances from here, refreshed every few turns (terrain only: camps do not move).
+    if (!path_ || now_ - path_round_ >= 6 || cheb(path_from_, pos_) > 3) {
+        bool ok = true;
+        try { ok = cambc::fuel_remaining() > 55000; } catch (const std::exception&) {}
+        if (ok || !path_) {
+            if (!path_) path_ = std::make_unique<cambc::distance_field>();
+            cambc::bitboard roots, seen;
+            roots.set(pos_, true);
+            path_->compute(static_block_, roots, seen, 250);
+            path_round_ = now_;
+            path_from_ = pos_;
+        }
+    }
+    const auto* pf = static_cast<const cambc::distance_field&>(*path_).ptr();
     const float gem_w = now_ < 500 ? 3.0f : 5.0f;
     int best = -1;
     float bs = 0, cur = -1;
     for (size_t i = 0; i < g_.size(); ++i) {
         const auto& g = g_[i];
-        const int travel = cheb(pos_, g.center);
+        int travel = raw_dist(pf, g.center);
+        if (travel >= kFar) travel = cheb(pos_, g.center) * 3;
+        travel = std::max(0, travel - cheb(path_from_, pos_));
         if (g.state == Group::respawning && g.ready > now_ + travel + 2) continue;
         if (g.enemy_seen > now_ - 15 && static_cast<int>(i) != target_) continue;
         const int c = claims(static_cast<int>(i));

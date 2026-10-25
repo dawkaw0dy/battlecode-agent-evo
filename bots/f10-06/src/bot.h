@@ -49,6 +49,9 @@ class Bot {
     cambc::bitboard spawn_;
     vec2 spawn_center_{};
     std::unique_ptr<cambc::distance_field> field_;
+    std::unique_ptr<cambc::distance_field> path_;
+    int path_round_ = -100;
+    vec2 path_from_{};
 
     // Memory.
     int target_ = -1;
