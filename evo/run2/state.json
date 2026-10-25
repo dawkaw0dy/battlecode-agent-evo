@@ -5361,7 +5361,7 @@
    "slot": 1,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "4bd2c653d8b527fcfa48f7c402c7f4b7ddd88b58c97bef2ecee4db6683b90e77"
   },
   "f11-02": {
    "archetype": null,
@@ -5426,7 +5426,7 @@
    "slot": 2,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "98d80e418d04369f223802666389461e56672dc481cfb569b61aa328dd53a8f6"
   },
   "f11-03": {
    "archetype": null,
@@ -5491,7 +5491,7 @@
    "slot": 3,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "b50f8334ad0eb7df0db00459815a0d643559ac4b23dac724cc2524c8b3384089"
   },
   "f11-04": {
    "archetype": null,
@@ -5556,7 +5556,7 @@
    "slot": 4,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "a7ea3ed34f9ce3f9196a9ead127d6ce18499fffefc26a4765d80a820c0804a0e"
   },
   "f11-05": {
    "archetype": null,
@@ -5621,7 +5621,7 @@
    "slot": 5,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "686cf2a23e370660a9b87fc27013a0ba7f293deaf12e1da5ef8e60864b745b0e"
   },
   "f11-06": {
    "archetype": "map-reader",
@@ -5661,7 +5661,7 @@
    "slot": 6,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "38a892071c3655af01588ebf6e9306a5b3c368814aa7b6c21aab655aaacadb54"
   },
   "f11-07": {
    "archetype": "scaling-economy",
@@ -5701,7 +5701,7 @@
    "slot": 7,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "c9180919f5285673da0bc1fefdbd863fc12e9532cedae4ff37ad1933d3393a32"
   }
  },
  "generation": 11,
@@ -32807,7 +32807,6 @@
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-25T13:14:44Z g06 f06-07: done on origin/claude/evolution-agent-f06-07-rquued at dc319f31cf",
   "2026-10-25T13:16:03Z g06 f06-05: done on origin/claude/evo-task-f06-05-ykoxvg at 9014f4f62b",
   "2026-10-25T13:17:21Z g06 f06-02: done on origin/claude/evolution-f06-02-qrgrps at 1876747fda",
   "2026-10-25T13:19:56Z g06 f06-03: done on origin/claude/evo-f06-03-83ifrz at d5dd0bcf23",
@@ -33006,10 +33005,11 @@
   "2026-10-25T22:15:11Z g10 r10-C: verified, 144 rows, spot-check 4 OK",
   "2026-10-25T22:15:22Z g10 phase SELECTED: final: f10-03, f10-01, f10-05, f10-02, f09-01, f08-04, f10-04, f10-06, f07-02, f10-07, starter",
   "2026-10-25T22:15:33Z g10 survivors ['f10-03', 'f10-01'], hall of fame ['f00-03', 'f01-07', 'f02-01', 'f03-05', 'f04-05', 'f05-02', 'f06-05', 'f07-02', 'f08-04', 'f09-01', 'f10-03']",
-  "2026-10-25T22:15:33Z g11 phase PLANNED: 8 slots"
+  "2026-10-25T22:15:33Z g11 phase PLANNED: 8 slots",
+  "2026-10-25T22:15:38Z g11 phase TASKS_PUSHED: 7 task files"
  ],
  "paused": null,
- "phase": "PLANNED",
+ "phase": "TASKS_PUSHED",
  "sessions_launched": 78,
  "version": 1
 }
