@@ -2097,6 +2097,8 @@ void Bot::turn() {
             plug_ = -1;
             if (!plug_altar_) return;
         }
+    }
+    if (plug_ >= 0) {
         const auto st = k_[plug_].state;
         if (st == Known::respawning || st == Known::reward || now - plug_since_ > 40 || remaining(plug_) <= 0) plug_ = -1;
         else if (hp > max_hp * 0.4f) {

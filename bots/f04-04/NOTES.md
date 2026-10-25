@@ -17,7 +17,7 @@ skipped, and walled-off altars no longer count when deciding that every usable a
   reachable altar is locked we walk to the nearest one and break it.
 
 ## Changes this generation
-All runs tools/benchmark.py, both sides, release; 0 faults and 0 `bot error:` lines in all 859 games.
+All runs tools/benchmark.py, both sides, release; 0 faults and 0 `bot error:` lines in all 875 games.
 - Parent copy vs f03-05 (40 maps): 37/80, margin −130. The evidence losses (0 gems on 01boss-battle, 00stampede,
   00collision) were mostly f03-05's altar locks: the parent skipped locked altars, recalled to bank, found nothing
   and walked out again, carrying up to 1900 gems to the end.
@@ -30,6 +30,9 @@ All runs tools/benchmark.py, both sides, release; 0 faults and 0 `bot error:` li
 - Kept, R2 boss raids ≥ 3 champions: 53/80, +238 (wins on 00monolith A, 00reverse-spiral A/B, 00contest A, 00stampede A).
 - Reverted, R3 kBossRaidMin 4: 52/80, +235.
 - Reverted, kRallyRounds 35 → 60 (18 boss maps): 27/36, +336 vs 28/36, +290.
+- Reverted, altar-guarding boss raided by the whole team (plug rule sets the boss as raid target for every living
+  ally instead of sending carriers one by one): 01boss-battle 5/8 vs 6/8 (f03-04, f03-05, f02-01, f00-03).
+- Kept, safety fix: when the altar plug was given up (plug_ = −1) the turn read k_[−1]; same 8 games, identical scores.
 - Final version: vs f03-05 53/80 (+238), vs f03-04 39/80 (+9), vs f02-01 60/80 (+255), vs f01-07 29/40 (first 20
   maps, +278), vs f00-03 32/40 (last 20 maps, +427), vs starter 20/20 (10 maps, +893).
 
@@ -55,6 +58,7 @@ All runs tools/benchmark.py, both sides, release; 0 faults and 0 `bot error:` li
   beside a camp until it died. Count allies near the enemies too.
 - Enemy-side camp factor 0.45 (from 0.7) to cut deaths on contested maps: 46/80 vs 50/80 against f03-05.
 - Boss raids of at least 4 (instead of 3): 52/80 vs 53/80; rally wait 60 rounds (instead of 35): 27/36 vs 28/36.
+- Whole-team raid on the boss that guards 01boss-battle's only altar: 5/8 vs 6/8 on that map.
 - One parameter change flips 15–35 of 80 games against f03-05 (games are chaotic); a ±4-win difference is noise.
 
 ## Known weaknesses
