@@ -155,7 +155,7 @@ void init_map() {
     {
         using ct = cambc::champion_type;
         static constexpr std::array order{ct::vendetta, ct::ryth, ct::vesper_vale, ct::marcella, ct::varg};
-        static constexpr std::array pack_of{0, 1, 0, 1, 2};
+        static constexpr std::array pack_of{0, 0, 0, 1, 1};
         g_pack = 4;
         const auto mine = cambc::self().champion_name();
         for (size_t i = 0; i < order.size(); ++i)
