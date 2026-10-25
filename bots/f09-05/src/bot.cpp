@@ -46,7 +46,7 @@ constexpr float kFleeHp = 0.5f;     // ... above this health fraction
 constexpr int kHuntPad = 3;         // engaged, but nobody within our range + this: farm unless a kill is expected
 constexpr float kHelpHp = 0.6f;     // answer an ally's sighting above this health fraction
 constexpr bool kLocks = true;       // carry an altar lock: drop it on enemy tributes and on altars we pass
-constexpr bool kLockRunner = false;  // the last pick carries locks to far altars
+constexpr bool kLockRunner = false; // true: the last pick carries locks to far altars (off: it farms camps)
 constexpr int kLockDetour = 8;      // walk this far (Chebyshev) out of our way to lock an altar
 
 namespace {
