@@ -2917,8 +2917,8 @@
     }
    ],
    "slot": 1,
-   "src_sha256": null,
-   "status": "done",
+   "src_sha256": "c50cb5c0333c2c04c339fc70335363da56e2be0f7c579d0e2596f7af8aa11854",
+   "status": "admitted",
    "task_sha256": "839f1afbeb23021c217884cb737c5a74e45414c4f6ce11b54c951f341c90c04b"
   },
   "f06-02": {
@@ -2994,8 +2994,8 @@
     }
    ],
    "slot": 2,
-   "src_sha256": null,
-   "status": "done",
+   "src_sha256": "175fe87c6aa6bc27d3992ac289394db1988bd1dd3d148626f72cd376ef3d0b30",
+   "status": "admitted",
    "task_sha256": "8930952be53ddaeb55c3cf0181f1a5a6797533a9bdeaa025cb2562ecc681988f"
   },
   "f06-03": {
@@ -3072,8 +3072,8 @@
     }
    ],
    "slot": 3,
-   "src_sha256": null,
-   "status": "done",
+   "src_sha256": "826b9b0ecfb0641bc0c114159b499855eb0faa4ea8ae36e6b74148bde6eba469",
+   "status": "admitted",
    "task_sha256": "d218421f2442dafdf4b01c3436fb58fe96d7ba69c072307a1bb7b2d0d5037b51"
   },
   "f06-04": {
@@ -3150,8 +3150,8 @@
     }
    ],
    "slot": 4,
-   "src_sha256": null,
-   "status": "done",
+   "src_sha256": "537f8bceeaf71cdf638e3e4fa607563a21e13335c3a992f20e3e18b33452b2fe",
+   "status": "admitted",
    "task_sha256": "b316a35dd1066a742aeff626f8a165beca8324499281d100944e2a0652da08d6"
   },
   "f06-05": {
@@ -3227,8 +3227,8 @@
     }
    ],
    "slot": 5,
-   "src_sha256": null,
-   "status": "done",
+   "src_sha256": "b2fdb1ef111ba1cf9913e7bf7a61c46f65047afabf6a17d7d5f3a4128947ecb9",
+   "status": "admitted",
    "task_sha256": "adeae9b9c6501efb3ad4922817554350561d739f498e8a3c8673739d1391f6f9"
   },
   "f06-06": {
@@ -3279,8 +3279,8 @@
     }
    ],
    "slot": 6,
-   "src_sha256": null,
-   "status": "done",
+   "src_sha256": "ae51d998bd7cef0992cc19b0aa33f5b01093c442800b7d5417e5506a4413bde8",
+   "status": "admitted",
    "task_sha256": "b8e7aa31b5e8d4473ddde4037d7eb33e016f27847780a9cda47d20a18c235c37"
   },
   "f06-07": {
@@ -3331,8 +3331,8 @@
     }
    ],
    "slot": 7,
-   "src_sha256": null,
-   "status": "done",
+   "src_sha256": "699937fb536faa2f51ad736b2c2acced1cbca3868a4e85c86a5ebb4a22292e9d",
+   "status": "admitted",
    "task_sha256": "4e5ee699cb6ae7061e4317400c865eb49b0e06ae1b4551c3c132556d0e5ec01e"
   }
  },
@@ -16929,6 +16929,16 @@
     "B": [],
     "C": []
    },
+   "members": [
+    "f05-02",
+    "f06-01",
+    "f06-02",
+    "f06-03",
+    "f06-04",
+    "f06-05",
+    "f06-06",
+    "f06-07"
+   ],
    "slots": [
     "f05-02",
     "f06-01",
@@ -17328,13 +17338,6 @@
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-24T18:46:06Z g01 r01-B: verified, 1120 rows, spot-check 23 OK",
-  "2026-10-24T18:46:21Z g01 phase EVAL_C_PENDING: stage C for f01-03 vs f01-01",
-  "2026-10-24T18:46:38Z g01 r01-C: pushed e67dbc2d49 with 5 shards",
-  "2026-10-24T18:49:03Z g01 phase EVAL_C_DONE: results for r01-C",
-  "2026-10-24T18:49:20Z g01 r01-C-spot: pushed ef841f8bcc (4 sampled games, 3 shards)",
-  "2026-10-24T18:51:53Z g01 r01-C: verified, 80 rows, spot-check 4 OK",
-  "2026-10-24T18:52:11Z g01 phase SELECTED: final: f01-07, f01-03, f01-01, f01-02, f00-03, f01-04, f01-06, f01-05, starter",
   "2026-10-24T19:32:39Z g01 survivors ['f01-07', 'f01-03'], hall of fame ['f00-03', 'f01-07']",
   "2026-10-24T19:32:39Z g02 phase PLANNED: 8 slots",
   "2026-10-24T19:32:45Z g02 phase TASKS_PUSHED: 7 task files",
@@ -17527,7 +17530,14 @@
   "2026-10-25T13:19:56Z g06 f06-03: done on origin/claude/evo-f06-03-83ifrz at d5dd0bcf23",
   "2026-10-25T13:26:06Z g06 f06-01: done on origin/claude/evo-task-f06-01-sj4nxy at 435dab9d8e",
   "2026-10-25T14:03:07Z g06 f06-06: done on origin/claude/evo-f06-06-a2z7fv at f4544f452f",
-  "2026-10-25T14:03:07Z g06 phase ADMITTED"
+  "2026-10-25T14:03:07Z g06 phase ADMITTED",
+  "2026-10-25T14:03:20Z g06 f06-01: admitted (c50cb5c0333c)",
+  "2026-10-25T14:03:27Z g06 f06-02: admitted (175fe87c6aa6)",
+  "2026-10-25T14:03:35Z g06 f06-03: admitted (826b9b0ecfb0)",
+  "2026-10-25T14:03:40Z g06 f06-04: admitted (537f8bceeaf7)",
+  "2026-10-25T14:03:46Z g06 f06-05: admitted (b2fdb1ef111b)",
+  "2026-10-25T14:03:56Z g06 f06-06: admitted (ae51d998bd7c)",
+  "2026-10-25T14:04:01Z g06 f06-07: admitted (699937fb536f)"
  ],
  "paused": null,
  "phase": "ADMITTED",

@@ -1,0 +1,27 @@
+{
+ "agent": "f06-07",
+ "task_sha256": "4e5ee699cb6ae7061e4317400c865eb49b0e06ae1b4551c3c132556d0e5ec01e",
+ "base_commit": "8ea5f84a9c9994dcece9da33a3c0ebc245df2144",
+ "session_id": "cse_018LWWLeLvxipigD5zAXQ3tA",
+ "bot_dir": "bots/f06-07",
+ "self_eval": {
+  "vs": "f05-02",
+  "games": 80,
+  "wins": 11
+ },
+ "games_played": 376,
+ "summary": "Scaling-economy immigrant: value/time camp targeting with sticky targets, shared big groups, shard builds every spawn visit, cautious square-law fights; 11/80 vs f05-02, 79/79 valid vs starter",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "8da1437926729df349b76cd9c211931c90673786ec5e4c6c97fa449d9ba532c4",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 20.59,
+  "remote": "true",
+  "session_id": "cse_018LWWLeLvxipigD5zAXQ3tA",
+  "effort_level": "high",
+  "model": null
+ }
+}
