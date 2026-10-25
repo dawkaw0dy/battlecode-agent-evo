@@ -28,7 +28,7 @@ constexpr int kBankGems = 30;            // carry at most this many gems before 
 constexpr int kNearAltar = 7;            // bank any gems when an altar is this close
 constexpr int kHuntRange = 14;           // answer a pack sighting this far away
 constexpr int kShopGold = 270;           // recall to shop with this much gold
-constexpr int kPackSize = 1;             // champions per farming pack
+constexpr int kPackSize = 2;             // champions per farming pack
 constexpr int kGemWeight = 5;            // a gem is worth this much gold when choosing camps
 constexpr int kKeepAway = 5;             // back off from stronger foes this close
 constexpr int kWalkHome = 10;            // walk instead of recalling this close to spawn
@@ -155,7 +155,7 @@ void init_map() {
     {
         using ct = cambc::champion_type;
         static constexpr std::array order{ct::vendetta, ct::ryth, ct::vesper_vale, ct::marcella, ct::varg};
-        static constexpr std::array pack_of{0, 1, 2, 3, 4};
+        static constexpr std::array pack_of{0, 1, 0, 1, 2};
         g_pack = 4;
         const auto mine = cambc::self().champion_name();
         for (size_t i = 0; i < order.size(); ++i)
