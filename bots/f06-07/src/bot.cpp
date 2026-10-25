@@ -18,7 +18,7 @@ cambc::bitboard g_walls;  // walk_walls(), built once
 int now() { return static_cast<int>(cambc::round_number()); }
 
 // Debug: turns spent per activity, printed every 250 rounds.
-constexpr bool kStats = true;
+constexpr bool kStats = false;
 int g_mode = 0;
 std::array<int, 16> g_modes{};
 const char* kModeNames[16] = {"dead", "chan", "noact", "heal", "fight", "escape", "hurt", "bank", "shoptrip",
