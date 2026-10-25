@@ -37,6 +37,7 @@ constexpr bool kLocks = true;       // carry an altar lock: drop it on enemy tri
 constexpr bool kLockRunner = true;  // the last pick carries locks to far altars
 constexpr int kLockRange = 2;       // altar lock placement range
 constexpr int kLockDetour = 8;      // walk this far (Chebyshev) out of our way to lock an altar
+constexpr int kOpeningRounds = 150; // the draft's opening plan is dropped after this round
 
 namespace {
 // Debug: turns spent per activity, printed every 200 rounds.
@@ -1874,6 +1875,20 @@ void Bot::turn() {
     }
 
     const int now = static_cast<int>(cambc::round_number());
+    // The draft's opening plan holds until that group is cleared, given up or late.
+    if (open_g_ >= 0) {
+        const auto& ok = k_[open_g_];
+        if (now > kOpeningRounds || ok.blocked_until > now || ok.state == Known::reward || ok.state == Known::respawning)
+            open_g_ = -1;
+        else if (target_ != open_g_ || now - chosen_at_ >= 4) {
+            if (target_ != open_g_) { stuck_g_ = open_g_; stuck_since_ = now; best_eta_ = kFar; }
+            target_ = open_g_;
+            raid_n_ = open_n_;
+            target_wait_ = 0;
+            chosen_at_ = now;
+            write_claim(open_g_);
+        }
+    }
     if (target_ < 0 || now - chosen_at_ >= 4 || k_[target_].state == Known::respawning) {
         int wait = 0;
         fp("prechoose");

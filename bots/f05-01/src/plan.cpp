@@ -138,3 +138,131 @@ std::vector<std::uint8_t> assign_homes(const std::vector<GroupInfo>& groups, int
     for (int i : el) home[i] = static_cast<std::uint8_t>(owner[i]);
     return home;
 }
+
+namespace {
+// Base hit points, damage per turn on camps and basic range per pick (after the patches), as measure()
+// estimates it in game: strength (x9/8 with an attack reset, x1.25 Vendetta) plus spell damage / 8.
+struct Base { float hp, dps; int range; };
+Base base_of(cambc::champion_draft c) {
+    using cd = cambc::champion_draft;
+    switch (c) {
+    case cd::vesper_vale: return {1000, 62, 3};
+    case cd::vendetta: return {1000, 98, 1};
+    case cd::marcella: return {1200, 66, 1};
+    case cd::tavi: return {900, 70, 3};
+    case cd::varg: return {1250, 50, 1};  // shield 250; splash not counted
+    default: return {900, 55, 1};
+    }
+}
+
+float territory_f(int rel, int n) {
+    float f = rel <= -3 ? 1.0f : rel <= 3 ? 0.9f : rel <= 10 ? 0.7f : 0.5f;
+    if (n >= 2) f = std::sqrt(f);
+    return f;
+}
+
+// Turns for a team to clear the group from full health without a trip home (-1: it cannot).
+float clear_turns(const GroupInfo& g, float dps, float pool, float full, int n, int range) {
+    const size_t m = std::min<size_t>(g.tiles.size(), 64);
+    std::array<std::pair<float, std::uint8_t>, 64> order;
+    std::array<std::uint8_t, 64> alive{};
+    for (size_t c = 0; c < m; ++c) {
+        const auto s = camp_spec(g.kinds[c]);
+        order[c] = {s.str / s.hp, static_cast<std::uint8_t>(c)};
+        alive[c] = 1;
+    }
+    std::sort(order.begin(), order.begin() + m, [](auto a, auto b) { return a.first > b.first; });
+    float turns = 0, used = 0;
+    int exit = 1;
+    for (size_t c = 0; c < m; ++c) {
+        const auto s = camp_spec(g.kinds[c]);
+        if (s.str > 0) exit = std::max(exit, s.range + 1 - std::min(range, s.range));
+    }
+    for (size_t j = 0; j < m; ++j) {
+        const size_t c = order[j].second;
+        float rate = 0;
+        for (size_t o = 0; o < m; ++o) {
+            if (!alive[o]) continue;
+            const auto so = camp_spec(g.kinds[o]);
+            if (so.str > 0 && (o == c || cheb(g.tiles[o], g.tiles[c]) + range <= so.range)) rate += so.str;
+        }
+        const float t = camp_spec(g.kinds[c]).hp / dps;
+        turns += t;
+        used += t * rate;
+        if (rate > 0) {
+            const float reserve = std::max(0.2f * full, rate * (exit + 2) + 40);
+            const float handoff = std::max(0.2f * full, 2 * rate + 40);
+            if (used > pool - (n - 1) * handoff - reserve) return -1;
+        }
+        alive[c] = 0;
+    }
+    return turns;
+}
+}  // namespace
+
+void plan_opening(const std::vector<GroupInfo>& groups, const std::vector<cambc::champion_draft>& picks,
+                  std::array<std::uint8_t, 5>& first, std::array<std::uint8_t, 5>& team) {
+    first.fill(255);
+    team.fill(1);
+    const int slots = static_cast<int>(std::min<size_t>(picks.size(), 5));
+    if (slots <= 0 || groups.empty() || groups.size() > 250) return;
+    // Walk from each group to the nearest altar.
+    std::vector<int> bank(groups.size(), kFar);
+    int home_altar = kFar;
+    {
+        cambc::bitboard spots;
+        const int ar = cambc::constants::submit_gems_range;
+        for (auto a : cambc::map::altars().positions())
+            for (int dy = -ar; dy <= ar; ++dy)
+                for (int dx = -ar; dx <= ar; ++dx) {
+                    const vec2 t{a.x + dx, a.y + dy};
+                    if (inside(t)) spots.set(t);
+                }
+        spots &= ~walk_walls();
+        cambc::distance_field f;
+        cambc::bitboard seen;
+        f.compute(walk_walls(), spots, seen);
+        for (size_t i = 0; i < groups.size(); ++i)
+            for (auto t : groups[i].tiles) bank[i] = std::min(bank[i], static_cast<int>(f.get(t)));
+        for (auto t : cambc::map::spawn_region(team::ally).positions()) home_altar = std::min(home_altar, static_cast<int>(f.get(t)));
+    }
+    std::vector<char> taken(groups.size(), 0);
+    std::vector<int> free_slots;
+    for (int s = 0; s < slots; ++s) free_slots.push_back(s);
+    while (!free_slots.empty()) {
+        // Free slots, strongest first: a team of n is the n strongest still free.
+        std::sort(free_slots.begin(), free_slots.end(),
+                  [&](int a, int b) { return base_of(picks[a]).dps > base_of(picks[b]).dps; });
+        float best = 0;
+        int best_g = -1, best_n = 0;
+        for (size_t i = 0; i < groups.size(); ++i) {
+            const auto& g = groups[i];
+            if (taken[i] || g.d_ally >= kFar) continue;
+            const float value = g.gems + 0.35f * g.gold;
+            if (value <= 0) continue;
+            float dps = 0, pool = 0, full = 0;
+            int range = 3;
+            for (int n = 1; n <= std::min<int>(3, static_cast<int>(free_slots.size())); ++n) {
+                const Base b = base_of(picks[free_slots[static_cast<size_t>(n - 1)]]);
+                dps += b.dps;
+                pool += b.hp;
+                full = pool / n;
+                range = std::min(range, b.range);
+                const float t = clear_turns(g, dps, pool, full, n, range);
+                if (t < 0) continue;
+                const float bk = g.gems / 45.0f * std::min(bank[i], 6 + home_altar);
+                const float rate = value / n * territory_f(g.d_ally - g.d_enemy, n) / (g.d_ally + t + 6.0f + bk / n);
+                if (rate > best) { best = rate; best_g = static_cast<int>(i); best_n = n; }
+                break;  // the smallest team that can do it
+            }
+        }
+        if (best_g < 0) break;
+        taken[static_cast<size_t>(best_g)] = 1;
+        for (int k = 0; k < best_n; ++k) {
+            const int s = free_slots[static_cast<size_t>(k)];
+            first[static_cast<size_t>(s)] = static_cast<std::uint8_t>(best_g);
+            team[static_cast<size_t>(s)] = static_cast<std::uint8_t>(best_n);
+        }
+        free_slots.erase(free_slots.begin(), free_slots.begin() + best_n);
+    }
+}

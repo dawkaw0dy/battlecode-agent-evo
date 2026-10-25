@@ -21,6 +21,13 @@ void play_draft() {
         const size_t n = std::min<size_t>(groups.size(), 250);
         mem[dm::ngroups] = static_cast<std::byte>(n);
         for (size_t i = 0; i < n; ++i) mem[dm::home + i] = static_cast<std::byte>(home[i]);
+        std::array<std::uint8_t, 5> first{}, team{};
+        plan_opening(groups, picks, first, team);
+        mem[dm::open_magic] = std::byte{'O'};
+        for (size_t s = 0; s < 5; ++s) {
+            mem[dm::open_g + s] = static_cast<std::byte>(first[s]);
+            mem[dm::open_n + s] = static_cast<std::byte>(team[s]);
+        }
         cambc::draft_memory = std::span<const std::byte>{mem.data(), mem.size()};
     }
     const auto chosen = cambc::draft::current_draft(team::ally);

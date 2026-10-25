@@ -1,6 +1,7 @@
 #pragma once
 // Map analysis shared by the draft and the champions.
 #include "common.h"
+#include <array>
 
 struct GroupInfo {
     std::vector<vec2> tiles;          // camp spawn tiles
@@ -29,6 +30,13 @@ constexpr int magic = 0;      // 'E'
 constexpr int size = 1;       // team size the plan was made for
 constexpr int ngroups = 2;    // number of groups (<= 250)
 constexpr int home = 4;       // one byte per group: home slot, 255 = shared
+constexpr int open_magic = 256;  // 'O' when the opening plan below is written
+constexpr int open_g = 257;   // per slot: first group, 255 = none
+constexpr int open_n = 262;   // per slot: champions that group's plan counts on
 }
+// Draft-time opening: every slot's first group and the team it clears it with, chosen jointly (the
+// champions' own choice is greedy, so two slots each planned half a raid and waited for help that never came).
+void plan_opening(const std::vector<GroupInfo>& groups, const std::vector<cambc::champion_draft>& picks,
+                  std::array<std::uint8_t, 5>& first, std::array<std::uint8_t, 5>& team);
 // Home slot per group for `slots` champions (255 = nobody's in particular).
 std::vector<std::uint8_t> assign_homes(const std::vector<GroupInfo>& groups, int slots);

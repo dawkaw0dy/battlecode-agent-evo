@@ -149,6 +149,13 @@ void Bot::initialise() {
         slot_ = slot_of(me.champion_name(), size_);
         for (size_t i = 0; i < ng; ++i)
             home_slot_.push_back(i < 250 ? static_cast<std::uint8_t>(mem[dm::home + i]) : 255);
+        if (static_cast<char>(mem[dm::open_magic]) == 'O' && slot_ >= 0 && slot_ < 5) {
+            const int og = static_cast<int>(mem[dm::open_g + slot_]);
+            if (og < static_cast<int>(ng)) {
+                open_g_ = og;
+                open_n_ = std::max(1, static_cast<int>(mem[dm::open_n + slot_]));
+            }
+        }
     } else {
         home_slot_ = assign_homes(g_, std::max(1, size_));
     }
