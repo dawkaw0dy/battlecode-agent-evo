@@ -2496,9 +2496,11 @@
   },
   "f05-03": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evolution-agent-f05-03-p61kgx",
+   "commit": "550b952b919ce859cf2cdd18bf6b8c38b302bdba",
    "deadline_minutes": 120,
+   "done_at": 1792931142,
+   "effort_level": "high",
    "evidence": [
     {
      "gems_opponent": 1857,
@@ -2546,6 +2548,7 @@
    "generation": 5,
    "id": "f05-03",
    "kind": "child",
+   "model": null,
    "nudged": [
     "session_01AgPwQfZCUmjYorzqqBKDqH"
    ],
@@ -2568,14 +2571,16 @@
    ],
    "slot": 3,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "da4a0714c819e0e40ea7736200f7fd04a21462211a3e538aced9011203cd0a76"
   },
   "f05-04": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evolution-agent-f05-04-lx8sce",
+   "commit": "02545efec4ede9932a40c1a686cea868b798485e",
    "deadline_minutes": 120,
+   "done_at": 1792931145,
+   "effort_level": "high",
    "evidence": [
     {
      "gems_opponent": 2110,
@@ -2623,6 +2628,7 @@
    "generation": 5,
    "id": "f05-04",
    "kind": "child",
+   "model": null,
    "nudged": [
     "session_01FvoKkFvNFyPXqxhvubA3ij"
    ],
@@ -2645,14 +2651,16 @@
    ],
    "slot": 4,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "047efeab9c186b7cf566712ea09d369e7df9ba00f3d08354d1c17a1c3e991e4f"
   },
   "f05-05": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evo-task-f05-05-odpgxn",
+   "commit": "eec9bb4b34bdb93bb9812b0fd7d98f0226ed6266",
    "deadline_minutes": 120,
+   "done_at": 1792931148,
+   "effort_level": "high",
    "evidence": [
     {
      "gems_opponent": 2110,
@@ -2700,6 +2708,7 @@
    "generation": 5,
    "id": "f05-05",
    "kind": "child",
+   "model": null,
    "nudged": [
     "session_019cvvpWK5DtJxeWnyNfoepk"
    ],
@@ -2722,14 +2731,16 @@
    ],
    "slot": 5,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "8d45cebe5f9313698370663407f4e843c2cc23ec57a0a2cb2e7bd85d6a437c94"
   },
   "f05-06": {
    "archetype": "split-farm",
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evo-task-f05-06-9nzifo",
+   "commit": "dffb82ea41e406682ddc21cdf4badc858de61275",
    "deadline_minutes": 120,
+   "done_at": 1792931151,
+   "effort_level": "high",
    "evidence": [],
    "failed_ideas": [
     "f03-05: Fuel: host calls cost ~30\u201340 fuel, but every bitboard temporary (&, |, ~, shift) ~600 and a grow(r) ~4k\u00b7r;",
@@ -2752,6 +2763,7 @@
    "generation": 5,
    "id": "f05-06",
    "kind": "immigrant",
+   "model": null,
    "nudged": [
     "session_01GprprW45QM9MmgY8XHg1Mm"
    ],
@@ -2774,14 +2786,16 @@
    ],
    "slot": 6,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "fb4d93c0d7f7d11c0b9a03c484e0fc71597a56485d2ef36c232e0648ee0fd7c8"
   },
   "f05-07": {
    "archetype": "big-game-hunter",
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evolution-agent-f05-07-9comq8",
+   "commit": "b80898f4c9e6c28a24f6a3cbc42cbc0f7c39d758",
    "deadline_minutes": 120,
+   "done_at": 1792931154,
+   "effort_level": "high",
    "evidence": [],
    "failed_ideas": [
     "f03-05: Fuel: host calls cost ~30\u201340 fuel, but every bitboard temporary (&, |, ~, shift) ~600 and a grow(r) ~4k\u00b7r;",
@@ -2804,6 +2818,7 @@
    "generation": 5,
    "id": "f05-07",
    "kind": "immigrant",
+   "model": null,
    "nudged": [
     "session_016imJFvD6ZFEY9EQvF6jXs8"
    ],
@@ -2826,7 +2841,7 @@
    ],
    "slot": 7,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "418a2b88055847920785902f564a11b72829959d244431419c227d8d5644bc1d"
   }
  },
@@ -14379,12 +14394,6 @@
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-24T16:36:27Z g00 r00-A-spot: pushed 0d46df721b (24 sampled games, 17 shards)",
-  "2026-10-24T16:38:47Z g00 r00-A: verified, 1152 rows, spot-check 24 OK",
-  "2026-10-24T16:38:55Z g00 phase EVAL_B_PENDING: stage A ranked: f00-03, f00-00, f00-06, f00-07, f00-02, f00-04, f00-01, f00-05, starter",
-  "2026-10-24T16:39:04Z g00 r00-B: pushed 04b0dbb815 with 20 shards",
-  "2026-10-24T16:41:19Z g00 phase EVAL_B_DONE: results for r00-B",
-  "2026-10-24T16:41:33Z g00 r00-B-spot: pushed 94e47e9f71 (16 sampled games, 10 shards)",
   "2026-10-24T16:43:49Z g00 r00-B: verified, 800 rows, spot-check 16 OK",
   "2026-10-24T16:43:57Z g00 phase EVAL_C_PENDING: stage C for f00-00 vs f00-07",
   "2026-10-24T16:44:08Z g00 r00-C: pushed 88146b3cee with 3 shards",
@@ -14578,10 +14587,16 @@
   "2026-10-25T10:43:02Z g05 f05-06: launched session_01GprprW45QM9MmgY8XHg1Mm",
   "2026-10-25T10:43:12Z g05 f05-07: launched session_016imJFvD6ZFEY9EQvF6jXs8",
   "2026-10-25T12:24:03Z g05 f05-01: done on origin/claude/evolution-agent-f05-01-b0s2eo at e9d80431c2",
-  "2026-10-25T12:24:06Z g05 f05-02: done on origin/claude/evo-task-f05-02-wty7r5 at 461bca893c"
+  "2026-10-25T12:24:06Z g05 f05-02: done on origin/claude/evo-task-f05-02-wty7r5 at 461bca893c",
+  "2026-10-25T12:25:42Z g05 f05-03: done on origin/claude/evolution-agent-f05-03-p61kgx at 550b952b91",
+  "2026-10-25T12:25:45Z g05 f05-04: done on origin/claude/evolution-agent-f05-04-lx8sce at 02545efec4",
+  "2026-10-25T12:25:48Z g05 f05-05: done on origin/claude/evo-task-f05-05-odpgxn at eec9bb4b34",
+  "2026-10-25T12:25:51Z g05 f05-06: done on origin/claude/evo-task-f05-06-9nzifo at dffb82ea41",
+  "2026-10-25T12:25:54Z g05 f05-07: done on origin/claude/evolution-agent-f05-07-9comq8 at b80898f4c9",
+  "2026-10-25T12:25:54Z g05 phase ADMITTED"
  ],
  "paused": null,
- "phase": "RUNNING",
+ "phase": "ADMITTED",
  "sessions_launched": 43,
  "version": 1
 }
