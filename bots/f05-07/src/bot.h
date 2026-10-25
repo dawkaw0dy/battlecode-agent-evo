@@ -34,17 +34,20 @@ class Bot {
     int no_hit_turns_ = 0;
     int engage_since_ = -1;     // leader: round the staging for the current boss target started
     int last_target_ = -1;
+    bool retreat_ = false;
     int last_scan_ = -100;
     std::uint8_t mem_[8]{};
 
     void init();
     void shop();
     void scan_groups(bool all);
-    void lead();
+    void lead(int squad);
     bool step_to(const cambc::bitboard& goals);
     bool step_away(cambc::vec2 from, int want);
     void box(cambc::bitboard& b, cambc::vec2 p, int r) const;
     bool fight_enemies(bool& flee);
+    void cast_at_enemy(cambc::vec2 p);
+    bool hit_enemy(cambc::vec2 p);
     bool attack_unit_camp(cambc::vec2 p);
     void cast_at_camp(cambc::vec2 p, bool boss);
     void after_attack_reset(cambc::vec2 p, bool camp);
@@ -53,6 +56,8 @@ class Bot {
     bool work_target(int t, bool engage);
     float incoming_damage(bool& boss_awake);
     void write_status(bool alive, bool near, bool busy);
+    bool try_recall();
+    void trace(char mode, int target);
 
 public:
     void play_turn();

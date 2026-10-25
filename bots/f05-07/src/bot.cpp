@@ -11,6 +11,7 @@
 #include <span>
 #include <variant>
 #include <vector>
+#include <iostream>
 
 namespace bc = cambc;
 using bc::team;
@@ -20,19 +21,28 @@ namespace {
 
 int dist(vec2 a, vec2 b) { return static_cast<int>(a.chebyshev_distance(b)); }
 
-// Shared memory layout (8 bytes): [0] pack target group + 1, [1] flags (bit0: boss engage),
+// Shared memory layout (8 bytes): [0] squad 0 target group + 1, [1] flags (bit0: boss engage, bit1: raid),
+// [7] squad 1 target group + 1,
 // [2..6] status per slot: 0 unknown, 0x01 dead, else 0x80 alive | 0x40 near target | 0x20 busy | hp/32.
 constexpr int kStatus = 2;
 constexpr int kSlots = 5;
 constexpr std::uint8_t kAlive = 0x80, kNear = 0x40, kBusy = 0x20;
+constexpr int kTarget1 = 7;      // squad 1 target + 1
+constexpr int kSquads = 1;
+constexpr float kBossBias = 2.0f;
+constexpr float kFightRatio = 1.3f;
+constexpr float kRetreatFrac = 0.35f;
+constexpr int kBankGems = 15;
+constexpr float kSwitch = 2.0f;     // a new target must score this many times the current one
+constexpr float kStageStr = 60.f;   // groups at least this strong are engaged together
 
 int pick_order(bc::champion_type t) {
     switch (t) {
-        case bc::champion_type::vendetta: return 0;
-        case bc::champion_type::marcella: return 1;
-        case bc::champion_type::varg: return 2;
-        case bc::champion_type::ryth: return 3;
-        case bc::champion_type::vesper_vale: return 4;
+        case bc::champion_type::vesper_vale: return 0;
+        case bc::champion_type::vendetta: return 1;
+        case bc::champion_type::marcella: return 2;
+        case bc::champion_type::tavi: return 3;
+        case bc::champion_type::varg: return 4;
         default: return 5 + static_cast<int>(t);
     }
 }
@@ -175,9 +185,9 @@ void Bot::write_status(bool alive, bool near, bool busy) {
 // Refresh remembered state of visible groups (all of them, or just the pack target).
 void Bot::scan_groups(bool all) {
     const auto visible = bc::vision::visible_tiles();
-    const int target = mem_[0] - 1;
+    const int t0 = mem_[0] - 1, t1 = mem_[kTarget1] - 1;
     for (int i = 0; i < static_cast<int>(groups_.size()); ++i) {
-        if (!all && i != target) continue;
+        if (!all && i != t0 && i != t1) continue;
         auto& G = groups_[i];
         bool seen = false;
         for (auto p : G.tiles)
@@ -212,29 +222,37 @@ void Bot::scan_groups(bool all) {
     }
 }
 
-// Leader: choose the pack target and the boss engage flag.
-void Bot::lead() {
+// Squad leader: choose the squad target; squad 0 also decides whole-team boss raids (flag bit1)
+// and the boss engage call (flag bit0).
+void Bot::lead(int squad) {
     auto& me = bc::self();
     const vec2 pos = me.position();
-    int avail = 0;
-    int near = 0;
+    const bool raid = (mem_[1] & 2) != 0;
+    if (squad != 0 && raid) return;
+    int avail_sq = 0, avail_all = 0, near = 0;
     for (int s = 0; s < std::min(team_n_, kSlots); ++s) {
         const std::uint8_t v = mem_[kStatus + s];
-        if (v == 0 || ((v & kAlive) && !(v & kBusy))) ++avail;
-        if ((v & kAlive) && (v & kNear)) ++near;
+        const bool ok = v == 0 || ((v & kAlive) && !(v & kBusy));
+        if (ok) { ++avail_all; if (s % kSquads == squad) ++avail_sq; }
+        if ((v & kAlive) && (v & kNear) && (raid || s % kSquads == squad)) ++near;
     }
-    avail = std::max(1, avail);
-    const float dps_one = std::max(30.f, me.strength()) * 1.25f;
-    const float dps = dps_one * static_cast<float>(avail);
-    const float budget = static_cast<float>(avail) * me.max_health() * 0.55f;
+    avail_sq = std::max(1, avail_sq);
+    avail_all = std::max(1, avail_all);
+    const float dps_one = std::max(30.f, me.strength()) * 1.1f;
     const float gold_w = round_ < 900 ? 0.5f : 0.25f;
-    const int cur = mem_[0] - 1;
+    const int tb = squad == 0 ? 0 : kTarget1;
+    const int cur = mem_[tb] - 1;
+    const int other = squad == 0 ? mem_[kTarget1] - 1 : mem_[0] - 1;
 
     int best = -1;
-    float best_score = 0;
+    float best_score = 0, cur_score = 0;
     for (int i = 0; i < static_cast<int>(groups_.size()); ++i) {
         const auto& G = groups_[i];
-        if (G.tiles.empty()) continue;
+        if (G.tiles.empty() || (i == other && !(squad == 0 && raid))) continue;
+        if (G.boss && squad != 0) continue;
+        const int n = G.boss ? avail_all : avail_sq;
+        const float dps = dps_one * static_cast<float>(n);
+        const float budget = static_cast<float>(n) * me.max_health() * 0.55f;
         const int travel = dist(pos, G.center);
         const int wait = G.respawn_at > round_ ? G.respawn_at - round_ : 0;
         const int eff_wait = std::max(0, wait - travel);
@@ -243,33 +261,44 @@ void Bot::lead() {
         if (!G.reward_ready) {
             const float hp = (G.boss && G.known_hp >= 0) ? G.known_hp : G.hp;
             clear = hp / dps;
-            const float incoming = G.str * clear * (G.boss ? 0.85f : 0.5f);
+            const float incoming = G.str * clear * (G.boss ? 1.0f : 0.5f);
             const float trips = incoming / budget;
             if (!G.boss && trips > 1.0f) continue;
             if (G.boss) {
-                if (trips > 3.5f || avail < 2) continue;
+                if (G.monolith ? (round_ < 350 || bought_ < 10) : (round_ < 120 || bought_ < 5)) continue;
+                if (trips > 3.5f || n < 3) continue;
                 if (trips > 1.0f) trip_cost = std::ceil(trips - 1.0f) * (2.f * dist(home_, G.center) + 30.f);
             }
         }
         const float value = static_cast<float>(G.gems) + gold_w * static_cast<float>(G.gold);
         if (value <= 0) continue;
+        // A boss raid stops both squads: compare it against the value of both squads farming.
         float score = value / (static_cast<float>(travel + eff_wait) + clear + trip_cost + 8.f);
-        if (i == cur) score *= G.boss ? 1.6f : 1.3f;
+        if (G.boss) score *= static_cast<float>(avail_sq) / static_cast<float>(avail_all) * kBossBias;
+        if (i == cur) cur_score = score;
         if (score > best_score) { best_score = score; best = i; }
     }
+    // Stick with the current target unless something is much better.
+    if (cur >= 0 && cur_score > 0 && best_score < kSwitch * cur_score) best = cur;
+    const std::uint8_t ebit = squad == 0 ? 1 : 4;
     if (best != cur) {
-        mem_[1] = 0;
+        mem_[1] &= static_cast<std::uint8_t>(~ebit);
         engage_since_ = -1;
-        approach_ = 3;
     }
-    mem_[0] = static_cast<std::uint8_t>(best + 1);
-    if (best >= 0 && groups_[best].boss && !(mem_[1] & 1)) {
+    mem_[tb] = static_cast<std::uint8_t>(best + 1);
+    if (squad == 0) {
+        if (best >= 0 && groups_[best].boss) mem_[1] |= 2;
+        else mem_[1] &= static_cast<std::uint8_t>(~2);
+    }
+    const int n_need = (best >= 0 && groups_[best].boss) ? avail_all : avail_sq;
+    if (best >= 0 && groups_[best].str >= kStageStr && !(mem_[1] & ebit)) {
         if (near > 0 && engage_since_ < 0) engage_since_ = round_;
-        if (near >= std::max(2, avail - 1) || (engage_since_ >= 0 && round_ - engage_since_ > 30))
-            mem_[1] |= 1;
+        if (near >= std::max(std::min(2, n_need), n_need - 1)
+            || (engage_since_ >= 0 && round_ - engage_since_ > (groups_[best].boss ? 30 : 15)))
+            mem_[1] |= ebit;
     }
-    bc::shared_memory[0] = mem_[0];
     bc::shared_memory[1] = mem_[1];
+    bc::shared_memory[tb] = mem_[tb];
 }
 
 bool Bot::step_to(const bc::bitboard& goals) {
@@ -415,12 +444,17 @@ float Bot::incoming_damage(bool& boss_awake) {
 void Bot::support_casts(float incoming) {
     auto& me = bc::self();
     if (!me.can_cast()) return;
+    bc::bitboard close;
+    close.clear();
+    box(close, me.position(), 3);
+    close &= bc::vision::champion_tiles(team::enemy);
+    const bool enemies_close = !close.is_empty();
     for (const auto& ab : me.abilities()) {
         if (!me.can_cast()) return;
         if (!ab.info() || !ab.is_ready()) continue;
         if (ab_excl(ab) && moved_) continue;
         try {
-            if (ab.is_shield() && ab.can_target_self() && incoming > 0) {
+            if (ab.is_shield() && ab.can_target_self() && (incoming > 0 || enemies_close)) {
                 ab.use();
             } else if (ab.is_heal() && ab.can_target_allies()) {
                 bc::bitboard near;
@@ -442,83 +476,133 @@ void Bot::support_casts(float incoming) {
     }
 }
 
-// Enemy champions: fight when we are not outnumbered, otherwise ask the caller to flee.
+// Cast offensive abilities on an enemy champion at p.
+void Bot::cast_at_enemy(vec2 p) {
+    auto& me = bc::self();
+    if (!me.can_cast()) return;
+    const int d = dist(me.position(), p);
+    for (const auto& ab : me.abilities()) {
+        if (!me.can_cast()) return;
+        if (!ab.info() || !ab.is_ready()) continue;
+        const bool excl = ab_excl(ab);
+        if (excl && moved_) continue;
+        const float r = ab_range(ab);
+        try {
+            if (!bc::vision::has_champion(p)) return;
+            if ((ab.is_damage() || ab.is_cc()) && ab.can_target_enemies() && d <= r) {
+                if (ab.use(bc::vision::champion_at(p)) && excl) cast_excl_ = true;
+            } else if ((ab.is_aoe_damage() || ab.is_cc()) && ab.can_target_ground() && d <= r) {
+                if (ab.use(p) && excl) cast_excl_ = true;
+            }
+        } catch (const std::exception&) {
+        }
+    }
+}
+
+bool Bot::hit_enemy(vec2 p) {
+    auto& me = bc::self();
+    if (!me.can_attack() || dist(me.position(), p) > me.attack_range()) return false;
+    try {
+        if (!bc::vision::has_champion(p)) return false;
+        auto e = bc::vision::champion_at(p);
+        if (!e.is_enemy() || !e.is_alive() || e.health() <= 0) return false;
+        me.attack(e);
+    } catch (const std::exception&) {
+        return false;
+    }
+    after_attack_reset(p, false);
+    return true;
+}
+
+// Enemy champions within 7 tiles: Lanchester-style comparison (total health x total damage) of the
+// visible sides. Fight: focus the weakest enemy in range, or close in. Otherwise hit back and back off.
+// Returns true when this turn was spent on enemies.
 bool Bot::fight_enemies(bool& flee) {
     flee = false;
     auto& me = bc::self();
     const vec2 pos = me.position();
     bc::bitboard area;
     area.clear();
-    box(area, pos, 6);
+    box(area, pos, 7);
     auto enemies = area & bc::vision::champion_tiles(team::enemy);
     if (enemies.is_empty()) return false;
     auto allies = area & bc::vision::champion_tiles(team::ally);
-    const int n_allies = static_cast<int>(allies.count());  // includes us
-    vec2 weakest{-1, -1}, nearest{-1, -1};
-    float weakest_hp = 1e9f;
-    int n_enemies = 0;
+    float hp_a = 0, dps_a = 0, hp_e = 0, dps_e = 0;
+    for (auto p : allies.positions()) {
+        try {
+            auto a = bc::vision::champion_at(p);
+            hp_a += a.health();
+            dps_a += a.strength() + 0.25f * a.focus();
+        } catch (const std::exception&) {
+        }
+    }
+    vec2 weakest{-1, -1}, nearest{-1, -1}, frail{-1, -1};
+    float weakest_hp = 1e9f, frail_hp = 1e9f;
+    bool threat = false;
     for (auto p : enemies.positions()) {
         try {
             auto e = bc::vision::champion_at(p);
             if (!e.is_alive()) continue;
-            ++n_enemies;
-            if (nearest.x < 0 || dist(pos, p) < dist(pos, nearest)) nearest = p;
-            if (dist(pos, p) <= me.attack_range() && e.health() < weakest_hp) { weakest_hp = e.health(); weakest = p; }
+            const float ehp = e.health();
+            hp_e += ehp;
+            dps_e += e.strength() + 0.25f * e.focus();
+            const int d = dist(pos, p);
+            if (d <= e.attack_range() + 1) threat = true;
+            if (nearest.x < 0 || d < dist(pos, nearest)) nearest = p;
+            if (d <= me.attack_range() && ehp < weakest_hp) { weakest_hp = ehp; weakest = p; }
+            if (d <= 4 && ehp < frail_hp) { frail_hp = ehp; frail = p; }
         } catch (const std::exception&) {
         }
     }
-    if (n_enemies == 0) return false;
-    const bool favorable = n_allies >= n_enemies;
-    if (!favorable && me.health() < me.max_health() * 0.6f) {
-        flee = true;
+    if (nearest.x < 0) return false;
+    const bool on_spawn = bc::map::spawn_region(team::ally).is_set(pos);
+    const bool finish = weakest.x >= 0 && weakest_hp < 2.5f * me.strength();
+    const bool fight = hp_a * dps_a >= kFightRatio * hp_e * dps_e || finish;
+    if (fight) {
+        if (weakest.x >= 0) {
+            cast_at_enemy(weakest);
+            hit_enemy(weakest);
+            return true;
+        }
+        if (frail.x >= 0 && !retreat_ && (!on_spawn || hp_a * dps_a >= 2.f * kFightRatio * hp_e * dps_e)) {
+            if (ranged_) cast_at_enemy(frail);
+            bc::bitboard g;
+            g.clear();
+            box(g, frail, ranged_ ? me.attack_range() : 1);
+            step_to(g);
+            if (!ranged_) {
+                cast_at_enemy(frail);
+                hit_enemy(frail);
+            }
+            return true;
+        }
         return false;
     }
-    if (weakest.x >= 0) {
-        try {
-            auto e = bc::vision::champion_at(weakest);
-            if (me.can_cast())
-                for (const auto& ab : me.abilities()) {
-                    if (!me.can_cast()) break;
-                    if (!ab.info() || !ab.is_ready() || (ab_excl(ab) && moved_)) continue;
-                    const float r = ab_range(ab);
-                    const int d = dist(pos, weakest);
-                    if ((ab.is_damage() || ab.is_cc()) && ab.can_target_enemies() && d <= r) {
-                        if (ab.use(e) && ab_excl(ab)) cast_excl_ = true;
-                    } else if (ab.is_aoe_damage() && ab.can_target_ground() && d <= r) {
-                        if (ab.use(weakest) && ab_excl(ab)) cast_excl_ = true;
-                    } else if (ab.is_cc() && ab.can_target_ground() && d <= r) {
-                        if (ab.use(weakest) && ab_excl(ab)) cast_excl_ = true;
-                    }
-                }
-            if (me.can_attack() && bc::vision::has_champion(weakest)) {
-                auto e2 = bc::vision::champion_at(weakest);
-                if (e2.is_alive() && e2.health() > 0) {
-                    me.attack(e2);
-                    after_attack_reset(weakest, false);
-                }
-            }
-        } catch (const std::exception&) {
+    if (!threat && dist(pos, nearest) > 5 && !on_spawn) return false;
+    flee = true;
+    // On our spawn we heal every turn: hold it and shoot whoever comes close.
+    if (on_spawn) {
+        if (weakest.x >= 0) {
+            cast_at_enemy(weakest);
+            hit_enemy(weakest);
         }
         return true;
     }
-    if (favorable && nearest.x >= 0 && dist(pos, nearest) <= 3) {
-        bc::bitboard g;
-        g.clear();
-        box(g, nearest, ranged_ ? 3 : 1);
-        step_to(g);
-        if (!ranged_ && me.can_attack() && dist(me.position(), nearest) <= me.attack_range()) {
-            try {
-                auto e = bc::vision::champion_at(nearest);
-                if (e.is_enemy() && e.is_alive()) {
-                    me.attack(e);
-                    after_attack_reset(nearest, false);
-                }
-            } catch (const std::exception&) {
-            }
-        }
-        return true;
+    // Melee can hit and still walk; ranged hits back only when it cannot get away.
+    if (weakest.x >= 0 && !ranged_) {
+        cast_at_enemy(weakest);
+        hit_enemy(weakest);
     }
-    return false;
+    bool ran = false;
+    if (!moved_ && !move_failed_ && !cast_excl_) {
+        ran = step_to(bc::map::spawn_region(team::ally));
+        if (!ran) ran = step_away(nearest, 9);
+    }
+    if (!ran && weakest.x >= 0 && ranged_) {
+        cast_at_enemy(weakest);
+        hit_enemy(weakest);
+    }
+    return true;
 }
 
 bool Bot::bank() {
@@ -591,7 +675,7 @@ bool Bot::work_target(int t, bool engage) {
     const auto visible = bc::vision::visible_tiles();
     vec2 tgt{-1, -1};
     float tgt_hp = 1e9f;
-    bool boss_tile = false, boss_awake = false;
+    bool boss_tile = false, boss_awake = false, any_awake = false;
     vec2 boss_pos{-1, -1};
     int in_vision = 0;
     for (auto p : G.tiles) {
@@ -603,9 +687,11 @@ bool Bot::work_target(int t, bool engage) {
             if (!c.is_alive()) continue;
             const float hp = c.health();
             const bool b = c.is_monolith() || c.kind() == bc::camp_type::golem;
+            const bool awake = c.is_awake();
+            if (awake) any_awake = true;
             if (b) {
                 boss_pos = p;
-                if (c.is_awake()) boss_awake = true;
+                if (awake) boss_awake = true;
             }
             // Prefer camps in range, then the weakest (clusters die in one or two hits), then the nearest.
             const float key = hp + 400.f * static_cast<float>(std::max(0, dist(pos, p) - me.attack_range()));
@@ -629,17 +715,18 @@ bool Bot::work_target(int t, bool engage) {
         }
         return true;
     }
-    // Boss staging: hold outside its range until the leader calls the engage.
-    if (G.boss && boss_pos.x >= 0 && !boss_awake && !engage) {
-        const int d = dist(pos, boss_pos);
-        if (d <= G.range) step_away(boss_pos, G.range + 1);
-        else if (d > G.range + 3) {
+    // Staging: hold outside camp range until the leader calls the engage.
+    if (G.str >= kStageStr && !any_awake && !engage) {
+        const vec2 ref = boss_pos.x >= 0 ? boss_pos : tgt;
+        const int d = dist(pos, ref);
+        if (d <= G.range) step_away(ref, G.range + 1);
+        else if (d > G.range + 2) {
             bc::bitboard g;
             g.clear();
-            box(g, boss_pos, G.range + 2);
+            box(g, ref, G.range + 2);
             bc::bitboard inner;
             inner.clear();
-            box(inner, boss_pos, G.range);
+            box(inner, ref, G.range);
             g &= ~inner;
             step_to(g);
         }
@@ -665,6 +752,31 @@ bool Bot::work_target(int t, bool engage) {
     return true;
 }
 
+void Bot::trace(char mode, int target) {
+    debug_block({
+        auto& me = bc::self();
+        if (round_ <= 300 && round_ % 4 == 0)
+            std::cout << "r" << round_ << " s" << slot_ << " " << mode << " t" << target << " m" << int(mem_[1])
+                      << " p" << me.position().x << "," << me.position().y << " hp" << static_cast<int>(me.health())
+                      << " g" << me.gem_count() << " au" << me.gold_count()
+                      << " tc" << (target >= 0 ? groups_[target].center.x : -1) << ","
+                      << (target >= 0 ? groups_[target].center.y : -1)
+                      << " rr" << (target >= 0 ? groups_[target].reward_ready : 0)
+                      << " ra" << (target >= 0 ? groups_[target].respawn_at : 0) << " mv" << moved_ << "\n";
+    });
+}
+
+bool Bot::try_recall() {
+    auto& me = bc::self();
+    if (moved_ || move_failed_ || cast_excl_ || !me.can_move() || !me.can_attack()) return false;
+    try {
+        me.recall();
+        return true;
+    } catch (const std::exception&) {
+        return false;
+    }
+}
+
 void Bot::play_turn() {
     if (!ready_) init();
     auto& me = bc::self();
@@ -688,13 +800,15 @@ void Bot::play_turn() {
         shop();
         if (me.health() < me.max_health() * 0.9f) {
             write_status(true, false, true);
+            trace('H', -1);
             return;
         }
     }
 
-    // Leader election: lowest slot that is alive and not busy (unknown counts as available).
+    // Leader election per squad: lowest slot that is alive and not busy (unknown counts as available).
+    const int squad = slot_ % kSquads;
     int leader = -1;
-    for (int s = 0; s < std::min(team_n_, kSlots); ++s) {
+    for (int s = squad; s < std::min(team_n_, kSlots); s += kSquads) {
         const std::uint8_t v = mem_[kStatus + s];
         if (s == slot_ || v == 0 || ((v & kAlive) && !(v & kBusy))) { leader = s; break; }
     }
@@ -705,30 +819,45 @@ void Bot::play_turn() {
         } else {
             scan_groups(false);
         }
-        lead();
+        lead(squad);
     } else {
         scan_groups(false);
     }
-    int target = mem_[0] - 1;
+    const bool raid = (mem_[1] & 2) != 0;
+    int target = (squad == 0 || raid) ? mem_[0] - 1 : mem_[kTarget1] - 1;
     if (target >= static_cast<int>(groups_.size())) target = -1;
     if (target != last_target_) {
         last_target_ = target;
         approach_ = 3;
         no_hit_turns_ = 0;
     }
-    const bool engage = (mem_[1] & 1) != 0;
+    const bool engage = (mem_[1] & ((squad == 0 || raid) ? 1 : 4)) != 0;
 
     bool boss_awake = false;
     const float incoming = incoming_damage(boss_awake);
     const float hp = me.health(), mh = me.max_health();
     const int gems = static_cast<int>(me.gem_count());
     bool near = false;
-    if (target >= 0) near = dist(pos, groups_[target].center) <= groups_[target].range + 3;
+    if (target >= 0) near = dist(pos, groups_[target].center) <= groups_[target].range + 5;
 
     support_casts(incoming);
 
-    // Retreat from camp damage when it would kill us soon.
-    if (incoming > 0 && hp < std::max(0.3f * mh, 2.5f * incoming)) {
+    // Retreat from camp damage when it would kill us soon; keep retreating until healed.
+    if (retreat_ && at_spawn) retreat_ = false;
+    if (incoming > 0 && hp < std::max(kRetreatFrac * mh, 4.f * incoming + 0.1f * mh)) retreat_ = true;
+    if (retreat_ && incoming == 0) {
+        bc::bitboard area;
+        area.clear();
+        box(area, pos, 6);
+        area &= bc::vision::champion_tiles(team::enemy);
+        if (area.is_empty()) {
+            if (!try_recall()) retreat_ = hp < 0.5f * mh;
+            write_status(true, false, true);
+            trace('R', -1);
+            return;
+        }
+    }
+    if (retreat_ && incoming > 0) {
         vec2 from = pos;
         bc::bitboard area;
         area.clear();
@@ -739,25 +868,14 @@ void Bot::play_turn() {
             if (dist(pos, p) < best) { best = dist(pos, p); from = p; }
         step_away(from, 7);
         write_status(true, false, true);
+        trace('X', -1);
         return;
     }
 
     bool flee = false;
     if (fight_enemies(flee)) {
-        write_status(true, near, false);
-        return;
-    }
-    if (flee) {
-        bc::bitboard area;
-        area.clear();
-        box(area, pos, 6);
-        area &= bc::vision::champion_tiles(team::enemy);
-        vec2 from = pos;
-        int best = 99;
-        for (auto p : area.positions())
-            if (dist(pos, p) < best) { best = dist(pos, p); from = p; }
-        if (!step_away(from, 9) && incoming == 0 && !moved_) me.recall();
-        write_status(true, false, true);
+        write_status(true, near, flee);
+        trace(flee ? 'F' : 'A', target);
         return;
     }
 
@@ -769,9 +887,9 @@ void Bot::play_turn() {
     if (incoming == 0 && !capturing && !at_spawn
         && (hp < 0.4f * mh || (boss_target && !boss_awake && hp < 0.75f * mh && !near)
             || (me.gold_count() >= 300 && !near && dist(pos, home_) > 10))) {
-        if (!moved_) {
-            me.recall();
+        if (try_recall()) {
             write_status(true, false, true);
+            trace('C', -1);
             return;
         }
     }
@@ -781,14 +899,16 @@ void Bot::play_turn() {
     for (auto a : altars_) altar_d = std::min(altar_d, dist(pos, a));
     const int total = static_cast<int>(bc::global_submitted_gems(team::ally));
     const bool want_bank = gems > 0
-        && (gems >= 30 || (gems >= 10 && altar_d <= 6) || altar_d <= 2 || round_ > 1850
+        && (gems >= kBankGems || (gems >= 5 && hp < 0.5f * mh) || (gems >= 8 && altar_d <= 8) || altar_d <= 2 || round_ > 1850
             || total + gems >= 1000 || (boss_target && (gems >= 5) && !(near && engage)));
     if (want_bank && !capturing && incoming == 0) {
         bank();
         write_status(true, false, true);
+        trace('B', target);
         return;
     }
 
     if (target >= 0) work_target(target, engage || boss_awake);
     write_status(true, near, false);
+    trace('T', target);
 }

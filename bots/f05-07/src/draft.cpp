@@ -7,8 +7,8 @@
 // Big-game hunter line-up: sturdy melee with resets and stuns, one ranged gold earner.
 // The order doubles as the champion's slot index in shared memory (see bot.cpp).
 const std::array<cambc::champion_draft, 5> kPicks{
-    cambc::champion_draft::vendetta, cambc::champion_draft::marcella, cambc::champion_draft::varg,
-    cambc::champion_draft::ryth, cambc::champion_draft::vesper_vale};
+    cambc::champion_draft::vesper_vale, cambc::champion_draft::vendetta, cambc::champion_draft::marcella,
+    cambc::champion_draft::tavi, cambc::champion_draft::varg};
 
 void play_draft() {
     const auto chosen = cambc::draft::current_draft(cambc::team::ally);
