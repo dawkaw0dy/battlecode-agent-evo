@@ -30491,17 +30491,18 @@
    "status": "verified"
   },
   "r10-A": {
+   "arrived_at": 1792965435,
    "generation": 10,
    "pushed_at": 1792965236,
    "pushed_commit": "607446b6d02766455de49a88bc689d84add1c61b",
+   "results_commit": "67489e214a82bf08e2215c57f6b236210ba5925a",
    "retries": 0,
    "stage": "A",
-   "status": "pending"
+   "status": "arrived"
   }
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-25T12:41:38Z g05 phase EVAL_C_DONE: results for r05-C",
   "2026-10-25T12:41:49Z g05 r05-C-spot: pushed 87167e0957 (4 sampled games, 2 shards)",
   "2026-10-25T12:44:23Z g05 r05-C: verified, 70 rows, spot-check 4 OK",
   "2026-10-25T12:44:42Z g05 phase SELECTED: final: f05-02, f05-03, f04-05, f05-01, f05-05, f05-04, f03-05, f02-01, f05-06, f05-07, starter",
@@ -30700,10 +30701,11 @@
   "2026-10-25T21:53:27Z g10 f10-06: admitted (fddf68300901)",
   "2026-10-25T21:53:33Z g10 f10-07: admitted (eb95711e3edf)",
   "2026-10-25T21:53:44Z g10 phase EVAL_A_PENDING",
-  "2026-10-25T21:53:56Z g10 r10-A: pushed 607446b6d0 with 28 shards"
+  "2026-10-25T21:53:56Z g10 r10-A: pushed 607446b6d0 with 28 shards",
+  "2026-10-25T21:57:15Z g10 phase EVAL_A_DONE: results for r10-A"
  ],
  "paused": null,
- "phase": "EVAL_A_PENDING",
+ "phase": "EVAL_A_DONE",
  "sessions_launched": 78,
  "version": 1
 }
