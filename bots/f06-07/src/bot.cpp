@@ -836,6 +836,13 @@ void Bot::farm(int group) {
         // Capture: stand on one of the group's spawn tiles.
         g_mode = 12;
         if (gtiles_[group].is_set(pos_)) return;
+        // An ally already captures it: a second capturer only splits the reward.
+        for (const auto& a : allies_)
+            if (gtiles_[group].is_set(a.pos)) {
+                k.skip_until = now() + 8;
+                chosen_at_ = -100;
+                return;
+            }
         go(gtiles_[group], true);
         return;
     }
