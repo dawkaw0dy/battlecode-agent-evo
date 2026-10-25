@@ -50,12 +50,12 @@ float unit_dps(const Unit& u) { return u.str + 0.25f * u.focus; }
 
 constexpr bool kUseLocks = true;           // place altar locks at all (A/B switch: on, enemy tributes -7%)
 constexpr int kLockRange = 2;              // altar locks are placed within this distance
-constexpr int kLockGems = 15;
+constexpr int kLockGems = 15;              // lock ahead of an enemy carrying at least this many gems
 constexpr bool kPreLock = true;            // lock altars the enemy uses whenever we pass them
-constexpr int kPreLockSlack = 10;
-constexpr int kLockDetour = 0;             // walk this far to lock such an altar (6 measured worse: 8/20 vs 11/20)          // ... when their spawn is at most this much farther than ours
+constexpr int kPreLockSlack = 10;          // ... when their spawn is at most this much farther than ours
+constexpr int kLockDetour = 0;             // walk this far to lock such an altar (6 measured worse: 8/20 vs 11/20)
 constexpr int kBreakCost = 12;             // turns an enemy lock adds to an altar (5 hits and the risk)
-constexpr int kBankStick = 6;              // keep the chosen altar unless another is this much closer              // lock ahead of an enemy carrying at least this many gems
+constexpr int kBankStick = 6;              // keep the chosen altar unless another is this much closer
 constexpr float kForeignValue = 0.5f;      // groups on the enemy side
 constexpr float kOtherSectorValue = 0.85f; // groups in another champion's sector
 constexpr float kCampDamageTaken = 1.0f;   // share of camp damage we expect to take (jungle emblem, stuns)
