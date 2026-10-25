@@ -11,25 +11,43 @@ namespace vision = cambc::vision;
 
 namespace {
 
-constexpr int kEvalEvery = 8;
-constexpr int kShopGold = 120;
+#ifndef EVO_EVAL
+#define EVO_EVAL 8
+#endif
+#ifndef EVO_TCONST
+#define EVO_TCONST 3
+#endif
+constexpr int kEvalEvery = EVO_EVAL;
+constexpr float kTimeConst = EVO_TCONST;
+constexpr int kShopGold = 250;
+constexpr int kMaxExtraTrips = 3;
 #ifndef EVO_FLEE_PERIOD
 #define EVO_FLEE_PERIOD 0
 #endif
 constexpr bool kFleePeriod = EVO_FLEE_PERIOD;   // walk home for a few turns after every flee
 
-cambc::item_type next_item(champion_type t, int shards) {
+// Shard build per emblem (5 shards each): jungle first (camps hit 30% softer), then health and the
+// camp-damage emblem; Vesper Vale opens with treasure (gold compounds). Afterwards power shards.
+cambc::item_type build_item(champion_type t, int emblem) {
     using it = cambc::item_type;
-    const int e = shards / 5;
+    static const it base[] = {it::jungle_shard_of_strength, it::power_shard_of_health, it::monster_shard_of_strength,
+                              it::power_shard_of_strength, it::durability_shard_of_health};
+    static const it vv[] = {it::treasure_shard_of_strength, it::jungle_shard_of_strength, it::power_shard_of_health,
+                            it::monster_shard_of_strength, it::power_shard_of_strength, it::durability_shard_of_health};
     if (t == champion_type::vesper_vale) {
-        static const it vv[] = {it::treasure_shard_of_strength, it::jungle_shard_of_strength, it::monster_shard_of_strength};
-        if (e < 3) return vv[e];
-    } else {
-        static const it base[] = {it::jungle_shard_of_strength, it::monster_shard_of_strength};
-        if (e < 2) return base[e];
+        if (emblem < 6) return vv[emblem];
+    } else if (emblem < 5) {
+        return base[emblem];
     }
-    // Then two power-strength emblems for every power-health emblem.
-    return (e % 3 == 2) ? it::power_shard_of_health : it::power_shard_of_strength;
+    return (emblem % 2 == 0) ? it::power_shard_of_strength : it::power_shard_of_health;
+}
+
+cambc::item_type next_item(champion_type t, int shards) { return build_item(t, shards / 5); }
+
+bool has_emblem(champion_type t, int shards, cambc::item_type shard) {
+    for (int e = 0; e < shards / 5; ++e)
+        if (build_item(t, e) == shard) return true;
+    return false;
 }
 
 }  // namespace
@@ -134,6 +152,9 @@ void Bot::play_turn() {
     update_groups();
     update_squad();
     act_ = kActIdle;
+    // Spawn heals only the champion whose recall lands this turn (it must end the turn there).
+    just_recalled_ = was_recalling_ && !me.is_recalling();
+    was_recalling_ = me.is_recalling();
     if (me.is_recalling() || me.is_submitting_gems() || me.is_teleporting()) {
         act_ = kActChannel;
         finish_turn();
@@ -142,8 +163,9 @@ void Bot::play_turn() {
     shop();
     cast_support();
     // Spawn heals at the end of a turn spent on it: wait there until healed.
-    if (at_spawn_ && hp_ < 0.97f * maxhp_ && enemies_.empty()) {
+    if (at_spawn_ && just_recalled_ && hp_ < 0.97f * maxhp_ && enemies_.empty()) {
         act_ = kActHeal;
+        if (kTrace) std::printf("H r%d s%d (%d,%d) hp%.0f/%.0f\n", round_, slot_, pos_.x, pos_.y, hp_, maxhp_);
         finish_turn();
         return;
     }
@@ -467,6 +489,20 @@ bool Bot::walk_to(vec2 t) {
     return false;
 }
 
+// Step towards the nearest tile no awake camp can reach.
+void Bot::disengage_step() {
+    act_ = kActFlee;
+    bitboard danger;
+    for (const auto& c : awake_) mark_square(danger, c.pos, c.range);
+    if (target_ >= 0)
+        for (auto t : map_info().groups[static_cast<size_t>(target_)].tiles)
+            if (camp_tiles_.is_set(t)) mark_square(danger, t, map_info().groups[static_cast<size_t>(target_)].range);
+    bitboard goals;
+    mark_square(goals, pos_, 9);
+    goals &= ~danger;
+    if (!goals.is_empty()) step_towards(goals, true);
+}
+
 bool Bot::step_towards(bitboard goals, bool allow_dash) {
     auto& me = cambc::self();
     if (moved_ || move_failed_ || !me.can_move()) return false;
@@ -579,7 +615,7 @@ const bitboard& Bot::approach_tiles(int g) {
 float Bot::my_camp_dps() const {
     float s = str_;
     if (kit_.reset >= 0) s *= 1.12f;
-    if (shards_ >= 10) s *= 1.1f;   // monster emblem
+    if (has_emblem(type_, shards_, cambc::item_type::monster_shard_of_strength)) s *= 1.1f;
     if (kit_.nuke >= 0 && kit_.nuke_targets_camps) s += kit_.nuke_mod * cambc::self().focus() / 8.0f;
     return std::max(10.0f, s);
 }
@@ -768,6 +804,31 @@ int Bot::group_value(int g) const {
     return static_cast<int>(static_cast<float>(G.gems) + goldw * static_cast<float>(G.gold));
 }
 
+// Time to clear a group at `dps` and the damage taken meanwhile: monsters die in priority order
+// (most strength per health first) and every living fighter hits us until it dies.
+void Bot::clear_model(const GroupInfo& G, float hp_scale, float dps, float* time, float* dmg) const {
+    std::array<std::pair<float, float>, 32> mons{};   // (hp, str)
+    size_t n = 0;
+    for (size_t i = 0; i < G.kinds.size() && n < mons.size(); ++i) {
+        const auto spec = camp_spec(G.kinds[i]);
+        mons[n++] = {spec.hp * hp_scale, spec.str};
+    }
+    std::sort(mons.begin(), mons.begin() + static_cast<long>(n), [](const auto& a, const auto& b) {
+        return (a.second + 1.0f) / std::max(1.0f, a.first) > (b.second + 1.0f) / std::max(1.0f, b.first);
+    });
+    float alive_str = 0;
+    for (size_t i = 0; i < n; ++i) alive_str += mons[i].second;
+    float t = 0, d = 0;
+    for (size_t i = 0; i < n; ++i) {
+        const float dt = mons[i].first / std::max(1.0f, dps);
+        t += dt;
+        d += alive_str * dt;
+        alive_str -= mons[i].second;
+    }
+    *time = t;
+    *dmg = d;
+}
+
 void Bot::choose_target(bool force) {
     const auto& m = map_info();
     last_eval_ = round_;
@@ -778,7 +839,7 @@ void Bot::choose_target(bool force) {
     field.compute(static_walls(), roots, visited);
     const auto claims = read_claims();
     const float dps = my_camp_dps() * (0.4f + 0.6f * static_cast<float>(squad_n_));
-    const float camp_mult = shards_ >= 5 ? 0.7f : 1.0f;   // jungle emblem first
+    const float camp_mult = has_emblem(type_, shards_, cambc::item_type::jungle_shard_of_strength) ? 0.7f : 1.0f;
 
     // A shopping trip home first when enough gold waits to be spent (recall heals as well).
     bool safe = !damaged_;
@@ -804,28 +865,40 @@ void Bot::choose_target(bool force) {
         for (int s = 0; s < sm::kSlots; ++s)
             if (s != slot_ && claims[static_cast<size_t>(s)] == g && !same_squad(s)) ++claimers;
 
-        const float hp_left = K.reward ? 0.0f : (K.hp_seen >= 0 && K.ready <= round_ ? K.hp_seen : G.hp);
-        const float solo_clear = hp_left / dps;
-        const float solo_dmg = G.dps * solo_clear * 0.55f * camp_mult;
+        const float hp_scale = (K.hp_seen >= 0 && K.ready <= round_ && G.hp > 0) ? K.hp_seen / G.hp : 1.0f;
+        float solo_clear = 0, solo_dmg = 0;
+        if (!K.reward) clear_model(G, hp_scale, dps, &solo_clear, &solo_dmg);
+        solo_dmg *= camp_mult;
         const bool solo_ok = solo_dmg < 0.85f * maxhp_;
         if (claimers > 0 && (solo_ok || K.reward)) continue;   // an ally has it covered
         const int team_n = 1 + claimers;
-        const float clear = hp_left / (dps * static_cast<float>(team_n));
-        const float dmg = G.dps * clear * 0.55f * camp_mult;
-        bool needs_recall = via_home;
-        if (dmg >= hp_ - 0.12f * maxhp_) {
-            if (dmg >= 0.85f * maxhp_) continue;
-            needs_recall = true;
+        float clear = solo_clear, dmg = solo_dmg;
+        if (team_n > 1 && !K.reward) {
+            clear_model(G, hp_scale, dps * static_cast<float>(team_n), &clear, &dmg);
+            dmg *= camp_mult;
         }
-        const int travel = needs_recall ? 6 + G.dA : d;
+        // Groups too strong for one trip are worn down over several (camps never heal). Compare going
+        // now with the health we have against recalling first (full health, gold spent).
+        const float per_trip = 0.75f * maxhp_;
+        const float budget = std::max(0.0f, hp_ - 0.15f * maxhp_);
+        const int extra_now = dmg > budget ? static_cast<int>(std::ceil((dmg - budget) / per_trip)) : 0;
+        const int extra_home = static_cast<int>(std::ceil(std::max(0.0f, dmg - per_trip) / per_trip));
+        const float trip_cost = static_cast<float>(7 + G.dA);
+        const float t_now = static_cast<float>(d) + static_cast<float>(extra_now) * trip_cost;
+        const float t_home = (at_spawn_ ? static_cast<float>(G.dA) : static_cast<float>(6 + G.dA))
+            + static_cast<float>(extra_home) * trip_cost - (gold_ >= 90 && !tavi_ ? 6.0f : 0.0f);
+        bool needs_recall = via_home || (!at_spawn_ && t_home < t_now);
+        const int extra = needs_recall ? extra_home : extra_now;
+        if (extra > kMaxExtraTrips) continue;
+        const int travel = needs_recall ? (at_spawn_ ? G.dA : 6 + G.dA) : d;
         const int wait = std::max(0, K.ready - round_ - travel);
         if (wait > 40) continue;
         float value = static_cast<float>(group_value(g)) / static_cast<float>(team_n);
         if (cls == kGEnemy) value *= 0.6f;
         else if (cls == kGContested) value *= 0.85f;
         if (round_ - K.enemy_round < 30) value *= 0.5f;
-        const float time = static_cast<float>(travel + wait) + clear + 5.0f;
-        const float score = value / (time + 3.0f);
+        const float time = static_cast<float>(travel + wait) + clear + 5.0f + static_cast<float>(extra) * trip_cost;
+        const float score = value / (time + kTimeConst);
         if (g == target_) cur_score = score;
         if (score > best_score) {
             best_score = score;
@@ -833,6 +906,8 @@ void Bot::choose_target(bool force) {
             best_needs_recall = needs_recall;
         }
     }
+    if (kTrace && slot_ == kTraceSlot && round_ >= kTraceFrom && round_ < kTraceTo)
+        std::printf("C r%d s%d force%d cur%d %.3f best%d %.3f lasthit%d\n", round_, slot_, force ? 1 : 0, target_, cur_score, best, best_score, last_hit_round_);
     // Keep the current target unless something is clearly better: switching wastes the walk.
     if (!force && target_ >= 0 && cur_score > 0 && best_score < 1.4f * cur_score) return;
     if (best != target_) {
@@ -933,6 +1008,17 @@ bool Bot::execute_target(int g) {
         // Respawning: wait on the approach tiles if it is back soon enough.
         if (K.ready - round_ > 40) return false;
         act_ = kActWait;
+        // A long wait is better spent at home: heal and shop, then walk back.
+        if (!at_spawn_ && !damaged_ && K.ready - round_ > 8 + G.dA && (gold_ >= 60 || hp_ < 0.8f * maxhp_)) {
+            bool enemy_near = false;
+            for (const auto& e : enemies_)
+                if (cheb(e.pos, pos_) <= 9) enemy_near = true;
+            if (!enemy_near) {
+                act_ = kActRecall;
+                me.recall();
+                return true;
+            }
+        }
         const auto& ap = approach_tiles(g);
         if (!ap.is_set(pos_)) step_towards(ap, true);
         return true;
@@ -940,8 +1026,9 @@ bool Bot::execute_target(int g) {
 
     branch_ = 1;
     if (any_alive) {
-        // The group fights back harder than we can finish it: step out, recall, come back later.
-        if (damaged_) {
+        // Fight until our health runs low (unless the group is about to die), then leave its reach,
+        // recall and come back: camps never heal, so every trip makes progress.
+        if (damaged_ && hp_ - 3.0f * dmg_taken_ < 0.22f * maxhp_) {
             float left = 0, team_dps = my_camp_dps();
             for (auto t : G.tiles)
                 if (camp_tiles_.is_set(t)) {
@@ -952,20 +1039,17 @@ bool Bot::execute_target(int g) {
                 }
             for (const auto& a : allies_)
                 if (cheb(a.pos, G.center) <= 5) team_dps += a.dps;
-            const float need = dmg_taken_ * left / std::max(10.0f, team_dps);
-            if (need > hp_ - 0.08f * maxhp_) {
-                bitboard goals;
-                goals.clear();
-                for (const auto& c : awake_) mark_square(goals, c.pos, c.range);
-                for (auto t : G.tiles) mark_square(goals, t, G.range);
-                goals = ~goals;
-                act_ = kActFlee;
-                step_towards(goals, true);
+            if (left > 2.0f * team_dps || hp_ < 2.0f * dmg_taken_) {
+                disengage_ = true;
+                disengage_step();
                 return true;
             }
         }
         act_ = kActHit;
-        if (attack_camps_in_range(g)) return true;
+        if (attack_camps_in_range(g)) {
+            last_hit_round_ = round_;
+            return true;
+        }
         bitboard goals = approach_tiles(g);
         if (shrink_ && stall_group_ == g) {
             goals.clear();
@@ -1030,6 +1114,25 @@ void Bot::idle() {
 
 void Bot::farm() {
     const auto& m = map_info();
+    // Leaving a group too strong for this trip: get out of reach, then recall and come back.
+    if (disengage_) {
+        if (at_spawn_) {
+            disengage_ = false;
+        } else if (damaged_ || camp_danger_at(pos_) > 0) {
+            disengage_step();
+            return;
+        } else {
+            bool enemy_near = false;
+            for (const auto& e : enemies_)
+                if (cheb(e.pos, pos_) <= 9) enemy_near = true;
+            disengage_ = false;
+            if (!enemy_near) {
+                act_ = kActRecall;
+                cambc::self().recall();
+                return;
+            }
+        }
+    }
     // Never abandon a capture in progress.
     if (target_ >= 0 && gk_[static_cast<size_t>(target_)].reward)
         for (auto t : m.groups[static_cast<size_t>(target_)].tiles)
@@ -1046,7 +1149,8 @@ void Bot::farm() {
         if (execute_target(target_)) return;
     }
     const bool invalid = target_ < 0 || gk_[static_cast<size_t>(target_)].ready > round_ + 40;
-    if (invalid || round_ - last_eval_ >= kEvalEvery) {
+    const bool engaged = round_ - last_hit_round_ <= 3;
+    if (invalid || (!engaged && round_ - last_eval_ >= kEvalEvery)) {
         choose_target(invalid);
         if (moved_) return;   // recall started
     }

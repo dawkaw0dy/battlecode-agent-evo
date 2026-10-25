@@ -77,6 +77,7 @@ private:
     void choose_altar();
     void farm();
     void choose_target(bool force);
+    void clear_model(const GroupInfo& G, float hp_scale, float dps, float* time, float* dmg) const;
     bool execute_target(int g);
     bool attack_camps_in_range(int g);
     void idle();
@@ -84,6 +85,7 @@ private:
     // helpers
     bool step_towards(bitboard goals, bool allow_dash);
     bool walk_to(vec2 t);
+    void disengage_step();
     bitboard blocked_now() const;
     const bitboard& approach_tiles(int g);
     int group_value(int g) const;
@@ -147,6 +149,9 @@ private:
     std::array<EnemyView, 16> mem_{};
     std::array<int, 16> mem_round_{};
     int flee_until_ = -1;
+    bool disengage_ = false;
+    bool was_recalling_ = false, just_recalled_ = false;
+    int last_hit_round_ = -100;
     int leader_slot_ = 0, leader_target_ = -1, squad_n_ = 1;
     float my_dps_ = 0, my_burst_ = 0;
 };

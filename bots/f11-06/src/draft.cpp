@@ -25,6 +25,11 @@ void play_draft() {
             for (auto c : plan.cls) nb += c == kGHome, ng += c == kGContested, nc += c == kGEnemy;
             std::printf("PLAN %dx%d size%d gap%d mode%d bank%d raid%d groups%zu home%d cont%d enemy%d altars%zu\n", m.w, m.h, size, m.spawn_gap,
                 plan.mode, plan.bank, plan.raid, m.groups.size(), nb, ng, nc, m.altars.size());
+            for (size_t i = 0; i < m.groups.size(); ++i) {
+                const auto& g = m.groups[i];
+                std::printf("G%zu c(%d,%d) n%zu gems%d gold%d hp%.0f dps%.0f dA%d dE%d cls%d\n", i, g.center.x, g.center.y, g.tiles.size(), g.gems, g.gold,
+                    g.hp, g.dps, g.dA, g.dE, plan.cls[i]);
+            }
         }
         std::array<std::byte, 1024> mem{};
         write_plan(plan, m, mem);

@@ -16,7 +16,7 @@ constexpr int kFar = 9999;
 #define EVO_TRACE 0
 #endif
 constexpr bool kTrace = EVO_TRACE;
-constexpr int kTraceSlot = 2, kTraceFrom = 150, kTraceTo = 330;
+constexpr int kTraceSlot = 0, kTraceFrom = 1, kTraceTo = 260;
 constexpr std::uint16_t kUnreached = 65535;
 
 inline int cheb(vec2 a, vec2 b) {
