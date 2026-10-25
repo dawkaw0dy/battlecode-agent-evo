@@ -75,11 +75,11 @@ bool Bot::reset_attack() {
     return false;
 }
 
-// After a hit on the group (or a ranged walk): reset and hit again, when something is left to hit.
+// After a hit on the group: reset and hit again, when something is left to hit. (Also after a ranged
+// champion's walk into range cost Vesper Vale about 15% of her kills: the reset was spent when fights began.)
 void Bot::reset_hit(int group) {
     auto& me = cambc::self();
-    if (cast_ || !live() || me.can_attack() || !me.can_cast()) return;
-    if (!attacked_ && !(moved_ && me.attack_range() > 1)) return;
+    if (cast_ || !attacked_ || !live() || me.can_attack() || !me.can_cast()) return;
     const int range = me.attack_range();
     const vec2 pos = me.position();
     const auto& v = view();

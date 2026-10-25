@@ -698,8 +698,7 @@ void Bot::farm(int group) {
     fp("farm-go");
     // The safest spots cannot be reached: fall back to any spot in range for a while.
     if (!ok && !moved_before && !moved_ && !goal2.is_set(pos_) && !goal_plain_) plain_until_ = now + 12;
-    hit_group(group);
-    reset_hit(group);  // after a hit, or a ranged champion's walk
+    if (hit_group(group)) reset_hit(group);
 }
 
 // Step out of reach of awake camps.
