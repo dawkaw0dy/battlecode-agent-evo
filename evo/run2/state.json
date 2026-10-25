@@ -3270,9 +3270,11 @@
   },
   "f06-07": {
    "archetype": "scaling-economy",
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evolution-agent-f06-07-rquued",
+   "commit": "dc319f31cfa42e6bdf2b93373ee130c722a38bfb",
    "deadline_minutes": 120,
+   "done_at": 1792934084,
+   "effort_level": "high",
    "evidence": [],
    "failed_ideas": [
     "f04-05: Fuel: host calls cost ~30\u201340 fuel, but every bitboard temporary (&, |, ~, shift) ~600 and a grow(r) ~4k\u00b7r;",
@@ -3295,6 +3297,7 @@
    "generation": 6,
    "id": "f06-07",
    "kind": "immigrant",
+   "model": null,
    "nudged": [],
    "operator": null,
    "parents": [
@@ -3314,7 +3317,7 @@
    ],
    "slot": 7,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "4e5ee699cb6ae7061e4317400c865eb49b0e06ae1b4551c3c132556d0e5ec01e"
   }
  },
@@ -17310,7 +17313,6 @@
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-24T18:37:34Z g01 phase EVAL_A_DONE: results for r01-A",
   "2026-10-24T18:37:50Z g01 r01-A-spot: pushed 2337bb258a (23 sampled games, 17 shards)",
   "2026-10-24T18:40:13Z g01 r01-A: verified, 1120 rows, spot-check 23 OK",
   "2026-10-24T18:40:25Z g01 phase EVAL_B_PENDING: stage A ranked: f01-03, f01-01, f01-07, f01-02, f01-04, f00-03, f01-06, f01-05, starter",
@@ -17509,7 +17511,8 @@
   "2026-10-25T12:50:01Z g06 f06-05: launched session_01JC1GLBa5KHGzXXgPFxUF8e",
   "2026-10-25T12:50:46Z g06 f06-06: launched session_01GF9qbNn3MXFZHJGBG8jKTc",
   "2026-10-25T12:51:18Z g06 f06-07: launched session_018LWWLeLvxipigD5zAXQ3tA",
-  "2026-10-25T13:09:25Z g06 f06-04: done on origin/claude/evo-f06-04-wqv2c3 at a24591d6c0"
+  "2026-10-25T13:09:25Z g06 f06-04: done on origin/claude/evo-f06-04-wqv2c3 at a24591d6c0",
+  "2026-10-25T13:14:44Z g06 f06-07: done on origin/claude/evolution-agent-f06-07-rquued at dc319f31cf"
  ],
  "paused": null,
  "phase": "RUNNING",
