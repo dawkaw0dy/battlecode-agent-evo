@@ -49,6 +49,10 @@ constexpr float kMaxTrips = 6.f;
 constexpr int kContested = 40;
 constexpr float kEnemySide = 0.7f;
 constexpr int kEnemyMemory = 30;
+constexpr int kStallTurns = 6;
+constexpr int kEngageWait = 15;
+constexpr int kBigGems = 9999;         // non-boss groups worth a whole-team raid
+constexpr float kRaidRate = 1.0f;     // minimum team value per round for a raid
 
 int pick_order(bc::champion_type t) {
     switch (t) {
@@ -172,6 +176,14 @@ void Bot::init() {
         }
     }
     bad_until_.assign(groups_.size(), 0);
+    debug_block({
+        if (slot_ == 0)
+            for (const auto& G : groups_)
+                if (G.gems >= 20 || G.boss)
+                    std::cout << "GROUP c" << G.center.x << "," << G.center.y << " n" << G.tiles.size() << " gems" << G.gems
+                              << " gold" << G.gold << " hp" << int(G.hp) << " str" << int(G.str) << " hd" << G.home_dist
+                              << " es" << G.enemy_side << "\n";
+    });
     altars_ = bc::map::altars().positions();
     const auto spawn = bc::map::spawn_region(team::ally).positions();
     long sx = 0, sy = 0;
@@ -432,24 +444,39 @@ void Bot::lead_raid() {
             for (int s = 0; s < std::min(team_n_, kSlots); ++s)
                 if (mem_[kNearBits] & (1 << s)) ++near;
             if (near > 0 && engage_since_ < 0) engage_since_ = round_;
-            if (near >= std::max(2, team_n_ - 1) || (engage_since_ >= 0 && round_ - engage_since_ > 30))
+            if (near >= std::min(3, team_n_ - 1) || (engage_since_ >= 0 && round_ - engage_since_ > kEngageWait))
                 mem_[kFlags] |= 1;
         }
-    } else if (round_ >= raid_cool_) {
+    } else if (round_ >= raid_cool_ && team_n_ >= 3) {
+        // Big game: bosses, and any rich group too strong for one champion, taken by the whole team.
         const float dps = std::max(30.f, me.strength()) * 1.1f * static_cast<float>(team_n_);
         const float budget = me.max_health() * 0.55f * static_cast<float>(team_n_);
+        const float solo_dps = std::max(30.f, me.strength()) * 1.1f;
+        const float solo_budget = me.max_health() * kSoloBudget;
+        const float gold_w = round_ < 900 ? 0.4f : 0.25f;
         int best = -1;
-        int best_d = 1 << 20;
+        float best_score = kRaidRate;
         for (int i = 0; i < static_cast<int>(groups_.size()); ++i) {
             const auto& G = groups_[i];
-            if (!G.boss || G.home_dist >= 60000 || team_n_ < 3) continue;
-            if (G.monolith ? (round_ < kMonoRound || bought_ < kMonoShards)
-                           : (round_ < kGolemRound || bought_ < kGolemShards)) continue;
-            if (G.respawn_at > round_ + dist(pos, G.center)) continue;
+            if (G.home_dist >= 60000 || bad_until_[i] > round_) continue;
+            if (G.boss) {
+                if (G.monolith ? (round_ < kMonoRound || bought_ < kMonoShards)
+                               : (round_ < kGolemRound || bought_ < kGolemShards)) continue;
+            } else {
+                if (G.gems < kBigGems) continue;
+                // Leave it to solo farming if one champion can do it in two trips.
+                const float hp = G.known_hp >= 0 ? G.known_hp : G.hp;
+                if (G.str * 0.6f * (hp / solo_dps) <= 2.f * solo_budget) continue;
+            }
+            const int travel = std::min(G.home_dist, 300);
+            if (G.respawn_at > round_ + travel) continue;
             const float hp = G.known_hp >= 0 ? G.known_hp : G.hp;
-            const float trips = G.str * (hp / dps) / budget;
+            const float clear = hp / dps;
+            const float trips = G.str * (G.boss ? 1.f : 0.6f) * clear / budget;
             if (trips > (G.monolith ? 2.0f : 1.0f)) continue;
-            if (G.home_dist < best_d) { best_d = G.home_dist; best = i; }
+            const float value = static_cast<float>(G.gems) + gold_w * static_cast<float>(G.gold);
+            const float score = value / (static_cast<float>(travel) + clear + 15.f);
+            if (score > best_score) { best_score = score; best = i; }
         }
         if (best >= 0) {
             mem_[kRaid] = static_cast<std::uint8_t>(best + 1);
@@ -881,6 +908,7 @@ bool Bot::work_target(int t, bool engage) {
     auto& G = groups_[t];
     const bool on_tile = std::find(G.tiles.begin(), G.tiles.end(), pos) != G.tiles.end();
     if (G.reward_ready) {
+        wmode_ = 'Q';
         if (on_tile) return true;
         bc::bitboard g;
         g.clear();
@@ -891,6 +919,7 @@ bool Bot::work_target(int t, bool engage) {
         return true;
     }
     if (G.respawn_at > round_) {
+        wmode_ = 'W';
         if (on_tile) {
             step_away(G.center, 2);
             return true;
@@ -951,7 +980,7 @@ bool Bot::work_target(int t, bool engage) {
         return true;
     }
     // Staging: hold outside camp range until the leader calls the engage.
-    if ((kSolo ? G.boss : G.str >= kStageStr) && !any_awake && !engage) {
+    if ((kSolo ? t == raid_target_ : true) && G.str >= kStageStr && !any_awake && !engage) {
         const vec2 ref = boss_pos.x >= 0 ? boss_pos : tgt;
         const int d = dist(pos, ref);
         if (d <= G.range) step_away(ref, G.range + 1);
@@ -968,7 +997,7 @@ bool Bot::work_target(int t, bool engage) {
         return true;
     }
     (void)boss_tile;
-    if (attack_unit_camp(tgt)) return true;
+    if (attack_unit_camp(tgt)) { wmode_ = 'K'; return true; }
     // Approach.
     const int d = dist(pos, tgt);
     if (ranged_) {
@@ -991,7 +1020,7 @@ void Bot::trace(char mode, int target) {
     debug_block({
         auto& me = bc::self();
         if (round_ <= 2000)
-            std::cout << "r" << round_ << " s" << slot_ << " " << mode << " t" << target << " m" << int(mem_[1])
+            std::cout << "r" << round_ << " s" << slot_ << " " << mode << " t" << target << " R" << int(mem_[kRaid]) - 1 << "f" << int(mem_[kFlags]) << "n" << int(mem_[kNearBits])
                       << " p" << me.position().x << "," << me.position().y << " hp" << static_cast<int>(me.health())
                       << " g" << me.gem_count() << " au" << me.gold_count()
                       << " tc" << (target >= 0 ? groups_[target].center.x : -1) << ","
@@ -1183,7 +1212,7 @@ void Bot::play_turn() {
 
     const bool capturing = target >= 0 && groups_[target].reward_ready
         && std::find(groups_[target].tiles.begin(), groups_[target].tiles.end(), pos) != groups_[target].tiles.end();
-    const bool boss_target = target >= 0 && groups_[target].boss;
+    const bool boss_target = target >= 0 && (groups_[target].boss || (kSolo && target == raid_target_));
 
     // Heal: low health, or entering a boss fight below 75%.
     if (incoming == 0 && !capturing && !at_spawn
@@ -1213,7 +1242,19 @@ void Bot::play_turn() {
         return;
     }
 
+    wmode_ = 'T';
     if (target >= 0) work_target(target, engage || boss_awake);
+    else wmode_ = 'I';
+    // Stall check: approaching without moving or hitting for a while means we cannot get at it.
+    if (wmode_ == 'T' && !moved_ && target >= 0 && target != raid_target_) {
+        if (++stall_ > kStallTurns) {
+            debug_block({ std::cout << "STALL r" << round_ << " s" << slot_ << " t" << target << "\n"; });
+            bad_until_[target] = round_ + 80;
+            stall_ = 0;
+        }
+    } else {
+        stall_ = 0;
+    }
     write_status(true, near, false);
-    trace('T', target);
+    trace(wmode_, target);
 }

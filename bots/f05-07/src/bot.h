@@ -42,6 +42,8 @@ class Bot {
     int last_target_ = -1;
     bool retreat_ = false;
     bool banking_ = false;
+    char wmode_ = 'T';
+    int stall_ = 0;
     float last_hp_ = 0;
     int flee_until_ = 0;
     int enemy_seen_ = -1000;
