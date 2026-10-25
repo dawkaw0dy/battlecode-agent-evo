@@ -14,9 +14,10 @@
 // The parts:
 // - Foe memory (track_foes()): every enemy we saw in the last kMemory rounds, as the fight model reads it.
 //   A foe out of sight may have walked one tile a round towards us. foe_eta() is the first enemy turn on
-//   which any of them can hit a tile; a recall is started only when it is beyond the recall, and a running
-//   recall stops only when a visible foe arrives before it lands. ambush_until_ tells fuel.cpp to walk home
-//   instead of recalling while a recall would be broken.
+//   which any of them can hit a tile. Gating recalls on it (kEtaRecall: start only when no known foe can
+//   break it, walk home otherwise) measured 48/80 vs 56/80 for the parent's distance rule, which is used:
+//   recall when every visible foe is 7+ away, cancel when one comes within 5. ambush_until_ tells fuel.cpp
+//   to walk home instead of recalling while a hidden shooter is about.
 // - Hidden shooters (sense_ambush()/evade()/scout()): damage that neither a visible enemy nor a camp in reach
 //   explains comes from a bush: our ward goes into it so the fight model sees the shooter, no recall while
 //   it lasts, and a hurt champion walks away from unseen bushes. While enemies are about, our ward also
@@ -24,10 +25,13 @@
 // - Retreat: bank under fire beside an open altar when we outlive the channel, hold our spawn, recall when
 //   nobody can break it, swing at an adjacent enemy on the way (melee), shoot when nobody can hit us here
 //   (ranged), shoot back when an adjacent melee chaser hits us whatever we do (ranged), else the step (or
-//   dash) with the least fire on it towards home (towards the nearest altar with a bag that is nearer).
+//   dash) with the least fire on it towards home, or towards the nearest altar with a bag when it is
+//   nearer and we outlive the walk and the channel there (else the carrier stood beside an altar it could
+//   not bank at, under fire, until it died: the parent's 00collision losses).
 // - Banking (tribute()): when (a full bag, a short walk, enemies about, the clock, the race), where (the nearest
-//   open altar by road; through an enemy lock only when close or every altar is locked) and whether to start
-//   (we outlive the channel and no stun reaches us in it). Enemy tributes we see: deny()/contest().
+//   open altar by road; through an enemy lock only when close or every altar is locked), not towards an altar
+//   an enemy stands beside unless we outlive the channel there, and whether to start (we outlive the
+//   channel). Enemy tributes we see: deny()/contest().
 #include <cambc.h>
 #include "bot.h"
 #include "fuel.h"
