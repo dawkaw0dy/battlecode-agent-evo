@@ -7,6 +7,7 @@
 // One camp group as the bot remembers it.
 struct Group {
     std::vector<cambc::vec2> tiles;  // original camp spawn tiles (camps never move)
+    std::vector<float> tile_hp;      // design health of the camp on each tile
     cambc::vec2 center{};
     int gems = 0, gold = 0;
     float hp = 0, str = 0;           // design totals
@@ -42,6 +43,7 @@ class Bot {
     bool banking_ = false;
     float last_hp_ = 0;
     int flee_until_ = 0;
+    int enemy_seen_ = -1000;
     std::vector<std::pair<cambc::vec2, int>> awake_;  // awake camps near us: tile, attack range
     int raid_target_ = -1, raid_start_ = 0, raid_cool_ = 0;
     int last_scan_ = -100;

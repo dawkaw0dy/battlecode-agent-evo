@@ -37,12 +37,13 @@ constexpr int kFlags = 5, kRaid = 6, kNearBits = 7;
 constexpr float kBossBias = 2.0f;
 constexpr float kFightRatio = 1.3f;
 constexpr float kRetreatFrac = 0.35f;
-constexpr int kBankGems = 15;
+constexpr int kBankGems = 40;
 constexpr float kSwitch = 2.0f;     // a new target must score this many times the current one
 constexpr float kStageStr = 60.f;   // groups at least this strong are engaged together
 constexpr float kSoloBudget = 0.6f;  // share of max health a solo champion may lose on one group
 constexpr int kGolemRound = 150, kMonoRound = 400;
 constexpr int kFleeCommit = 5;
+constexpr float kMaxTrips = 6.f;
 
 int pick_order(bc::champion_type t) {
     switch (t) {
@@ -119,6 +120,7 @@ void Bot::init() {
         for (const auto& c : g.camps()) {
             const vec2 p = c.spawn_position();
             G.tiles.push_back(p);
+            const float before = G.hp;
             sx += p.x;
             sy += p.y;
             switch (c.kind()) {
@@ -129,6 +131,7 @@ void Bot::init() {
                 case bc::camp_type::golem: G.hp += 5000; G.str += 120; G.range = std::max(G.range, 4); G.boss = true; break;
                 default: G.hp += 120; break;
             }
+            G.tile_hp.push_back(G.hp - before);
         }
         if (!G.tiles.empty()) {
             const vec2 mean{static_cast<int>(sx / static_cast<long>(G.tiles.size())),
@@ -236,16 +239,14 @@ void Bot::scan_groups(bool all) {
             } else {
                 G.reward_ready = false;
                 G.respawn_at = 0;
-                if (G.boss) {
-                    float hp = 0;
-                    bool any = false;
-                    for (auto p : G.tiles)
-                        if (visible.is_set(p) && bc::vision::has_camp(p)) {
-                            hp += bc::vision::camp_at(p).health();
-                            any = true;
-                        }
-                    if (any) G.known_hp = hp;
+                // Remaining health: visible camps as seen, hidden ones at full health (camps never heal).
+                float hp = 0;
+                for (std::size_t k = 0; k < G.tiles.size(); ++k) {
+                    const vec2 p = G.tiles[k];
+                    if (!visible.is_set(p)) hp += G.tile_hp[k];
+                    else if (bc::vision::has_camp(p)) hp += bc::vision::camp_at(p).health();
                 }
+                G.known_hp = hp;
             }
         } catch (const std::exception&) {
         }
@@ -342,7 +343,7 @@ int Bot::choose_solo() {
     const vec2 pos = me.is_alive() ? me.position() : home_;
     const float dps = std::max(30.f, me.strength()) * 1.1f;
     const float budget = me.max_health() * kSoloBudget;
-    const float gold_w = round_ < 900 ? 0.5f : 0.25f;
+    const float gold_w = round_ < 900 ? 0.4f : 0.25f;
     const int cur = slot_ < kSlots ? mem_[slot_] - 1 : -1;
     int best = -1;
     float best_score = 0, cur_score = 0;
@@ -357,14 +358,23 @@ int Bot::choose_solo() {
         const int wait = G.respawn_at > round_ ? G.respawn_at - round_ : 0;
         const int eff_wait = std::max(0, wait - travel);
         if (eff_wait > 40) continue;
-        float clear = 0;
+        float clear = 0, trip_cost = 0;
         if (!G.reward_ready) {
-            clear = G.hp / dps;
-            if (G.str * clear * 0.5f > budget) continue;
+            const float hp = G.known_hp >= 0 ? G.known_hp : G.hp;
+            clear = hp / dps;
+            const float rate = G.str * 0.6f;
+            const float total_in = rate * clear;
+            if (total_in > budget) {
+                // Wear the group down over several trips (camps never regenerate).
+                const float trips = std::ceil(total_in / budget);
+                if (trips > kMaxTrips || budget / rate < 6.f) continue;
+                trip_cost = (trips - 1.f) * (10.f + 2.f * static_cast<float>(std::min(G.home_dist, 200)));
+            }
         }
         const float value = static_cast<float>(G.gems) + gold_w * static_cast<float>(G.gold);
         if (value <= 0) continue;
-        const float score = value / (static_cast<float>(travel + eff_wait) + clear + 8.f);
+        float score = value / (static_cast<float>(travel + eff_wait) + clear + trip_cost + 12.f);
+        if (G.reward_ready) score *= 1.3f;
         if (i == cur) cur_score = score;
         if (score > best_score) { best_score = score; best = i; }
     }
@@ -692,6 +702,7 @@ bool Bot::fight_enemies(bool& flee) {
     box(area, pos, 7);
     auto enemies = area & bc::vision::champion_tiles(team::enemy);
     if (enemies.is_empty()) return false;
+    enemy_seen_ = round_;
     auto allies = area & bc::vision::champion_tiles(team::ally);
     float hp_a = 0, dps_a = 0, hp_e = 0, dps_e = 0;
     for (auto p : allies.positions()) {
@@ -1128,7 +1139,8 @@ void Bot::play_turn() {
     const int total = static_cast<int>(bc::global_submitted_gems(team::ally));
     if (gems == 0) banking_ = false;
     const bool want_bank = gems > 0
-        && (banking_ || gems >= kBankGems || (gems >= 5 && hp < 0.5f * mh) || (gems >= 8 && altar_d <= 8) || altar_d <= 2 || round_ > 1850
+        && (banking_ || gems >= kBankGems || (gems >= 5 && hp < 0.5f * mh) || (gems >= 15 && altar_d <= 10)
+            || altar_d <= 4 || (gems >= 10 && round_ - enemy_seen_ < 30) || round_ > 1850
             || total + gems >= 1000 || (boss_target && (gems >= 5) && !(near && engage)));
     if (want_bank && !capturing && incoming == 0) {
         banking_ = true;
