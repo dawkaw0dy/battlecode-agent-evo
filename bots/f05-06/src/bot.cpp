@@ -311,6 +311,17 @@ std::optional<item_type> Bot::next_item() const {
 
 void Bot::shop() {
     auto& me = cambc::self();
+    // Carry one altar lock (it blocks only enemy tributes); not from the field (Tavi).
+    if ((on_spawn() || !me.is_alive()) && me.gold_count() >= 40 && live()) {
+        try {
+            if (me.consumables()[cambc::consumable_type::altar_lock].count() == 0
+                && me.can_buy(cambc::consumable_type::altar_lock)) {
+                g_where = "buy_lock";
+                me.buy(cambc::consumable_type::altar_lock);
+            }
+        } catch (const cambc::error&) {
+        }
+    }
     for (int guard = 0; guard < 12; ++guard) {
         const auto it = next_item();
         if (!it || !live()) return;
@@ -570,6 +581,25 @@ void Bot::try_ward_bush() {
         g_where = "ward";
         me.place_ward(best);
     } catch (const cambc::error&) {
+    }
+}
+
+// Lock an unlocked altar within reach (ours stay usable for us).
+void Bot::place_lock() {
+    auto& me = cambc::self();
+    if (!live() || altars_.empty()) return;
+    for (size_t i = 0; i < altars_.size(); ++i) {
+        const vec2 a = altars_[i];
+        if (cheb(a, pos_) > 2 || !Raw::bit(vis_, a)) continue;
+        if (cambc::vision::has_altar_lock(a)) continue;
+        try {
+            const auto& lock = me.consumables()[cambc::consumable_type::altar_lock];
+            if (lock.count() == 0) return;
+            g_where = "lock";
+            lock.use(a);
+        } catch (const cambc::error&) {
+        }
+        return;
     }
 }
 
@@ -1315,6 +1345,7 @@ void Bot::play_turn() {
     mode_ = 6;
     if (tribute()) return;
     lap(3);
+    if (fuel(20000)) place_lock();
     mode_ = 7;
     if (!fuel(12000)) return;
 

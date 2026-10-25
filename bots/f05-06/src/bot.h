@@ -143,6 +143,7 @@ private:
     bool try_recall(int why = 0);
     std::array<int, 8> recalls_{};
     void try_ward_bush();
+    void place_lock();
     bool on_spawn() const;
 
     // shared memory sighting: x, y, count, round&255
