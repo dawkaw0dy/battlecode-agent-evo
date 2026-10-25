@@ -1,0 +1,131 @@
+{
+ "env_manifest_sha256": "331e00405e703e1ed11507ef735572c37471ba802364d72d1aff92349dd5efba",
+ "generation": 6,
+ "job_id": "r06-A-spot",
+ "map_sha256": {
+  "00collision": "6e3c67956080f8da5a0042e68ea481189cd6f61061a742a8be0354a9ea5c5620",
+  "00interlock": "140e5bc3ac11c7f74dfc4ed99cc53739a34be8d3f71a7f4d0520dc4a3c197e19",
+  "00monolith": "ba5674bf2ab26336eb99df0c9e97c16b27bd231deffc023de1d873a05a558313",
+  "00packs": "60ee7a86ee377a04a77d11008b78aaed9e2c1cfcfc4302055974195e078c675a",
+  "00rows": "6a4203ae1bfe86ad0f6b083f390cfd8e2f5e45f7e4102f6a2f27205d5333e701",
+  "00split": "1db691b7def9cb585314c7c4139ef1b79df87fcdbfab9d86ef31666c4709a4c4",
+  "00swirl": "e6f860670947b1326f34c86515db8ef6893c565eaa69e3f9a6464ec5744e1c93",
+  "01big-world": "f1ecb726472858efb1d75d00b0d7668be18d83a010b2abf9a1f8c38aab456aa5",
+  "01elk-arena": "72b8e03bc4378d5f988f9c1c07609848bfb42fd8a883cce01820d96212f21c0a",
+  "01hooks": "23e58fe8f41ff66761ade251d3d10a9c3eead864f9ad74f12ad9e34f4bece378"
+ },
+ "runner_version": "cambc==3.0.5",
+ "runs_on": "ubuntu-22.04",
+ "shards": [
+  {
+   "a": "f06-01",
+   "b": "starter",
+   "maps": [
+    "00swirl"
+   ]
+  },
+  {
+   "a": "f06-02",
+   "b": "f05-02",
+   "maps": [
+    "00monolith",
+    "01elk-arena"
+   ]
+  },
+  {
+   "a": "f06-03",
+   "b": "f04-05",
+   "maps": [
+    "00packs"
+   ]
+  },
+  {
+   "a": "f06-03",
+   "b": "starter",
+   "maps": [
+    "00collision",
+    "00rows"
+   ]
+  },
+  {
+   "a": "f06-04",
+   "b": "f04-05",
+   "maps": [
+    "01hooks"
+   ]
+  },
+  {
+   "a": "f06-04",
+   "b": "starter",
+   "maps": [
+    "00collision"
+   ]
+  },
+  {
+   "a": "f06-05",
+   "b": "f03-05",
+   "maps": [
+    "00monolith"
+   ]
+  },
+  {
+   "a": "f06-05",
+   "b": "f05-02",
+   "maps": [
+    "00interlock"
+   ]
+  },
+  {
+   "a": "f06-05",
+   "b": "starter",
+   "maps": [
+    "01elk-arena"
+   ]
+  },
+  {
+   "a": "f06-06",
+   "b": "f04-05",
+   "maps": [
+    "00rows"
+   ]
+  },
+  {
+   "a": "f06-06",
+   "b": "starter",
+   "maps": [
+    "00split",
+    "00swirl",
+    "01big-world"
+   ]
+  },
+  {
+   "a": "f06-07",
+   "b": "f03-05",
+   "maps": [
+    "00monolith",
+    "00rows"
+   ]
+  },
+  {
+   "a": "f06-07",
+   "b": "f04-05",
+   "maps": [
+    "00interlock"
+   ]
+  }
+ ],
+ "src_sha256": {
+  "f03-05": "98fd79ae338c3590096ff21eefa715cc1a22794c2ad03aa03d835bc96f9edc90",
+  "f04-05": "c28582254ff7f36476845698f622d6f6e8e2bb7e9a2e598c3fe489d65518f0f1",
+  "f05-02": "08b3cf162662187e7e92595402a256bb20bb492b81926414b0c7d5b4dee640ba",
+  "f06-01": "c50cb5c0333c2c04c339fc70335363da56e2be0f7c579d0e2596f7af8aa11854",
+  "f06-02": "175fe87c6aa6bc27d3992ac289394db1988bd1dd3d148626f72cd376ef3d0b30",
+  "f06-03": "826b9b0ecfb0641bc0c114159b499855eb0faa4ea8ae36e6b74148bde6eba469",
+  "f06-04": "537f8bceeaf71cdf638e3e4fa607563a21e13335c3a992f20e3e18b33452b2fe",
+  "f06-05": "b2fdb1ef111ba1cf9913e7bf7a61c46f65047afabf6a17d7d5f3a4128947ecb9",
+  "f06-06": "ae51d998bd7cef0992cc19b0aa33f5b01093c442800b7d5417e5506a4413bde8",
+  "f06-07": "699937fb536faa2f51ad736b2c2acced1cbca3868a4e85c86a5ebb4a22292e9d",
+  "starter": "9023e6a089796897d6ed661f26054d1b81b298e048a09a5df75d3b9cb5d3c6a9"
+ },
+ "stage": "spot"
+}
