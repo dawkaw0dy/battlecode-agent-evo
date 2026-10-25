@@ -75,6 +75,8 @@ private:
     bool avoid_foes_ = false;
     bool hold_spawn_ = false;
     int osc_ = 0, banned_ = -1, banned_until_ = -1;
+    int stage_wait_ = 0, last_foe_round_ = -1000;
+    vec2 last_foe_pos_{-100, -100};
     cambc::bitboard vis_, camps_now_, units_;
     float incoming_ = 0;  // camp damage that can hit our tile next round (estimate)
     float incoming_other_ = 0;  // part of it from camps outside the target group

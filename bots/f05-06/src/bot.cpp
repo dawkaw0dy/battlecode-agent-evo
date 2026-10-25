@@ -241,6 +241,7 @@ void Bot::observe() {
                 f.ranged = f.range > 1;
                 f.channel = c.is_recalling() || c.is_submitting_gems() || c.is_teleporting();
                 (side == team::enemy ? foes_ : friends_).push_back(f);
+                if (side == team::enemy) last_foe_pos_ = p, last_foe_round_ = round_;
             } catch (const cambc::error&) {
             }
         }
@@ -1072,7 +1073,7 @@ void Bot::farm() {
     if (rechoose && !fuel(60000)) return;  // next turn (initialisation or a busy turn)
     if (rechoose) {
         const int t = choose_target();
-        if (t != target_) focus_camp_ = -1, approach_shrink_ = 0;
+        if (t != target_) focus_camp_ = -1, approach_shrink_ = 0, stage_wait_ = 0;
         target_ = t;
         target_round_ = round_;
         claim(t);
@@ -1113,6 +1114,26 @@ void Bot::farm() {
             go(goals, true);
         }
         return;
+    }
+
+    // Contested target where enemies were seen lately: wait short of it for company.
+    {
+        const bool contested = g.owner == dm::kShared || g.owner == dm::kEnemySide;
+        vec2 rp;
+        int rc = 0, rage = 99;
+        const bool hot = (round_ - last_foe_round_ < 25 && cheb(last_foe_pos_, g.center) <= 10)
+            || (read_report(rp, rc, rage) && cheb(rp, g.center) <= 10);
+        int company = 0;
+        for (const auto& a : friends_)
+            if (cheb(a.pos, pos_) <= 5 && a.hp > a.maxhp * 0.5f) ++company;
+        if (contested && hot && company == 0 && incoming_ <= 0 && cheb(pos_, g.center) > 3 && stage_wait_ < 15
+            && n_slots_ >= 3) {
+            ++stage_wait_;
+            mode_ = 10;
+            if (cheb(pos_, g.center) > 7) go_tile(g.center, 7, true);
+            return;
+        }
+        if (company > 0 || !hot) stage_wait_ = 0;
     }
 
     // Alive. Heal before a fight we cannot survive, unless already engaged.
