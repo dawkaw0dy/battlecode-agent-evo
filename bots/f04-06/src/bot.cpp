@@ -40,7 +40,8 @@ constexpr int kHuntAge = 6;              // rounds a sighting stays valid
 
 struct Group {
     bitboard tiles;
-    bitboard near1, near3;  // tiles within 1 and 3 of the group's spawn tiles
+    bitboard near1, near3;  // tiles within 1 and 3 of the group's spawn tiles, built on first use
+    bool has_near = false;
     vec2 center;
     int gems = 0, gold = 0;
     float hp = 0, str = 0;
@@ -102,9 +103,14 @@ int home_dist(vec2 p) {
     return g_home[static_cast<size_t>(p.y * W + p.x)];
 }
 
+// Tiles within Chebyshev radius r of c. The host draw is cheap but is only used away from the edge.
 bitboard ring(vec2 c, int r) {
     bitboard b;
     b.clear();
+    if (c.x - r >= 0 && c.y - r >= 0 && c.x + r < W && c.y + r < H) {
+        b.draw_chebyshev(c, static_cast<float>(r));
+        return b;
+    }
     for (int dy = -r; dy <= r; ++dy)
         for (int dx = -r; dx <= r; ++dx) {
             const vec2 q{c.x + dx, c.y + dy};
@@ -134,18 +140,22 @@ void init_map() {
         | cambc::map::spawn_region(team::enemy);
     g_ally_spawn = cambc::map::spawn_region(team::ally);
     g_enemy_spawn_near.clear();
-    for (auto p : cambc::map::spawn_region(team::enemy).positions()) g_enemy_spawn_near |= ring(p, 2);
+    {
+        int x0 = W, y0 = H, x1 = -1, y1 = -1;
+        for (auto p : cambc::map::spawn_region(team::enemy).positions()) {
+            x0 = std::min(x0, p.x); y0 = std::min(y0, p.y);
+            x1 = std::max(x1, p.x); y1 = std::max(y1, p.y);
+        }
+        for (int y = std::max(0, y0 - 2); y <= std::min(H - 1, y1 + 2); ++y)
+            for (int x = std::max(0, x0 - 2); x <= std::min(W - 1, x1 + 2); ++x) g_enemy_spawn_near.set(vec2{x, y});
+    }
     for (auto a : cambc::map::altars().positions()) g_altars.push_back(a);
     g_cg = cambc::map::camp_groups();
+    g_groups.reserve(g_cg.size());
     for (const auto& grp : g_cg) {
-        Group g;
-        g.tiles = grp.spawn_tiles();
-        g.near1.clear();
-        g.near3.clear();
-        for (auto p : g.tiles.positions()) {
-            g.near1 |= ring(p, 1);
-            g.near3 |= ring(p, 3);
-        }
+        Group& g = g_groups.emplace_back();
+        grp.spawn_tiles_into(g.tiles);
+
         g.gems = static_cast<int>(grp.gem_value());
         g.gold = static_cast<int>(grp.gold_value());
         int sx = 0, sy = 0, n = 0;
@@ -160,7 +170,6 @@ void init_map() {
             ++n;
         }
         g.center = n ? vec2{sx / n, sy / n} : vec2{0, 0};
-        g_groups.push_back(g);
     }
     {
         int sx = 0, sy = 0, n = 0;
@@ -180,12 +189,9 @@ void init_map() {
     bitboard visited;
     bitboard walls = cambc::map::walls() | cambc::map::holes() | cambc::map::altars();
     f.compute(walls, g_ally_spawn, visited);
+    // Unreached tiles export as 65535.
     g_home.assign(static_cast<size_t>(W * H), 65535);
-    std::vector<std::uint16_t> buf(static_cast<size_t>(W * H));
-    f.export_linear_buffer(std::span<std::uint16_t>{buf.data(), buf.size()});
-    for (int y = 0; y < H; ++y)
-        for (int x = 0; x < W; ++x)
-            if (visited.is_set(vec2{x, y})) g_home[static_cast<size_t>(y * W + x)] = buf[static_cast<size_t>(y * W + x)];
+    f.export_linear_buffer(std::span<std::uint16_t>{g_home.data(), g_home.size()});
 }
 
 // ---- shared memory -------------------------------------------------------------------------------
@@ -428,7 +434,11 @@ void update_groups() {
     const auto& groups = g_cg;
     for (size_t i = 0; i < groups.size() && i < g_groups.size(); ++i) {
         auto& g = g_groups[i];
-        if ((g.tiles & vis).is_empty()) {
+        // Member tile checks: a bitboard temporary per group per turn costs far more fuel.
+        bool seen = false;
+        for (const auto& c : groups[i].camps())
+            if (vis.is_set(c.spawn_position())) { seen = true; break; }
+        if (!seen) {
             if (g.ready && g.ready <= g_round) g.ready = 0;
             continue;
         }
@@ -857,6 +867,15 @@ void turn_body_impl() {
         }
         g_mode = "approach";
         // Approach the group.
+        if (!g.has_near) {
+            g.has_near = true;
+            g.near1.clear();
+            g.near3.clear();
+            for (auto p : g.tiles.positions()) {
+                g.near1 |= ring(p, 1);
+                g.near3 |= ring(p, 3);
+            }
+        }
         if (!step_to(my_range >= 3 ? g.near3 : g.near1) && !step_to(ring(g.center, 3)) && !g_move_failed
             && me.can_move()) {
             // Unreachable from here (islands, blocked lanes): drop it for a while and pick again.
