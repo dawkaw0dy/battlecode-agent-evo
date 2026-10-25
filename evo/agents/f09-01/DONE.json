@@ -1,0 +1,27 @@
+{
+ "agent": "f09-01",
+ "task_sha256": "6290ac4e24f322c9d941af6f7b37cf3a5b102d371645b07f2f9b38662ca7bb31",
+ "base_commit": "57bfe926a5dfcae6cdd40ceff05586ac362fc6ac",
+ "session_id": "cse_01SCRdWoUDDqZEtWnRWLpgfy",
+ "bot_dir": "bots/f09-01",
+ "self_eval": {
+  "vs": "f08-04",
+  "games": 40,
+  "wins": 29
+ },
+ "games_played": 884,
+ "summary": "Defense rewrite: unexplained hits from unseen bush shooters trigger a ward reveal and no recall (was 14% of deaths), scouting wards, bag-aware fights, bank under fire, channel guards; 54/80 vs parent mirror",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "a362858fee6f774350e2901c8b43d49242278b8435cd847a8ad87dc4772be67d",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 16.11,
+  "remote": "true",
+  "session_id": "cse_01SCRdWoUDDqZEtWnRWLpgfy",
+  "effort_level": "high",
+  "model": null
+ }
+}

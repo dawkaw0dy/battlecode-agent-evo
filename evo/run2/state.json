@@ -4390,8 +4390,8 @@
     }
    ],
    "slot": 1,
-   "src_sha256": null,
-   "status": "done",
+   "src_sha256": "43816d64dcee63f7aae46d7e312635401ab5533ce1d1299fdca2e20e78ecad39",
+   "status": "admitted",
    "task_sha256": "6290ac4e24f322c9d941af6f7b37cf3a5b102d371645b07f2f9b38662ca7bb31"
   },
   "f09-02": {
@@ -4467,8 +4467,8 @@
     }
    ],
    "slot": 2,
-   "src_sha256": null,
-   "status": "done",
+   "src_sha256": "b87c7de92f5eec50f4a90d2336f78c05b8ecfefb7befeecf0fff65f312900a88",
+   "status": "admitted",
    "task_sha256": "d71b409fcce8b3359f4aaeacc32b684d402ec6d9111866f3493c535a3b2d0cb8"
   },
   "f09-03": {
@@ -4544,8 +4544,8 @@
     }
    ],
    "slot": 3,
-   "src_sha256": null,
-   "status": "done",
+   "src_sha256": "5ce52402f783fe71a020d28bb4c35b5e97955783bc35dc3f70c3126b2e06fbc3",
+   "status": "admitted",
    "task_sha256": "ecc888dcb2bc5ce537217e3140640795e601b79bc89798bcfab27a4cb45340ed"
   },
   "f09-04": {
@@ -4621,8 +4621,8 @@
     }
    ],
    "slot": 4,
-   "src_sha256": null,
-   "status": "done",
+   "src_sha256": "486ca135dac02abfbd152d894377fff11457d57d30282a992556d371698b8e33",
+   "status": "admitted",
    "task_sha256": "588bc5e0f0d27e8213febc39fa17f4551ec4bdfc33ba8a5f151c60ce487f8d20"
   },
   "f09-05": {
@@ -4698,8 +4698,8 @@
     }
    ],
    "slot": 5,
-   "src_sha256": null,
-   "status": "done",
+   "src_sha256": "51fcc6b5347410d54f8f2b8ac966d8c9785b2f9a10345af2725a907c28e03e75",
+   "status": "admitted",
    "task_sha256": "2cdc441960b5d1cf1b1dc628d4dfa6348cdae828cc750b7c608a308cb285504a"
   },
   "f09-06": {
@@ -4750,8 +4750,8 @@
     }
    ],
    "slot": 6,
-   "src_sha256": null,
-   "status": "done",
+   "src_sha256": "07ad55209584d1722323388ad999d0c9e51f9b54398fb5856d542ca02513296b",
+   "status": "admitted",
    "task_sha256": "bc1ed69ee63de10414b2a7cd80ca8f644a1db7342b680df6417fd07cd37d65af"
   },
   "f09-07": {
@@ -4802,8 +4802,8 @@
     }
    ],
    "slot": 7,
-   "src_sha256": null,
-   "status": "done",
+   "src_sha256": "54cea53d44681d28fd3f187d517a6aedcde1c08ad921c5a49002fd2e62c0b4f2",
+   "status": "admitted",
    "task_sha256": "f2243dce5aafcda2c302992053ae86fbd4baa655ffe49bc3003a3febb6eb739c"
   }
  },
@@ -25976,6 +25976,16 @@
     "B": [],
     "C": []
    },
+   "members": [
+    "f08-04",
+    "f09-01",
+    "f09-02",
+    "f09-03",
+    "f09-04",
+    "f09-05",
+    "f09-06",
+    "f09-07"
+   ],
    "slots": [
     "f08-04",
     "f09-01",
@@ -26576,13 +26586,6 @@
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-25T10:25:47Z g04 r04-A-spot: pushed 0f96b65002 (18 sampled games, 12 shards)",
-  "2026-10-25T10:28:03Z g04 r04-A: verified, 896 rows, spot-check 18 OK",
-  "2026-10-25T10:28:11Z g04 phase EVAL_B_PENDING: stage A ranked: f04-05, f04-04, f04-02, f04-03, f04-01, f03-05, f04-06, f02-01, f01-07, f04-07, starter",
-  "2026-10-25T10:28:24Z g04 r04-B: pushed 86f2a972b5 with 44 shards",
-  "2026-10-25T10:33:50Z g04 phase EVAL_B_DONE: results for r04-B",
-  "2026-10-25T10:34:00Z g04 r04-B-spot: pushed 5e9e97348f (40 sampled games, 27 shards)",
-  "2026-10-25T10:36:16Z g04 r04-B: verified, 1952 rows, spot-check 40 OK",
   "2026-10-25T10:36:26Z g04 phase EVAL_C_PENDING: stage C for f04-03 vs f04-04",
   "2026-10-25T10:36:41Z g04 r04-C: pushed 39dce0ac45 with 9 shards",
   "2026-10-25T10:38:56Z g04 phase EVAL_C_DONE: results for r04-C",
@@ -26775,7 +26778,14 @@
   "2026-10-25T19:14:52Z g09 f09-03: done on origin/claude/evolution-agent-f09-03-7y4qfw at 77b5abfcb0",
   "2026-10-25T19:20:45Z g09 f09-07: done on origin/claude/evo-task-f09-07-w6p1le at e958a73309",
   "2026-10-25T19:45:06Z g09 f09-06: done on origin/claude/evo-task-f09-06-cuu4ht at 8338a81e0d",
-  "2026-10-25T19:45:06Z g09 phase ADMITTED"
+  "2026-10-25T19:45:06Z g09 phase ADMITTED",
+  "2026-10-25T19:45:15Z g09 f09-01: admitted (43816d64dcee)",
+  "2026-10-25T19:45:20Z g09 f09-02: admitted (b87c7de92f5e)",
+  "2026-10-25T19:45:24Z g09 f09-03: admitted (5ce52402f783)",
+  "2026-10-25T19:45:29Z g09 f09-04: admitted (486ca135dac0)",
+  "2026-10-25T19:45:33Z g09 f09-05: admitted (51fcc6b53474)",
+  "2026-10-25T19:45:37Z g09 f09-06: admitted (07ad55209584)",
+  "2026-10-25T19:45:42Z g09 f09-07: admitted (54cea53d4468)"
  ],
  "paused": null,
  "phase": "ADMITTED",
