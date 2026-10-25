@@ -31806,13 +31806,19 @@
    "pushed_commit": "fccf84f4a81b07caec0184c1c0bd06b00d853531",
    "results_commit": "8ab8c763a1e3cf2645af31115669f6f272bbccce",
    "retries": 0,
+   "spotcheck": {
+    "games": 40,
+    "job": "r10-B-spot",
+    "pushed_at": 1792965911,
+    "pushed_commit": "3346faba4e3aba2515021a2c7022aabb7c9408ff",
+    "status": "pending"
+   },
    "stage": "B",
    "status": "arrived"
   }
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-25T12:45:09Z g06 phase TASKS_PUSHED: 7 task files",
   "2026-10-25T12:45:52Z g06 phase RUNNING",
   "2026-10-25T12:47:23Z g06 f06-01: launched session_01BbSKbQTSJN62Tk6yL2U2MD",
   "2026-10-25T12:47:58Z g06 f06-02: launched session_01PYDxjGJKi4UgxjMvvBBsoc",
@@ -32011,7 +32017,8 @@
   "2026-10-25T21:59:48Z g10 r10-A: verified, 896 rows, spot-check 18 OK",
   "2026-10-25T22:00:00Z g10 phase EVAL_B_PENDING: stage A ranked: f10-03, f10-01, f10-02, f10-05, f09-01, f10-04, f08-04, f07-02, f10-06, f10-07, starter",
   "2026-10-25T22:00:29Z g10 r10-B: pushed fccf84f4a8 with 44 shards",
-  "2026-10-25T22:05:00Z g10 phase EVAL_B_DONE: results for r10-B"
+  "2026-10-25T22:05:00Z g10 phase EVAL_B_DONE: results for r10-B",
+  "2026-10-25T22:05:11Z g10 r10-B-spot: pushed 3346faba4e (40 sampled games, 24 shards)"
  ],
  "paused": null,
  "phase": "EVAL_B_DONE",
