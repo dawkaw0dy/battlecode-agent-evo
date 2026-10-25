@@ -27,15 +27,21 @@ CampSpec camp_spec(cambc::camp_type t) {
 // Shared memory: bytes 0..4 hold each slot's target group + 1; 5..7 the latest enemy sighting (x, y, round).
 constexpr int kSightX = 5, kSightY = 6, kSightRound = 7;
 constexpr int kSightAge = 20;      // rounds a sighting stays relevant
+constexpr int kHelp = 251;         // status: running from foes, allies please come
+constexpr int kHelpRange = 0;      // how far an ally walks to answer (off: answering cost more farming than it saved)
 constexpr float kTrip = 0.55f;     // share of max health one trip into a group may cost
 constexpr int kMaxTrips = 4;
 constexpr int kShopGold = 200;
+constexpr float kBankBase = 10.0f, kBankPerGem = 1.5f;  // walk to bank when the altar is this close
+constexpr int kThreatRange = 30, kThreatGems = 4;      // ... or at once when enemies were seen near
 constexpr float kGoldValue = 0.35f;
 constexpr float kFight = 1.2f;     // our power over theirs needed to start a fight
 constexpr float kTrapped = 0.25f;  // ... or to hit back when a melee foe has us and we cannot outrun it
 constexpr int kReplan = 12;        // rounds between target re-plans
+constexpr float kHurtFight = 0.35f; // below this share of health we stop starting fights
 constexpr bool kLocks = true;
 constexpr int kLockRange = 2;      // altar lock placement reach
+constexpr int kLockDetour = 0;     // walk this far off our way to lock an altar (detours cost more lives than they denied)
 constexpr float kHelperHp = 3000;  // one more champion may join a group per this much camp health
 
 float ability_range(const cambc::ability& ab) {
@@ -615,7 +621,9 @@ bool Bot::handle_enemies() {
     const bool can_dash = ready_dash(abs) != nullptr;
     const int sd = fdist(spawn_f_, spawn_seen_, pos_);
     const bool trapped = melee_on_us && !can_dash && sd > 3 && ratio >= kTrapped;
-    const bool fight = ratio >= kFight || finish || trapped;
+    // Whatever the odds, a badly hurt champion only finishes a kill or hits back when it cannot get away.
+    const bool hurt = me.health() < me.max_health() * kHurtFight;
+    const bool fight = (ratio >= kFight && !hurt) || finish || trapped;
     debug_block({
         std::cout << "F r" << round_ << " s" << slot_ << " hp" << me.health() << "/" << me.max_health() << " p(" << pos_.x << "," << pos_.y << ") dmin" << dmin << " R" << ratio << " caught" << caught << " fight" << fight << " fr" << friends_.size();
         for (const auto& f : foes_) std::cout << " [" << int(f.type) << " " << f.pos.x << "," << f.pos.y << " hp" << f.hp << " s" << f.str << " r" << f.range << "]";
@@ -651,7 +659,31 @@ bool Bot::handle_enemies() {
     }
     if (target_ >= 0 && cheb(g_[target_].center, pos_) <= 10) g_[target_].avoid_until = round_ + 30;
     mode_ = "flee";
+    if (kHelpRange > 0) write_status(kHelp);  // allies nearby come and turn the fight
     flee();
+    return true;
+}
+
+// Join an ally who is running from foes, if we are healthy and close: two of us beat one of them.
+bool Bot::answer_help() {
+    if (kHelpRange <= 0 || !foes_.empty() || incoming_ > 0 || !sight_ok_) return false;
+    auto& me = cambc::self();
+    if (me.health() < me.max_health() * 0.6f || me.gem_count() >= 15) return false;
+    if (cheb(sight_, pos_) > kHelpRange) return false;
+    std::array<std::uint8_t, 3> v{};
+    cambc::shared_memory.read(kSightX, std::span{v.data(), 3});
+    if (((round_ - v[2]) & 255) > 3) return false;
+    bool asked = false;
+    for (int s = 0; s < size_ && s < 5; ++s) asked = asked || (s != slot_ && read_status(s) == kHelp);
+    if (!asked) return false;
+    cambc::bitboard roots;
+    for (int dy = -1; dy <= 1; ++dy)
+        for (int dx = -1; dx <= 1; ++dx) {
+            const vec2 q{sight_.x + dx, sight_.y + dy};
+            if (inside(q) && !raw_bit(terrain_.ptr(), q)) raw_set(roots.ptr(), q);
+        }
+    if (!step(roots)) return false;
+    mode_ = "help";
     return true;
 }
 
@@ -668,17 +700,57 @@ bool Bot::free_altar(vec2 a) const {
 void Bot::lock_altars() {
     if (!kLocks) return;
     auto& me = cambc::self();
-    bool near = false;
-    for (auto a : altars_) near = near || cheb(a, pos_) <= kLockRange;
-    if (!near) return;
+    if (lock_seen_.size() != altars_.size()) lock_seen_.assign(altars_.size(), -1000);
+    bool seen = false;
+    for (auto a : altars_) seen = seen || cheb(a, pos_) <= 8;
+    if (!seen) { has_lock_ = false; return; }
+    // Remember which altars carry our lock.
+    const auto vis = cambc::vision::visible_tiles();
+    for (std::size_t i = 0; i < altars_.size(); ++i) {
+        const vec2 a = altars_[i];
+        if (cheb(a, pos_) > 8 || !raw_bit(vis.ptr(), a)) continue;
+        if (!cambc::vision::has_altar_lock(a)) lock_seen_[i] = -1000;
+        else if (free_altar(a)) lock_seen_[i] = round_;
+    }
     const auto& lock = me.consumables()[cambc::consumable_type::altar_lock];
-    if (lock.count() == 0) return;
-    for (auto a : altars_) {
+    has_lock_ = lock.count() > 0;
+    if (!has_lock_) return;
+    for (std::size_t i = 0; i < altars_.size(); ++i) {
+        const vec2 a = altars_[i];
         if (cheb(a, pos_) > kLockRange || cambc::vision::has_altar_lock(a)) continue;
         try {
-            if (lock.use(a)) return;
+            if (lock.use(a)) {
+                lock_seen_[i] = round_;
+                has_lock_ = false;
+                return;
+            }
         } catch (const std::exception& e) { warn("lock altar", e); return; }
     }
+}
+
+// A short detour to lock a nearby altar that does not carry our lock.
+bool Bot::lock_detour() {
+    if (!kLocks || !has_lock_ || incoming_ > 0 || !foes_.empty()) return false;
+    int best = -1;
+    for (std::size_t i = 0; i < altars_.size(); ++i) {
+        const vec2 a = altars_[i];
+        if (cheb(a, pos_) > kLockDetour || round_ - lock_seen_[i] < 150) continue;
+        if (best < 0 || cheb(a, pos_) < cheb(altars_[static_cast<std::size_t>(best)], pos_)) best = static_cast<int>(i);
+    }
+    if (best < 0) return false;
+    const vec2 a = altars_[static_cast<std::size_t>(best)];
+    cambc::bitboard roots;
+    for (int dy = -kLockRange; dy <= kLockRange; ++dy)
+        for (int dx = -kLockRange; dx <= kLockRange; ++dx) {
+            const vec2 q{a.x + dx, a.y + dy};
+            if (inside(q) && !raw_bit(terrain_.ptr(), q)) raw_set(roots.ptr(), q);
+        }
+    if (!step(roots)) {
+        if (nopath_) lock_seen_[static_cast<std::size_t>(best)] = round_;  // unreachable: forget it for a while
+        return false;
+    }
+    mode_ = "lockwalk";
+    return true;
 }
 
 // ---------------------------------------------------------------- banking
@@ -712,8 +784,8 @@ bool Bot::tribute() {
     if (d >= kFar) return false;
     const bool late = round_ + d + 8 >= static_cast<int>(cambc::constants::max_rounds);
     if (!late && incoming_ > 0 && gems < 40) return false;
-    const bool threat = enemy_near(pos_, 25) && gems >= 8;
-    if (!late && !threat && gems < 40 && static_cast<float>(d) > 6.0f + static_cast<float>(gems) * 0.8f) return false;
+    const bool threat = enemy_near(pos_, kThreatRange) && gems >= kThreatGems;
+    if (!late && !threat && gems < 40 && static_cast<float>(d) > kBankBase + static_cast<float>(gems) * kBankPerGem) return false;
     cambc::bitboard spots = altar_spots_;
     for (auto a : altars_)
         if (cambc::vision::has_altar_lock(a)) {
@@ -740,7 +812,7 @@ int Bot::choose_target() {
     for (int s = 0; s < size_ && s < 5; ++s)
         if (s != slot_) {
             const int v = read_status(s);
-            if (v > 0 && v <= static_cast<int>(g_.size())) taken[static_cast<std::size_t>(s)] = v - 1;
+            if (v > 0 && v <= static_cast<int>(g_.size()) && v < kHelp) taken[static_cast<std::size_t>(s)] = v - 1;
         }
     auto claimants = [&](int gi) {
         int n = 0;
@@ -1047,6 +1119,7 @@ void Bot::turn() {
     prof_[2] = cambc::fuel_remaining();
     if (tribute()) return;
     prof_[3] = cambc::fuel_remaining();
+    if (lock_detour()) return;
 
     const float hp = me.health();
     const int sd = fdist(spawn_f_, spawn_seen_, pos_);
@@ -1064,6 +1137,8 @@ void Bot::turn() {
             return;
         }
     }
+
+    if (answer_help()) return;
 
     // Spend gold between fights: items are permanent.
     if (!at_spawn && incoming_ <= 0 && me.gold_count() >= kShopGold && me.gem_count() == 0) {

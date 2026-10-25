@@ -75,6 +75,8 @@ class Bot {
     // Memory.
     int target_ = -1, target_since_ = -100;
     int plug_ = -1, plug_round_ = -100;
+    std::vector<int> lock_seen_;        // per altar: round we last saw our lock on it
+    bool has_lock_ = false;
     const char* mode_ = "";
     std::array<std::uint64_t, 7> prof_{};
 
@@ -97,12 +99,14 @@ class Bot {
 
     bool handle_enemies();
     void flee();
+    bool answer_help();
     float flee_score(vec2 q) const;
     const cambc::ability* ready_dash(std::array<cambc::ability, 2>& abs) const;
     bool spell_on_foe(bool stun_only);
     bool tribute();
     void lock_altars();
     bool free_altar(vec2 a) const;
+    bool lock_detour();
     float my_dps() const;
     float taken_mult() const;
     float remaining_hp(const Group& g, bool full = false) const;
