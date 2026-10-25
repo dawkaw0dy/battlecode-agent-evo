@@ -1874,7 +1874,9 @@
    "generation": 4,
    "id": "f04-01",
    "kind": "child",
-   "nudged": [],
+   "nudged": [
+    "session_01QHWMB1CZj5xpfvvEKkD8fQ"
+   ],
    "operator": "subsystem",
    "parents": [
     "f03-05"
@@ -1888,6 +1890,7 @@
      "id": "session_01QHWMB1CZj5xpfvvEKkD8fQ",
      "launch_output": "Created cloud session: Evolution agent f04-01\nView: https://claude.ai/code/session_01QHWMB1CZj5xpfvvEKkD8fQ?from=cli&m=0\nResume with: claude --teleport session_01QHWMB1CZj5xpfvvEKkD8fQ",
      "launched_at": 1792917440,
+     "nudged_at": 1792923481,
      "url": "https://claude.ai/code/session_01QHWMB1CZj5xpfvvEKkD8fQ"
     }
    ],
@@ -1948,7 +1951,9 @@
    "generation": 4,
    "id": "f04-02",
    "kind": "child",
-   "nudged": [],
+   "nudged": [
+    "session_011B2jubn2kQGMAfXcBsmiEa"
+   ],
    "operator": "crossover",
    "parents": [
     "f03-05",
@@ -1963,6 +1968,7 @@
      "id": "session_011B2jubn2kQGMAfXcBsmiEa",
      "launch_output": "Created cloud session: Evolution task f04-02\nView: https://claude.ai/code/session_011B2jubn2kQGMAfXcBsmiEa?from=cli&m=0\nResume with: claude --teleport session_011B2jubn2kQGMAfXcBsmiEa",
      "launched_at": 1792917454,
+     "nudged_at": 1792923481,
      "url": "https://claude.ai/code/session_011B2jubn2kQGMAfXcBsmiEa"
     }
    ],
@@ -2023,7 +2029,9 @@
    "generation": 4,
    "id": "f04-03",
    "kind": "child",
-   "nudged": [],
+   "nudged": [
+    "session_01Aj8kzpM3dwnJ2b5rZXuMQ1"
+   ],
    "operator": "subsystem",
    "parents": [
     "f03-05"
@@ -2037,6 +2045,7 @@
      "id": "session_01Aj8kzpM3dwnJ2b5rZXuMQ1",
      "launch_output": "Created cloud session: Evolution agent f04-03\nView: https://claude.ai/code/session_01Aj8kzpM3dwnJ2b5rZXuMQ1?from=cli&m=0\nResume with: claude --teleport session_01Aj8kzpM3dwnJ2b5rZXuMQ1",
      "launched_at": 1792917466,
+     "nudged_at": 1792923481,
      "url": "https://claude.ai/code/session_01Aj8kzpM3dwnJ2b5rZXuMQ1"
     }
    ],
@@ -2097,7 +2106,9 @@
    "generation": 4,
    "id": "f04-04",
    "kind": "child",
-   "nudged": [],
+   "nudged": [
+    "session_01AkmucjDbQzsy6kxG372xnd"
+   ],
    "operator": "tweak",
    "parents": [
     "f03-04"
@@ -2111,6 +2122,7 @@
      "id": "session_01AkmucjDbQzsy6kxG372xnd",
      "launch_output": "Created cloud session: Evolution agent f04-04\nView: https://claude.ai/code/session_01AkmucjDbQzsy6kxG372xnd?from=cli&m=0\nResume with: claude --teleport session_01AkmucjDbQzsy6kxG372xnd",
      "launched_at": 1792917478,
+     "nudged_at": 1792923481,
      "url": "https://claude.ai/code/session_01AkmucjDbQzsy6kxG372xnd"
     }
    ],
