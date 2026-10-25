@@ -428,8 +428,8 @@ bool Bot::hit_group(int group, bool force) {
 }
 
 namespace {
-// Best plan for one group: champion-turn rate, team size and whether the team gathers first.
-struct Plan { float score = 0; int n = 1; bool rally = false; };
+// Best plan for one group: champion-turn rate and team size.
+struct Plan { float score = 0; int n = 1; };
 }  // namespace
 
 int Bot::choose(int& wait_out) {
@@ -455,7 +455,6 @@ int Bot::choose(int& wait_out) {
             const int avail = k_[c].state == Known::respawning ? k_[c].ready : now;
             wait_out = std::max(0, avail - (now + eta(c)));
             raid_n_ = 2;
-            rally_need_ = false;
             return c;
         }
     }
@@ -528,14 +527,14 @@ int Bot::choose(int& wait_out) {
                             if (many.ok) {
                                 const float s2 = value / (n - unit + 1) * f * territory(rel, n)
                                     / (base_t + bank / n + many.turns + many.trips * trip);
-                                if (s2 > plan.score) { plan.score = s2; plan.n = n; plan.rally = false; }
+                                if (s2 > plan.score) { plan.score = s2; plan.n = n; }
                             }
                             sc = 0;
                         } else {
                             for (int c = 0; c < claimers; ++c) sc *= 0.3f;
                         }
                     }
-                    if (sc > plan.score) { plan.score = sc; plan.n = unit; plan.rally = false; }
+                    if (sc > plan.score) { plan.score = sc; plan.n = unit; }
                 }
             }
             // Raid: the team gathers outside the fighters' reach, then engages together.
@@ -548,7 +547,7 @@ int Bot::choose(int& wait_out) {
                     const float join = waiting ? 1.0f : 1.0f + 0.5f * claimers;
                     const float sc = value / (n - unit + 1) * f * join * territory(rel, n)
                         / (base_t + bank / n + gather + sim.turns + 0.5f * sim.trips * trip);
-                    if (sc > plan.score) { plan.score = sc; plan.n = n; plan.rally = true; }
+                    if (sc > plan.score) { plan.score = sc; plan.n = n; }
                     break;  // the smallest team that can do it
                 }
             }
@@ -556,7 +555,6 @@ int Bot::choose(int& wait_out) {
         if (plan.score > best_plan.score) { best_plan = plan; best = i; wait_out = wait; }
     }
     raid_n_ = best_plan.n;
-    rally_need_ = best_plan.rally;
     return best;
 }
 

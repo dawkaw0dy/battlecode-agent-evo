@@ -109,7 +109,6 @@ class Bot {
     int my_range_ = 1;
     std::vector<int> bank_d_;           // walk from each group to the nearest altar
     int raid_n_ = 1;                    // champions the current target's plan counts on
-    bool rally_need_ = false;           // ... gathering outside its reach first
     int rally_g_ = -1, rally_since_ = -1;
     cambc::bitboard rally_goal_;
     int rally_goal_g_ = -1, rally_goal_round_ = -100;
