@@ -1,34 +1,41 @@
 ## Strategy (≤10 lines)
-Defense-first economy from the parent (f03-05): altar locks, deny, tribute under fire, square-law fights, draft
-Vesper Vale, Vendetta, Marcella, Tavi, Varg with one home region per champion. This generation rewrote the camp
-subsystem (camps.cpp, same calls: build_threats / choose / farm / estimate_damage / hit_group):
-- A clear is simulated kill by kill (most strength removed per hit first, clusters last). A champion only fights down
-  to the health the hurt rule in Bot::turn needs to walk out of reach (strength in reach × (exit steps + 2) + 40), so a
-  trip's useful health is what lies above that reserve. In a team only the last champion in reach pays it; the others
-  hand off to a nearer ally (2 turns of fire). Groups whose trips buy < 3 turns of fighting are not farmable by that team.
-- Plans: solo (non-boss), shared with a claimer, or the smallest raid team that succeeds; rate = value / team per turn.
-- Engage gate before waking a group: the champions actually near must carry it (no trips) or the planned team must be
-  there; otherwise wait on the rally ring (≤ 30 rounds), then go if ≤ 1 trip, else block the group. Heal first alone
-  when our health now costs an extra trip. Groups the enemy reaches first are discounted (less for raids).
+Parent f04-03 (structure and strategy unchanged): defense-first economy with altar locks, deny, tribute under fire,
+square-law fights, f04-03's kill-by-kill camp simulation and raids; draft Vesper Vale, Vendetta, Marcella, Tavi, Varg.
+This generation (parameter tweaks, focus defense) adds small rules on top:
+- Doomed retreat: run when the enemies that can hit us next turn would kill us within 2.5 turns, whatever the team odds.
+- Recall at 35% health (not 20%) when an enemy was seen in the last 15 rounds or an ally reported one within 12 tiles.
+- Unseen attacker: hit with no awake camp in reach and no living camp within 5 tiles → walk home when hurt/carrying.
+- Answer an ally's enemy sighting from 15 tiles (was 10); bank at 30 carried gems (was 45), 5 with enemies about (10).
+- A boss beside the only altar (01boss-battle: every altar spot is under a double monolith) is raided by the whole
+  team via the rally ring; the parent planned it solo, the sim failed and nobody ever tributed (0 gems all game).
 
 ## Key parameters
-- Reserve = max(0.2·max hp, hit·(exit + 2) + 40); hand-off reserve = max(0.2·max hp, 2·hit + 40); exit = range + 1 − ours.
-- Trips: solo ≤ 3 (4 with ≥ 3 champions); raids ≤ 3 refills, charged at half a trip each (the team rotates).
-- Trip time = 8 + walk from spawn + exit; capture 6; gather 8 when the raid needs champions not yet claimed.
-- Territory (our walk − theirs): ≤ −3: 1.0, ≤ 3: 0.9, ≤ 10: 0.7, else 0.5; square root for teams of 2+.
-- Hit order: kill-shots on fighters, then strength/health; clusters only when no fighter is in range;
-  Varg adds splash on neighbours. The last camp is finished from one of the group's own spawn tiles.
-- kPairs (slots 0-1 and 2-3 farm the leader's claim together) is in the code, switched off.
+- kDoomTurns 2.5: reach power = Σ enemy power (1.1·str + 0.25·focus, ½ when recalling, 0 channelling) within range+2.
+- kHurtNearEnemy 0.35 (else 0.2); "enemies about" = seen ≤ 15 rounds ago, or shared sighting age ≤ 12 within 12.
+- kGhostFlee: unseen hit → last_enemy_seen_ = now; walk home if hp < 60% or gems ≥ 10.
+- kHelpRange 15, kHelpAge 4 (sighting ages come in steps of 4), kHelpHp 0.6, gems < 15 (unchanged).
+- kBankGems 30, kBankDanger 5 (danger = sighting ≤ 30 rounds within 16, or enemy seen ≤ 20 rounds ago).
+- kAltarRaid: planned team = all living champions for an altar plug; blocked plugs set altar_wait_until_.
 
 ## Changes this generation
-bench2.py, 40 maps × both sides; parent figures are its recorded results (reproduced exactly locally).
-- v1 rewrite: vs f02-01 64/80 (+483; parent 69/80, +498): camp deaths 190 → 124, camp damage −15%, same gems.
-- v3 (+ team hand-off reserve; v1 never raided the double monolith on 00rows): vs f02-01 67/80 (+531),
-  vs f01-07 72/80 (+621; parent 67, +548), vs f00-03 71/80 (+664; parent 69, +498), vs the parent 43/80 (+17).
-  Gems collected by round 600 vs f02-01 254 (parent 245), our champion deaths 10/game (parent 12).
-- vs f03-04 (not in the panel) on 10 maps where the parent lost 19/20: 9/20.
-- v4 (+ last camp from a spawn tile): vs f02-01 65/80 (+450), vs starter 20/20, 20449 rounds to win on 10 maps × 2
-  (parent 21009). 0 faults and 0 `bot error:` in all games; 3 caught warnings in 180 games, 2 now guarded.
+Dev set: 10 maps where the parent lost (00gemfight 01gold-rush 00collision 00stampede 01yellow-brick-road 00swirl
+01starfish 00packs 00lanes 01hooks) × 2 sides vs f03-05 + f04-05 = 40 games; parent there 15/40 (−260 mean margin).
+Parent results for all maps came from evo-results r04 (reproduced exactly locally). All runs 0 faults, 0 bot errors.
+- Altar raid: 01boss-battle vs f03-05/f04-05/f04-04 4/6 (parent 1/6). First version trapped (engine fault, OOB):
+  turn() read k_[plug_] after plug_ = -1 (parent UB, see below); fixed.
+- kDoomTurns 2.5: 17/40 (−145), PvP deaths −18%/−10%. Kept. 3.5: 12/40; 1.8: 16/40 (−192). Reverted.
+- kHurtNearEnemy 0.35: 20/40 (−24), deaths 861 vs 988. Kept. 0.5: 18/40 (−30), same deaths. Reverted.
+- Bank 30 / danger 5: 21/40 (+21), gems lost on death −13%. Kept. Bank 45 + danger 5 on dev + 6 farming maps:
+  34/64 vs 35/64, lower margins. Reverted.
+- Ghost flee: 24/40 (+135), our PvP deaths −22%, enemy deaths +7%. Kept.
+- Help range 15: 26/40 (+256), enemy deaths 1336 vs 1036. Kept. Range 20: 26/40 (+222), fewer tributes. Reverted.
+- Ghost flee only with no living camp within 5 (camps in bushes hit farmers unseen; 00lanes vs f00-03 0/2 → 1/2,
+  three champions had farmed < 40 gems): dev + 3 farming maps 28/52 vs 29/52 (−4 vs f03-05, +3 vs f04-05). Kept.
+- Help hp 0.5 (was 0.6): 23/52 (−2) vs 28/52 (+170). Reverted.
+Final version: dev + 01big-world 00expanse 01the-farm: vs f03-05 14/26 (+196), vs f04-05 14/26 (+143).
+Other 29 maps (one step earlier): vs f03-05 29/58 (parent 31), vs f04-05 32/58 (parent 27). vs f04-03 (parent):
+dev 13/20 (+149, one step earlier), 15 fresh maps 15/30 (+105). vs f02-01 16/20 on 10 maps the parent lost 11/20;
+vs f01-07 7/10 (parent 6/10); f00-03 8/10; starter 10/10. 813 games in total.
 
 ## Tried and failed (keep entries from the parent's notes; add yours)
 - Fuel: host calls cost ~30–40 fuel, but every bitboard temporary (&, |, ~, shift) ~600 and a grow(r) ~4k·r;
@@ -55,10 +62,20 @@ bench2.py, 40 maps × both sides; parent figures are its recorded results (repro
   raiders on both sides). Only the last champion in reach needs it.
 - Win counts swing ±5/80 between versions that change nothing systematic (17 map flips each way); compare
   aggregates (gems by round 600, deaths by cause, gold) from the stats files instead.
+- f05-04: turn() read k_[plug_] right after plug_ = -1 in the boss-beside-the-altar branch (undefined behaviour the
+  parent survived by luck); a new read there trapped (wasm OOB, 100-300 engine faults per game on 01boss-battle).
+  Engine faults show up as `botFaults` in the stats and "Guest trapped" in `cambc run` output, not in stdout.
+- f05-04: more caution is not safer: doomed retreat at 3.5 turns (12/40 vs 17/40) and recall at 50% (same deaths,
+  fewer wins) — a champion fleeing 15–35 tiles home under chase dies anyway and leaves its team outnumbered.
+- f05-04: help range 20 (≈ 15, fewer tributes), help at 50% health (23/52 vs 28/52), bank at 45 with the early
+  danger bank kept (34/64 vs 35/64).
+- f05-04: dev-set gains shrink on fresh maps (dev 15 → 26/40, other 29 maps 58 → 61/116): judge on fresh maps too.
+- f05-04: stats JSON events (kind death/gemLoss/gemSubmission, entries[].context/target/timestamp) give deaths by
+  killer; replay stdout lines start with NUL padding (strip '\x00' before matching trace lines).
 
 ## Known weaknesses
-- Outcomes are still decided by PvP: f03-04's fight simulation beats our square law (00gemfight, 01hooks: 40-60
-  deaths vs 9). Contested centre groups (00packs, 00gemfight) are lost to early fights, not to camp choice.
-- The team model assumes allies as strong as us; raids still wait up to 30 rounds on the rally ring.
-- Single elks are slow alone (the reserve leaves ~10 turns per trip); nothing plans spell damage from range 4.
-- 00eight, 01elk-arena and 01concentrated-wealth remain coin flips against the lineage bots.
+- PvP is still decided by f03-04/f04-05-style fight simulation: 00gemfight, 01gold-rush, 00collision remain losses vs
+  f04-05 (25–40 deaths per game); fleeing on foot from ranged chasers over long distances to spawn rarely works.
+- Close farming races (00quadrants, 00rows, 01islands, 01big-world) are lost by ~50–150 gems more often than the
+  parent: the extra caution (recalls, early banking, answering sightings) costs farming time.
+- The square-law odds still count allies within 7 tiles who may not be fighting.

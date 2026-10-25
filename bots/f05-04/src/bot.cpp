@@ -45,6 +45,7 @@ constexpr int kBankDanger = 5;      // ... or this many when enemies were seen l
 constexpr bool kGhostFlee = true;   // hit with no camp in reach and nobody in sight: walk home when hurt or carrying
 constexpr int kHelpRange = 15;      // answer an ally's enemy sighting this close
 constexpr int kHelpAge = 4;         // ... reported at most this many rounds ago
+constexpr float kHelpHp = 0.6f;     // ... with at least this health share
 
 namespace {
 // Debug: turns spent per activity, printed every 200 rounds.
@@ -662,7 +663,7 @@ bool Bot::enemies() {
         }
         // Help an ally who reported an invader close by.
         const auto s = read_sighting();
-        if (s.ok && s.age <= kHelpAge && cheb(s.where, pos_) <= kHelpRange && me.health() > me.max_health() * 0.6f
+        if (s.ok && s.age <= kHelpAge && cheb(s.where, pos_) <= kHelpRange && me.health() > me.max_health() * kHelpHp
             && me.gem_count() < 15 && incoming_ == 0) {
             auto goal = empty_board();
             goal.set(s.where);
