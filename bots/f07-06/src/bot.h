@@ -7,6 +7,7 @@
 struct Group {
     std::vector<vec2> tiles;
     std::vector<vec2> ring;   // free tiles beside the group
+    std::vector<TileRef> tr, rr;   // raw offsets of tiles and of (up to 12) ring tiles
     std::uint32_t handle = 0;
     int gems = 0, gold = 0, respawn = 0, range = 0, monsters = 0;
     float hp = 0, str = 0;

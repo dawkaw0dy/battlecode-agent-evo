@@ -57,3 +57,19 @@ inline int rdist(const cambc::distance_field& f, const cambc::bitboard& visited,
 
 constexpr vec2 kDirs[8] = {vec2{0, 1}, vec2{1, 1}, vec2{1, 0}, vec2{1, -1},
     vec2{0, -1}, vec2{-1, -1}, vec2{-1, 0}, vec2{-1, 1}};
+
+// Precomputed raw offsets of one tile in a bitboard and a distance field.
+struct TileRef {
+    std::uint32_t w, f;
+    std::uint32_t b;
+};
+inline TileRef tref(vec2 p) {
+    const std::uint32_t b = static_cast<std::uint32_t>(((p.y & 7) << 3) | (p.x & 7));
+    return TileRef{static_cast<std::uint32_t>((p.y >> 3) * lay::BS + (p.x >> 3)),
+        static_cast<std::uint32_t>((((p.y >> 3) * lay::FCW + (p.x >> 3)) << 6)) | b, b};
+}
+inline bool tbit(const std::uint64_t* v, const TileRef& r) { return (v[r.w] >> r.b) & 1; }
+inline void tset(std::uint64_t* v, const TileRef& r) { v[r.w] |= std::uint64_t{1} << r.b; }
+inline int tdist(const std::uint16_t* f, const std::uint64_t* v, const TileRef& r) {
+    return tbit(v, r) ? f[r.f] : kFar;
+}
