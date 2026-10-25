@@ -261,33 +261,25 @@ constexpr int kRallyRounds = 35;       // longest wait for raiders outside a bos
 constexpr float kGatherTurns = 10.0f;  // expected wait for raiders not yet on their way
 }  // namespace
 
+// tmask_[g][c] has bit m set when camp m reaches us while we hit camp c (the parent kept this as an n×n byte
+// table and summed it pairwise; as masks clear_cost() is a few popcounts per camp). Groups past 64 camps keep
+// their first 64, as before.
 void Bot::build_threats() {
-    threat_.assign(g_.size(), {});
-    for (size_t i = 0; i < g_.size(); ++i) {
-        const auto& g = g_[i];
-        const size_t n = g.tiles.size();
-        auto& t = threat_[i];
-        t.assign(n * n, 0);
-        for (size_t m = 0; m < n; ++m) {
-            const auto s = camp_spec(g.kinds[m]);
-            if (s.str <= 0) continue;
-            for (size_t c = 0; c < n; ++c)
-                if (m == c || cheb(g.tiles[m], g.tiles[c]) + my_range_ <= s.range) t[m * n + c] = 1;
-        }
-    }
-    // The same relation as bit masks, so clear_cost() is a few popcounts per camp instead of a loop over pairs
-    // (~20k fuel per evaluation of a 20-camp group otherwise, and it reruns whenever a camp loses health).
     tmask_.assign(g_.size(), {});
     kmask_.assign(g_.size(), {});
     for (size_t i = 0; i < g_.size(); ++i) {
         const auto& g = g_[i];
-        const size_t n = g.tiles.size();
+        const size_t n = std::min<size_t>(g.tiles.size(), 64);
         auto& tm = tmask_[i];
-        tm.assign(std::min<size_t>(n, 64), 0);
-        for (size_t c = 0; c < n && c < 64; ++c) {
-            kmask_[i][std::min<size_t>(static_cast<size_t>(g.kinds[c]), 5)] |= std::uint64_t{1} << c;
-            for (size_t m = 0; m < n && m < 64; ++m)
-                if (threat_[i][m * n + c]) tm[c] |= std::uint64_t{1} << m;
+        tm.assign(n, 0);
+        for (size_t m = 0; m < n; ++m) {
+            kmask_[i][std::min<size_t>(static_cast<size_t>(g.kinds[m]), 5)] |= std::uint64_t{1} << m;
+            const auto s = camp_spec(g.kinds[m]);
+            if (s.str <= 0) continue;
+            const vec2 pm = g.tiles[m];
+            const int reach = s.range - my_range_;
+            for (size_t c = 0; c < n; ++c)
+                if (m == c || cheb(pm, g.tiles[c]) <= reach) tm[c] |= std::uint64_t{1} << m;
         }
     }
     cost_.assign(g_.size(), ClearCost{});

@@ -9,11 +9,11 @@ const cambc::bitboard& walk_walls() {
 }
 
 namespace {
-// Fields and visit masks read in place: a host get() per tile costs ~35 fuel.
+// A single host read (~30 fuel) is as cheap as a bounds-checked read in place.
 int nearest(const cambc::distance_field& f, const cambc::bitboard& seen, const std::vector<vec2>& tiles) {
     int best = kFar;
     for (auto t : tiles)
-        if (inside(t) && raw_bit(seen.ptr(), t)) best = std::min<int>(best, raw_dist(f.ptr(), t));
+        if (seen.is_set(t)) best = std::min<int>(best, f.get(t));
     return best;
 }
 }  // namespace
@@ -32,6 +32,8 @@ std::vector<GroupInfo> analyse_map(const std::vector<cambc::map::camp_group>& gr
     fe.compute(walls_e, cambc::map::spawn_region(team::enemy), se);
     for (const auto& g : groups) {
         GroupInfo d;
+        d.tiles.reserve(g.camps().size());  // allocations dominate this loop's fuel
+        d.kinds.reserve(g.camps().size());
         long sx = 0, sy = 0;
         for (const auto& c : g.camps()) {
             const vec2 p = c.spawn_position();

@@ -120,12 +120,19 @@ void Bot::initialise() {
     g_ = analyse_map(h_);
     const size_t ng = g_.size();
     k_.assign(ng, Known{});
-    for (size_t i = 0; i < ng; ++i)
+    for (size_t i = 0; i < ng; ++i) {
+        k_[i].hp.reserve(g_[i].kinds.size());
         for (auto kind : g_[i].kinds) k_[i].hp.push_back(camp_spec(kind).hp);
+    }
     gfield_.clear();
     gfield_.resize(ng);
     group_at_.assign(static_cast<size_t>(map_w() * map_h()), -1);
     camp_at_.assign(static_cast<size_t>(map_w() * map_h()), -1);
+    size_t ncamps = 0;
+    for (const auto& g : g_) ncamps += g.tiles.size();
+    reach_.reserve(ng);
+    cword_.reserve(ncamps);
+    cbit_.reserve(ncamps);
     gtiles_.reserve(ng);
     gstart_.assign(ng + 1, 0);
     for (size_t i = 0; i < ng; ++i) {

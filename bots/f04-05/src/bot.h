@@ -123,8 +123,7 @@ class Bot {
 
     // Camp farming (see the camps section of bot.cpp).
     struct ClearCost { float hp_sum = -1, base = 0, peak = 0; };
-    std::vector<std::vector<std::uint8_t>> threat_;  // [group][m * n + c]: camp m reaches us while we hit c
-    std::vector<std::vector<std::uint64_t>> tmask_;  // [group][c]: bit m set when threat_[group][m * n + c] (first 64)
+    std::vector<std::vector<std::uint64_t>> tmask_;  // [group][c]: bit m set when camp m reaches us while we hit c
     std::vector<std::array<std::uint64_t, 6>> kmask_;  // [group][camp type]: camps of that type (first 64)
     std::vector<ClearCost> cost_;
     int my_range_ = 1;
