@@ -36,16 +36,53 @@ constexpr int kDangerScan = 10;  // awake camps this close to us shape the route
 constexpr int kTraceSteps = 10;  // how far along the plain route we look for danger
 constexpr int kSafeSlack = 4;    // extra steps accepted to stay out of awake camps' reach
 constexpr int kDashFrom = 3;     // dash for travel only with at least this many steps left
+constexpr int kJumpMargin = 2;   // a route over holes must beat walking by this many steps (plus the cooldown)
+constexpr int kJumpMinWalk = 4;  // routes shorter than this are never worth a jump search
+constexpr int kJumpForce = 6;    // ... and by this many when the caller asked for no travel dash
+constexpr int kJumpBan = 12;     // rounds without jump routes after every dash landing was refused
 
 struct PathScratch {
-    cambc::bitboard blocked, sblocked, goals, goals2, here, seen, sseen, wseen, danger;
-    cambc::distance_field f, sf, w;
+    cambc::bitboard blocked, sblocked, jblocked, goals, goals2, here, seen, sseen, jseen, wseen, danger;
+    cambc::distance_field f, sf, jf, w;
     bool danger_on = false;
+    bool jump_route = false;     // this step follows the route over holes: dash only where walking cannot go on
 };
 PathScratch* g_ps = nullptr;
 PathScratch& ps() {
     if (!g_ps) g_ps = new PathScratch;
     return *g_ps;
+}
+
+// Holes a dash can cross: walkable tiles on two opposite sides (a dash's middle tile may be a hole, its
+// landing may not). jump walls = walk walls without them.
+cambc::bitboard* g_thin = nullptr;
+cambc::bitboard* g_jump_walls = nullptr;
+bool g_has_thin = false;
+int g_jump_ban_until = -1;
+
+void init_jump() {
+    if (g_thin) return;
+    g_thin = new cambc::bitboard;
+    g_jump_walls = new cambc::bitboard;
+    const auto floor = ~walk_walls();
+    cambc::bitboard a{cambc::uninitialized}, b{cambc::uninitialized}, t{cambc::uninitialized};
+    auto pair = [&](int dx, int dy) {
+        // a = floor shifted by +d, b = floor shifted by -d; both set: the tile has floor on both sides.
+        if (dx != 0) { floor.shift_right_into(dx, t); } else { t.clear(); t |= floor; }
+        if (dy != 0) t.shift_up_into(dy, a); else { a.clear(); a |= t; }
+        if (dx != 0) { floor.shift_right_into(-dx, t); } else { t.clear(); t |= floor; }
+        if (dy != 0) t.shift_up_into(-dy, b); else { b.clear(); b |= t; }
+        a &= b;
+        *g_thin |= a;
+    };
+    g_thin->clear();
+    pair(1, 0);
+    pair(0, 1);
+    pair(1, 1);
+    pair(1, -1);
+    *g_thin &= cambc::map::holes();
+    g_has_thin = !g_thin->is_empty();
+    andnot_into(walk_walls(), *g_thin, *g_jump_walls);
 }
 
 int fdist(const cambc::distance_field& f, vec2 p) { return inside(p) ? raw_dist(f.ptr(), p) : kFar; }
@@ -55,6 +92,11 @@ bool in_danger(vec2 p) {
 }
 
 }  // namespace
+
+const cambc::bitboard& jump_walls() {
+    init_jump();
+    return *g_jump_walls;
+}
 
 bool Bot::try_dash(const cambc::distance_field& f, const cambc::bitboard& seen) {
     auto& me = cambc::self();
@@ -142,6 +184,29 @@ bool Bot::go(const cambc::bitboard& goals_in, bool dash) {
     raw_set(s.here.ptr(), pos);
     s.seen.clear();
     s.f.compute_to(s.blocked, s.goals, s.here, s.seen);
+    s.jump_route = false;
+    // Dashers: a route over thin holes, when it beats walking by more than the dash's cooldown.
+    init_jump();
+    const int now = static_cast<int>(cambc::round_number());
+    const int walk_d = bit(s.seen, pos) ? fdist(s.f, pos) : kFar;
+    if (dasher_ && g_has_thin && now >= g_jump_ban_until && walk_d >= kJumpMinWalk && fuel(45000)) {
+        int cd = -1;
+        for (const auto& ab : me.abilities())
+            if (ab.is_dash()) cd = std::max(ab.cooldown(), cast_ ? 1 : 0);
+        if (cd >= 0) {
+            andnot_into(s.blocked, *g_thin, s.jblocked);
+            s.jseen.clear();
+            const int cap = walk_d >= kFar ? kFar - 1 : std::max(0, walk_d - kJumpMargin - cd);
+            s.jf.compute_to(s.jblocked, s.goals, s.here, s.jseen, static_cast<std::uint16_t>(cap));
+            // Callers that do not want a travel dash (close to the goal) still jump when walking cannot get
+            // there or goes far round.
+            const int jd = bit(s.jseen, pos) ? fdist(s.jf, pos) : kFar;
+            if (jd + cd + kJumpMargin < walk_d && (dash || walk_d - jd >= kJumpForce)) {
+                s.jump_route = true;
+                return step_on(s.jf, s.jseen, s.goals, s.jblocked, true);
+            }
+        }
+    }
     if (bit(s.seen, pos)) {
         // Awake camps about: does the route walk into their reach?
         const int plain_d = fdist(s.f, pos);
@@ -230,9 +295,29 @@ bool Bot::step_on(const cambc::distance_field& f, const cambc::bitboard& seen, c
     auto& me = cambc::self();
     const vec2 pos = me.position();
     if (!live() || !inside(pos)) return false;
-    if (dash && fdist(f, pos) >= kDashFrom && try_dash(f, seen)) {
-        moved_ = true;
-        if (move_failed_ || !me.can_move()) return true;
+    auto& s = ps();
+    bool want_dash = dash && fdist(f, pos) >= kDashFrom;
+    if (s.jump_route) {
+        // Keep the dash for the hole: jump only when no walkable neighbour is closer.
+        want_dash = true;
+        const int here0 = fdist(f, pos);
+        for (auto d : kDirs) {
+            const vec2 t{pos.x + d.x, pos.y + d.y};
+            if (free_tile(t) && bit(seen, t) && !bit(blocked, t) && raw_dist(f.ptr(), t) < here0) { want_dash = false; break; }
+        }
+    }
+    if (want_dash) {
+        const bool cast_before = cast_;
+        if (try_dash(f, seen)) {
+            moved_ = true;
+            if (move_failed_ || !me.can_move()) return true;
+        } else if (s.jump_route && !cast_before && !cast_) {
+            // Every landing refused (or none): stop routing over holes for a while.
+            bool ready = false;
+            for (const auto& ab : me.abilities())
+                if (ab.is_dash() && ab.is_ready()) ready = true;
+            if (ready && me.can_cast()) g_jump_ban_until = static_cast<int>(cambc::round_number()) + kJumpBan;
+        }
     }
     const vec2 from = me.position();
     if (!inside(from)) return moved_;

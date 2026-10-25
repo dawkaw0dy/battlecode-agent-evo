@@ -199,7 +199,7 @@ void Bot::fill_fields(std::uint64_t reserve) {
     for (int i : fill_order_) {
         if (!gfield_[i].empty()) continue;
         if (!fuel(reserve) || !live()) return;
-        gfield_[i].compute(walk_walls(), gtiles_[i], scratch().seen);
+        gfield_[i].compute(dasher_ ? jump_walls() : walk_walls(), gtiles_[i], scratch().seen);
     }
 }
 
