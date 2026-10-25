@@ -52,6 +52,8 @@ constexpr int kFleeRadius = 7;
 constexpr int kSquads = 2;
 constexpr int kChaseMargin = 4;
 constexpr float kRetreatHp = 0.35f;
+constexpr int kBankGems = 25;
+constexpr int kCaptureTimeout = 14;
 
 // ---------------------------------------------------------------- static map knowledge
 struct Group {
@@ -64,6 +66,8 @@ struct Group {
     int respawn_until = -1;   // round the group is back, if seen respawning
     float hp_seen = -1;       // remaining health when last seen alive
     bool reward = false;      // seen dead with the reward waiting
+    int skip_until = -1;      // contested: leave it alone until this round
+    int capture_turns = 0;
 };
 
 bool g_init = false;
@@ -337,6 +341,7 @@ void update_groups() {
                 } catch (const std::exception& e) { warn("camp", e); }
             }
         if (alive > 0) {
+            g.capture_turns = 0;
             g.hp_seen = hp;
             g.respawn_until = -1;
             g.reward = false;
@@ -348,6 +353,7 @@ void update_groups() {
             const auto st = cg.state();
             if (std::holds_alternative<bc::map::camp_group_respawning>(st)) {
                 g.respawn_until = v.round + std::get<bc::map::camp_group_respawning>(st).timer;
+                g.capture_turns = 0;
                 g.reward = false;
                 g.hp_seen = -1;
             } else if (std::holds_alternative<bc::map::camp_group_reward_available>(st)) {
@@ -746,6 +752,7 @@ int choose_target(const std::vector<std::uint16_t>& field) {
                 if (f < travel) travel = f;
             }
         if (travel >= 60000) continue;
+        if (g.skip_until > v.round) continue;
         if (v.round + travel > 1990) continue;
         float wait = 0;
         if (g.respawn_until >= 0) wait = std::max(0.0f, static_cast<float>(g.respawn_until - v.round - travel));
@@ -804,6 +811,11 @@ bool fight_camps() {
 
 }  // namespace
 
+const char* g_mode = "";
+int mode_counts[12] = {};
+const char* mode_names[12] = {"pvp","recall","bank","answer","campfight","capture","respawn","gather","approach","ambush","heal","other"};
+void set_mode(int m) { g_mode = mode_names[m]; ++mode_counts[m]; }
+
 void Bot::play_turn() {
     if (!g_init) {
         init_static();
@@ -840,13 +852,17 @@ void Bot::play_turn() {
     // Heal on spawn before heading out again.
     if (at_spawn && hp < max_hp * 0.9f && v.enemies.empty()) {
         heal_mode = true;
+        set_mode(10);
         me.set_priority(team_size - my_index);
         return;
     }
     heal_mode = false;
 
     // PvP first.
-    if (handle_enemies()) return;
+    if (v.round % 200 == 0) {
+        debug_block({ std::cout << "modes me" << my_index; for (int i = 0; i < 12; ++i) std::cout << ' ' << mode_names[i] << '=' << mode_counts[i]; std::cout << '\n'; });
+    }
+    if (handle_enemies()) { set_mode(0); return; }
 
     // Recall when hurt and nothing is close enough to interrupt.
     bool camp_threat = false;
@@ -860,6 +876,7 @@ void Bot::play_turn() {
             } catch (const std::exception& e) { warn("threat", e); }
         }
     if (!at_spawn && hp < max_hp * kRetreatHp) {
+        set_mode(1);
         if (!camp_threat && v.enemies.empty()) {
             try { me.recall(); } catch (const std::exception& e) { warn("recall", e); }
             return;
@@ -878,9 +895,10 @@ void Bot::play_turn() {
     int altar_i = nearest_altar(v.me, true);
     if (altar_i < 0) altar_i = nearest_altar(v.me, false);
     const int altar_d = altar_i >= 0 ? dist(v.me, altars[altar_i]) : 1 << 20;
-    bool bank = gems > 0 && (gems >= 45 || winning_bag || late || (gems >= 15 && altar_d <= 8));
+    bool bank = gems > 0 && (gems >= kBankGems || winning_bag || late || (gems >= 10 && altar_d <= 12));
     if (!bank && gems > 0 && target_group < 0) bank = true;
     if (bank && !camp_threat && altar_i >= 0) {
+        set_mode(2);
         // Adjacent to any altar: tribute there (a locked altar takes the hits instead).
         for (std::size_t i = 0; i < altars.size(); ++i)
             if (dist(v.me, altars[i]) <= bc::constants::submit_gems_range) {
@@ -909,6 +927,7 @@ void Bot::play_turn() {
         const int d = dist(v.me, s.pos);
         if (own_side(s.pos, kChaseMargin) && ((s.fighting && d <= 14) || (s.gems >= 12 && d <= 12))) {
             bc::bitboard g = ring_around({s.pos}, 2);
+            set_mode(3);
             if (step_towards(g)) {
                 place_ward(s.pos);
                 return;
@@ -918,6 +937,7 @@ void Bot::play_turn() {
 
     // Fight camps in reach.
     if (fight_camps()) {
+        set_mode(4);
         place_ward(groups.empty() || target_group < 0 ? v.me : groups[target_group].center);
         return;
     }
@@ -928,12 +948,12 @@ void Bot::play_turn() {
     if (shared >= static_cast<int>(groups.size())) shared = -1;
     if (shared >= 0) {
         const auto& g = groups[shared];
-        const bool gone = g.respawn_until >= 0 && g.respawn_until - v.round > 25;
+        const bool gone = (g.respawn_until >= 0 && g.respawn_until - v.round > 25) || g.skip_until > v.round;
         if (gone) shared = -1;
     }
     if (target_group >= 0) {
         const auto& g = groups[target_group];
-        if (g.respawn_until >= 0 && g.respawn_until - v.round > 25) target_group = -1;
+        if ((g.respawn_until >= 0 && g.respawn_until - v.round > 25) || g.skip_until > v.round) target_group = -1;
     }
     if (shared >= 0) target_group = shared;
     if (target_group < 0 || v.round % 20 == 0) {
@@ -951,7 +971,15 @@ void Bot::play_turn() {
             debug_block({ std::cout << "  tgt c=(" << g.center.x << "," << g.center.y << ") reward=" << g.reward << " ru=" << g.respawn_until << " hp=" << g.hp_seen << " allies=" << v.allies.size() << " wait=" << wait_turns << '\n'; });
         }
         // Capture: stand on a spawn tile of a defeated group.
+        if (g.reward && ++g.capture_turns > kCaptureTimeout) {
+            g.capture_turns = 0;
+            g.skip_until = v.round + 40;
+            target_group = -1;
+            if (kSquads != 0) mem_set(squad, 0);
+            return;
+        }
         if (g.reward) {
+            set_mode(5);
             for (auto t : g.tiles)
                 if (t == v.me) {
                     place_ward(g.center);
@@ -966,6 +994,7 @@ void Bot::play_turn() {
         }
         // Wait for a respawn just outside camp range.
         if (g.respawn_until >= 0 && g.respawn_until > v.round) {
+            set_mode(6);
             // Never stand on a spawn tile: an occupied tile delays the whole group's respawn.
             const int inner = std::max(1, g.range);
             bc::bitboard goal;
@@ -995,6 +1024,7 @@ void Bot::play_turn() {
             for (const auto& a : v.allies)
                 if (dist(a.pos, v.me) <= 4) ++near;
             if (near < squad_size - 1) {
+                set_mode(7);
                 ++wait_turns;
                 place_ward(g.center);
                 return;
@@ -1011,6 +1041,7 @@ void Bot::play_turn() {
         if (live.empty()) live = g.tiles;
         (void)any_seen;
         bc::bitboard goal = ring_around(live, r);
+        set_mode(8);
         step_towards(goal);
         if (v.moved) fight_camps();
         place_ward(g.center);
@@ -1023,6 +1054,7 @@ void Bot::play_turn() {
         step_towards(g);
         return;
     }
+    set_mode(9);
     int amb = -1, best_use = -1;
     for (std::size_t i = 0; i < altars.size(); ++i) {
         const int score = altar_enemy_use[i] * 10 - dist(altars[i], v.me);
