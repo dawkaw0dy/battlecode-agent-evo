@@ -97,8 +97,11 @@ void Bot::init() {
         if (!in_bounds(home_altar)) home_altar = {-1, -1};
     }
 
-    const auto raw = cambc::map::camp_groups();
+    raw = cambc::map::camp_groups();
     groups.reserve(raw.size());
+    std::size_t total_camps = 0;
+    for (const auto& rg : raw) total_camps += rg.camps().size();
+    camps.reserve(total_camps);
     for (std::size_t gi = 0; gi < raw.size(); ++gi) {
         GroupMem g;
         g.gems = static_cast<int>(raw[gi].gem_value());
@@ -109,10 +112,16 @@ void Bot::init() {
         for (const auto& c : raw[gi].camps()) {
             CampMem cm;
             cm.pos = c.spawn_position();
-            const auto st = c.base_stats();
-            cm.max_hp = cm.hp = st.base_health;
-            cm.str = st.base_strength;
-            cm.range = st.base_attack_range;
+            // Design stats by kind (patched values); live values replace them once seen.
+            switch (c.kind()) {
+            case cambc::camp_type::wolf: cm.max_hp = 1350; cm.str = 20; cm.range = 3; break;
+            case cambc::camp_type::elk: cm.max_hp = 2400; cm.str = 60; cm.range = 4; break;
+            case cambc::camp_type::gem_cluster: cm.max_hp = 120; cm.str = 0; cm.range = 0; break;
+            case cambc::camp_type::gold_cluster: cm.max_hp = 120; cm.str = 0; cm.range = 0; break;
+            case cambc::camp_type::monolith: cm.max_hp = 20000; cm.str = 200; cm.range = 5; break;
+            default: cm.max_hp = 5000; cm.str = 120; cm.range = 4; break;
+            }
+            cm.hp = cm.max_hp;
             if (in_bounds(cm.pos)) camp_at_tile[idx(cm.pos)] = static_cast<int>(camps.size());
             g.camps.push_back(static_cast<int>(camps.size()));
             g.tiles.push_back(cm.pos);
@@ -123,12 +132,6 @@ void Bot::init() {
                                           static_cast<int>(std::lround(cy / g.tiles.size()))};
         groups.push_back(std::move(g));
     }
-
-    auto bfs_walls = cambc::map::walls() | cambc::map::holes() | cambc::map::altars();
-    home_field.compute(bfs_walls | cambc::map::spawn_region(team::enemy), cambc::map::spawn_region(team::ally), home_seen);
-    for (auto& g : groups)
-        for (auto t : g.tiles)
-            if (home_seen.is_set(t)) g.home_dist = std::min<int>(g.home_dist, home_field.get(t));
 
     for (int s = 0; s < 2; ++s) {
         Ability a;
@@ -149,6 +152,15 @@ void Bot::init() {
             abilities.push_back(a);
         } catch (const std::exception&) {}
     }
+}
+
+void Bot::init_fields() {
+    auto bfs_walls = cambc::map::walls() | cambc::map::holes() | cambc::map::altars();
+    home_field.compute(bfs_walls | cambc::map::spawn_region(team::enemy), cambc::map::spawn_region(team::ally), home_seen);
+    for (auto& g : groups)
+        for (auto t : g.tiles)
+            if (home_seen.is_set(t)) g.home_dist = std::min<int>(g.home_dist, home_field.get(t));
+
 }
 
 void Bot::scan() {
@@ -212,8 +224,7 @@ void Bot::scan() {
 }
 
 void Bot::update_groups() {
-    static std::vector<cambc::map::camp_group> raw;
-    if (raw.empty()) raw = cambc::map::camp_groups();
+
     for (std::size_t gi = 0; gi < groups.size() && gi < raw.size(); ++gi) {
         auto& g = groups[gi];
         bool visible = false;
@@ -650,7 +661,7 @@ bool Bot::tribute(bool force) {
     return route_to(goals);
 }
 
-double Bot::group_score(int gi, double& trips_out) {
+double Bot::group_score(int gi, double& trips_out, double floor) {
     trips_out = 0;
     const auto& g = groups[gi];
     if (g.tiles.empty() || g.home_dist >= 999) return 0;
@@ -664,8 +675,10 @@ double Bot::group_score(int gi, double& trips_out) {
         if (s == slot) factor = middle ? 0.9 : 1.0;
         else factor = middle ? 0.6 : 0.45;
     }
+    if (gi == target) factor *= 1.25;
+    if (g.state == 1) factor *= 1.3;
     const double w = round < 600 ? 0.5 : round < 1400 ? 0.3 : 0.1;
-    const double value = g.gems + w * g.gold;
+    const double value = (g.gems + w * g.gold) * factor;
     if (value <= 0) return 0;
     const double travel = cheb(pos, g.center) * 1.2 + 1;
     double wait = 0;
@@ -673,24 +686,32 @@ double Bot::group_score(int gi, double& trips_out) {
         wait = std::max(0.0, g.respawn_at - round - travel);
         if (wait > 50) return 0;
     }
+    // Cheap upper bound first: most groups lose before the clear simulation.
+    if (value / (travel + wait + 8) <= floor) return 0;
     double clear = 0, dmg = 0;
     if (g.state != 1) {
-        std::vector<std::pair<float, float>> alive;  // hp, str
+        // Kill order: weakest first; damage taken = remaining strength x time.
+        float hps[64], strs[64];
+        int k = 0;
         float total_str = 0;
         for (int ci : g.camps) {
+            if (k >= 64) break;
             const auto& c = camps[ci];
             const float h = g.state == 2 ? c.max_hp : c.hp;
-            if (h > 0) { alive.push_back({h, c.str}); total_str += c.str; }
+            if (h <= 0) continue;
+            int j = k++;
+            while (j > 0 && hps[j - 1] > h) { hps[j] = hps[j - 1]; strs[j] = strs[j - 1]; --j; }
+            hps[j] = h; strs[j] = c.str;
+            total_str += c.str;
         }
-        std::sort(alive.begin(), alive.end());
-        const double dps = dps_now;
-        const double mult = mult_now;
-        for (const auto& [h, s] : alive) {
-            const double dt = h / dps;
+        const double inv = 1.0 / dps_now;
+        for (int i = 0; i < k; ++i) {
+            const double dt = hps[i] * inv;
             clear += dt;
-            dmg += total_str * dt * mult;
-            total_str -= s;
+            dmg += total_str * dt;
+            total_str -= strs[i];
         }
+        dmg *= mult_now;
     }
     const double first = std::max(0.0, hp - 0.25 * max_hp);
     double trips = 0;
@@ -698,10 +719,7 @@ double Bot::group_score(int gi, double& trips_out) {
     if (trips > 4) return 0;
     trips_out = trips;
     const double trip_cost = trips * (g.home_dist * 2.0 + 14);
-    double score = value * factor / (travel + wait + clear + trip_cost + 8);
-    if (gi == target) score *= 1.25;
-    if (g.state == 1) score *= 1.3;
-    return score;
+    return value / (travel + wait + clear + trip_cost + 8);
 }
 
 int Bot::choose_target() {
@@ -709,14 +727,18 @@ int Bot::choose_target() {
     cambc::shared_memory.read(4, std::span{claims});
     int best = -1;
     double best_score = 0;
-    for (int gi = 0; gi < static_cast<int>(groups.size()); ++gi) {
+    // Score the current target first so its bound prunes the rest.
+    auto consider = [&](int gi) {
         double trips;
-        double s = group_score(gi, trips);
-        if (s <= 0) continue;
+        double s = group_score(gi, trips, best_score);
+        if (s <= 0) return;
         for (int k = 0; k < 4; ++k)
             if (k != slot && claims[k] == gi + 1) s *= 0.3;
         if (s > best_score) { best_score = s; best = gi; }
-    }
+    };
+    if (target >= 0) consider(target);
+    for (int gi = 0; gi < static_cast<int>(groups.size()); ++gi)
+        if (gi != target) consider(gi);
     return best;
 }
 
@@ -741,7 +763,7 @@ bool Bot::attack_camps(int gi) {
     bool awake = incoming > 0;
     if (!awake && hp < 0.5f * max_hp) {
         double trips;
-        group_score(gi, trips);
+        group_score(gi, trips, 0);
         if (trips > 0 || hp < 0.35f * max_hp) {
             bool enemy_near = false;
             for (const auto& e : enemies) if (cheb(e.pos, pos) <= 7) enemy_near = true;
@@ -804,7 +826,7 @@ bool Bot::attack_camps(int gi) {
 
 bool Bot::farm() {
     auto& me = cambc::self();
-    if (target < 0 || round - target_round >= 4) {
+    if ((target < 0 || round - target_round >= 5) && cambc::fuel_remaining() > 45000) {
         const int t = choose_target();
         if (t != target) claim(t);
         target = t;
@@ -864,7 +886,11 @@ bool Bot::answer_report() {
 
 void Bot::play_turn() {
     round = static_cast<int>(cambc::round_number());
-    if (!ready) init();
+    if (!ready) {
+        init();
+        init_stage = 1;
+        return;
+    }
     auto& me = cambc::self();
     if (!me.is_alive()) {
         buy_items();
@@ -876,7 +902,14 @@ void Bot::play_turn() {
     max_hp = std::max(1.0f, me.max_health());
     moved = move_failed = cast = cast_exclusive = false;
 
-    if (!enemy_field_ready && round > 1 && cambc::fuel_remaining() > 70000) {
+    // Staged start: the first turns build the static data and the distance fields.
+    if (init_stage == 1) {
+        init_stage = 2;
+        init_fields();
+        return;
+    }
+    if (init_stage == 2) {
+        init_stage = 3;
         enemy_field_ready = true;
         auto bfs_walls = cambc::map::walls() | cambc::map::holes() | cambc::map::altars();
         enemy_field.compute(bfs_walls, cambc::map::spawn_region(team::enemy), enemy_seen);

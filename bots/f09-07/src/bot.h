@@ -59,6 +59,7 @@ private:
     int slot = 0, slots = 1;
     cambc::vec2 home_altar{-1, -1};
     int width = 0, height = 0;
+    std::vector<cambc::map::camp_group> raw;
     std::vector<CampMem> camps;
     std::vector<GroupMem> groups;
     std::vector<int> camp_at_tile;   // tile -> camp index, -1 none
@@ -95,6 +96,8 @@ private:
     int last_far_target = -1, last_far_round = 0;
 
     void init();
+    void init_fields();
+    int init_stage = 0;
     void scan();
     void update_groups();
     void read_report(int& rx, int& ry, int& count, int& age);
@@ -126,5 +129,5 @@ private:
     bool farm();
     bool answer_report();
     int choose_target();
-    double group_score(int g, double& trips_out);
+    double group_score(int g, double& trips_out, double floor);
 };
