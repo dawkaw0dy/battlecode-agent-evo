@@ -60,6 +60,8 @@ class Bot {
     int rally_since_ = -1;
     int fleeing_until_ = -1;
     float last_hp_ = -1;
+    int last_round_ = -10;
+    int ambush_until_ = -100;
 
     // Per turn.
     vec2 pos_{};
@@ -70,7 +72,14 @@ class Bot {
     std::vector<Foe> foes_;
     std::vector<std::pair<vec2, float>> allies_;   // visible allies: position, health fraction
     cambc::bitboard vis_;
+    std::array<std::uint8_t, 8> mem_{};
+    struct Awake { vec2 pos; int range; float str; };
+    std::vector<Awake> awake_;
 
+    void turn();
+    bool alive_prev_ = true;
+    std::array<std::array<int, 7>, 6> hist_{};
+    int hist_i_ = 0;
     void initialise();
     void observe();
     void read_units();
@@ -89,6 +98,7 @@ class Bot {
     bool use_reset(int gi);
     bool in_range_of_awake(vec2 p) const;
     float danger_at(vec2 p) const;
+    float foe_pressure(vec2 p) const;
     int claims(int gi) const;
     void claim(int gi);
     cambc::bitboard approach(int gi, int r) const;

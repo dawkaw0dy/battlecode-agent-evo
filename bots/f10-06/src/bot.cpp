@@ -13,11 +13,16 @@
 
 namespace {
 
-constexpr bool kDebug = false;
+constexpr bool kDebug = true;
 constexpr int kFar = 65535;
+constexpr float kPack = 0.0f;
+constexpr int kBankGems = 15, kBankGemsHot = 6;
+constexpr float kFleeHp = 0.3f, kFleeHpHot = 0.45f;
+constexpr float kFleeHits = 4.0f;  // leave a camp fight with this many camp hits of health left   // score bonus per ally already on a group
 constexpr std::array<vec2, 8> kDirs{vec2{0, 1}, vec2{1, 1}, vec2{1, 0}, vec2{1, -1},
     vec2{0, -1}, vec2{-1, -1}, vec2{-1, 0}, vec2{-1, 1}};
 
+int g_act[16]{}; int g_act_now = 0;
 int g_w = 0, g_h = 0, g_bstride = 0, g_fcw = 0;
 
 void init_dims() {
@@ -222,7 +227,7 @@ void Bot::read_units() {
             f.str = c.strength();
             f.range = c.attack_range();
             f.ranged = f.range > 1;
-            f.dmg = f.str * 1.15f + c.focus() * 0.2f;
+            f.dmg = f.str * 1.15f + c.focus() * 0.3f;
             if (f.hp > 0) foes_.push_back(f);
         } catch (const std::exception&) {}
     }
@@ -334,11 +339,18 @@ bool Bot::in_range_of_awake(vec2 p) const { return danger_at(p) > 0; }
 // Strength of visible awake camps whose range covers p.
 float Bot::danger_at(vec2 p) const {
     float s = 0;
-    for (auto t : cambc::vision::awake_camp_tiles().positions()) {
-        try {
-            const auto c = cambc::vision::camp_at(t);
-            if (cheb(p, t) <= c.attack_range()) s += c.strength();
-        } catch (const std::exception&) {}
+    for (const auto& a : awake_)
+        if (cheb(p, a.pos) <= a.range) s += a.str;
+    return s;
+}
+
+// Pressure enemy champions put on a tile: how far inside their reach (one step and a margin) it is.
+float Bot::foe_pressure(vec2 p) const {
+    float s = 0;
+    for (const auto& f : foes_) {
+        const int d = cheb(p, f.pos);
+        const int reach = f.range + 2;
+        if (d <= reach) s += static_cast<float>(reach + 1 - d) * f.dmg;
     }
     return s;
 }
@@ -346,7 +358,7 @@ float Bot::danger_at(vec2 p) const {
 int Bot::claims(int gi) const {
     int n = 0;
     for (int s = 0; s < 5; ++s)
-        if (s != slot_ && mem_get(s) == gi + 1) ++n;
+        if (s != slot_ && mem_[s] == gi + 1) ++n;
     return n;
 }
 void Bot::claim(int gi) {
@@ -377,18 +389,20 @@ bool Bot::flee() {
     int foe_d = kFar;
     for (const auto& f : foes_) foe_d = std::min(foe_d, cheb(f.pos, pos_));
     const bool hot = in_range_of_awake(pos_);
-    if (!hot && foe_d > 6 && cheb(pos_, spawn_center_) > 7) {
-        me.recall();
-        return true;
+    if (!hot && foe_d > 6 && now_ > ambush_until_ && cheb(pos_, spawn_center_) > 7) {
+        try {
+            me.recall();
+            return true;
+        } catch (const std::exception&) {}
     }
     if (hot && foe_d > 6) {
-        // Step to the neighbour with the least camp fire, preferring the way home.
+        // Step to the neighbour with the least camp fire and enemy reach, preferring the way home.
         vec2 best = pos_;
-        float bv = danger_at(pos_) * 10 + static_cast<float>(cheb(pos_, spawn_center_));
+        float bv = danger_at(pos_) * 10 + foe_pressure(pos_) + static_cast<float>(cheb(pos_, spawn_center_)) * 3;
         for (auto d : kDirs) {
             const vec2 q = pos_ + d;
             if (!inside(q) || bit(block_, q)) continue;
-            const float v = danger_at(q) * 10 + static_cast<float>(cheb(q, spawn_center_));
+            const float v = danger_at(q) * 10 + foe_pressure(q) + static_cast<float>(cheb(q, spawn_center_)) * 3;
             if (v < bv) { bv = v; best = q; }
         }
         if (best != pos_ && me.can_move()) {
@@ -454,8 +468,12 @@ bool Bot::fight() {
     // Foes far from us that cannot reach: ignore.
     bool threatened = false;
     for (const auto& f : foes_)
-        if (cheb(f.pos, pos_) <= f.range + 2) threatened = true;
+        if (cheb(f.pos, pos_) <= f.range + 3) threatened = true;
 
+    if (kDebug)
+        std::cout << "F r" << now_ << " s" << slot_ << " hp" << static_cast<int>(hp_) << "/" << static_cast<int>(max_hp_)
+                  << " near" << near << " d" << nearest << " ohp" << static_cast<int>(our_hp) << " odps" << static_cast<int>(our_dps)
+                  << " thp" << static_cast<int>(their_hp) << " tdps" << static_cast<int>(their_dps) << " eng" << engage << "\n";
     if (engage) {
         if (nearest > 5 && !threatened) return false;
         spells(true, -1);
@@ -476,8 +494,8 @@ bool Bot::fight() {
     if (!threatened) return false;
     fleeing_until_ = now_ + 3;
     spells(false, -1);
-    if (attack_foe() && me.attack_range() <= 1) return true;
     flee();
+    if (me.attack_range() <= 1 || !moved_) attack_foe();
     return true;
 }
 
@@ -492,7 +510,8 @@ bool Bot::bank() {
         const int dd = cheb(a, pos_);
         if (dd < d) { d = dd; near = a; }
     }
-    bool want = gems >= 30 || d <= 6 || now_ > 1800;
+    const bool hot = now_ - last_enemy_ < 25;
+    bool want = gems >= kBankGems || (hot && gems >= kBankGemsHot) || d <= 6 || now_ > 1800;
     if (target_ >= 0 && target_ < static_cast<int>(g_.size())) {
         const auto& g = g_[static_cast<size_t>(target_)];
         if (g.str_left() >= 100 && gems >= 8) want = true;  // a camp kill would destroy the bag
@@ -553,12 +572,27 @@ int Bot::choose() {
         } else {
             const int need = need_for(g, camp_dps_, max_hp_, size_);
             if (need > size_) continue;
-            const int n = std::max(need, c + 1);
             const float left = g.state == Group::respawning ? g.max_hp : g.hp_left();
-            const float clear = left / (camp_dps_ * static_cast<float>(n));
-            const float wait = c + 1 >= need ? 0.0f : 12.0f * static_cast<float>(need - c - 1);
-            score = (g.gems * gem_w + g.gold) / static_cast<float>(n) / (static_cast<float>(travel) + clear + 6 + wait);
+            float time;
+            int n;
+            if (g.big) {
+                // Raids: the party gathers first.
+                n = std::max(need, c + 1);
+                const float clear = left / (camp_dps_ * static_cast<float>(n));
+                const float wait = c + 1 >= need ? 0.0f : 12.0f * static_cast<float>(need - c - 1);
+                time = static_cast<float>(travel) + clear + 6 + wait;
+            } else {
+                // Alone (or with whoever is there): extra trips home when the camps outlast our health.
+                n = c + 1;
+                const float clear = left / (camp_dps_ * static_cast<float>(n));
+                const float taken = (g.state == Group::respawning ? full_str(g) : g.str_left()) * 0.8f * clear;
+                const float budget = 0.6f * max_hp_ * static_cast<float>(n);
+                const float trips = taken > budget ? (taken - budget) / budget : 0.0f;
+                time = static_cast<float>(travel) + clear + 6 + trips * (static_cast<float>(cheb(g.center, spawn_center_)) * 2 + 12);
+            }
+            score = (g.gems * gem_w + g.gold) / static_cast<float>(n) / time;
             if (g.big) score *= 1.3f;
+            score *= 1.0f + kPack * static_cast<float>(std::min(c, 3));
         }
         if (static_cast<int>(i) == target_) cur = score;
         if (score > bs) { bs = score; best = static_cast<int>(i); }
@@ -605,7 +639,7 @@ bool Bot::attack_group(int gi, bool any_awake) {
             if (g.hp[i] > 0) consider(g.tiles[i], true);
     }
     if (any_awake || !have)
-        for (auto t : cambc::vision::awake_camp_tiles().positions()) consider(t, false);
+        for (const auto& a : awake_) consider(a.pos, false);
     if (!have) return false;
     try {
         me.attack(*best_c);
@@ -717,12 +751,14 @@ void Bot::farm(int gi) {
     auto& me = cambc::self();
     if (gi < 0) {
         // Nothing worth doing: wait at home.
+        g_act_now = 7;
         if (!bit(spawn_, pos_)) go(spawn_, true);
         return;
     }
     auto& g = g_[static_cast<size_t>(gi)];
     if (g.state == Group::respawning) {
         // Wait beside it: standing on a spawn tile delays the respawn.
+        g_act_now = 8;
         cambc::bitboard goals;
         auto* w = goals.ptr();
         for (auto t : g.tiles)
@@ -738,6 +774,7 @@ void Bot::farm(int gi) {
     }
     if (g.state == Group::reward) {
         // Capture: stand on a spawn tile of the group.
+        g_act_now = 9;
         cambc::bitboard goals;
         for (auto t : g.tiles) raw_set(goals.ptr(), t);
         if (bit(goals, pos_)) {
@@ -751,9 +788,9 @@ void Bot::farm(int gi) {
 
     const int need = need_for(g, camp_dps_, max_hp_, size_);
     bool awake = false;
-    for (auto t : cambc::vision::awake_camp_tiles().positions())
+    for (const auto& a : awake_)
         for (auto gt : g.tiles)
-            if (gt == t) awake = true;
+            if (gt == a.pos) awake = true;
     int with_me = 1;
     for (const auto& a : allies_)
         if (cheb(a.first, g.center) <= 9 && a.second > 0.4f) ++with_me;
@@ -761,10 +798,11 @@ void Bot::farm(int gi) {
     for (size_t i = 0; i < g.tiles.size(); ++i)
         if (g.hp[i] > 0) max_range = std::max(max_range, spec(g.kind[i]).range);
 
-    if (need > 1 && !awake && with_me < need) {
+    if (g.big && need > 1 && !awake && with_me < need) {
         if (rally_since_ < 0) rally_since_ = now_;
         if (now_ - rally_since_ < 40) {
             // Wait just outside the camps' reach.
+            g_act_now = 10;
             const auto ring = approach(gi, max_range + 2);
             if (!bit(ring, pos_)) go(ring, true);
             spells(false, gi);
@@ -781,6 +819,7 @@ void Bot::farm(int gi) {
             can_hit = true;
     const bool ranged = me.attack_range() > 1;
     if (can_hit) {
+        g_act_now = 11;
         spells(true, gi);
         if (attack_group(gi, false)) {
             no_hit_turns_ = 0;
@@ -788,6 +827,7 @@ void Bot::farm(int gi) {
         }
         return;
     }
+    g_act_now = 12;
     const auto goals = approach(gi, r);
     if (bit(goals, pos_)) {
         // In position but nothing to hit (walls or bushes in the way): come closer.
@@ -801,6 +841,38 @@ void Bot::farm(int gi) {
 }
 
 void Bot::play_turn() {
+    g_act_now = 0;
+    const bool was_alive = alive_prev_;
+    turn();
+    if (kDebug) {
+        auto& me = cambc::self();
+        const bool alive = me.is_alive();
+        if (was_alive && !alive) {
+            std::cout << "DEATH r" << now_ << " s" << slot_ << ":";
+            for (int i = 0; i < 6; ++i) {
+                const auto& h = hist_[(hist_i_ + i) % 6];
+                std::cout << " [r" << h[0] << " a" << h[1] << " hp" << h[2] << " f" << h[3] << " fd" << h[4] << " cd" << h[5] << " g" << h[6] << "]";
+            }
+            std::cout << '\n';
+        }
+        alive_prev_ = alive;
+        if (alive) {
+            int fd = 99;
+            for (const auto& f : foes_) fd = std::min(fd, cheb(f.pos, pos_));
+            hist_[hist_i_ % 6] = {now_, g_act_now, static_cast<int>(hp_), static_cast<int>(foes_.size()), fd,
+                static_cast<int>(danger_at(pos_)), static_cast<int>(me.gem_count())};
+            hist_i_++;
+        }
+        g_act[g_act_now]++;
+        if (now_ == 1500) {
+            std::cout << "ACT s" << slot_;
+            for (int i = 0; i < 13; ++i) std::cout << ' ' << g_act[i];
+            std::cout << '\n';
+        }
+    }
+}
+
+void Bot::turn() {
     auto& me = cambc::self();
     if (!init_) initialise();
     now_ = static_cast<int>(cambc::round_number());
@@ -815,8 +887,31 @@ void Bot::play_turn() {
     max_hp_ = std::max(1.0f, me.max_health());
     moved_ = attacked_ = cast_ = move_failed_ = false;
     vis_ = cambc::vision::visible_tiles();
+    for (int i = 0; i < 8; ++i) mem_[i] = mem_get(i);
+    awake_.clear();
+    for (auto t : cambc::vision::awake_camp_tiles().positions()) {
+        try {
+            const auto c = cambc::vision::camp_at(t);
+            awake_.push_back({t, c.attack_range(), c.strength()});
+        } catch (const std::exception&) {}
+    }
     observe();
     read_units();
+    // Damage nobody in view explains: an enemy hidden in a bush. Recalls would be broken by every hit.
+    if (last_hp_ >= 0 && last_round_ == now_ - 1 && hp_ < last_hp_ - 5) {
+        bool seen_cause = danger_at(pos_) > 0;
+        for (const auto& f : foes_)
+            if (cheb(f.pos, pos_) <= f.range + 1) seen_cause = true;
+        if (!seen_cause) ambush_until_ = now_ + 4;
+    }
+    last_hp_ = hp_;
+    last_round_ = now_;
+    if (me.is_recalling() && now_ <= ambush_until_) {
+        try { me.cancel_recall(); } catch (const std::exception&) {}
+    }
+    try {
+        if (me.buffs().has_stun()) return;
+    } catch (const std::exception&) {}
 
     // Our damage per turn on camps.
     camp_dps_ = me.strength();
@@ -828,7 +923,9 @@ void Bot::play_turn() {
     }
     camp_dps_ = std::max(20.0f, camp_dps_);
 
+    g_act_now = 1;
     if (me.is_recalling() || me.is_submitting_gems() || me.is_teleporting()) return;
+    g_act_now = 2;
 
     // Blocked tiles: terrain, units in view, and camps we believe alive out of view.
     block_ = static_block_ | cambc::vision::champion_tiles() | cambc::vision::camp_tiles() | cambc::vision::teleport_tiles();
@@ -848,23 +945,30 @@ void Bot::play_turn() {
 
     if (fight()) return;
 
+    g_act_now = 3;
     if (at_spawn && hp_ < 0.92f * max_hp_) {
         spells(false, -1);
         return;
     }
 
-    if (hp_ < 0.33f * max_hp_ && !at_spawn) {
+    const float hit_cut = danger_at(pos_) * 0.85f * kFleeHits;
+    if ((hp_ < (now_ - last_enemy_ < 30 ? kFleeHpHot : kFleeHp) * max_hp_ || hp_ < hit_cut) && !at_spawn) {
+        g_act_now = 4;
         flee();
         return;
     }
 
+    g_act_now = 5;
     if (bank()) return;
+    g_act_now = 6;
 
     // Spend a large purse: recall to shop when it is safe.
-    if (!at_spawn && me.gold_count() >= 240 && me.gem_count() == 0 && !in_range_of_awake(pos_) && foes_.empty()
+    if (!at_spawn && me.gold_count() >= 240 && me.gem_count() == 0 && !in_range_of_awake(pos_) && foes_.empty() && now_ > ambush_until_
         && cheb(pos_, spawn_center_) > 8) {
-        me.recall();
-        return;
+        try {
+            me.recall();
+            return;
+        } catch (const std::exception&) {}
     }
 
     const int gi = choose();
