@@ -138,7 +138,8 @@ class Bot {
 
     void build_threats();
     const ClearCost& clear_cost(int group);
-    Sim sim_clear(int group, int n, float pool_now);
+    Sim sim_clear(int group, int n, float pool_now, int extra_trips = 0);
+    int guard_g_ = -1;                  // a group standing on every altar spot (seen by tribute())
     float estimate_damage(int group);
     float remaining(int group) const;
     const cambc::bitboard& approach_goal(int group, int r);

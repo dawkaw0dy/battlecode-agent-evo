@@ -188,6 +188,19 @@ void Bot::initialise() {
     altar_spots_.clear();
     altar_spots_ |= s.goals;
     altar_.compute(walk_walls(), altar_spots_, s.seen);
+    // A group standing on every altar spot (a boss beside the only altar) holds back every gem we carry.
+    {
+        std::vector<int> under(ng, 0);
+        bool open = false;
+        for (auto t : altar_spots_.positions()) {
+            const int gi = group_at_[static_cast<size_t>(tidx(t))];
+            if (gi < 0) { open = true; break; }
+            ++under[static_cast<size_t>(gi)];
+        }
+        if (!open)
+            for (size_t i = 0; i < ng; ++i)
+                if (under[i] > 0 && (guard_g_ < 0 || under[i] > under[static_cast<size_t>(guard_g_)])) guard_g_ = static_cast<int>(i);
+    }
     for (auto t : cambc::map::spawn_region(team::ally).positions()) home_altar_ = std::min(home_altar_, altar_.at(t));
     bank_d_.assign(ng, kFar);
     for (size_t i = 0; i < ng; ++i)

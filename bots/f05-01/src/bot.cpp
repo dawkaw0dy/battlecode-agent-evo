@@ -261,6 +261,7 @@ constexpr float kTripTurns = 8.0f;     // recall and the heal on spawn, before w
 constexpr int kRallyRounds = 30;       // longest wait for raiders outside the fighters' reach
 constexpr float kGatherTurns = 8.0f;   // expected wait for raiders not yet on their way
 constexpr int kMaxTrips = 3;           // trips home a clear may need
+constexpr int kGuardTrips = 20;        // extra trips allowed against a group on every altar spot
 }  // namespace
 
 namespace {
@@ -335,7 +336,7 @@ const Bot::ClearCost& Bot::clear_cost(int group) {
 
 // n champions of our strength clear the group, starting with pool_now health between them (full health
 // after each trip home). Each fights down to the reserve that walks it out of reach (the hurt rule in turn()).
-Bot::Sim Bot::sim_clear(int group, int n, float pool_now) {
+Bot::Sim Bot::sim_clear(int group, int n, float pool_now, int extra_trips) {
     Sim s;
     const auto& cc = clear_cost(group);
     const float full_hp = cambc::self().max_health();
@@ -362,7 +363,7 @@ Bot::Sim Bot::sim_clear(int group, int n, float pool_now) {
             const float cap = first ? pool_now - spare : per_trip;
             const float avail = cap - used;
             if (avail < hit) {
-                if (++trips > kMaxTrips + (n >= 3 ? 1 : 0)) return s;
+                if (++trips > kMaxTrips + extra_trips + (n >= 3 ? 1 : 0)) return s;
                 first = false;
                 used = 0;
                 continue;
@@ -692,7 +693,8 @@ int Bot::choose(int& wait_out) {
         const auto& g = g_[i];
         const auto& k = k_[i];
         if (k.blocked_until > now) continue;
-        const float value = g.gems + gold_w * g.gold;
+        // A guard of every altar spot also frees the gems we carry.
+        const float value = g.gems + gold_w * g.gold + (i == guard_g_ ? 50.0f + static_cast<float>(me.gem_count()) : 0.0f);
         if (value <= 0) continue;
         const int e = eta(i);
         if (e >= kFar) continue;
@@ -761,11 +763,14 @@ int Bot::choose(int& wait_out) {
                     if (sc > plan.score) { plan.score = sc; plan.n = 1; }
                 }
             }
-            // Raid: the team gathers outside the fighters' reach, then engages together.
-            if (alive >= 2 && (g.boss || plan.score <= 0 || plan.n == 1)) {
-                for (int n = std::max(2, claimers + 1); n <= alive; ++n) {
-                    const Sim sim = sim_clear(i, n, hp + (n - 1) * 0.9f * max_hp);
-                    if (!sim.ok || sim.trips > 3) continue;
+            // Raid: the team gathers outside the fighters' reach, then engages together. A group on every
+            // altar spot holds all our gems back: it is raided even when it takes many trips.
+            const bool guard = i == guard_g_;
+            const int team = guard ? std::max(alive, size_) : alive;
+            if (team >= 2 && (g.boss || plan.score <= 0 || plan.n == 1)) {
+                for (int n = std::max(2, claimers + 1); n <= team; ++n) {
+                    const Sim sim = sim_clear(i, n, hp + (n - 1) * 0.9f * max_hp, guard ? kGuardTrips : 0);
+                    if (!sim.ok || (sim.trips > 3 && !guard)) continue;
                     const float gather = n > claimers + 1 ? kGatherTurns : 0.0f;
                     // Join a raid that is forming rather than start a second one.
                     const float join = waiting ? 1.0f : 1.0f + 0.5f * claimers;
@@ -819,12 +824,14 @@ void Bot::farm(int group) {
     const bool awake = group_awake(group);
     const int planned = group == target_ ? raid_n_ : 1;
     // Before waking a group: is the team that is actually here enough to carry the clear? (f04-03)
-    if (!awake && k.state == Known::alive && e <= g_[group].range + reach_[group] + 4) {
+    // Not for a boss guarding the altar: every carried gem waits on it, so it is worn down in turns.
+    const bool altar_guard = group == plug_ && plug_altar_;
+    if (!awake && !altar_guard && k.state == Known::alive && e <= g_[group].range + reach_[group] + 4) {
         float pool = 0;
         const int near = raiders_near(group, &pool);
         const int n = std::max(1, std::min(near, std::max(planned, 1)));
         if (n == 1) pool = me.health();
-        const Sim here = sim_clear(group, n, pool);
+        const Sim here = sim_clear(group, n, pool, group == guard_g_ ? kGuardTrips : 0);
         const bool go_now = here.ok && (here.trips == 0 || near >= planned);
         if (!go_now && planned >= 2 && group == target_) {
             // Wait just outside the fighters' reach for the rest of the team.
@@ -1619,6 +1626,7 @@ bool Bot::tribute() {
             if (gi >= 0) {
                 if (plug_ != gi) { plug_ = gi; plug_since_ = now; }
                 plug_altar_ = true;
+                guard_g_ = gi;
                 break;
             }
         }
