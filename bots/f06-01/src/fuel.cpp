@@ -169,6 +169,13 @@ void Bot::initialise() {
     altar_spots_.clear();
     const int ar = cambc::constants::submit_gems_range;
     altars_ = cambc::map::altars().positions();
+    // Altars walled off from our spawn never take a tribute: aiming at one stalls the bank (00collision).
+    std::erase_if(altars_, [&](vec2 a) {
+        for (int dy = -ar; dy <= ar; ++dy)
+            for (int dx = -ar; dx <= ar; ++dx)
+                if (home_.at(vec2{a.x + dx, a.y + dy}) < kFar) return false;
+        return true;
+    });
     enemy_lock_.assign(altars_.size(), -1);
     lock_seen_.assign(altars_.size(), -1000);
     for (auto a : altars_)

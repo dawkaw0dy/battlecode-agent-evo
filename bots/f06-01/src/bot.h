@@ -100,6 +100,7 @@ class Bot {
     bool try_dash(const cambc::distance_field& f, const cambc::bitboard& seen);
     void go_home();
     bool recall_or_walk(int walk_limit);
+    bool shop_too_late() const;
 
     bool enemies();
     void camp_fire(std::vector<Fighter>& ours, std::vector<Fighter>& theirs) const;

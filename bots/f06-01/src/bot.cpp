@@ -44,6 +44,9 @@ constexpr float kLateClear = 0.5f;  // share of the estimated clear time counted
 constexpr float kLateFactor = 0.1f; // ... rather than skip them: idle champions cede the map
 constexpr int kLateRound = 1500;
 constexpr float kWinBag = 1500.0f;  // fight value of a carrier whose bag would win the race (0: off)
+constexpr bool kShopCutoff = true;  // no shopping trips once the game is nearly over
+constexpr int kShopLastRound = 1850;
+constexpr unsigned kShopLastGems = 900;
 constexpr bool kRaceBank = true;    // bank smaller bags once either team has kRaceLate gems tributed
 constexpr unsigned kRaceLate = 700;
 constexpr int kRaceBag = 25;    // finish checks start here (games are chaotic: no extra work before)
@@ -1509,6 +1512,13 @@ bool Bot::lock_needed() const {
 
 // ---------------------------------------------------------------- turn
 
+// Shards bought now barely matter before the game ends: no trips home just to shop.
+bool Bot::shop_too_late() const {
+    if (!kShopCutoff) return false;
+    return static_cast<int>(cambc::round_number()) >= kShopLastRound
+        || cambc::global_submitted_gems(team::ally) >= kShopLastGems;
+}
+
 
 void Bot::play_turn() {
     try {
@@ -1693,7 +1703,8 @@ void Bot::turn() {
 
     const int t = target_;
     if (t < 0 || target_wait_ > 15) {
-        if (!at_spawn && (me.gold_count() >= 60 || hp < max_hp * 0.8f) && incoming_ == 0 && me.gem_count() == 0) {
+        if (!at_spawn && (hp < max_hp * 0.8f || (me.gold_count() >= 60 && !shop_too_late())) && incoming_ == 0
+            && me.gem_count() == 0) {
             recall_or_walk(5);
             return;
         }
@@ -1706,7 +1717,7 @@ void Bot::turn() {
     g_mode = 8;
     if (!at_spawn && me.gold_count() >= 240 && me.gem_count() == 0 && incoming_ == 0 && !cant_buy_
         && me.champion_name() != cambc::champion_type::tavi
-        && (k_[t].state != Known::alive || eta(t) > 6) && remaining(t) >= g_[t].hp * 0.99f) {
+        && (k_[t].state != Known::alive || eta(t) > 6) && remaining(t) >= g_[t].hp * 0.99f && !shop_too_late()) {
         if (recall_or_walk(8)) return;
     }
     // Heal first when the next fight would not finish at this health.
