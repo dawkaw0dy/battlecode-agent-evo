@@ -21,6 +21,13 @@
 //   on the next candidate.
 // - Dash: when the route still has >= kDashFrom steps, land on the reachable ring-2 tile with the lowest
 //   distance (crossing holes counts), avoiding danger when a safe landing is as good.
+// - Holes: "thin" holes (walkable tiles on two opposite sides) can be crossed by one dash. Dashers also route
+//   on a jump field (walk walls without thin holes) and take it when it beats walking by more than the dash's
+//   cooldown + kJumpMargin; on it they keep the dash for the hole (dash only where no walking step is closer).
+//   Their group fields (eta) use jump walls too, so camps behind holes (01islands' interior) become targets.
+//   The others buy a teleport crystal on our spawn when the jump route saves >= kCrystalGain steps and cross
+//   with it (3-turn channel, range 3). Jump routes beat walking by 30-90 steps per camp on 01starvation,
+//   01shortcut, 00road-of-riches, 01fracture and 01concentrated-wealth.
 #include <cambc.h>
 #include "bot.h"
 #include "fuel.h"
@@ -36,11 +43,11 @@ constexpr int kDangerScan = 10;  // awake camps this close to us shape the route
 constexpr int kTraceSteps = 10;  // how far along the plain route we look for danger
 constexpr int kSafeSlack = 4;    // extra steps accepted to stay out of awake camps' reach
 constexpr int kDashFrom = 3;     // dash for travel only with at least this many steps left
-constexpr int kJumpMargin = 2;   // a route over holes must beat walking by this many steps (plus the cooldown)
+constexpr int kJumpMargin = 1;   // a route over holes must beat walking by this many steps (plus the cooldown)
 constexpr int kJumpMinWalk = 4;  // routes shorter than this are never worth a jump search
 constexpr int kJumpForce = 6;    // ... and by this many when the caller asked for no travel dash
 constexpr bool kCrystals = true;  // non-dashers buy a teleport crystal for routes over holes
-constexpr int kCrystalGain = 10;  // ... that save at least this many steps (the channel takes 3 turns)
+constexpr int kCrystalGain = 6;   // ... that save at least this many steps (the channel takes 3 turns)
 constexpr int kCrystalRange = 3;
 constexpr int kJumpBan = 12;     // rounds without jump routes after every dash landing was refused
 
