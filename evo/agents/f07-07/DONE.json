@@ -1,0 +1,27 @@
+{
+ "agent": "f07-07",
+ "task_sha256": "5d5f6ac39ec1d381b6f589d401254547b3f1474a466412991142399f737f840e",
+ "base_commit": "194af326312330e09464a6236152a14ef0782c66",
+ "session_id": "cse_01QbJFHuHzN7s7aAr6StK8mQ",
+ "bot_dir": "bots/f07-07",
+ "self_eval": {
+  "vs": "f06-05",
+  "games": 20,
+  "wins": 5
+ },
+ "games_played": 718,
+ "summary": "Early-aggression immigrant: solo farming economy with claims, focus-fire fight simulation, raids on big groups, island teleports, bush wards",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "331e00405e703e1ed11507ef735572c37471ba802364d72d1aff92349dd5efba",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 15.84,
+  "remote": "true",
+  "session_id": "cse_01QbJFHuHzN7s7aAr6StK8mQ",
+  "effort_level": "high",
+  "model": null
+ }
+}
