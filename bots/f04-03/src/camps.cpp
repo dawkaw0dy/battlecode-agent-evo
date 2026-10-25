@@ -119,15 +119,18 @@ Bot::Sim Bot::simulate(int group, int n, float pool_now) {
             continue;
         }
         const float hit = st.rate * taken_;
+        // The last champion in reach walks out under fire; the others step back behind a nearer ally.
         const float reserve = std::max(0.2f * full_hp, hit * (exit + 2) + 40);
-        const float per_trip = n * (full_hp - reserve);
+        const float handoff = std::max(0.2f * full_hp, 2 * hit + 40);
+        const float spare = (n - 1) * handoff + reserve;
+        const float per_trip = n * full_hp - spare;
         if (per_trip < 3 * hit) return s;  // a trip buys less than three turns of fighting
         total += left / dps * hit;
-        for (int guard = 0; left > 0 && guard < 16; ++guard) {
-            const float cap = first ? pool_now - n * reserve : per_trip;
+        for (int guard = 0; left > 0 && guard < 24; ++guard) {
+            const float cap = first ? pool_now - spare : per_trip;
             const float avail = cap - used;
             if (avail < hit) {
-                if (++trips > kMaxTrips) return s;
+                if (++trips > kMaxTrips + (n >= 3 ? 1 : 0)) return s;
                 first = false;
                 used = 0;
                 continue;
@@ -538,12 +541,12 @@ int Bot::choose(int& wait_out) {
             if (alive >= 2 && (g.boss || plan.score <= 0 || plan.n == 1)) {
                 for (int n = std::max(unit + 1, claimers + 1); n <= alive; ++n) {
                     const Sim sim = simulate(i, n, hp + (n - 1) * 0.9f * max_hp);
-                    if (!sim.ok || sim.trips > 2) continue;
+                    if (!sim.ok || sim.trips > 3) continue;
                     const float gather = n > claimers + unit ? kGatherTurns : 0.0f;
                     // Join a raid that is forming rather than start a second one.
                     const float join = waiting ? 1.0f : 1.0f + 0.5f * claimers;
                     const float sc = value / (n - unit + 1) * f * join * territory(rel, n)
-                        / (base_t + bank / n + gather + sim.turns + sim.trips * trip);
+                        / (base_t + bank / n + gather + sim.turns + 0.5f * sim.trips * trip);
                     if (sc > plan.score) { plan.score = sc; plan.n = n; plan.rally = true; }
                     break;  // the smallest team that can do it
                 }
