@@ -436,7 +436,7 @@ bool Bot::retreat(std::vector<Fighter>& theirs, int dmin) {
         for (const auto& e : theirs)
             if (e.hp > 0 && cheb(e.pos, pos_) <= 1 && view().lvis.at(e.pos)) {
                 try {
-                    if (!cambc::vision::has_champion(e.pos)) break;
+                    if (!cambc::vision::has_champion(e.pos) || !live()) break;
                     me.attack(cambc::vision::champion_at(e.pos));
                     attacked_ = true;
                     invalidate();
@@ -576,6 +576,7 @@ bool Bot::retreat(std::vector<Fighter>& theirs, int dmin) {
         if (kStandAndFight && me.can_attack() && live()) strike(theirs);
         return true;
     }
+    if (!live() || !me.can_move()) return true;
     moved_ = true;
     bool ok = false;
     try { ok = me.move_absolute(best); } catch (const cambc::error& e) { warn("flee move", e); }
@@ -609,6 +610,7 @@ bool Bot::strike(std::vector<Fighter>& theirs) {
     };
     auto hit = [&](int i) -> bool {
         auto& e = theirs[static_cast<size_t>(i)];
+        if (!live() || cheb(e.pos, me.position()) > range) return false;
         try {
             if (!cambc::vision::has_champion(e.pos)) return false;
             auto c = cambc::vision::champion_at(e.pos);
@@ -848,6 +850,7 @@ bool Bot::enemies() {
                 }
             // A dash that only lands two tiles away from a target we could reach with one step is no gain.
             if (land == pos_ || (cheb(at, pos_) == 2 && cheb(land, at) == 2)) break;
+            if (!live()) return true;
             try {
                 const bool ok = ab.use(land);
                 cast_ = true;
@@ -861,7 +864,7 @@ bool Bot::enemies() {
                     const vec2 t{pos_.x + d.x, pos_.y + d.y};
                     if (free_tile(t) && !camp_block_.is_set(t) && cheb(t, at) == 1) { step = t; break; }
                 }
-                if (step != pos_) {
+                if (step != pos_ && live()) {
                     moved_ = true;
                     bool ok = false;
                     try { ok = me.move_absolute(step); } catch (const cambc::error& e) { warn("dash step", e); }
