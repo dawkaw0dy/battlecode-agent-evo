@@ -79,6 +79,7 @@ constexpr float kTankShare = 0.8f;         // max health needed: this share of a
 constexpr float kGateTankShare = 0.4f;     // the same for a group that blocks every altar
 constexpr int kFleeMemory = 8;             // after running, keep out of their reach this long
 constexpr int kRecallSafe = 10;            // no recall with an enemy seen this close in the last 3 rounds
+constexpr int kCaptureGiveUp = 12;         // turns on a reward before we decide it is contested
 constexpr int kWaryRounds = 10;            // an enemy seen this recently ...
 constexpr float kWaryHp = 0.5f;            // ... sends us home below this share of health
 constexpr int kSightRounds = 24;           // an enemy sighting counts this long
@@ -888,7 +889,20 @@ bool Bot::work_group(int gi) {
     if (G.state == GroupState::reward || G.alive_count() == 0) {
         if (G.state != GroupState::reward && G.seen == W.round) return false;
         act = "capture";
-        if (bit(G.spawn, pos)) return true;  // capturing
+        debug_block({
+            if (W.round % 25 == 0) std::cout << "  CAP r" << W.round << " c" << static_cast<int>(me.champion_name()) << " G" << gi << " st" << static_cast<int>(G.state)
+                                             << " seen " << G.seen << " alive " << G.alive_count() << "/" << G.m.size() << " onspawn " << bit(G.spawn, pos) << "\n";
+        });
+        if (bit(G.spawn, pos)) {
+            // Capturing takes 5 rounds uncontested; enemies walking over a long group reset it forever.
+            if (capture_group != gi) { capture_group = gi; capture_start = W.round; }
+            if (W.round - capture_start > kCaptureGiveUp) {
+                g_bad_until[static_cast<std::size_t>(gi)] = W.round + 50;
+                capture_group = -1;
+                return false;
+            }
+            return true;
+        }
         act = "to-capture";
         if (N.step(G.spawn, W.group_field(gi))) walked = true;
         return true;

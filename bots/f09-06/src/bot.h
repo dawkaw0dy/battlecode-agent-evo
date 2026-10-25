@@ -34,6 +34,7 @@ private:
     int approach_target = -1;
     int stuck_turns = 0;
     int rally_turns = 0;
+    int capture_group = -1, capture_start = 0;
     int last_enemy_round = -1000;
     struct Seen { Unit u; int round; };
     std::vector<Seen> seen_enemies;  // last sighting per enemy champion
