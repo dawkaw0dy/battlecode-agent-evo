@@ -1,0 +1,27 @@
+{
+ "agent": "f05-01",
+ "task_sha256": "a9ac6b5b4a8d230fe33413d87fae748fe004434f371f57d37768525f6b05783a",
+ "base_commit": "eb988a6d870de914fd683b8d104845bef9579798",
+ "session_id": "cse_01MKxXcycWbEzGAPcQmWBvcE",
+ "bot_dir": "bots/f05-01",
+ "self_eval": {
+  "vs": "f04-03",
+  "games": 80,
+  "wins": 59
+ },
+ "games_played": 851,
+ "summary": "f04-05 crossed with f04-03's camp choice, plus a draft-time joint opening plan (first group and team per slot) and an altar-guard raid; vs f04-03 59/80 (+263), vs f04-05 46/80 (+126)",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "e29689cdcad2cd316aa883dc7a1b92bc3628933c8fd3a82200703046a835d98a",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 21.29,
+  "remote": "true",
+  "session_id": "cse_01MKxXcycWbEzGAPcQmWBvcE",
+  "effort_level": "high",
+  "model": null
+ }
+}
