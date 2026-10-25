@@ -42,6 +42,7 @@ constexpr int kSimTurns = 10;       // turns the fight simulation looks ahead
 constexpr bool kLocks = true;       // carry an altar lock: drop it on enemy tributes and on altars we pass
 constexpr bool kLockRunner = true;  // the last pick carries locks to far altars (maps with few altars)
 constexpr int kLockDetour = 8;      // walk this far (Chebyshev) out of our way to lock an altar
+constexpr bool kLockDetourAll = false;  // ... on every map (false: only on maps with few altars)
 
 namespace {
 // Debug: turns spent per activity, printed every 200 rounds.
@@ -1680,7 +1681,9 @@ void Bot::turn() {
     // The last pick runs locks to altars nobody passes (the enemy's own banks), between fights.
     const bool runner = kLockRunner && (plan_.flags & MapPlan::runner) && slot_ == size_ - 1 && size_ >= 3 && now < 1600
         && me.gem_count() == 0 && hp > max_hp * 0.6f;
-    if (lock_altars(true, runner ? 60 : kLockDetour)) return;
+    // Many altars (no runner either): the enemy walks on to an open one, so no detours for locks.
+    const int detour = runner ? 60 : (kLockDetourAll || (plan_.flags & MapPlan::runner) ? kLockDetour : 0);
+    if (detour > 0 && lock_altars(true, detour)) return;
     if (runner && !has_lock() && !at_spawn && incoming_ == 0 && me.gold_count() >= 10 && lock_needed()) {
         if (recall_or_walk(6)) return;
     }
