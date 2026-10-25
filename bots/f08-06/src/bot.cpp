@@ -17,6 +17,7 @@ using cambc::team;
 constexpr bool kDebug = false;
 constexpr float kMaxTrips = 6;
 constexpr float kStick = 1.5f;
+constexpr float kCrowded = 0.6f;
 constexpr float kOtherSector = 0.45f, kShared = 0.7f;
 constexpr float kGoldEarly = 0.5f, kGoldLate = 0.2f;
 int dbg_engage = 0, dbg_flee = 0, dbg_ignore = 0;
@@ -227,7 +228,9 @@ int Bot::choose_target() {
         // Stay on our half: groups nearer the enemy spawn are where we die with our gems.
         if (grp.dist_them < grp.dist_us) score *= plan_kind == plan::aggro ? 0.5f : 0.3f;
         else if (grp.dist_them < grp.dist_us + 8) score *= 0.75f;
-        if (others > 0 && (grp.dps == 0 || grp.hp_left < 1500)) score *= 0.35f;
+        // Enough allies are already on it: look elsewhere.
+        const int needed = (grp.dps == 0 || grp.hp_left < 1500) ? 1 : grp.hp_left < 4000 ? 2 : 3;
+        if (others >= needed) score *= kCrowded;
         if (static_cast<int>(gi) == target) score *= kStick;
         if (grp.owner != 255) score *= grp.owner == slot ? 1.f : kOtherSector;
         else score *= kShared;
