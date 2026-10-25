@@ -453,13 +453,14 @@ bool Bot::recall_or_walk(int walk_limit) {
     return true;
 }
 
-// Far from the group: one step down its cached walking field instead of a fresh route search. Not while a
-// dash is ready (the routed walk uses it), and not for a while after the static step was blocked (mixing the
-// two makes champions flip-flop).
+// Far from the group: one step down its cached walking field instead of a fresh route search. The parent
+// used it to save fuel (its route search cost ~10k); routing every step with go() is cheap now and also
+// dashes and steps around units, so this is off (kept for reference and as a switch).
+constexpr bool kWalkStatic = false;
 bool Bot::walk_static(int group, int far) {
     auto& me = cambc::self();
     const int now = static_cast<int>(cambc::round_number());
-    if (far <= 6 || now < static_off_until_ || moved_ || move_failed_ || !live() || !me.can_move()) return false;
+    if (!kWalkStatic || far <= 6 || now < static_off_until_ || moved_ || move_failed_ || !live() || !me.can_move()) return false;
     const auto& f = gfield_[group];
     if (f.empty()) return false;
     if (dasher_ && !cast_ && me.can_cast())
