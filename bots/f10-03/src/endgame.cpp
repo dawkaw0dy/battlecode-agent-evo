@@ -3,21 +3,24 @@
 //
 // What the rules make of the late game:
 // - Carried gems count for nothing until tributed, and a death hands the whole bag to the killer (a camp
-//   kill destroys it). A bag is a liability that grows with its size, with the time we keep carrying it
-//   and with the danger about; banking costs the detour off our way to the next camp. bank_due() weighs
-//   the two with our own record this game: deaths per turn alive and gems picked up per turn alive.
+//   kill destroys it). The parent's thresholds decide when a bag goes in (a full bag, a short walk,
+//   enemies about, the clock, the race). bank_due() is a risk model (our deaths and gems per turn alive,
+//   the detour off our way to the next camp) that measured no better: off (kBankModel).
 // - The first team to 1000 tributed wins at once: a bag that takes us there goes in before anything
 //   else (beside an altar it is tributed whatever the danger), and near the line every bag goes in. At
 //   round 2000 carried gems are worth nothing: every bag is in with its walk (or recall) and channel to spare.
 // - Altar locks: ours blocks only the enemy, theirs only us, five hits clear one, and placing one cancels
 //   the enemy channels at that altar. A tribute attempt at a locked altar hits the lock; a basic attack
-//   on the lock hits it from attack range, without a bag.
+//   on the lock hits it from attack range (3 for ranged champions), without a bag. Every panel bot breaks
+//   locks in a few turns, so a lock is worth only the walk it takes: we lock the altars we pass (within
+//   2 tiles), and nobody runs locks to far altars.
 // - An enemy in its tribute channel cannot move, hit or cast, and damage does not stop the channel: kill
 //   it before the channel ends and its bag is ours, else our lock on its altar cancels it. When the enemy
 //   is about to win the race, every enemy tribute we can stop is worth a detour.
 // - A boss whose spawn tiles are the only tribute tiles of the only altar (01boss-battle) respawns only
-//   while all of its tiles are empty: one of us on a boss tile beside the altar keeps it open for us. A
-//   boss tile that takes no tribute is held first, so allies bank beside the holder.
+//   while all of its tiles are empty: one of us on the tribute tile keeps it open for us and shut for the
+//   enemy. An empty-bagged champion near it takes up the hold when the respawn is due and steps aside for
+//   an ally with gems.
 
 #include <cambc.h>
 #include "bot.h"
@@ -30,7 +33,8 @@
 
 namespace {
 constexpr bool kTraceEg = false;
-// Switches back to the parent's behaviour (all false/0: f09-01's endgame, move for move).
+// Switches back to the parent's behaviour (all false/0, kRunner true, kLockDetour 8: f09-01's endgame,
+// move for move; verified on 8 games).
 constexpr bool kTrack = false;          // keep our record and the score history (bank model, race posture)
 constexpr bool kBankModel = false;      // bank_due(): risk against detour (else the parent's thresholds)
 constexpr bool kRaceDeny = false;       // behind in the race: deny every enemy tribute, detour further for locks
@@ -54,6 +58,7 @@ constexpr bool kAttackLock = true;      // hit enemy locks with basic attacks fr
 constexpr bool kRunner = false;        // the last pick carries locks to far altars (bot.cpp asks with a long reach)
 constexpr int kLockDetour = 2;         // longest lock detour (bot.cpp asks for 8, the runner 60)
 constexpr int kDenyDetour = 16;        // ... while the enemy is about to win the race
+constexpr bool kPassLocks = true;      // lock the altars we pass (else our lock waits for an enemy channel)
 // Enemy tributes.
 constexpr bool kContest = true;        // go for channelling enemies we can kill before the channel ends
 constexpr int kDenyGap = 200;          // "about to win": this close to 1000 and finishing before us
@@ -694,6 +699,7 @@ bool Bot::lock_altars(bool detour, int reach) {
     eg_init();
     if (!eg_ready_ || alt_.empty() || !live()) return false;
     eg_observe();
+    if (!kPassLocks && !behind_race()) return false;
     if (!has_lock()) return false;
     const int now = round_now();
     const auto& v = view();

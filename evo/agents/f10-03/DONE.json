@@ -1,0 +1,27 @@
+{
+ "agent": "f10-03",
+ "task_sha256": "9d178312bf81f270c2c8f697a1b25177285251d57ec6f26f9571312c829d9db7",
+ "base_commit": "4aaa39a9751e20d6b742ae4c5943352e35e134ff",
+ "session_id": "cse_01Hem9z4Q4GgK92zZ341TCfL",
+ "bot_dir": "bots/f10-03",
+ "self_eval": {
+  "vs": "f09-01",
+  "games": 80,
+  "wins": 50
+ },
+ "games_played": 842,
+ "summary": "Endgame rewritten behind the parent's calls: no lock runner, lock detours capped at 2, ranged lock breaking, winning bags always tributed, active boss-altar hold; 50/80 vs parent, 56/80 (+348) vs f08-04.",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "115cd88fd4114caf0cb6833b9f885905db7678fd9dc70e4949b4f7e7f4141a60",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 20.36,
+  "remote": "true",
+  "session_id": "cse_01Hem9z4Q4GgK92zZ341TCfL",
+  "effort_level": "high",
+  "model": null
+ }
+}
