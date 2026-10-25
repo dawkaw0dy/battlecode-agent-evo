@@ -136,12 +136,18 @@ int g_target_since = 0;
 int g_last_enemy_round = -1000;
 std::array<std::uint8_t, 8> g_shared{};
 std::string g_trace;
-std::array<int, 12> g_act{}; // debug: turns per activity
-enum Act { aDead, aBusy, aFight, aFlee, aBank, aHome, aTravel, aAttack, aCapture, aWaitResp, aIdle, aOther };
-const char* kActNames[12] = {"dead", "busy", "fight", "flee", "bank", "home", "travel", "attack", "capture", "waitresp", "idle", "other"};
+std::array<int, 16> g_act{}; // debug: turns per activity
+enum Act { aDead, aBusy, aFight, aFlee, aBank, aHome, aTravel, aAttack, aCapture, aWaitResp, aIdle, aOther, aLeave, aHeal, aHelp };
+const char* kActNames[16] = {"dead", "busy", "fight", "flee", "bank", "home", "travel", "attack", "capture", "waitresp", "idle", "other", "leave", "heal", "help", "-"};
 int g_cur_act = aOther;
 void trace(const char* what) {
-    if (kDebug) g_trace += std::string(what) + ":" + std::to_string(cambc::fuel_remaining() / 1000) + " ";
+    if (!kDebug) return;
+    const std::string w(what);
+    if (w == "fight" || w == "hunt") g_cur_act = aFight;
+    else if (w == "flee" || w == "fragile") g_cur_act = aFlee;
+    else if (w == "leave") g_cur_act = aLeave;
+    else if (w == "help") g_cur_act = aHelp;
+    g_trace += w + ":" + std::to_string(cambc::fuel_remaining() / 1000) + " ";
 }
 
 struct Unit {
@@ -898,7 +904,7 @@ float group_score(int gi, int dist) {
             overhead = trips * (2.0f * g.d_spawn + 10.0f);
         }
     }
-    const float gem_w = g_round < 500 ? 2.5f : g_round < 1300 ? 3.5f : 6.0f;
+    const float gem_w = g_round < 500 ? 4.0f : g_round < 1300 ? 5.0f : 8.0f;
     float value = (g.gems * gem_w + g.gold * gold_mult()) / n;
     if (g_regions) value *= g.home == g_index ? 1.0f : g.home >= 0 ? kOtherLane : kEnemySide;
     if (g_round - g.enemy_seen < 25) value *= 0.5f;
@@ -1259,7 +1265,7 @@ void Bot::play_turn() {
     static bool was_alive = true;
     if (kDebug && g_round % 500 == 0) {
         std::cout << "ACT r" << g_round << " me" << g_index;
-        for (int i = 0; i < 12; ++i) std::cout << ' ' << kActNames[i] << '=' << g_act[i];
+        for (int i = 0; i < 15; ++i) std::cout << ' ' << kActNames[i] << '=' << g_act[i];
         std::cout << '\n';
     }
     if (!me.is_alive()) {
@@ -1316,7 +1322,10 @@ void Bot::play_turn() {
     if (!busy) {
         bool done = false;
         // Stay on spawn for a turn end to heal after a recall.
-        if (g_spawn.get(g_pos) && g_hp < g_max_hp * 0.95f && g_enemies.empty()) done = true;
+        if (g_spawn.get(g_pos) && g_hp < g_max_hp * 0.95f && g_enemies.empty()) {
+            done = true;
+            g_cur_act = aHeal;
+        }
         if (!g_enemies.empty()) {
             const auto f = assess();
             const float caution = 1.25f + g_gems / 100.0f;
