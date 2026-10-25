@@ -4962,9 +4962,11 @@
   },
   "f10-03": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evo-task-f10-03-p0zuix",
+   "commit": "41955deb7fd2faef3ab02c027487fa6fdc936b2c",
    "deadline_minutes": 120,
+   "done_at": 1792961804,
+   "effort_level": "high",
    "evidence": [
     {
      "gems_opponent": 1294,
@@ -5012,6 +5014,7 @@
    "generation": 10,
    "id": "f10-03",
    "kind": "child",
+   "model": null,
    "nudged": [],
    "operator": "subsystem",
    "parents": [
@@ -5031,7 +5034,7 @@
    ],
    "slot": 3,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "9d178312bf81f270c2c8f697a1b25177285251d57ec6f26f9571312c829d9db7"
   },
   "f10-04": {
@@ -29726,7 +29729,6 @@
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-25T12:26:37Z g05 phase EVAL_A_PENDING",
   "2026-10-25T12:26:47Z g05 r05-A: pushed 2f5ffa42b8 with 28 shards",
   "2026-10-25T12:30:04Z g05 phase EVAL_A_DONE: results for r05-A",
   "2026-10-25T12:30:15Z g05 r05-A-spot: pushed 1ca4d6f606 (18 sampled games, 13 shards)",
@@ -29925,7 +29927,8 @@
   "2026-10-25T20:44:30Z g10 f10-01: done on origin/claude/evolution-agent-f10-01-o37iwu at fc79e1d80c",
   "2026-10-25T20:49:38Z g10 f10-06: done on origin/claude/evolution-f10-06-dj1l1u at ac15014ffd",
   "2026-10-25T20:50:51Z g10 f10-02: done on origin/claude/evo-task-f10-02-e9dyi8 at 07f7265370",
-  "2026-10-25T20:50:56Z g10 f10-05: done on origin/claude/evolution-agent-f10-05-0srmfi at 5b8f61ed8a"
+  "2026-10-25T20:50:56Z g10 f10-05: done on origin/claude/evolution-agent-f10-05-0srmfi at 5b8f61ed8a",
+  "2026-10-25T20:56:44Z g10 f10-03: done on origin/claude/evo-task-f10-03-p0zuix at 41955deb7f"
  ],
  "paused": null,
  "phase": "RUNNING",
