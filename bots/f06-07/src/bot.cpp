@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <iostream>
 #include <span>
 #include <variant>
 
@@ -15,6 +16,25 @@ using it = cambc::item_type;
 cambc::bitboard g_walls;  // walk_walls(), built once
 
 int now() { return static_cast<int>(cambc::round_number()); }
+
+// Debug: turns spent per activity, printed every 250 rounds.
+constexpr bool kStats = true;
+int g_mode = 0;
+std::array<int, 16> g_modes{};
+const char* kModeNames[16] = {"dead", "chan", "noact", "heal", "fight", "escape", "hurt", "bank", "shoptrip",
+    "notarget", "stuck", "healfirst", "capture", "wait", "hit", "approach"};
+struct ModeCount {
+    ~ModeCount() {
+        if (!kStats) return;
+        ++g_modes[static_cast<size_t>(g_mode)];
+        const int r = static_cast<int>(cambc::round_number());
+        if (r % 250 == 0) {
+            std::cout << "stat r" << r << ' ' << cambc::to_string(cambc::self().champion_name());
+            for (int i = 0; i < 16; ++i) if (g_modes[static_cast<size_t>(i)]) std::cout << ' ' << kModeNames[i] << '=' << g_modes[static_cast<size_t>(i)];
+            std::cout << " gold=" << cambc::self().gold_count() << '\n';
+        }
+    }
+};
 
 bool has_any(const cambc::enum_map<it>& c, it a, it b, it d) { return c[a] + c[b] + c[d] > 0; }
 
@@ -111,6 +131,7 @@ void Bot::initialise() {
         | cambc::map::spawn_region(team::ally);
     fe.compute(walls_e, cambc::map::spawn_region(team::enemy), se);
     home_.load(fa);
+    ehome_.load(fe);
     for (size_t i = 0; i < h_.size(); ++i) {
         Group d;
         long sx = 0, sy = 0;
@@ -491,6 +512,7 @@ bool Bot::attack_enemy(const std::vector<Unit>& list) {
     try {
         me.attack(cambc::vision::champion_at(best->pos));
         attacked_ = true;
+        chase_turns_ = 0;
         refresh_view();
         return true;
     } catch (const cambc::error&) {}
@@ -525,10 +547,14 @@ bool Bot::fight() {
         if (cheb(f.pos, pos_) <= 9) { ehp += f.hp; edps += f.str + 0.3f * f.focus; }
     if (ehp <= 0) return false;
     const float ratio = (ahp * adps) / std::max(1.0f, ehp * edps);
-    float need = 1.2f + static_cast<float>(me.gem_count()) / 200.0f;
+    float need = 1.3f + static_cast<float>(me.gem_count()) / 150.0f;
     if (home_.at(pos_) <= 6) need = 0.85f;
     if (incoming_ > 0) need += 0.2f;
-    const bool engage = ratio >= need;
+    // Already in contact: running only gives free hits, so trade back unless clearly outmatched.
+    bool contact = false;
+    for (const auto& f : foes_)
+        if (cheb(f.pos, pos_) <= std::max(f.range, me.attack_range()) + 1) contact = true;
+    const bool engage = ratio >= need || (contact && ratio >= 0.75f && me.health() > me.max_health() * 0.3f);
 
     // A kill in reach is always worth the hit.
     {
@@ -538,21 +564,28 @@ bool Bot::fight() {
         if (!weak.empty() && attack_enemy(weak)) {
             reset_attack();
             if (me.can_attack()) attack_enemy(foes_);
-            if (!engage) go(cambc::map::spawn_region(team::ally), true);
             return true;
         }
     }
     if (engage) {
-        if (now() < flee_until_ && ratio < need * 1.3f) {
+        if (now() < flee_until_ && !contact && ratio < need * 1.3f) {
             // Recently ran: only re-engage when clearly ahead.
         } else {
             spell_enemy(foes_);
             if (!attack_enemy(foes_)) {
-                // Approach the weakest enemy.
+                // Approach the weakest enemy, but never chase far or into their half.
                 const Unit* t = nullptr;
                 for (const auto& f : foes_)
                     if (!t || f.hp < t->hp) t = &f;
-                if (t && cheb(t->pos, pos_) <= 9) {
+                const bool weak = t && t->hp < t->max_hp * 0.35f;
+                const bool chase = t && cheb(t->pos, pos_) <= me.attack_range() + (weak ? 4 : 2)
+                    && (ehome_.at(t->pos) + 4 >= home_.at(t->pos) || weak) && chase_turns_ < 5;
+                if (!chase) {
+                    if (!cast_ && !moved_) spell_enemy(foes_);
+                    return cast_;
+                }
+                ++chase_turns_;
+                {
                     auto goal = empty_board();
                     goal.set(t->pos);
                     goal = grow(goal, me.attack_range()) & ~g_walls;
@@ -569,9 +602,18 @@ bool Bot::fight() {
     // Outnumbered: run from enemies that can reach us soon.
     bool threat = false;
     for (const auto& f : foes_)
-        if (cheb(f.pos, pos_) <= f.range + 3) threat = true;
+        if (cheb(f.pos, pos_) <= f.range + 5) threat = true;
     if (!threat) return false;
-    flee_until_ = now() + 6;
+    flee_until_ = now() + 10;
+    if (dmin >= 6 && incoming_ == 0 && !moved_ && home_.at(pos_) > 12) {
+        // Far enough to channel a recall before they close in.
+        bool close = false;
+        for (const auto& f : foes_)
+            if (cheb(f.pos, pos_) <= f.range + 3) close = true;
+        if (!close) {
+            try { me.recall(); return true; } catch (const cambc::error&) {}
+        }
+    }
     // Hit back on the way when we can (melee walk and attack; ranged attack only if we stay).
     if (!ranged_) {
         go(cambc::map::spawn_region(team::ally), true);
@@ -652,6 +694,8 @@ int Bot::choose() {
     float best_score = 0;
     std::array<std::uint8_t, 5> claims{};
     cambc::shared_memory.read(0, std::span<std::uint8_t>{claims.data(), claims.size()});
+    const auto sight = read_sighting();
+    const bool fresh_sight = sight.ok && sight.age <= 24;
     for (size_t gi = 0; gi < g_.size(); ++gi) {
         const auto& g = g_[gi];
         const auto& k = k_[gi];
@@ -674,22 +718,31 @@ int Bot::choose() {
                 for (size_t c = 0; c < g.kinds.size(); ++c) (void)c;
                 full = g.str * (g.hp / dps_) * 0.5f * taken_;
             }
+            int others = 0;
+            for (int s = 0; s < 5; ++s)
+                if (s != slot_ && claims[static_cast<size_t>(s)] == gi + 1) ++others;
+            if (g.hp > 3000) {
+                // Big groups are shared: allies split the blows and the clear time.
+                full /= static_cast<float>(1 + others);
+                clear /= static_cast<float>(1 + others);
+            }
             const float per_trip = hp_cap * 0.65f;
             const int trips = static_cast<int>(std::ceil(full / std::max(1.0f, per_trip)));
             if (g.monolith && trips > 2) continue;
-            if (trips > 4) continue;
-            if (trips > 1) extra += static_cast<float>((trips - 1) * (2 * std::min(g.d_home, 60) + 14));
+            if (trips > 8) continue;
+            if (trips > 1) extra += static_cast<float>((trips - 1) * (std::min(g.d_home, 60) + 12));
         }
         if (t + eta + static_cast<int>(wait + clear) + 5 > static_cast<int>(cambc::constants::max_rounds)) continue;
         float value = static_cast<float>(g.gems) + gold_w * static_cast<float>(g.gold);
         if (value <= 0) continue;
         if (g.d_enemy + 2 < g.d_home) value *= 0.7f;
-        if (static_cast<int>(gi) == target_) value *= 1.3f;
+        if (static_cast<int>(gi) == target_) value *= 1.5f;
+        if (fresh_sight && cheb(sight.where, g.center) <= 8 + g.reach) value *= 0.4f;
         if (k.state == Known::reward) value *= 1.3f;
         int others = 0;
         for (int s = 0; s < 5; ++s)
             if (s != slot_ && claims[static_cast<size_t>(s)] == gi + 1) ++others;
-        if (others > 0) value *= clear > 12 * static_cast<float>(others) ? 0.9f : 0.35f;
+        if (others > 0) value *= g.hp > 3000 ? 0.9f : 0.35f;
         const float score = value / (static_cast<float>(eta) + wait + clear + 8.0f + extra);
         if (score > best_score) { best_score = score; best = static_cast<int>(gi); }
     }
@@ -781,6 +834,7 @@ void Bot::farm(int group) {
     const auto& g = g_[group];
     if (k.state == Known::reward) {
         // Capture: stand on one of the group's spawn tiles.
+        g_mode = 12;
         if (gtiles_[group].is_set(pos_)) return;
         go(gtiles_[group], true);
         return;
@@ -792,6 +846,7 @@ void Bot::farm(int group) {
         if (k.hp[c] > 0) { living.set(g.tiles[c]); any = true; }
     if (!any || k.state == Known::respawning) {
         // Wait on (or walk to) the group's tiles.
+        g_mode = 13;
         if (gtiles_[group].is_set(pos_)) return;
         auto near = grow(gtiles_[group], 1) & ~g_walls;
         if (near.is_set(pos_) && k.state == Known::respawning) return;
@@ -800,6 +855,8 @@ void Bot::farm(int group) {
     }
     spells_on_group(group);
     if (hit_group(group)) {
+        g_mode = 14;
+        chase_turns_ = 0;
         no_hit_turns_ = 0;
         reset_attack();
         if (attacked_ && me.can_attack()) hit_group(group);
@@ -842,6 +899,8 @@ void Bot::play_turn() {
         if (!fuel(60000)) return;
     }
     moved_ = attacked_ = cast_ = move_failed_ = false;
+    ModeCount mc;
+    g_mode = 0;
 
     if (!me.is_alive()) {
         shop();
@@ -854,10 +913,12 @@ void Bot::play_turn() {
     if (at_spawn || type_ == cambc::champion_type::tavi) shop();
     if (at_spawn) shop_trip_ = false;
 
+    g_mode = 1;
     if (me.is_recalling() || me.is_submitting_gems() || me.is_teleporting()) {
         // Cancel a recall when an enemy is about to catch us; it would be interrupted anyway.
         return;
     }
+    g_mode = 2;
     if (!me.can_move() && !me.can_attack() && !me.can_cast()) return;
 
     refresh_view();
@@ -878,20 +939,29 @@ void Bot::play_turn() {
     measure();
 
     // Heal on spawn before heading out again (spawn heals at turn end).
+    g_mode = 3;
     if (at_spawn && me.health() < me.max_health() * 0.9f && foes_.empty()) return;
 
+    g_mode = 4;
     if (fight()) return;
+    g_mode = 5;
+    // Just escaped a fight hurt: heal before farming again.
+    if (now() < flee_until_ && foes_.empty() && incoming_ == 0 && me.health() < me.max_health() * 0.6f)
+        if (go_home_or_recall(8)) return;
 
     // Badly hurt: leave camp range, then go home.
     const float hp = me.health();
     if (incoming_ > 0 && (hp < me.max_health() * 0.2f || hp < incoming_ * 3.0f + 30.0f)) {
         if (escape_camps()) return;
     }
+    g_mode = 6;
     if (hp < me.max_health() * 0.3f && incoming_ == 0) {
         if (tribute()) return;
         if (go_home_or_recall(8)) return;
     }
+    g_mode = 7;
     if (tribute()) return;
+    g_mode = 8;
 
     // Shop trip with enough gold, when no camp is attacking us.
     const int gold = static_cast<int>(me.gold_count());
@@ -910,7 +980,10 @@ void Bot::play_turn() {
 
     // Choose a target every few rounds.
     const int t = now();
-    if (target_ < 0 || t - chosen_at_ >= 4 || k_[target_].skip_until > t) {
+    const bool engaged = target_ >= 0 && k_[target_].skip_until <= t
+        && (k_[target_].state == Known::alive || k_[target_].state == Known::reward)
+        && cheb(pos_, g_[target_].center) <= g_[target_].reach + 6;
+    if (target_ < 0 || (!engaged && t - chosen_at_ >= 4) || k_[target_].skip_until > t) {
         if (fuel(45000)) {
             const int prev = target_;
             target_ = choose();
@@ -919,11 +992,13 @@ void Bot::play_turn() {
             write_claim(target_);
         }
     }
+    g_mode = 9;
     if (target_ < 0) {
         if (!at_spawn && me.health() < me.max_health() * 0.7f) go_home_or_recall(10);
         return;
     }
     // Give up on a target we cannot get closer to.
+    g_mode = 10;
     {
         const int d = cheb(pos_, g_[target_].center);
         if (d < best_eta_) { best_eta_ = d; stuck_since_ = t; }
@@ -934,10 +1009,15 @@ void Bot::play_turn() {
         }
     }
     // Hurt and the target still needs a long fight: heal first.
+    g_mode = 11;
     if (k_[target_].state == Known::alive && hp < me.max_health() * 0.5f && incoming_ == 0
         && estimate_damage(target_) > hp * 0.8f) {
         if (go_home_or_recall(8)) return;
     }
+    g_mode = 15;
+    if (kStats && t % 10 == 0 && t <= 300 && type_ == cambc::champion_type::marcella)
+        std::cout << "trace r" << t << " pos " << pos_.x << ',' << pos_.y << " tgt " << target_ << " c " << g_[target_].center.x << ',' << g_[target_].center.y
+                  << " st " << int(k_[target_].state) << " rem " << remaining(target_) << " hp " << hp << " foes " << foes_.size() << '\n';
     farm(target_);
     if (attacked_ || cast_) best_eta_ = 0, stuck_since_ = t;
 }

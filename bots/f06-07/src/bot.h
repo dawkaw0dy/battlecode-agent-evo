@@ -35,7 +35,7 @@ class Bot {
     std::vector<cambc::bitboard> gtiles_;
     std::vector<std::int16_t> group_at_, camp_at_;
     std::vector<Known> k_;
-    Dist home_, altar_;
+    Dist home_, ehome_, altar_;
     cambc::bitboard altar_spots_;
     Bits walls_l_, hard_l_;
 
@@ -43,7 +43,7 @@ class Bot {
     int target_ = -1, chosen_at_ = -100, target_since_ = 0;
     int shrink_ = 0, shrink_g_ = -1, no_hit_turns_ = 0;
     int last_enemy_ = -1000;
-    int flee_until_ = -1;
+    int flee_until_ = -1, chase_turns_ = 0;
     bool shop_trip_ = false;
     int best_eta_ = kFar, stuck_since_ = 0;
 
