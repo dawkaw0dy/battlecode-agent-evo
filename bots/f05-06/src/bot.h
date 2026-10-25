@@ -25,6 +25,7 @@ struct Group {
     int respawn_at = 0;      // round the group is expected back (status 2)
     int seen = -1000;        // last round any spawn tile was in vision
     bool dirty = true;       // clear plan must be recomputed
+    bool threats = false;    // threat lists built
     float plan_time = 0, plan_dmg = 0;
     int my_hit = -1000;      // last round we hit one of its camps
     std::uint16_t dspawn = kFar;  // walking distance from our spawn

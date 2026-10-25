@@ -83,17 +83,23 @@ void Bot::initialize() {
     tile_group_.assign(static_cast<size_t>(W) * H, -1);
     tile_camp_.assign(static_cast<size_t>(W) * H, -1);
     groups_.resize(handles_.size());
+    std::array<cambc::camp_stats, 8> stats{};
+    std::array<bool, 8> stats_known{};
     for (size_t i = 0; i < handles_.size(); ++i) {
         auto& g = groups_[i];
         const auto& h = handles_[i];
         g.gems = static_cast<int>(h.gem_value());
         g.gold = static_cast<int>(h.gold_value());
         g.respawn = h.max_respawn_timer();
+        g.camps.reserve(h.camps().size());
+        g.tiles.reserve(h.camps().size());
         for (const auto& c : h.camps()) {
             Camp k{};
             k.pos = c.spawn_position();
             k.kind = static_cast<int>(c.kind());
-            const auto s = c.base_stats();
+            const int kk = std::clamp(k.kind, 0, 7);
+            if (!stats_known[kk]) stats_known[kk] = true, stats[kk] = c.base_stats();
+            const auto& s = stats[kk];
             k.maxhp = k.hp = s.base_health;
             k.str = s.base_strength;
             k.range = s.base_attack_range;
@@ -116,10 +122,6 @@ void Bot::initialize() {
                 if (cheb(t, c) < cheb(best, c)) best = t;
             g.center = best;
         }
-        for (size_t a = 0; a < g.camps.size(); ++a)
-            for (size_t b = 0; b < g.camps.size(); ++b)
-                if (cheb(g.camps[a].pos, g.camps[b].pos) <= g.camps[b].range + 1)
-                    g.camps[a].threat.push_back(static_cast<int>(b));
     }
 
     // Walking distances from both spawns.
@@ -334,6 +336,14 @@ float Bot::my_dps_camps() const {
 
 void Bot::plan_group(Group& g) {
     g.dirty = false;
+    if (!g.threats) {
+        // Lazily: camps of the group that can hit someone attacking each camp.
+        g.threats = true;
+        for (size_t a = 0; a < g.camps.size(); ++a)
+            for (size_t b = 0; b < g.camps.size(); ++b)
+                if (cheb(g.camps[a].pos, g.camps[b].pos) <= g.camps[b].range + 1)
+                    g.camps[a].threat.push_back(static_cast<int>(b));
+    }
     const float dps = my_dps_camps();
     float reduce = shards_ >= 5 ? 0.7f : 1.0f;
     const size_t n = g.camps.size();
@@ -912,11 +922,13 @@ int Bot::choose_target() {
     const bool rep = read_report(rp, rc, rage);
     const auto taken = claims();
     const float wgold = round_ < 400 ? 0.4f : round_ < 1000 ? 0.25f : round_ < 1600 ? 0.1f : 0.02f;
-    int best = -1;
-    float bests = 0;
+    struct Cand { int gi, eta, wait; float value, factor, bound; };
+    std::vector<Cand> cands;
+    cands.reserve(groups_.size());
     for (size_t gi = 0; gi < groups_.size(); ++gi) {
         auto& g = groups_[gi];
         if (g.tiles.empty()) continue;
+        if (static_cast<int>(gi) == banned_ && round_ < banned_until_) continue;
         int eta = kFar;
         for (vec2 t : g.tiles)
             if (Raw::bit(my_visited_, t)) eta = std::min<int>(eta, Raw::dist(my_field_, t));
@@ -932,7 +944,34 @@ int Bot::choose_target() {
             wait = std::max(0, g.respawn_at - round_ - eta);
             if (wait > 12) continue;
         }
-        if (g.dirty) plan_group(g);
+        const float value = g.gems + wgold * g.gold;
+        if (value <= 0) continue;
+        float factor = 1.0f;
+        if (g.owner == slot_) factor = 1.0f;
+        else if (g.owner == dm::kShared) factor = 0.75f;
+        else if (g.owner == dm::kEnemySide) factor = 0.45f;
+        else factor = 0.55f;
+        if (static_cast<int>(gi) == target_) factor *= 1.25f;
+        for (int c : taken)
+            if (c == static_cast<int>(gi % 255) + 1) factor *= 0.3f;
+        if (g.status == 1) factor *= (round_ - g.my_hit < 40) ? 1.3f : 0.4f;
+        if (round_ <= flee_until_ + 20 && cheb(flee_from_, g.center) <= 10) factor *= 0.2f;
+        if (round_ <= avoid_until_ && cheb(avoid_pos_, g.center) <= 5) factor *= 0.5f;
+        if (rep && rc >= 2 && cheb(rp, g.center) <= 9) factor *= 0.3f;
+        cands.push_back({static_cast<int>(gi), eta, wait, value, factor, value * factor / (eta + wait + 13.0f)});
+    }
+    std::sort(cands.begin(), cands.end(), [](const Cand& a, const Cand& b) { return a.bound > b.bound; });
+    int best = -1;
+    float bests = 0;
+    int planned = 0;
+    for (const auto& c : cands) {
+        if (c.bound <= bests) break;  // nothing below can beat the best
+        auto& g = groups_[c.gi];
+        if (g.dirty) {
+            if (planned >= 12 || !fuel(20000)) continue;
+            plan_group(g);
+            ++planned;
+        }
         float clear = 0, trip = 0;
         if (g.status != 1) {
             clear = g.plan_time;
@@ -944,24 +983,9 @@ int Bot::choose_target() {
             if (g.plan_dmg > hp - maxhp * 0.15f && hp < maxhp * 0.9f)
                 trip += 10.0f + std::min<int>(g.dspawn, 60);  // heal first
         }
-        const float value = g.gems + wgold * g.gold;
-        if (value <= 0) continue;
-        float factor = 1.0f;
-        if (g.owner == slot_) factor = 1.0f;
-        else if (g.owner == dm::kShared) factor = 0.75f;
-        else if (g.owner == dm::kEnemySide) factor = 0.45f;
-        else factor = 0.55f;
-        if (static_cast<int>(gi) == target_) factor *= 1.25f;
-        if (static_cast<int>(gi) == banned_ && round_ < banned_until_) continue;
-        for (int c : taken)
-            if (c == static_cast<int>(gi % 255) + 1) factor *= 0.3f;
-        if (g.status == 1) factor *= (round_ - g.my_hit < 40) ? 1.3f : 0.4f;
-        if (round_ <= flee_until_ + 20 && cheb(flee_from_, g.center) <= 10) factor *= 0.2f;
-        if (round_ <= avoid_until_ && cheb(avoid_pos_, g.center) <= 5) factor *= 0.5f;
-        if (rep && rc >= 2 && cheb(rp, g.center) <= 9) factor *= 0.3f;
-        const float time = eta + wait + clear + 5 + trip + 8;
-        const float s = value * factor / time;
-        if (s > bests) bests = s, best = static_cast<int>(gi);
+        const float time = c.eta + c.wait + clear + 5 + trip + 8;
+        const float sc = c.value * c.factor / time;
+        if (sc > bests) bests = sc, best = c.gi;
     }
     return best;
 }
@@ -1023,8 +1047,10 @@ void Bot::farm() {
         osc_ = 0;
         target_ = -1;
     }
-    if (target_ < 0 || round_ - target_round_ >= 4 || (target_ >= 0 && groups_[target_].status == 2
-            && groups_[target_].respawn_at - round_ > 12)) {
+    const bool rechoose = target_ < 0 || round_ - target_round_ >= 4 || (target_ >= 0 && groups_[target_].status == 2
+            && groups_[target_].respawn_at - round_ > 12);
+    if (rechoose && !fuel(60000)) return;  // next turn (initialisation or a busy turn)
+    if (rechoose) {
         const int t = choose_target();
         if (t != target_) focus_camp_ = -1, approach_shrink_ = 0;
         target_ = t;
@@ -1169,7 +1195,7 @@ void Bot::play_turn() {
                     std::cout << "\n";
                 }
                 static int last_mode = -1, last_tg = -2;
-                const bool change = b->round_ >= 200 && b->round_ < 520 && b->kind_ == 7 && (b->mode_ != last_mode || b->target_ != last_tg);
+                const bool change = b->round_ < 80 && b->round_ % 5 == 0;
                 if (b->kind_ == 7) last_mode = b->mode_, last_tg = b->target_;
                 if (b->kind_ == 2) last_mode = b->mode_, last_tg = b->target_;
                 if (change || f0 - cambc::fuel_remaining() > 90000) {
