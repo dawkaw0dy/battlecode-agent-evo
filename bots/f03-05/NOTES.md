@@ -55,6 +55,6 @@ All runs bench2.py, 40 maps × both sides, 0 faults / 0 bot errors throughout.
 ## Known weaknesses
 - Still loses 00eight (both sides, all three opponents: 17–20 deaths, heavy camp damage), 01elk-arena and
   01concentrated-wealth A often; fights are still per champion (square law over visible units), no grouping.
-- Only the runner visits the enemy's altars, and nobody guards our locks: f00-03 breaks them with five hits. A lock-using opponent can turn the trick on us; we
-  break enemy locks within 4 but otherwise route to the next altar as the parent did.
+- Only the runner visits the enemy's altars, and nobody guards our locks: f00-03 breaks them with five hits.
+  A lock-using opponent can turn the trick on us; we remember its locks and break the nearest when all are locked.
 - No wards or teleport crystals.
