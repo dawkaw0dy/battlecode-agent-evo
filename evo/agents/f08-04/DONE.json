@@ -1,0 +1,27 @@
+{
+ "agent": "f08-04",
+ "task_sha256": "fb2e5d2f6880c24cb2c2a8b81bb3e6efaae7d968912aeccbdd7a07a8755dc753",
+ "base_commit": "c8567f3516cab8e9bde28c10ff667310c5e0452e",
+ "session_id": "cse_01MmMEXzhbiQizk3o5fyEKp5",
+ "bot_dir": "bots/f08-04",
+ "self_eval": {
+  "vs": "f05-02",
+  "games": 40,
+  "wins": 30
+ },
+ "games_played": 820,
+ "summary": "Spell subsystem rewritten in spells.cpp (damage-weighted camp nukes cast from tiles we stand on, resets only with a target left, focus-fire fight nukes, threat-based stuns, stun-hit-first Marcella); neutral vs parent within noise.",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "1a54a56bf1dc3f2480fe19e1b049da9db01d95df8ae8eea12ef882de23d6e83c",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 17.34,
+  "remote": "true",
+  "session_id": "cse_01MmMEXzhbiQizk3o5fyEKp5",
+  "effort_level": "high",
+  "model": null
+ }
+}
