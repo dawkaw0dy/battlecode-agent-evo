@@ -19599,13 +19599,19 @@
    "pushed_commit": "70489379d7c0ff255d1ae7ba3e404cac6b3a8593",
    "results_commit": "13df84500c1a1134df42c26f04ba45a905f9bc2b",
    "retries": 0,
+   "spotcheck": {
+    "games": 4,
+    "job": "r06-C-spot",
+    "pushed_at": 1792937982,
+    "pushed_commit": "8551f3ec50c0f6dc32ca1acb376f2584cf3ced1c",
+    "status": "pending"
+   },
    "stage": "C",
    "status": "arrived"
   }
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-24T21:17:48Z g02 f02-03: done on origin/claude/evo-task-f02-03-9a8ifn at d6a9bac5b0",
   "2026-10-24T21:17:52Z g02 f02-04: done on origin/claude/evo-task-f02-04-h95nr8 at 881f7665dd",
   "2026-10-24T21:17:58Z g02 f02-06: done on origin/claude/evolution-agent-f02-06-v5zcfl at 738ee78dbe",
   "2026-10-24T21:18:02Z g02 f02-07: done on origin/claude/evo-task-f02-07-q8bopt at 9f50a0c27a",
@@ -19804,7 +19810,8 @@
   "2026-10-25T14:16:40Z g06 r06-B: verified, 1332 rows, spot-check 27 OK",
   "2026-10-25T14:16:55Z g06 phase EVAL_C_PENDING: stage C for f05-02 vs f06-01",
   "2026-10-25T14:17:13Z g06 r06-C: pushed 70489379d7 with 7 shards",
-  "2026-10-25T14:19:29Z g06 phase EVAL_C_DONE: results for r06-C"
+  "2026-10-25T14:19:29Z g06 phase EVAL_C_DONE: results for r06-C",
+  "2026-10-25T14:19:42Z g06 r06-C-spot: pushed 8551f3ec50 (4 sampled games, 2 shards)"
  ],
  "paused": null,
  "phase": "EVAL_C_DONE",
