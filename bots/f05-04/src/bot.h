@@ -41,6 +41,8 @@ class Bot {
     int stuck_g_ = -1, stuck_since_ = 0, best_eta_ = kFar;
     bool cant_buy_ = false;
     int last_enemy_seen_ = -1000;
+    float last_hp_ = 0;                 // health at the start of our last turn
+    int last_hp_round_ = -1, ghost_ = -1000;  // ghost_: round we were hit by nobody in sight
     cambc::bitboard camp_block_;        // tiles of camps we believe alive, seen or not
     bool block_dirty_ = true;
     std::vector<std::uint8_t> block_buf_;

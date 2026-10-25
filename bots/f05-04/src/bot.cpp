@@ -42,6 +42,7 @@ constexpr float kDoomTurns = 2.5f;  // run when the enemies in reach would kill 
 constexpr float kHurtNearEnemy = 0.35f;  // recall below this health share when enemies were seen lately
 constexpr int kBankGems = 30;       // carry at most this many gems before walking to an altar
 constexpr int kBankDanger = 5;      // ... or this many when enemies were seen lately
+constexpr bool kGhostFlee = true;   // hit with no camp in reach and nobody in sight: walk home when hurt or carrying
 
 namespace {
 // Debug: turns spent per activity, printed every 200 rounds.
@@ -649,6 +650,14 @@ bool Bot::enemies() {
     const auto& enemy_spawn = cambc::map::spawn_region(team::enemy);
     std::erase_if(list, [&](const Foe& e) { return enemy_spawn.is_set(e.pos) || cheb(e.pos, pos_) > 9; });
     if (list.empty()) {
+        // Hit by someone out of sight: get away from here while hurt or carrying.
+        if (kGhostFlee && ghost_ == now && !cambc::map::spawn_region(team::ally).is_set(pos_)) {
+            last_enemy_seen_ = now;
+            if (me.health() < me.max_health() * 0.6f || me.gem_count() >= 10) {
+                go_home();
+                return true;
+            }
+        }
         // Help an ally who reported an invader close by.
         const auto s = read_sighting();
         if (s.ok && s.age <= 4 && cheb(s.where, pos_) <= 10 && me.health() > me.max_health() * 0.6f
@@ -1059,6 +1068,15 @@ void Bot::turn() {
         return;
     }
     const bool at_spawn = cambc::map::spawn_region(team::ally).is_set(pos_);
+    // Health lost since our last turn (enemy hits and camp hits; spawn healing only adds).
+    float lost = 0;
+    {
+        const int r = static_cast<int>(cambc::round_number());
+        const float h = me.health();
+        if (last_hp_round_ == r - 1 && last_hp_ > h) lost = last_hp_ - h;
+        last_hp_ = h;
+        last_hp_round_ = r;
+    }
     if (kTrace && now_dbg() == 50 && slot_ == 0) {
         auto f0 = cambc::fuel_remaining();
         std::uint32_t acc = 0;
@@ -1098,6 +1116,8 @@ void Bot::turn() {
     if (!me.can_move() && !me.can_attack() && !me.can_cast()) return;
     measure();
     fp("measure");
+    // Hit while no awake camp reaches us: an enemy we cannot see (a bush) is on us.
+    if (kGhostFlee && lost > 0 && incoming_ == 0) ghost_ = static_cast<int>(cambc::round_number());
     rebuild_camp_block();
     fp("block");
     if (!live()) return;
