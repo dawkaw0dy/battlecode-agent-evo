@@ -20,7 +20,7 @@ constexpr int kMaxGroups = 240;
 constexpr int gDistUs = 0;   // walking distance from our spawn / 2 (255 = unreachable)
 constexpr int gDistThem = 1; // walking distance from the enemy spawn / 2
 constexpr int gFlags = 2;
-constexpr int gParty = 3;    // champions needed to clear it without dying
+constexpr int gOwner = 3;    // slot whose sector holds the group (255 = shared)
 
 enum flag : std::uint8_t { f_boss = 1, f_monster = 2, f_contested = 4, f_skip = 8 };
 

@@ -17,6 +17,7 @@ using cambc::team;
 constexpr bool kDebug = false;
 constexpr float kMaxTrips = 6;
 constexpr float kStick = 1.5f;
+constexpr float kOtherSector = 0.45f, kShared = 0.7f;
 constexpr float kGoldEarly = 0.5f, kGoldLate = 0.2f;
 int dbg_engage = 0, dbg_flee = 0, dbg_ignore = 0;
 namespace {
@@ -99,6 +100,7 @@ void Bot::init() {
             grp.flags = static_cast<std::uint8_t>(byte(base + plan::gFlags));
             grp.dist_us = 2 * byte(base + plan::gDistUs);
             grp.dist_them = 2 * byte(base + plan::gDistThem);
+            grp.owner = byte(base + plan::gOwner);
         }
         all_spawns |= grp.spawns;
         groups.push_back(grp);
@@ -227,6 +229,8 @@ int Bot::choose_target() {
         else if (grp.dist_them < grp.dist_us + 8) score *= 0.75f;
         if (others > 0 && (grp.dps == 0 || grp.hp_left < 1500)) score *= 0.35f;
         if (static_cast<int>(gi) == target) score *= kStick;
+        if (grp.owner != 255) score *= grp.owner == slot ? 1.f : kOtherSector;
+        else score *= kShared;
         if (score > best_score) { best_score = score; best = static_cast<int>(gi); }
     }
     return best;
@@ -455,6 +459,24 @@ bool Bot::fight() {
         }
         avoid_altar_near(pos);
     }
+    if (me.attack_range() <= 1) {
+        // Melee can still hit on the way out.
+        for (const auto& e : enemies)
+            if (cheb(e.p, pos) <= 1 && attack_unit_at(e.p, true)) break;
+    } else {
+        // Ranged: a melee-only threat at 3+ tiles cannot reach us this turn; shoot instead.
+        int nearest_melee = 99, nearest_ranged = 99;
+        for (const auto& e : enemies) {
+            if (e.range <= 1) nearest_melee = std::min(nearest_melee, cheb(e.p, pos));
+            else nearest_ranged = std::min(nearest_ranged, cheb(e.p, pos));
+        }
+        if (nearest_melee >= 3 && nearest_ranged > 5) {
+            for (const auto& e : enemies) {
+                cast_on(e.p, true);
+                if (attack_unit_at(e.p, true)) return true;
+            }
+        }
+    }
     if (flee(threats)) return true;
     // Cornered: hit back.
     for (const auto& e : enemies) {
@@ -502,7 +524,8 @@ bool Bot::bank(bool force) {
     const auto ours = cambc::global_submitted_gems(team::ally);
     const int round = static_cast<int>(cambc::round_number());
     const bool endgame = round >= 2000 - d - 30 || ours + gems >= 1000;
-    if (!force && !endgame && static_cast<int>(gems) < bank_at && !(gems >= 8 && d <= 4)) return false;
+    const bool near = (gems >= 15 && d <= 10) || (gems >= 5 && d <= 4);
+    if (!force && !endgame && static_cast<int>(gems) < bank_at && !near) return false;
     if (kDebug && cambc::round_number() % 20 == 0) std::printf("BANK r%u c%d pos %d,%d d %d gems %u afs %d stuck %d\n", cambc::round_number(), (int)me.champion_name(), pos.x, pos.y, d, gems, altar_from_spawn, stuck);
     // Far from every altar but the spawn is near one: recall there instead of walking.
     if (d > altar_from_spawn + 10 && camp_threat_near(pos, 1) == 0

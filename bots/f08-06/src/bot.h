@@ -13,6 +13,7 @@ struct Group {
     float gems = 0, gold = 0;
     std::uint8_t flags = 0;
     int dist_us = 0, dist_them = 0;
+    int owner = 255;         // sector owner slot
     // Observations.
     int ready_round = 0;     // round the group is next alive (0 = alive as far as we know)
     bool reward = false;     // seen with a reward waiting

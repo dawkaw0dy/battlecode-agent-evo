@@ -4,6 +4,7 @@
 #include "plan.h"
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstdint>
 #include <vector>
 
@@ -81,6 +82,36 @@ void build_plan(DraftPlan& dp) {
         if (!monster) cluster_rate += rate;
     }
 
+    // Split our side's groups into one angular sector per champion, equal value each.
+    {
+        int sx = 0, sy = 0, n = 0;
+        for (auto p : ours.positions()) { sx += p.x; sy += p.y; ++n; }
+        const double cx = n ? double(sx) / n : 0, cy = n ? double(sy) / n : 0;
+        struct Item { double angle, value; int g; };
+        std::vector<Item> items;
+        double total = 0;
+        for (int g = 0; g < ng; ++g) {
+            const int base = plan::kGroupBase + 4 * g;
+            m[base + plan::gOwner] = 255;
+            const int du = m[base + plan::gDistUs], dt = m[base + plan::gDistThem];
+            if (du == 255 || dt + 2 < du) continue;
+            if (m[base + plan::gFlags] & plan::f_boss) continue;
+            int gx = 0, gy = 0, k = 0;
+            for (auto p : groups[g].spawn_tiles().positions()) { gx += p.x; gy += p.y; ++k; }
+            if (!k) continue;
+            const double v = groups[g].gem_value() + 0.35 * groups[g].gold_value();
+            items.push_back({std::atan2(gy / double(k) - cy, gx / double(k) - cx), v, g});
+            total += v;
+        }
+        std::sort(items.begin(), items.end(), [](const Item& a, const Item& b) { return a.angle < b.angle; });
+        double run = 0;
+        for (const auto& it : items) {
+            const int slot = std::min(team_size - 1, static_cast<int>((run + it.value / 2) / std::max(1.0, total) * team_size));
+            m[plan::kGroupBase + 4 * it.g + plan::gOwner] = static_cast<std::uint8_t>(slot);
+            run += it.value;
+        }
+    }
+
     // Choose the plan from map size, spawn gap and where the gems are.
     plan::kind kind = plan::farm;
     const bool small = area <= 1600 || (spawn_gap != cambc::distance_field::unreachable && spawn_gap <= 24);
@@ -90,7 +121,7 @@ void build_plan(DraftPlan& dp) {
 
     m[plan::kMagic] = 'M';
     m[plan::kKind] = kind;
-    m[plan::kBank] = kind == plan::aggro ? 20 : kind == plan::boss ? 35 : 25;
+    m[plan::kBank] = kind == plan::aggro ? 30 : 40;
     m[plan::kTeam] = static_cast<std::uint8_t>(team_size);
     m[plan::kGroups] = static_cast<std::uint8_t>(ng);
     for (int i = 0; i < 12; ++i) m[plan::kSlots + i] = 255;
