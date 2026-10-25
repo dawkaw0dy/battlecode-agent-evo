@@ -2907,7 +2907,7 @@
    "slot": 1,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "839f1afbeb23021c217884cb737c5a74e45414c4f6ce11b54c951f341c90c04b"
   },
   "f06-02": {
    "archetype": null,
@@ -2972,7 +2972,7 @@
    "slot": 2,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "8930952be53ddaeb55c3cf0181f1a5a6797533a9bdeaa025cb2562ecc681988f"
   },
   "f06-03": {
    "archetype": null,
@@ -3038,7 +3038,7 @@
    "slot": 3,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "d218421f2442dafdf4b01c3436fb58fe96d7ba69c072307a1bb7b2d0d5037b51"
   },
   "f06-04": {
    "archetype": null,
@@ -3104,7 +3104,7 @@
    "slot": 4,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "b316a35dd1066a742aeff626f8a165beca8324499281d100944e2a0652da08d6"
   },
   "f06-05": {
    "archetype": null,
@@ -3169,7 +3169,7 @@
    "slot": 5,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "adeae9b9c6501efb3ad4922817554350561d739f498e8a3c8673739d1391f6f9"
   },
   "f06-06": {
    "archetype": "safe-banker",
@@ -3209,7 +3209,7 @@
    "slot": 6,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "b8e7aa31b5e8d4473ddde4037d7eb33e016f27847780a9cda47d20a18c235c37"
   },
   "f06-07": {
    "archetype": "scaling-economy",
@@ -3249,7 +3249,7 @@
    "slot": 7,
    "src_sha256": null,
    "status": "planned",
-   "task_sha256": null
+   "task_sha256": "4e5ee699cb6ae7061e4317400c865eb49b0e06ae1b4551c3c132556d0e5ec01e"
   }
  },
  "generation": 6,
@@ -17244,7 +17244,6 @@
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-24T18:34:03Z g01 phase ADMITTED",
   "2026-10-24T18:34:14Z g01 f01-01: admitted (09b7c43dffaa)",
   "2026-10-24T18:34:20Z g01 f01-02: admitted (f798bbb8a86b)",
   "2026-10-24T18:34:25Z g01 f01-03: admitted (625e676d2b48)",
@@ -17443,10 +17442,11 @@
   "2026-10-25T12:44:23Z g05 r05-C: verified, 70 rows, spot-check 4 OK",
   "2026-10-25T12:44:42Z g05 phase SELECTED: final: f05-02, f05-03, f04-05, f05-01, f05-05, f05-04, f03-05, f02-01, f05-06, f05-07, starter",
   "2026-10-25T12:44:58Z g05 survivors ['f05-02', 'f05-03'], hall of fame ['f00-03', 'f01-07', 'f02-01', 'f03-05', 'f04-05', 'f05-02']",
-  "2026-10-25T12:44:58Z g06 phase PLANNED: 8 slots"
+  "2026-10-25T12:44:58Z g06 phase PLANNED: 8 slots",
+  "2026-10-25T12:45:09Z g06 phase TASKS_PUSHED: 7 task files"
  ],
  "paused": null,
- "phase": "PLANNED",
+ "phase": "TASKS_PUSHED",
  "sessions_launched": 43,
  "version": 1
 }
