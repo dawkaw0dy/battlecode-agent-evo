@@ -39,6 +39,7 @@ struct Group {
     cambc::vec2 center;
     int gems = 0, gold = 0, respawn = 0;
     float max_hp = 0, strength = 0;
+    float max_camp_strength = 0;
     int range = 3;
     bool boss = false;
     int home_dist = 0;      // walking distance from our spawn

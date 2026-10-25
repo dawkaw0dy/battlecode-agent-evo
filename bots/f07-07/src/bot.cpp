@@ -27,8 +27,9 @@ constexpr std::array<float, 13> kSpellMult{1.0f, 0, 0, 2.0f, 0, 3.4f, 2.5f, 2.0f
 
 constexpr float kEngageValue = 0.0f;    // fight when the simulated outcome is worth more than this
 constexpr float kRecallHp = 0.3f;
-constexpr int kBankGems = 30;
+constexpr int kBankGems = 20;
 constexpr int kChaseTurns = 6;
+constexpr float kBurstWeight = 0.0f;    // first-turn burst in the fight simulation (off: measured worse)
 constexpr int kHelpRange = 14;
 
 int cheb(vec2 a, vec2 b) { return static_cast<int>(a.chebyshev_distance(b)); }
@@ -38,6 +39,12 @@ bool in_map(vec2 p, int w, int h) { return p.x >= 0 && p.y >= 0 && p.x < w && p.
 float kit_dps(int type, float strength, float focus) {
     const auto t = static_cast<std::size_t>(std::clamp(type, 0, 12));
     return strength * (1.0f + kResets[t] / 8.0f) + focus * kSpellMult[t] / 8.0f;
+}
+
+// Extra damage on the first turn of a fight, with resets and spells ready.
+float kit_burst(int type, float strength, float focus) {
+    const auto t = static_cast<std::size_t>(std::clamp(type, 0, 12));
+    return strength * kResets[t] + focus * kSpellMult[t] * 0.7f;
 }
 
 int warn_count = 0;
@@ -100,6 +107,7 @@ void Bot::init() {
             }
             G.max_hp += chp;
             G.strength += cstr;
+            G.max_camp_strength = std::max(G.max_camp_strength, cstr);
             G.range = std::max(G.range, crange);
             group_at[static_cast<std::size_t>(p.y * width + p.x)] = static_cast<std::int16_t>(groups.size());
         }
@@ -143,6 +151,11 @@ void Bot::init() {
     }
     type = static_cast<int>(me.champion_name());
     ready = true;
+    debug_block({
+        if (my_index == 0)
+            for (const auto& g : groups)
+                std::printf("G%u gems%d gold%d hp%.0f str%.0f n%zu home%d enemy%d c(%d,%d)\n", g.handle, g.gems, g.gold, g.max_hp, g.strength, g.spawns.size(), g.home_dist, g.enemy_dist, g.center.x, g.center.y);
+    });
 }
 
 void Bot::read_body(const cambc::champion& c, Body& b, bool enemy) {
@@ -609,6 +622,7 @@ bool Bot::combat() {
         float hp, dps, gems;
         int delay;
         bool me;
+        float burst;
     };
     std::vector<SimUnit> ours, theirs;
     auto delay_to = [&](vec2 from, int rng, bool is_melee, bool vs_ours) {
@@ -622,12 +636,24 @@ bool Bot::combat() {
         }
         return std::max(0, d - (is_melee ? 2 : rng));
     };
+    float my_burst = 0;
+    {
+        auto& me = cambc::self();
+        const auto slots = me.abilities();
+        for (int s = 0; s < 2; ++s) {
+            const auto& sp = spells[static_cast<std::size_t>(s)];
+            if (sp.kind == 0 || !slots[static_cast<std::size_t>(s)].is_ready()) continue;
+            if (sp.kind == static_cast<int>(cambc::ability_kind::attack_reset)) my_burst += strength;
+            else if (sp.modifier > 0) my_burst += focus * sp.modifier;
+        }
+    }
     ours.push_back({std::max(1.0f, hp - camp_threat_at(pos) * 2.0f), my_dps, static_cast<float>(gems),
-                    delay_to(pos, range, melee, true), true});
+                    delay_to(pos, range, melee, true), true, my_burst});
     for (const auto& m : ally_mem) {
         if (r - m.round > 2 || cheb(m.body.pos, pos) > 8) continue;
         ours.push_back({m.body.hp, m.body.dps, static_cast<float>(m.body.gems),
-                        delay_to(m.body.pos, m.body.range, m.body.melee, true), false});
+                        delay_to(m.body.pos, m.body.range, m.body.melee, true), false,
+                        kit_burst(m.body.type, m.body.strength, m.body.focus)});
     }
     for (const auto* e : foes) {
         // Enemies busy with camps take damage from them too.
@@ -635,7 +661,8 @@ bool Bot::combat() {
         for (const auto& c : camps)
             if (c.awake && c.range > 0 && cheb(c.pos, e->pos) <= c.range) hurt += c.strength;
         theirs.push_back({std::max(1.0f, e->hp - hurt * 2.0f), e->channelling ? 0.0f : e->dps,
-                          static_cast<float>(e->gems), delay_to(e->pos, e->range, e->melee, false), false});
+                          static_cast<float>(e->gems), delay_to(e->pos, e->range, e->melee, false), false,
+                          e->channelling ? 0.0f : kit_burst(e->type, e->strength, e->focus)});
     }
     for (const auto& m : enemy_mem) {
         if (r - m.round < 1 || r - m.round > 3 || cheb(m.body.pos, pos) > 10) continue;
@@ -643,7 +670,8 @@ bool Bot::combat() {
         for (const auto* e : foes) shown |= e->id == m.body.id;
         if (shown) continue;
         theirs.push_back({m.body.hp, m.body.dps, static_cast<float>(m.body.gems),
-                          delay_to(m.body.pos, m.body.range, m.body.melee, false) + 1, false});
+                          delay_to(m.body.pos, m.body.range, m.body.melee, false) + 1, false,
+                          kit_burst(m.body.type, m.body.strength, m.body.focus)});
     }
     auto pour = [](std::vector<SimUnit>& side, float dmg, int t) {
         while (dmg > 0) {
@@ -663,9 +691,9 @@ bool Bot::combat() {
     for (int t = 0; t < 8; ++t) {
         float ours_dmg = 0, theirs_dmg = 0;
         for (const auto& u : ours)
-            if (u.hp > 0 && u.delay <= t) ours_dmg += u.dps;
+            if (u.hp > 0 && u.delay <= t) ours_dmg += u.dps + (u.delay == t ? u.burst * kBurstWeight : 0.0f);
         for (const auto& u : theirs)
-            if (u.hp > 0 && u.delay <= t) theirs_dmg += u.dps;
+            if (u.hp > 0 && u.delay <= t) theirs_dmg += u.dps + (u.delay == t ? u.burst * kBurstWeight : 0.0f);
         pour(theirs, ours_dmg, t);
         pour(ours, theirs_dmg, t);
         if (ours[0].hp <= 0) me_dies = true;
@@ -719,8 +747,11 @@ bool Bot::combat() {
         }
         const int d = cheb(target->pos, pos);
         if (d > range) {
+            // A chase that does not close in, runs through camp fire or ends at their spawn is dropped.
+            const int home = enemy_field.get(target->pos);
+            const bool hopeless = home <= 2;
             if (d < chase_best) chase_best = d, chase_turns = 0;
-            else if (++chase_turns > kChaseTurns) {
+            else if (++chase_turns > kChaseTurns || hopeless) {
                 no_chase_until = r + 15;
                 return false;
             }
@@ -738,8 +769,11 @@ bool Bot::combat() {
     }
     // Enemies far away and not coming for us: carry on farming, but warn the team.
     bool close = false;
-    for (const auto* e : foes)
-        if (!e->on_spawn && cheb(e->pos, pos) <= (e->melee ? 4 : e->range + 2)) close = true;
+    for (const auto* e : foes) {
+        if (e->on_spawn) continue;
+        const int d = cheb(e->pos, pos);
+        if (d <= (e->melee ? 4 : e->range + 2)) close = true;
+    }
     if (!close) {
         if (!(alert_age <= 2 && alert_help)) post_alert(foes[0]->pos, false);
         return false;
@@ -903,7 +937,7 @@ void Bot::choose_target() {
         my_field_round = r;
     }
     // Gold buys shards early; gems win the game.
-    const float gold_w = r < 600 ? 0.6f : (r < 1200 ? 0.4f : 0.25f);
+    const float gold_w = r < 300 ? 0.5f : (r < 1000 ? 0.3f : 0.15f);
     float best = 0;
     int best_i = -1;
     for (int i = 0; i < static_cast<int>(groups.size()); ++i) {
@@ -920,24 +954,31 @@ void Bot::choose_target() {
         }
         if (d >= (1 << 20)) continue;
         const float left = g.hp_left >= 0 ? g.hp_left : g.max_hp;
-        const float clear = left / my_dps;
+        int claimers = 0;
+        for (int a = 0; a < 5 && a < team_count; ++a)
+            if (a != my_index && mem[static_cast<std::size_t>(a)] == i) ++claimers;
+        // Big groups are worth sharing: allies add damage and split the monsters' attention.
+        const bool big = left > 3000.0f;
+        const float share = big ? 1.0f + static_cast<float>(claimers) : 1.0f;
+        const float clear = left / (my_dps * share);
+        // From the group's edge only a few monsters reach us.
+        const float hits = g.spawns.size() >= 3 ? std::min(g.strength, 2.0f * g.max_camp_strength) : g.strength;
         // Trips: each one lasts until camp damage takes us to the recall threshold.
         float overhead = 0;
-        if (g.strength > 0) {
-            const float first = std::max(1.0f, (hp - max_hp * kRecallHp) / g.strength);
-            const float full = std::max(1.0f, max_hp * (1.0f - kRecallHp) / g.strength);
-            if (first * my_dps < left) {
-                const float extra = std::ceil((left - first * my_dps) / (full * my_dps));
-                if (extra > 6) continue;
+        if (hits > 0) {
+            const float first = std::max(1.0f, (hp - max_hp * kRecallHp) / hits);
+            const float full = std::max(1.0f, max_hp * (1.0f - kRecallHp) / hits);
+            if (first * my_dps * share < left) {
+                const float extra = std::ceil((left - first * my_dps * share) / (full * my_dps * share));
+                if (extra > (big ? 10 : 6)) continue;
                 overhead = extra * (6.0f + 2.0f * static_cast<float>(g.home_dist));
             }
         }
         const int wait = std::max(0, g.dead_until - r - d);
-        const float value = static_cast<float>(g.gems) + static_cast<float>(g.gold) * gold_w;
+        const float value = (static_cast<float>(g.gems) + static_cast<float>(g.gold) * gold_w) / share;
         float score = value / (static_cast<float>(d + wait) + clear + overhead + 6.0f);
-        // Allies already on it: leave it to them.
-        for (int a = 0; a < 5 && a < team_count; ++a)
-            if (a != my_index && mem[static_cast<std::size_t>(a)] == i) score *= 0.3f;
+        // Allies already on a small group: leave it to them.
+        if (!big && claimers > 0) score *= 0.3f;
         if (g.danger_until > r) score *= 0.6f;
         if (i == target) score *= 1.25f;
         if (score > best) best = score, best_i = i;
@@ -975,10 +1016,22 @@ bool Bot::farm() {
         if (cheb(c.pos, pos) <= 4) cast_on_camp(c);
         if (hit) attack_camp(*hit);
         if (!attacked) {
-            cambc::bitboard goals;
-            for (const auto& cc : camps)
-                if (cc.group == target) goals.draw_chebyshev(cc.pos, static_cast<float>(range));
-            step_to(goals);
+            // Attack tiles, preferring those few monsters can reach (the group's edge).
+            cambc::bitboard goals, cov1, cov2, disk;
+            int n = 0;
+            for (const auto& cc : camps) {
+                if (cc.group != target) continue;
+                goals.draw_chebyshev(cc.pos, static_cast<float>(range));
+                if (cc.range <= 0 || n >= 24) continue;
+                ++n;
+                disk.clear();
+                disk.draw_chebyshev(cc.pos, static_cast<float>(cc.range));
+                cov2 |= disk & cov1;
+                cov1 |= disk;
+            }
+            const auto edge = goals & ~cov2;
+            if (n >= 3 && !(edge & ~(static_block | occupied)).is_empty()) step_to(edge);
+            else step_to(goals);
             for (const auto& cc : camps)
                 if (cc.group == target && cheb(cc.pos, pos) <= range) { attack_camp(cc); break; }
         }
@@ -1106,6 +1159,20 @@ void Bot::play_turn() {
         done = true;
     }
     if (!done && bank()) done = true;
+    // Gold only fights once it is shards: go home to spend a pile when nothing is going on.
+    if (!done && !at_spawn && gold >= 300 && gems < 10 && camp_threat_at(pos) <= 0 && !damaged
+        && r - last_enemy_round > 6) {
+        bool busy = false;
+        for (const auto& c : camps)
+            if (c.group == target && c.awake) busy = true;
+        if (!busy) {
+            try {
+                me.recall();
+                done = true;
+                debug_block({ last_act = "shop recall"; });
+            } catch (const std::exception& e) { warn("shop recall", e); }
+        }
+    }
     if (!done) {
         try {
             // Answer a teammate's winning fight nearby.
@@ -1120,7 +1187,9 @@ void Bot::play_turn() {
         try {
             const int ad = altar_field.get(pos);
             const bool late = r > 1850;
-            if (gems > 0 && (gems >= kBankGems || late || (ad != cambc::distance_field::unreachable && ad <= 5)))
+            const bool threatened = r - last_enemy_round <= 10 || (alert_age <= 5 && cheb(alert, pos) <= 15);
+            if (gems > 0 && (gems >= kBankGems || late || (threatened && gems >= 10)
+                             || (ad != cambc::distance_field::unreachable && ad <= 5)))
                 banking = true;
             if (gems == 0) banking = false;
             if (banking) done = go_bank();
