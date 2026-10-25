@@ -510,7 +510,7 @@ int Bot::choose(int& wait_out) {
     const float cap = std::max(1.0f, max_hp - margin);  // damage one trip can absorb from full health
     const float spare = std::max(0.0f, hp - margin);      // ... and from where we stand now
     const auto s = read_sighting();
-    const float gold_w = (me.champion_name() == cambc::champion_type::vesper_vale ? 0.5f : 0.35f)
+    const float gold_w = (me.champion_name() == cambc::champion_type::vesper_vale ? 0.65f : 0.5f)
         * std::max(0.4f, 1.0f - now / 1500.0f);
     const int alive = 1 + static_cast<int>(view().allies.size());
     int best = -1;
