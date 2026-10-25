@@ -54,6 +54,8 @@ constexpr int kChaseMargin = 4;
 constexpr float kRetreatHp = 0.35f;
 constexpr int kBankGems = 25;
 constexpr int kCaptureTimeout = 14;
+constexpr int kGatherTurns = 12;
+constexpr float kHealHp = 0.75f;
 
 // ---------------------------------------------------------------- static map knowledge
 struct Group {
@@ -850,7 +852,7 @@ void Bot::play_turn() {
     const int gems = static_cast<int>(me.gem_count());
 
     // Heal on spawn before heading out again.
-    if (at_spawn && hp < max_hp * 0.9f && v.enemies.empty()) {
+    if (at_spawn && hp < max_hp * kHealHp && v.enemies.empty()) {
         heal_mode = true;
         set_mode(10);
         me.set_priority(team_size - my_index);
@@ -1019,7 +1021,7 @@ void Bot::play_turn() {
         const bool dangerous = g.str * clear * 0.6f > my_hp * 0.8f;
         int dmin = 1 << 20;
         for (auto t : g.tiles) dmin = std::min(dmin, dist(t, v.me));
-        if (dangerous && squad_size > 1 && dmin <= g.range + 2 && wait_turns < 12) {
+        if (dangerous && squad_size > 1 && dmin <= g.range + 2 && wait_turns < kGatherTurns) {
             int near = 0;
             for (const auto& a : v.allies)
                 if (dist(a.pos, v.me) <= 4) ++near;
