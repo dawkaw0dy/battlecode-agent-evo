@@ -4541,9 +4541,11 @@
   },
   "f09-04": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evo-f09-04-v7g1kz",
+   "commit": "6155ad03effaffcc67c4daca114aab5a33195f62",
    "deadline_minutes": 120,
+   "done_at": 1792954659,
+   "effort_level": "high",
    "evidence": [
     {
      "gems_opponent": 1331,
@@ -4591,6 +4593,7 @@
    "generation": 9,
    "id": "f09-04",
    "kind": "child",
+   "model": null,
    "nudged": [],
    "operator": "subsystem",
    "parents": [
@@ -4610,7 +4613,7 @@
    ],
    "slot": 4,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "588bc5e0f0d27e8213febc39fa17f4551ec4bdfc33ba8a5f151c60ce487f8d20"
   },
   "f09-05": {
@@ -26555,7 +26558,6 @@
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-25T10:21:47Z g04 f04-03: admitted (21d00cdad97e)",
   "2026-10-25T10:21:52Z g04 f04-04: admitted (54743f36053d)",
   "2026-10-25T10:21:56Z g04 f04-05: admitted (c28582254ff7)",
   "2026-10-25T10:22:00Z g04 f04-06: admitted (6ead6ddbdb3d)",
@@ -26754,7 +26756,8 @@
   "2026-10-25T18:19:26Z g09 f09-04: launched session_017yoiWAVAhUx4a8vqQvuPoi",
   "2026-10-25T18:19:36Z g09 f09-05: launched session_01RhC59JuMT7ebKo4DQ5NzTg",
   "2026-10-25T18:19:48Z g09 f09-06: launched session_01CWpPnEipoic9pNx1XSJdTG",
-  "2026-10-25T18:19:58Z g09 f09-07: launched session_017dxW1cJTYHhb9fet7Dyb3X"
+  "2026-10-25T18:19:58Z g09 f09-07: launched session_017dxW1cJTYHhb9fet7Dyb3X",
+  "2026-10-25T18:57:39Z g09 f09-04: done on origin/claude/evo-f09-04-v7g1kz at 6155ad03ef"
  ],
  "paused": null,
  "phase": "RUNNING",
