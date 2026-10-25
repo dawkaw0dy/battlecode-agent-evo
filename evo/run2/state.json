@@ -4267,9 +4267,11 @@
   },
   "f08-07": {
    "archetype": "vision-ambush",
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evolution-agent-f08-07-9my3xf",
+   "commit": "db16a344e4f976286d27a6d80b84271b6c034474",
    "deadline_minutes": 120,
+   "done_at": 1792950992,
+   "effort_level": "high",
    "evidence": [],
    "failed_ideas": [
     "f06-05: Fuel: host calls cost ~30\u201340 fuel, but every bitboard temporary (&, |, ~, shift) ~600 and a grow(r) ~4k\u00b7r;",
@@ -4292,6 +4294,7 @@
    "generation": 8,
    "id": "f08-07",
    "kind": "immigrant",
+   "model": null,
    "nudged": [],
    "operator": null,
    "parents": [
@@ -4311,7 +4314,7 @@
    ],
    "slot": 7,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "61b28407e5c784c46c5e855486eac5983eb02adff0da898d54b34c83fc041a12"
   }
  },
@@ -23417,8 +23420,6 @@
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-25T08:21:02Z g03 f03-04: admitted (6e3a94424e37)",
-  "2026-10-25T08:21:09Z g03 f03-05: admitted (98fd79ae338c)",
   "2026-10-25T08:21:16Z g03 f03-06: admitted (41232bd34b90)",
   "2026-10-25T08:21:23Z g03 f03-07: admitted (e83d7b3286e3)",
   "2026-10-25T08:21:31Z g03 phase EVAL_A_PENDING",
@@ -23616,10 +23617,12 @@
   "2026-10-25T17:00:24Z g08 f08-03: done on origin/claude/evo-f08-03-2cvnn9 at 132c003161",
   "2026-10-25T17:18:46Z g08 f08-06: done on origin/claude/evolution-task-f08-06-cfee03 at 0c3ed95601",
   "2026-10-25T17:23:38Z g08 f08-01: done on origin/claude/evo-task-f08-01-mn3r4n at 068413a93c",
-  "2026-10-25T17:31:49Z g08 f08-02: done on origin/claude/evo-f08-02-48tp1u at 4da2cf6357"
+  "2026-10-25T17:31:49Z g08 f08-02: done on origin/claude/evo-f08-02-48tp1u at 4da2cf6357",
+  "2026-10-25T17:56:32Z g08 f08-07: done on origin/claude/evolution-agent-f08-07-9my3xf at db16a344e4",
+  "2026-10-25T17:56:32Z g08 phase ADMITTED"
  ],
  "paused": null,
- "phase": "RUNNING",
+ "phase": "ADMITTED",
  "sessions_launched": 64,
  "version": 1
 }
