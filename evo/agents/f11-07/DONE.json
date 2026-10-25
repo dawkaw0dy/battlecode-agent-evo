@@ -1,0 +1,27 @@
+{
+ "agent": "f11-07",
+ "task_sha256": "c9180919f5285673da0bc1fefdbd863fc12e9532cedae4ff37ad1933d3393a32",
+ "base_commit": "a9639e33bca9fc559693f05037d7a5de323b9e83",
+ "session_id": "cse_01KgZ5EoPfRZfwW6B7QeGwLV",
+ "bot_dir": "bots/f11-07",
+ "self_eval": {
+  "vs": "f00-03",
+  "games": 16,
+  "wins": 11
+ },
+ "games_played": 840,
+ "summary": "Scaling-economy immigrant: lane farming with multi-trip attrition and two-champion raids, relative-gain shard builds, per-altar banking with passing altar locks, focus-fire fight simulation and spawn defense.",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "2c6270c1adfbe38115a3054c5689b7922583b2ddc0669d6c5534cb8ae5bf5fd1",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 15.67,
+  "remote": "true",
+  "session_id": "cse_01KgZ5EoPfRZfwW6B7QeGwLV",
+  "effort_level": "high",
+  "model": null
+ }
+}
