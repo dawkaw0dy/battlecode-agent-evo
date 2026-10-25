@@ -26,6 +26,8 @@ namespace {
 
 constexpr bool kDebug = false;
 constexpr float kOtherLane = 0.6f, kEnemySide = 0.45f;
+constexpr float kHealthBias = 1.0f; // >1 favours strength shards
+constexpr float kMinTripTurns = 5.0f, kMaxTrips = 6.0f;
 constexpr std::uint16_t kUnreached = distance_field::unreachable;
 constexpr std::array<vec2, 8> kDirs{vec2{0, 1}, vec2{1, 1}, vec2{1, 0}, vec2{1, -1},
     vec2{0, -1}, vec2{-1, -1}, vec2{-1, 0}, vec2{-1, 1}};
@@ -87,6 +89,7 @@ struct Group {
     int bad_until = -1;
     bool big = false; // golem or monolith inside
     int home = -1;    // champion slot whose lane this group is in; -1 on the enemy side
+    int d_spawn = 30; // walk from our spawn
     bitboard spawn;
     std::unique_ptr<distance_field> field;
     bool has_field = false;
@@ -146,6 +149,7 @@ struct Unit {
     float dps;
 };
 std::vector<Unit> g_enemies, g_allies;
+float g_camp_taken = 1.0f; // camp damage multiplier from our emblems (jungle, durability)
 // Camp damage per turn aimed at our tile: awake camps with us in range.
 float g_incoming = 0;
 std::vector<vec2> g_awake;
@@ -326,7 +330,6 @@ void compute_regions() {
     float total = 0;
     for (std::size_t i = 0; i < g_groups.size(); ++i) {
         auto& g = g_groups[i];
-        if (g.big) continue;
         int da = 100000, de = 100000;
         for (const auto& m : g.m)
             for (auto d : kDirs) {
@@ -335,7 +338,8 @@ void compute_regions() {
                 da = std::min(da, field_value(g_spawn_field, p));
                 de = std::min(de, field_value(enemy_field, p));
             }
-        if (da >= 100000 || da > de + 4) continue;
+        g.d_spawn = std::min(da, 200);
+        if (g.big || da >= 100000 || da > de + 4) continue;
         const float value = g.gems + 0.4f * g.gold;
         items.push_back({static_cast<int>(i), std::atan2(g.center.y - cy, g.center.x - cx), value});
         total += value;
@@ -452,25 +456,55 @@ void shop() {
     auto& me = cambc::self();
     unsigned gold = me.gold_count();
     if (gold < 30) return;
-    const int stat = 0; // strength: every champion we draft scales its basic attack
+    const auto stats = me.base_stats();
     std::vector<int> plan;
-    if (g_ranged) plan = {kTreasure, kMonster};
-    else plan = {kJungle, kTreasure, kMonster};
-    for (int guard = 0; guard < 8 && gold >= 30; ++guard) {
+    if (g_ranged) plan = {kTreasure, kMonster, kDurability};
+    else plan = {kTreasure, kJungle, kDurability};
+    for (int guard = 0; guard < 12 && gold >= 30; ++guard) {
         const auto items = me.item_count();
-        int family = kPower;
+        int family = kPower, stat = -1;
         for (int f : plan) {
-            const cambc::item_type emblem{static_cast<std::uint32_t>(f * 6 + stat * 2 + 1)};
-            if (items[emblem] == 0) { family = f; break; }
+            // A family is done once any of its emblems exists.
+            bool done = false;
+            for (int st = 0; st < 3; ++st)
+                if (items[cambc::item_type{static_cast<std::uint32_t>(f * 6 + st * 2 + 1)}] > 0) done = true;
+            if (done) continue;
+            family = f;
+            for (int st = 0; st < 3; ++st)
+                if (items[cambc::item_type{static_cast<std::uint32_t>(f * 6 + st * 2)}] > 0) stat = st;
+            break;
+        }
+        if (stat < 0 || family == kPower) {
+            // Grow the stat with the larger relative gain: fights scale with health x damage.
+            const float hp_gain = stats.health_growth / std::max(1.0f, me.max_health());
+            const float str_gain = stats.strength_growth / std::max(1.0f, me.strength());
+            const int fresh = hp_gain > str_gain * kHealthBias ? 2 : 0;
+            if (family == kPower) {
+                // Keep filling a started power block of the same stat first.
+                stat = fresh;
+                for (int st = 0; st < 3; ++st) {
+                    const unsigned n = items[cambc::item_type{static_cast<std::uint32_t>(kPower * 6 + st * 2)}];
+                    if (n % 5 != 0) stat = st;
+                }
+            } else {
+                stat = fresh;
+            }
         }
         const cambc::item_type shard{static_cast<std::uint32_t>(family * 6 + stat * 2)};
-        const unsigned have = items[shard];
-        unsigned want = std::min<unsigned>(gold / 30, have < 5 ? 5 - have : 1);
+        const unsigned have = items[shard] % 5;
+        const unsigned want = std::min<unsigned>(gold / 30, 5 - have);
         if (want == 0) break;
         if (!me.can_buy(shard, want)) break;
         me.buy(shard, want);
         gold = me.gold_count();
     }
+    const auto items = me.item_count();
+    auto has = [&](int f) {
+        for (int st = 0; st < 3; ++st)
+            if (items[cambc::item_type{static_cast<std::uint32_t>(f * 6 + st * 2 + 1)}] > 0) return true;
+        return false;
+    };
+    g_camp_taken = (has(kJungle) ? 0.7f : 1.0f) * (has(kDurability) ? 0.9f : 1.0f);
 }
 
 // ---------------------------------------------------------------- movement
@@ -630,7 +664,7 @@ bool nuke_champion_at(vec2 p) {
 }
 
 struct Fight {
-    float ours = 0, theirs = 0;
+    float ours = 0, theirs = 0, burst = 0; // burst: damage the enemies near us deal in two turns
     int nearest = 1000;
     bool engaged = false, threatened = false;
 };
@@ -652,12 +686,13 @@ Fight assess() {
     float our_dps = my_dps(), our_hp = g_hp, their_dps = 0, their_hp = 0;
     if (g_type == cambc::champion_type::varg) our_hp += g_focus * 1.25f;
     for (const auto& a : g_allies)
-        if (cheb(a.pos, g_pos) <= 5) { our_dps += a.dps; our_hp += a.hp + shield_hp(a); }
+        if (cheb(a.pos, g_pos) <= 4 && a.hp > a.max_hp * 0.3f) { our_dps += a.dps; our_hp += a.hp + shield_hp(a); }
     for (const auto& e : g_enemies) {
         const int d = cheb(e.pos, g_pos);
         if (d > 7) continue;
         their_dps += e.dps;
         their_hp += e.hp + shield_hp(e);
+        if (d <= e.range + 3) f.burst += 2 * e.dps + e.focus * 1.4f;
         f.nearest = std::min(f.nearest, d);
         const int reach = e.range + 1 + (has_dash(e.type) ? 2 : 0);
         if (d <= reach) f.engaged = true;
@@ -679,6 +714,14 @@ int fight_target() {
         if (s < best_s) { best_s = s; best = static_cast<int>(i); }
     }
     return best;
+}
+
+// A kill this turn is worth taking even when we are about to leave.
+bool attack_kill_in_range() {
+    for (const auto& e : g_enemies)
+        if (cheb(e.pos, g_pos) <= g_range && e.hp <= g_str * (g_reset >= 0 ? 2.0f : 1.0f))
+            return attack_champion_at(e.pos);
+    return false;
 }
 
 bool do_fight() {
@@ -821,15 +864,28 @@ float group_score(int gi, int dist) {
         for (const auto& m : g.m) hp += g.state == 3 ? m.max_hp : m.hp;
     const float dps = my_dps() * n * (g_type == cambc::champion_type::varg && g.m.size() > 1 ? 1.4f : 1.0f);
     const float kill = hp / std::max(1.0f, dps);
+    // Camps never heal: a group too strong for one trip is worn down over several,
+    // each extra trip costing a walk home, a recall and the walk back.
+    float overhead = 0;
     if (g.state != 2) {
-        const float dmg = clear_damage(g, dps) / n;
-        if (dmg > g_hp * 0.75f) return -1;
+        float str = 0;
+        for (const auto& m : g.m)
+            if (m.hp > 0 || g.state == 3) str += m.str;
+        const float dmg = clear_damage(g, dps) * g_camp_taken / n;
+        const float first = std::max(0.0f, g_hp - g_max_hp * 0.3f);
+        if (dmg > first) {
+            const float per_trip = g_max_hp * 0.65f;
+            if (str * g_camp_taken * kMinTripTurns > per_trip) return -1;
+            const float trips = std::ceil((dmg - first) / per_trip);
+            if (trips > kMaxTrips) return -1;
+            overhead = trips * (2.0f * g.d_spawn + 10.0f);
+        }
     }
     const float gem_w = g_round < 500 ? 2.5f : g_round < 1300 ? 3.5f : 6.0f;
     float value = (g.gems * gem_w + g.gold * gold_mult()) / n;
     if (g_regions) value *= g.home == g_index ? 1.0f : g.home >= 0 ? kOtherLane : kEnemySide;
     if (g_round - g.enemy_seen < 25) value *= 0.5f;
-    return value / (dist + kill + 6 + wait);
+    return value / (dist + kill + overhead + 6 + wait);
 }
 
 void choose_target() {
@@ -1238,9 +1294,15 @@ void Bot::play_turn() {
                 g_trace += " allies" + std::to_string(g_allies.size()) + " ";
             }
             const float ratio = f.ours / f.theirs;
-            if (f.engaged) {
+            // Focus fire kills the weakest first: a champion that dies to two turns of burst steps back.
+            const bool fragile = g_hp < f.burst * 1.1f && ratio < 3.0f;
+            if (fragile && f.threatened) {
+                trace("fragile");
+                if (!attack_kill_in_range()) flee();
+                done = true;
+            } else if (f.engaged) {
                 // Equal speeds: running from someone already in reach rarely works.
-                if (ratio > 0.7f + g_gems / 200.0f) {
+                if (ratio > 1.0f + g_gems / 200.0f) {
                     trace("fight");
                     done = do_fight();
                     call_help();
