@@ -1,0 +1,125 @@
+{
+ "env_manifest_sha256": "1a54a56bf1dc3f2480fe19e1b049da9db01d95df8ae8eea12ef882de23d6e83c",
+ "generation": 7,
+ "job_id": "r07-A-spot",
+ "map_sha256": {
+  "00elkring": "4621e92590befe6b0438b7ecdd8fde5aa85945b27535f4968e701cf86934746e",
+  "00expanse": "af4236f408f8450f7da871731f08ef80295f07fac86b541f6547639a78dc2205",
+  "00gem-fields": "80af89f07723d23d822ddc858616a0156ae60f9d41ffd8bd9105f924379677b5",
+  "00gemfight": "1dfe5669ebcdf39e7769b5abf933c707804ee4a216881f89178e75e3dbc27239",
+  "00great-wall": "1b22e5c068175913889a1ff497d310de303a9b1ddf78672f26c0777fda9f5bf2",
+  "00rows": "6a4203ae1bfe86ad0f6b083f390cfd8e2f5e45f7e4102f6a2f27205d5333e701",
+  "01concentrated-wealth": "dc09c386d5e9dec3cec8bc4575c19d43233e08790e138ccd02be4644f2808c65",
+  "01corridors": "794132d979b297de5a534da393af8932cd2d5cc9d831e79d2cefdb4617d4d5e8",
+  "01elk-arena": "72b8e03bc4378d5f988f9c1c07609848bfb42fd8a883cce01820d96212f21c0a",
+  "01islands": "d97cf04b738393812fb51024582e2a6cfba8a850b19ce031f2c1ad3d7b916acb",
+  "01the-farm": "5cca9ed6eaaf6ef15a170a4ea78488237fda7b256e182a2e3360a14b485e09c3"
+ },
+ "runner_version": "cambc==3.0.5",
+ "runs_on": "ubuntu-22.04",
+ "shards": [
+  {
+   "a": "f07-02",
+   "b": "f04-05",
+   "maps": [
+    "00rows"
+   ]
+  },
+  {
+   "a": "f07-02",
+   "b": "f05-02",
+   "maps": [
+    "00elkring"
+   ]
+  },
+  {
+   "a": "f07-03",
+   "b": "f04-05",
+   "maps": [
+    "00gemfight",
+    "00great-wall",
+    "01the-farm"
+   ]
+  },
+  {
+   "a": "f07-03",
+   "b": "starter",
+   "maps": [
+    "00expanse"
+   ]
+  },
+  {
+   "a": "f07-04",
+   "b": "f05-02",
+   "maps": [
+    "00gemfight",
+    "01elk-arena"
+   ]
+  },
+  {
+   "a": "f07-05",
+   "b": "f04-05",
+   "maps": [
+    "01elk-arena"
+   ]
+  },
+  {
+   "a": "f07-05",
+   "b": "f05-02",
+   "maps": [
+    "00gem-fields",
+    "01islands",
+    "01the-farm"
+   ]
+  },
+  {
+   "a": "f07-05",
+   "b": "starter",
+   "maps": [
+    "00great-wall",
+    "01corridors"
+   ]
+  },
+  {
+   "a": "f07-06",
+   "b": "f06-05",
+   "maps": [
+    "01concentrated-wealth"
+   ]
+  },
+  {
+   "a": "f07-07",
+   "b": "f04-05",
+   "maps": [
+    "00gemfight"
+   ]
+  },
+  {
+   "a": "f07-07",
+   "b": "f06-05",
+   "maps": [
+    "00expanse"
+   ]
+  },
+  {
+   "a": "f07-07",
+   "b": "starter",
+   "maps": [
+    "01concentrated-wealth"
+   ]
+  }
+ ],
+ "src_sha256": {
+  "f04-05": "c28582254ff7f36476845698f622d6f6e8e2bb7e9a2e598c3fe489d65518f0f1",
+  "f05-02": "08b3cf162662187e7e92595402a256bb20bb492b81926414b0c7d5b4dee640ba",
+  "f06-05": "b2fdb1ef111ba1cf9913e7bf7a61c46f65047afabf6a17d7d5f3a4128947ecb9",
+  "f07-02": "ccb9f3204d24c0444839560e9a817e36470082d7f187faf31d6eefde7b5c53e0",
+  "f07-03": "83fa7cd93468aeb7b84ec88a93f97d1943a928919d3f0f9aa5fa6ab018c6e623",
+  "f07-04": "fb8d1380cda95eadf00a0019128d88aabaf41041f7bcabeaf04d48918aacf80d",
+  "f07-05": "543ce936e3d0d82fa79ddbf8ee3b77a6a05055fd9926993bf30461226a3206c6",
+  "f07-06": "a680fe78b86055d705613c9764b30310b702e1ae47bfa91cd9a893c69c063e0f",
+  "f07-07": "9be2a37cf061300157da2207cbdf142943206264723f4093ac4507e807174ebb",
+  "starter": "9023e6a089796897d6ed661f26054d1b81b298e048a09a5df75d3b9cb5d3c6a9"
+ },
+ "stage": "spot"
+}
