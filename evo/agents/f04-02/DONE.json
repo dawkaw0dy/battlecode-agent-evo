@@ -1,0 +1,27 @@
+{
+ "agent": "f04-02",
+ "task_sha256": "7267f47a6dfcf5de8f4ce179500c07389ddf6e126b1e76779de5a2673dde2416",
+ "base_commit": "1f5589e51c3a846cb8d8cf6565c8815c90f39c83",
+ "session_id": "cse_011B2jubn2kQGMAfXcBsmiEa",
+ "bot_dir": "bots/f04-02",
+ "self_eval": {
+  "vs": "f03-04",
+  "games": 80,
+  "wins": 51
+ },
+ "games_played": 825,
+ "summary": "Parent A (f03-05) with a draft-memory group table so the champions' first turn fits round 1 (was rounds 2-5); vs f03-04 51/80 (parent 43/80), vs f03-05 43/80",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "16f38370f9e03b42263aab52253053e6123fa9667adec78e1e8ed8551fb817de",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 20.15,
+  "remote": "true",
+  "session_id": "cse_011B2jubn2kQGMAfXcBsmiEa",
+  "effort_level": "high",
+  "model": null
+ }
+}
