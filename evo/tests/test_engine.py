@@ -306,3 +306,33 @@ def test_emergency_stop_retires_running_sessions(world):
     eng.resume('test over')
     eng.step()                                       # every slot is dead: nothing is admitted, the run waits
     assert not [a for a in eng.state['agents'].values() if a['status'] == 'admitted']
+
+
+def test_late_start_nudges_before_enforcing_the_deadline(world):
+    # D42: the app was closed when the nudge was due; on restart it nudges first and allows 20 more minutes
+    work, origin, cfg = world
+    cfg['agents']['relaunch_dead'] = 0
+    sent = []
+
+    class Recorder(launch.FakeLauncher):
+        def nudge(self, session_id, message):
+            sent.append(session_id)
+            return True
+
+    eng = engine.Engine(cfg, root=work, launcher=Recorder(), replay=fake_replay_from([]), out=lambda *_: None)
+    eng.init()
+    eng.step()
+    eng.approve(0)
+    eng.step()                                       # 8 sessions running
+    running = [a for a in eng.state['agents'].values() if a['sessions']]
+    for a in running:
+        a['sessions'][-1]['launched_at'] -= 10 * 3600  # launched 10 hours ago, never nudged
+    eng.save('test: app was closed')
+    eng.step()
+    agents = eng.state['agents']
+    assert len(sent) == 8 and all(agents[a['id']]['status'] == 'running' for a in running)
+    for a in running:
+        agents[a['id']]['sessions'][-1]['nudged_at'] -= 21 * 60
+    eng.save('test: 21 minutes after the nudge')
+    eng.step()
+    assert all(eng.state['agents'][a['id']]['status'] == 'dead' for a in running) and len(sent) == 8

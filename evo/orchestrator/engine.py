@@ -99,6 +99,17 @@ class Engine:
         st.log(self.state, f'approved generation {g:02d}: {approval}')
         self.save(f'evo: approve generation {g:02d}')
 
+    NUDGE_MESSAGE = '20 minutes left: finish, write NOTES.md and DONE.json, push.'
+    NUDGE_TRIES = 5  # failed nudges (one per step) before the deadline applies without one
+
+    @staticmethod
+    def slot_deadline(agent, session):
+        """D42: the deadline, but never less than 20 minutes after the nudge actually reached the session."""
+        end = session['launched_at'] + agent['deadline_minutes'] * 60
+        if session.get('nudged_at'):
+            end = max(end, session['nudged_at'] + 20 * 60)
+        return end
+
     STOP_MESSAGE = ('STOP: the owner has ended this evolution run. Stop all work now: do not push anything else, '
                     'do not write DONE.json, and end your session.')
 
@@ -240,13 +251,18 @@ class Engine:
                              effort_level=fp.get('effort_level'), model=fp.get('model'))
                     st.log(self.state, f'{aid}: done on {branch} at {commit[:10]}')
                 changed = True
-            elif now > session['launched_at'] + a['deadline_minutes'] * 60:
+            elif (now > session['launched_at'] + (a['deadline_minutes'] - 20) * 60 and session['id'] not in a['nudged']
+                  and session.get('nudge_failures', 0) < self.NUDGE_TRIES):
+                # D42: nudge before the deadline is enforced, also when this app was not running at nudge time
+                if self.launcher.nudge(session['id'], self.NUDGE_MESSAGE):
+                    a['nudged'].append(session['id'])
+                    session['nudged_at'] = now
+                else:
+                    session['nudge_failures'] = session.get('nudge_failures', 0) + 1
+                changed = True
+            elif now > self.slot_deadline(a, session):
                 self.retire(a, 'deadline')
                 changed = True
-            elif now > session['launched_at'] + (a['deadline_minutes'] - 20) * 60 and session['id'] not in a['nudged']:
-                if self.launcher.nudge(session['id'], '20 minutes left: finish, write NOTES.md and DONE.json, push.'):
-                    a['nudged'].append(session['id'])
-                    changed = True
         running = sum(1 for x in self.new_agents() if self.state['agents'][x]['status'] == 'running')
         for aid in self.new_agents():
             a = self.state['agents'][aid]
