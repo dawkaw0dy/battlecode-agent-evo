@@ -188,6 +188,7 @@ std::vector<std::vector<std::uint8_t>> plan_routes(const std::vector<GroupInfo>&
     constexpr std::uint64_t kLoopReserve = 40000;    // ... and for writing the plan
     constexpr size_t kMaxCand = 48;
     constexpr float kMaxTrips = 0.0f;    // heal trips one solo clear may take
+    constexpr int kContested = 2;        // plan groups at most this much nearer the enemy spawn than ours
     std::vector<std::vector<std::uint8_t>> routes(static_cast<size_t>(std::max(0, slots)));
     if (slots <= 0) return routes;
     const auto picks = pick_order(slots);
@@ -196,7 +197,7 @@ std::vector<std::vector<std::uint8_t>> plan_routes(const std::vector<GroupInfo>&
     for (int i = 0; i < static_cast<int>(groups.size()) && i < 250; ++i) {
         const auto& g = groups[i];
         if (g.boss || g.d_ally >= kFar || g.tiles.empty()) continue;
-        if (g.d_ally > g.d_enemy + 2) continue;
+        if (g.d_ally > g.d_enemy + kContested) continue;
         if (g.gems + kGoldW * g.gold <= 0) continue;
         cand.push_back(i);
     }

@@ -48,13 +48,13 @@ constexpr int kHuntPad = 2;         // engaged, but nobody within our range + th
 constexpr float kHelpHp = 0.6f;     // answer an ally's sighting above this health fraction
 constexpr bool kLocks = true;       // carry an altar lock: drop it on enemy tributes and on altars we pass
 constexpr bool kLockRunner = false;  // the last pick carries locks to far altars (f11-04: off, it cost Varg ~100 opening turns)
-constexpr int kLockDetour = 8;
+constexpr int kLockDetour = 8;      // walk this far (Chebyshev) out of our way to lock an altar
 // Opening (f11-04): the draft's routes guide the chooser rather than dictate the target.
 constexpr bool kForceRoute = false;   // true: walk the route as planned, the chooser takes over after it
 constexpr float kRouteNext = 2.2f;    // score factor of the next group on our own route
 constexpr float kRouteMine = 1.2f;    // ... of later groups on it
 constexpr float kRouteOther = 0.5f;   // ... of groups planned for an ally, while the opening lasts
-constexpr float kOpenRaid = 0.5f;     // raid scores while our opening route lasts      // walk this far (Chebyshev) out of our way to lock an altar
+constexpr float kOpenRaid = 0.5f;     // raid scores while our opening route lasts
 
 namespace {
 // Debug: turns spent per activity, printed every 200 rounds.

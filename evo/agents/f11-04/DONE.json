@@ -1,0 +1,27 @@
+{
+ "agent": "f11-04",
+ "task_sha256": "a7ea3ed34f9ce3f9196a9ead127d6ce18499fffefc26a4765d80a820c0804a0e",
+ "base_commit": "ec117b57163b37bc1cc47acab8e179db37a17271",
+ "session_id": "cse_012ip8rj22dF6UaV94nqnWp4",
+ "bot_dir": "bots/f11-04",
+ "self_eval": {
+  "vs": "f10-03",
+  "games": 80,
+  "wins": 53
+ },
+ "games_played": 841,
+ "summary": "Draft-time opening route planner (solo single-bar clears, walking distances) guides the chooser; no lock runner; pick before planning",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "2c6270c1adfbe38115a3054c5689b7922583b2ddc0669d6c5534cb8ae5bf5fd1",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 18.1,
+  "remote": "true",
+  "session_id": "cse_012ip8rj22dF6UaV94nqnWp4",
+  "effort_level": "high",
+  "model": null
+ }
+}
