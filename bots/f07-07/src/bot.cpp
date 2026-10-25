@@ -32,6 +32,7 @@ constexpr int kChaseTurns = 6;
 constexpr float kHomeWeight = 1.0f;     // retreat step: walking distance home ...
 constexpr float kThreatWeight = 10.0f;  // ... against the damage the step exposes us to (10/3: more deaths)
 constexpr float kCloserPenalty = 0.0f;  // ... and stepping towards an enemy
+constexpr int kRaidHelpers = 2;         // big groups are planned with at least this many allies joining
 constexpr float kIslandShare = 0.3f;    // use teleport crystals when islands hold this share of the value
 constexpr bool kWards = true;           // ward hidden bushes next to us
 constexpr float kOurEfficiency = 1.0f;  // share of our estimated damage that lands in a real fight
@@ -1140,7 +1141,8 @@ void Bot::choose_target() {
             if (a != my_index && mem[static_cast<std::size_t>(a)] == i) ++claimers;
         // Big groups are worth sharing: allies add damage and split the monsters' attention.
         const bool big = left > 3000.0f;
-        const float share = big ? 1.0f + static_cast<float>(claimers) : 1.0f;
+        // Allies join big groups (claims draw them in): plan as if helpers are coming.
+        const float share = big ? 1.0f + static_cast<float>(std::max(claimers, std::min(kRaidHelpers, alive_allies - 1))) : 1.0f;
         const float clear = left / (my_dps * share);
         // From the group's edge only a few monsters reach us.
         float hits = g.spawns.size() >= 3 ? std::min(g.strength, 2.0f * g.max_camp_strength) : g.strength;
