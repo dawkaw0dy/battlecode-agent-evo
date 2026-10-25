@@ -26,8 +26,9 @@ namespace {
 
 constexpr bool kDebug = false;
 constexpr float kOtherLane = 0.6f, kEnemySide = 0.45f;
-constexpr float kHealthBias = 1.0f; // >1 favours strength shards
+constexpr float kHealthBias = 1.6f; // >1 favours strength shards
 constexpr float kMinTripTurns = 5.0f, kMaxTrips = 6.0f;
+constexpr int kMaxChase = 4;
 constexpr std::uint16_t kUnreached = distance_field::unreachable;
 constexpr std::array<vec2, 8> kDirs{vec2{0, 1}, vec2{1, 1}, vec2{1, 0}, vec2{1, -1},
     vec2{0, -1}, vec2{-1, -1}, vec2{-1, 0}, vec2{-1, 1}};
@@ -327,7 +328,7 @@ int field_value(const distance_field& f, vec2 p);
 // value-balanced slices, one per champion. Farming stays local and spread out.
 void compute_regions() {
     g_regions = true;
-    g_team_size = std::max<int>(1, static_cast<int>(g_ally_handles.size()));
+    g_team_size = std::max<int>(1, std::min<int>(kSquads, static_cast<int>(g_ally_handles.size())));
     bitboard enemy_walls = cambc::map::walls() | cambc::map::holes() | cambc::map::altars()
         | cambc::map::spawn_region(team::ally) | g_camp_board;
     distance_field enemy_field;
@@ -747,7 +748,10 @@ bool attack_kill_in_range() {
     return false;
 }
 
+int g_chase = 0, g_no_chase_until = -1;
+
 bool do_fight() {
+    if (g_round < g_no_chase_until) return false;
     const int t = fight_target();
     if (t < 0) return false;
     const auto e = g_enemies[t];
@@ -757,7 +761,14 @@ bool do_fight() {
     if (d <= g_range) {
         nuke_champion_at(e.pos);
         attack_champion_at(e.pos);
+        g_chase = 0;
         return true;
+    }
+    // A target that keeps out of reach is kiting us: stop chasing for a while.
+    if (++g_chase > kMaxChase) {
+        g_chase = 0;
+        g_no_chase_until = g_round + 12;
+        return false;
     }
     // Close the distance: melee can still hit after stepping, ranged cannot.
     if (d <= static_cast<int>(g_nuke_range) && !g_ranged) {
@@ -768,7 +779,7 @@ bool do_fight() {
     bitboard goal;
     goal.draw_chebyshev(e.pos, static_cast<float>(g_range));
     step_dynamic(goal);
-    if (!g_ranged && me.can_attack()) attack_champion_at(e.pos);
+    if (!g_ranged && me.can_attack() && attack_champion_at(e.pos)) g_chase = 0;
     return true;
 }
 
@@ -906,14 +917,14 @@ float group_score(int gi, int dist) {
     }
     const float gem_w = g_round < 500 ? 4.0f : g_round < 1300 ? 5.0f : 8.0f;
     float value = (g.gems * gem_w + g.gold * gold_mult()) / n;
-    if (g_regions) value *= g.home == g_index ? 1.0f : g.home >= 0 ? kOtherLane : kEnemySide;
+    if (g_regions) value *= g.home == g_squad ? 1.0f : g.home >= 0 ? kOtherLane : kEnemySide;
     if (g_round - g.enemy_seen < 25) value *= 0.5f;
     return value / (dist + kill + overhead + 6 + wait);
 }
 
 void choose_target() {
     if (!g_leader) {
-        const int t = static_cast<int>(g_shared[g_squad]) - 1;
+        const int t = g_squad < 2 ? static_cast<int>(g_shared[6 + g_squad]) - 1 : -1;
         if (t >= 0 && t < static_cast<int>(g_groups.size())) {
             if (t != g_target) {
                 g_target = t;
@@ -1344,10 +1355,15 @@ void Bot::play_turn() {
                 done = true;
             } else if (f.engaged) {
                 // Equal speeds: running from someone already in reach rarely works.
-                if (ratio > 1.0f + g_gems / 200.0f) {
+                if (ratio > 1.0f + g_gems / 200.0f && g_round >= g_no_chase_until) {
                     trace("fight");
                     done = do_fight();
                     call_help();
+                    if (!done) {
+                        trace("flee");
+                        flee();
+                        done = true;
+                    }
                 } else {
                     trace("flee");
                     flee();
@@ -1410,6 +1426,8 @@ void Bot::play_turn() {
     if (kDebug) last_line = "r" + std::to_string(g_round) + " hp" + std::to_string(static_cast<int>(g_hp)) + " gems" + std::to_string(g_gems) + " tgt" + std::to_string(g_target) + " " + g_trace;
     g_trace.clear();
     // The squad leader publishes the squad target.
+    // Shared bytes 6..7: targets of squads 0 and 1 (later squads have one member).
+    if (g_leader && g_squad < 2) cambc::shared_memory[6 + g_squad] = static_cast<std::uint8_t>(g_target + 1);
     if (!g_enemies.empty()) {
         // Shared bytes 3..5: the latest enemy sighting.
         cambc::shared_memory[3] = static_cast<std::uint8_t>(g_enemies[0].pos.x);
