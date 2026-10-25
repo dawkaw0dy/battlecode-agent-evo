@@ -2335,9 +2335,11 @@
   },
   "f05-01": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evolution-agent-f05-01-b0s2eo",
+   "commit": "e9d80431c2bb923e39e5b80cbb32ef1275e0d6de",
    "deadline_minutes": 120,
+   "done_at": 1792931043,
+   "effort_level": "high",
    "evidence": [
     {
      "gems_opponent": 1857,
@@ -2385,6 +2387,7 @@
    "generation": 5,
    "id": "f05-01",
    "kind": "child",
+   "model": null,
    "nudged": [
     "session_01MKxXcycWbEzGAPcQmWBvcE"
    ],
@@ -2408,14 +2411,16 @@
    ],
    "slot": 1,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "a9ac6b5b4a8d230fe33413d87fae748fe004434f371f57d37768525f6b05783a"
   },
   "f05-02": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evo-task-f05-02-wty7r5",
+   "commit": "461bca893cfcdc8f9de4c40bbffb3bcc7c6a9ef9",
    "deadline_minutes": 120,
+   "done_at": 1792931046,
+   "effort_level": "high",
    "evidence": [
     {
      "gems_opponent": 1857,
@@ -2463,6 +2468,7 @@
    "generation": 5,
    "id": "f05-02",
    "kind": "child",
+   "model": null,
    "nudged": [
     "session_0182PfM3KASh9mvh3J5QwgTt"
    ],
@@ -2485,7 +2491,7 @@
    ],
    "slot": 2,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "9fed51de9841e37a6f99bfcaee5e38e3d95bf834cafdfad622b74f9c0b3e3b52"
   },
   "f05-03": {
@@ -2540,7 +2546,9 @@
    "generation": 5,
    "id": "f05-03",
    "kind": "child",
-   "nudged": [],
+   "nudged": [
+    "session_01AgPwQfZCUmjYorzqqBKDqH"
+   ],
    "operator": "subsystem",
    "parents": [
     "f04-05"
@@ -2554,6 +2562,7 @@
      "id": "session_01AgPwQfZCUmjYorzqqBKDqH",
      "launch_output": "Created cloud session: Evolution agent f05-03\nView: https://claude.ai/code/session_01AgPwQfZCUmjYorzqqBKDqH?from=cli&m=0\nResume with: claude --teleport session_01AgPwQfZCUmjYorzqqBKDqH",
      "launched_at": 1792924951,
+     "nudged_at": 1792931040,
      "url": "https://claude.ai/code/session_01AgPwQfZCUmjYorzqqBKDqH"
     }
    ],
@@ -2614,7 +2623,9 @@
    "generation": 5,
    "id": "f05-04",
    "kind": "child",
-   "nudged": [],
+   "nudged": [
+    "session_01FvoKkFvNFyPXqxhvubA3ij"
+   ],
    "operator": "tweak",
    "parents": [
     "f04-03"
@@ -2628,6 +2639,7 @@
      "id": "session_01FvoKkFvNFyPXqxhvubA3ij",
      "launch_output": "Created cloud session: Evolution agent f05-04\nView: https://claude.ai/code/session_01FvoKkFvNFyPXqxhvubA3ij?from=cli&m=0\nResume with: claude --teleport session_01FvoKkFvNFyPXqxhvubA3ij",
      "launched_at": 1792924961,
+     "nudged_at": 1792931040,
      "url": "https://claude.ai/code/session_01FvoKkFvNFyPXqxhvubA3ij"
     }
    ],
@@ -2688,7 +2700,9 @@
    "generation": 5,
    "id": "f05-05",
    "kind": "child",
-   "nudged": [],
+   "nudged": [
+    "session_019cvvpWK5DtJxeWnyNfoepk"
+   ],
    "operator": "subsystem",
    "parents": [
     "f04-03"
@@ -2702,6 +2716,7 @@
      "id": "session_019cvvpWK5DtJxeWnyNfoepk",
      "launch_output": "Created cloud session: Evo task f05-05\nView: https://claude.ai/code/session_019cvvpWK5DtJxeWnyNfoepk?from=cli&m=0\nResume with: claude --teleport session_019cvvpWK5DtJxeWnyNfoepk",
      "launched_at": 1792924971,
+     "nudged_at": 1792931040,
      "url": "https://claude.ai/code/session_019cvvpWK5DtJxeWnyNfoepk"
     }
    ],
@@ -2737,7 +2752,9 @@
    "generation": 5,
    "id": "f05-06",
    "kind": "immigrant",
-   "nudged": [],
+   "nudged": [
+    "session_01GprprW45QM9MmgY8XHg1Mm"
+   ],
    "operator": null,
    "parents": [
     "starter"
@@ -2751,6 +2768,7 @@
      "id": "session_01GprprW45QM9MmgY8XHg1Mm",
      "launch_output": "Created cloud session: Evo task f05-06\nView: https://claude.ai/code/session_01GprprW45QM9MmgY8XHg1Mm?from=cli&m=0\nResume with: claude --teleport session_01GprprW45QM9MmgY8XHg1Mm",
      "launched_at": 1792924982,
+     "nudged_at": 1792931040,
      "url": "https://claude.ai/code/session_01GprprW45QM9MmgY8XHg1Mm"
     }
    ],
@@ -2786,7 +2804,9 @@
    "generation": 5,
    "id": "f05-07",
    "kind": "immigrant",
-   "nudged": [],
+   "nudged": [
+    "session_016imJFvD6ZFEY9EQvF6jXs8"
+   ],
    "operator": null,
    "parents": [
     "starter"
@@ -2800,6 +2820,7 @@
      "id": "session_016imJFvD6ZFEY9EQvF6jXs8",
      "launch_output": "Created cloud session: Evolution agent f05-07\nView: https://claude.ai/code/session_016imJFvD6ZFEY9EQvF6jXs8?from=cli&m=0\nResume with: claude --teleport session_016imJFvD6ZFEY9EQvF6jXs8",
      "launched_at": 1792924992,
+     "nudged_at": 1792931040,
      "url": "https://claude.ai/code/session_016imJFvD6ZFEY9EQvF6jXs8"
     }
    ],
@@ -14358,8 +14379,6 @@
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-24T16:34:02Z g00 r00-A: pushed b76713dd14 with 36 shards",
-  "2026-10-24T16:36:16Z g00 phase EVAL_A_DONE: results for r00-A",
   "2026-10-24T16:36:27Z g00 r00-A-spot: pushed 0d46df721b (24 sampled games, 17 shards)",
   "2026-10-24T16:38:47Z g00 r00-A: verified, 1152 rows, spot-check 24 OK",
   "2026-10-24T16:38:55Z g00 phase EVAL_B_PENDING: stage A ranked: f00-03, f00-00, f00-06, f00-07, f00-02, f00-04, f00-01, f00-05, starter",
@@ -14557,7 +14576,9 @@
   "2026-10-25T10:42:42Z g05 f05-04: launched session_01FvoKkFvNFyPXqxhvubA3ij",
   "2026-10-25T10:42:51Z g05 f05-05: launched session_019cvvpWK5DtJxeWnyNfoepk",
   "2026-10-25T10:43:02Z g05 f05-06: launched session_01GprprW45QM9MmgY8XHg1Mm",
-  "2026-10-25T10:43:12Z g05 f05-07: launched session_016imJFvD6ZFEY9EQvF6jXs8"
+  "2026-10-25T10:43:12Z g05 f05-07: launched session_016imJFvD6ZFEY9EQvF6jXs8",
+  "2026-10-25T12:24:03Z g05 f05-01: done on origin/claude/evolution-agent-f05-01-b0s2eo at e9d80431c2",
+  "2026-10-25T12:24:06Z g05 f05-02: done on origin/claude/evo-task-f05-02-wty7r5 at 461bca893c"
  ],
  "paused": null,
  "phase": "RUNNING",
