@@ -22,6 +22,7 @@ private:
     int slot_index = 0;            // our position in the draft order
     int team_n = 5;
     int pack = 0, pack_n = 1;       // our pack and its size
+    int packs = 1;                  // number of packs on the team
     std::array<Slot, 2> kit{};
     bool ranged = false;
     bool casted = false;            // a successful cast this turn
@@ -33,6 +34,9 @@ private:
     int approach_target = -1;
     int stuck_turns = 0;
     int last_enemy_round = -1000;
+    struct Seen { Unit u; int round; };
+    std::vector<Seen> seen_enemies;  // last sighting per enemy champion
+    int chase_turns = 0, chase_block_until = -1;
     bool banking = false;
     bool healing = false;
 

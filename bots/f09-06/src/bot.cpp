@@ -39,7 +39,14 @@ bool has_lock() {
 
 float unit_dps(const Unit& u) { return u.str + 0.25f * u.focus; }
 
-constexpr float kCampDamageTaken = 1.0f;  // share of camp damage we expect to take (jungle emblem, stuns)
+constexpr float kForeignValue = 0.3f;      // groups on the enemy side
+constexpr float kOtherSectorValue = 0.6f;  // groups in another pack's sector
+constexpr float kCampDamageTaken = 1.0f;
+constexpr float kEngageRatio = 1.5f;       // fight when our hp*dps beats theirs by this much
+constexpr float kFleeRatio = 0.85f;        // run when below this and they can reach us
+constexpr int kDeepChase = 7;              // never chase targets this close to their spawn
+constexpr int kChaseTurns = 4;             // approach turns without a hit before giving up
+constexpr int kChaseReach = 2;             // close in only on targets this far beyond our range  // share of camp damage we expect to take (jungle emblem, stuns)
 
 Field g_from_altars;  // static distance to the nearest altar approach tile
 std::vector<int> g_bad_until;
@@ -51,9 +58,9 @@ std::uint64_t g_choose_fuel = 0;
 int pack_of(int slot, int n) {
     static const int kPacks[6][5] = {
         {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0},
-        {0, 0, 1, 0, 0},           // 3 champions
-        {0, 0, 1, 1, 0},           // 4
-        {0, 0, 1, 1, 2},           // 5
+        {0, 0, 0, 0, 0},           // 3 champions
+        {0, 0, 0, 0, 0},           // 4
+        {0, 0, 0, 0, 0},           // 5
     };
     if (n < 1 || n > 5 || slot < 0 || slot > 4) return 0;
     return kPacks[n][slot];
@@ -113,7 +120,12 @@ void Bot::init() {
         if (draft_type_matches(order[i], my)) slot_index = static_cast<int>(i);
     pack = pack_of(slot_index, team_n);
     pack_n = 0;
-    for (int i = 0; i < team_n; ++i) if (pack_of(i, team_n) == pack) ++pack_n;
+    packs = 1;
+    for (int i = 0; i < team_n; ++i) {
+        if (pack_of(i, team_n) == pack) ++pack_n;
+        packs = std::max(packs, pack_of(i, team_n) + 1);
+    }
+    W.partition(packs);
 
     g_bad_until.assign(W.groups.size(), -1);
     debug_block({
@@ -128,7 +140,7 @@ void Bot::init() {
             for (const auto& G : W.groups) {
                 std::cout << "  G" << G.id << " (" << G.center.x << "," << G.center.y << ") gems " << G.gems << " gold " << G.gold
                           << " resp " << G.respawn_max << " hp " << static_cast<int>(G.hp()) << " str " << static_cast<int>(G.str())
-                          << " ours " << G.ours << " theirs " << G.theirs << (G.island ? " island" : "") << " :";
+                          << " ours " << G.ours << " theirs " << G.theirs << " sec " << G.sector << (G.island ? " island" : "") << " :";
                 for (const auto& m : G.m) std::cout << " " << static_cast<int>(m.kind);
                 std::cout << "\n";
             }
@@ -337,9 +349,21 @@ bool Bot::dash_towards(vec2 p, bool away) {
 
 bool Bot::handle_fight() {
     auto& me = cambc::self();
-    if (W.enemies.empty()) return false;
-    last_enemy_round = W.round;
     const vec2 pos = me.position();
+    // Remember enemies for a couple of rounds: vision flickers in bushes and around walls.
+    for (const auto& e : W.enemies) {
+        bool found = false;
+        for (auto& r : seen_enemies)
+            if (r.u.type == e.type) { r.u = e; r.round = W.round; found = true; }
+        if (!found) seen_enemies.push_back({e, W.round});
+    }
+    if (W.enemies.empty()) {
+        bool recent = false;
+        for (const auto& r : seen_enemies)
+            if (W.round - r.round <= 2 && cheb(r.u.pos, pos) <= 8) recent = true;
+        if (!recent) return false;
+    }
+    last_enemy_round = W.round;
     const float hp = me.health();
     const float dps = my_dps();
     float our_hp = hp, our_dps = dps;
@@ -349,20 +373,25 @@ bool Bot::handle_fight() {
     bool threatened = false;
     std::vector<vec2> threats;
     std::vector<int> reach;
-    for (const auto& e : W.enemies) {
+    for (const auto& r : seen_enemies) {
+        if (W.round - r.round > 2) continue;
+        const auto& e = r.u;
         const int d = cheb(e.pos, pos);
         if (d > 9) continue;
         their_hp += e.hp;
-        float f = e.channel ? 0.3f : (e.stunned ? 0.6f : 1.0f);
+        const float f = e.channel ? 0.3f : (e.stunned ? 0.6f : 1.0f);
         their_dps += unit_dps(e) * f;
         if (d <= e.range + 2) threatened = true;
         threats.push_back(e.pos);
         reach.push_back(e.range + 1);
     }
     if (threats.empty()) return false;
+    // Awake camps hitting us fight on nobody's side but cost us.
+    for (const auto& c : W.camps)
+        if (c.awake && c.str > 0 && cheb(c.pos, pos) <= c.range) their_dps += c.str * 0.5f;
     const float ratio = (our_hp * our_dps) / std::max(1.0f, their_hp * their_dps);
 
-    // Best target: quick kills, carriers and channels.
+    // Best target among the visible: quick kills, carriers and channels.
     const Unit* tgt = nullptr;
     float tgt_v = -1e9f;
     for (const auto& e : W.enemies) {
@@ -374,9 +403,25 @@ bool Bot::handle_fight() {
         if (e.hp <= me.strength()) v += 100.0f;
         if (v > tgt_v) { tgt_v = v; tgt = &e; }
     }
+    const bool in_reach = tgt && cheb(tgt->pos, pos) <= me.attack_range();
+    const bool kill_now = in_reach && tgt->hp <= dps;
+    // Chasing towards their spawn (which heals them fully) or for too long loses.
+    const bool deep = tgt && W.from_spawn.at(W.mirror(tgt->pos)) < kDeepChase;
+    const int tgt_d = tgt ? cheb(tgt->pos, pos) : 99;
+    const bool may_chase = tgt && !deep && W.round >= chase_block_until
+        && (tgt_d <= me.attack_range() + kChaseReach || tgt->channel || tgt->hp <= dps * 2.0f);
 
-    const bool engage = ratio >= 1.3f || (tgt && tgt->channel && ratio >= 0.7f)
+    bool engage = ratio >= kEngageRatio || (tgt && tgt->channel && ratio >= 0.7f) || kill_now
         || (tgt && tgt->hp <= dps * 1.5f && hp > me.max_health() * 0.3f);
+    if (!in_reach && !may_chase) engage = false;
+    debug_block({
+        std::cout << "  F r" << W.round << " c" << static_cast<int>(me.champion_name()) << " at " << pos.x << "," << pos.y << " hp " << static_cast<int>(hp)
+                  << " ours " << static_cast<int>(our_hp) << "/" << static_cast<int>(our_dps) << " theirs " << static_cast<int>(their_hp) << "/"
+                  << static_cast<int>(their_dps) << " ratio " << ratio << " eng " << engage << " thr " << threatened << " n" << threats.size()
+                  << " deep " << deep << " chase " << chase_turns;
+        if (tgt) std::cout << " tgt " << tgt->pos.x << "," << tgt->pos.y << " hp " << static_cast<int>(tgt->hp) << " d " << cheb(tgt->pos, pos);
+        std::cout << "\n";
+    });
     if (engage && tgt) {
         const Unit e = *tgt;
         const int d = cheb(e.pos, pos);
@@ -384,30 +429,32 @@ bool Bot::handle_fight() {
             cast_on_enemy(e);
             attack_unit_at(e.pos);
             reset_and_hit(e.pos);
+            chase_turns = 0;
             return true;
         }
+        if (++chase_turns > kChaseTurns) { chase_turns = 0; chase_block_until = W.round + 8; }
         // Spells that do not exclude walking, then close in.
         cast_on_enemy(e);
-        if (!casted || !kit[0].excl) {
+        if (!casted || !(kit[0].excl || kit[1].excl)) {
             if (d >= 4 && !ranged) dash_towards(e.pos, false);
             cambc::bitboard goal;
             add_square(goal, e.pos, ranged ? me.attack_range() : 1);
             if (N.step(goal)) walked = true;
         }
         if (cheb(me.position(), e.pos) <= me.attack_range()) {
-            attack_unit_at(e.pos);
+            if (attack_unit_at(e.pos)) chase_turns = 0;
             reset_and_hit(e.pos);
         }
         return true;
     }
 
-    if (ratio < 0.8f && threatened) {
+    if (ratio < kFleeRatio && threatened) {
         // Hit something first when that costs nothing (melee may still walk), then run.
         if (!ranged && tgt && cheb(tgt->pos, pos) <= 1) attack_unit_at(tgt->pos);
         for (const auto& e : W.enemies)
             if (!e.stunned && cheb(e.pos, pos) <= 3) {
-                for (const auto& s : kit)
-                    if (s.valid && s.kind == cambc::ability_kind::cc && !s.excl) { cast_on_enemy(e); break; }
+                for (const auto& sl : kit)
+                    if (sl.valid && sl.kind == cambc::ability_kind::cc && !sl.excl) { cast_on_enemy(e); break; }
                 break;
             }
         if (!dash_towards(threats[0], true))
@@ -416,7 +463,7 @@ bool Bot::handle_fight() {
     }
 
     // Even fight: trade only what is already in reach, keep farming otherwise.
-    if (tgt && cheb(tgt->pos, pos) <= me.attack_range()) {
+    if (in_reach) {
         cast_on_enemy(*tgt);
         attack_unit_at(tgt->pos);
         reset_and_hit(tgt->pos);
@@ -554,13 +601,15 @@ int Bot::choose_group() {
     const float pack_dps = std::max(10.0f, my_dps() * static_cast<float>(pack_n) * 0.85f);
     const float pack_hp = me.max_health() * static_cast<float>(pack_n);
     const float gold_w = W.round < 600 ? 0.15f : (W.round < 1200 ? 0.08f : 0.03f);
-    int taken[3] = {-1, -1, -1};
-    for (int k = 0; k < 3; ++k) if (k != pack) taken[k] = sm_get(k);
+    int taken[5] = {-1, -1, -1, -1, -1};
+    for (int k = 0; k < packs; ++k) if (k != pack) taken[k] = sm_get(k);
     int best = -1;
     float best_s = -1;
     for (const auto& G : W.groups) {
         if (G.m.empty() || g_bad_until[G.id] > W.round) continue;
-        if (G.id == taken[0] || G.id == taken[1] || G.id == taken[2]) continue;
+        bool other = false;
+        for (int k = 0; k < 5; ++k) if (G.id == taken[k]) other = true;
+        if (other) continue;
         if (G.island) continue;
         // Terrain distance from the group's own field, else a guess.
         const Field* f = W.group_field(G.id, false);
@@ -579,7 +628,7 @@ int Bot::choose_group() {
         // Camps do not heal: a group too strong for one trip takes several, each a recall and a walk back.
         const float trips = std::max(0.0f, std::ceil(str * T * kCampDamageTaken / (0.7f * pack_hp)) - 1.0f);
         float value = static_cast<float>(G.gems) + gold_w * static_cast<float>(G.gold);
-        if (G.theirs + 3 < G.ours) value *= 0.75f;
+        if (G.sector != pack) value *= G.sector < 0 && G.ours > G.theirs + 6 ? kForeignValue : kOtherSectorValue;
         const float time = static_cast<float>(std::max(d, wait)) + T + trips * (static_cast<float>(std::min(G.ours, 150)) + 8.0f) + 6.0f;
         const float s = value / time;
         if (s > best_s) { best_s = s; best = G.id; }
@@ -694,7 +743,7 @@ void Bot::play_turn() {
     auto& me = cambc::self();
     if (!inited) {
         init();
-        if (W.round <= 2) for (int k = 0; k < 3; ++k) sm_set(k, 0xFF);
+        if (W.round <= 2) for (int k = 0; k < 5; ++k) sm_set(k, 0xFF);
     }
     casted = walked = attacked = false;
     g_prof_n = 0;

@@ -1,6 +1,8 @@
 // Map knowledge and the per-turn snapshot.
 #include "world.h"
 #include <variant>
+#include <algorithm>
+#include <cmath>
 
 World W;
 
@@ -221,6 +223,39 @@ void World::precompute_some() {
     for (const auto& G : groups)
         if (!G.island && !G.field.ready() && (best < 0 || G.ours < groups[static_cast<std::size_t>(best)].ours)) best = G.id;
     if (best >= 0) group_field(best);
+}
+
+void World::partition(int packs) {
+    struct C { float angle, w; int id; };
+    std::vector<C> cs;
+    float total = 0;
+    for (auto& G : groups) {
+        G.sector = -1;
+        if (G.island || G.boss || G.ours >= kFar || G.ours > G.theirs + 6) continue;
+        const float a = std::atan2(static_cast<float>(G.center.y - our_center.y), static_cast<float>(G.center.x - our_center.x));
+        const float w = std::min(60.0f, static_cast<float>(G.gems) + 0.15f * static_cast<float>(G.gold)) + 10.0f;
+        cs.push_back({a, w, G.id});
+        total += w;
+    }
+    if (cs.empty() || packs <= 1) {
+        for (auto& c : cs) groups[static_cast<std::size_t>(c.id)].sector = 0;
+        return;
+    }
+    // Start the sweep at the widest angular gap so no sector wraps around.
+    std::sort(cs.begin(), cs.end(), [](const C& a, const C& b) { return a.angle < b.angle || (a.angle == b.angle && a.id < b.id); });
+    std::size_t start = 0;
+    float gap = -1;
+    for (std::size_t i = 0; i < cs.size(); ++i) {
+        const float next = i + 1 < cs.size() ? cs[i + 1].angle : cs[0].angle + 6.2831853f;
+        if (next - cs[i].angle > gap) { gap = next - cs[i].angle; start = (i + 1) % cs.size(); }
+    }
+    float acc = 0;
+    for (std::size_t k = 0; k < cs.size(); ++k) {
+        const auto& c = cs[(start + k) % cs.size()];
+        const int sec = std::min(packs - 1, static_cast<int>((acc + c.w * 0.5f) / total * static_cast<float>(packs)));
+        groups[static_cast<std::size_t>(c.id)].sector = sec;
+        acc += c.w;
+    }
 }
 
 vec2 World::mirror(vec2 p) const {

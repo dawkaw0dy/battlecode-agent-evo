@@ -27,6 +27,7 @@ struct Group {
     bool boss = false;            // contains a golem or monolith
     int radius = 0;               // Chebyshev radius of the spawn tiles around the centre
     bool island = false;          // no spawn tile can be walked to from our spawn
+    int sector = -1;              // pack that owns this group (-1: anyone)
     Field field;                  // terrain distance to the tiles around the group (filled lazily)
     float hp() const { float s = 0; for (auto& x : m) if (x.hp > 0) s += x.hp; return s; }
     float str() const { float s = 0; for (auto& x : m) if (x.hp > 0) s += x.str; return s; }
@@ -91,6 +92,7 @@ struct World {
     // Terrain field of a group; computed now when fuel allows, else nullptr.
     const Field* group_field(int gi, bool compute = true);
     void precompute_some();       // fill missing group fields with spare fuel
+    void partition(int packs);    // split our side's groups into one sector per pack
     int group_at(vec2 p) const {
         return inside(p) ? tile_group[p.y * g_w + p.x] : -1;
     }
