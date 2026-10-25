@@ -40,6 +40,8 @@ constexpr int kLockDetour = 8;      // walk this far (Chebyshev) out of our way 
 constexpr bool kAltarRaid = true;   // the whole team raids a boss beside the only altar (camps.cpp)
 constexpr float kDoomTurns = 2.5f;  // run when the enemies in reach would kill us within this many turns
 constexpr float kHurtNearEnemy = 0.35f;  // recall below this health share when enemies were seen lately
+constexpr int kBankGems = 30;       // carry at most this many gems before walking to an altar
+constexpr int kBankDanger = 5;      // ... or this many when enemies were seen lately
 
 namespace {
 // Debug: turns spent per activity, printed every 200 rounds.
@@ -942,7 +944,7 @@ bool Bot::tribute() {
     const int left = static_cast<int>(cambc::constants::max_rounds) - now;
     const auto s = read_sighting();
     const bool danger = (s.ok && s.age <= 30 && cheb(s.where, pos_) <= 16) || now - last_enemy_seen_ <= 20;
-    const bool go_now = gems >= 45 || d <= 3 || (gems >= 20 && d <= 10) || (danger && gems >= 10)
+    const bool go_now = gems >= kBankGems || d <= 3 || (gems >= 20 && d <= 10) || (danger && gems >= kBankDanger)
         || target_ < 0 || target_wait_ > d || left < d + 25
         || cambc::global_submitted_gems(team::ally) + static_cast<unsigned>(gems) >= cambc::constants::winning_gems;
     if (!go_now) return false;
