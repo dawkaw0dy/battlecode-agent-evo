@@ -13287,13 +13287,19 @@
    "pushed_commit": "86f2a972b5436adc34cad07c52740caa6878a742",
    "results_commit": "e7919d40fa9e9d5b765ad3644379800b0f00d596",
    "retries": 0,
+   "spotcheck": {
+    "games": 40,
+    "job": "r04-B-spot",
+    "pushed_at": 1792924440,
+    "pushed_commit": "5e9e97348f5527c0cf24ed5928b11d4b2cfb785d",
+    "status": "pending"
+   },
    "stage": "B",
    "status": "arrived"
   }
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-24T13:50:33Z g00 f00-00: done on origin/claude/evolution-f00-00-2lrewg at 010960f4c3",
   "2026-10-24T13:51:09Z g00 f00-07: launched session_01JezuLUfbCXZ6xG6xtgPh4u",
   "2026-10-24T13:52:21Z g00 f00-01: done on origin/claude/evolution-f00-01-2pdgqp at 396f42f900",
   "2026-10-24T13:52:24Z g00 f00-02: done on origin/claude/evolution-agent-f00-02-jjfh8u at 27b346cf0d",
@@ -13492,7 +13498,8 @@
   "2026-10-25T10:28:03Z g04 r04-A: verified, 896 rows, spot-check 18 OK",
   "2026-10-25T10:28:11Z g04 phase EVAL_B_PENDING: stage A ranked: f04-05, f04-04, f04-02, f04-03, f04-01, f03-05, f04-06, f02-01, f01-07, f04-07, starter",
   "2026-10-25T10:28:24Z g04 r04-B: pushed 86f2a972b5 with 44 shards",
-  "2026-10-25T10:33:50Z g04 phase EVAL_B_DONE: results for r04-B"
+  "2026-10-25T10:33:50Z g04 phase EVAL_B_DONE: results for r04-B",
+  "2026-10-25T10:34:00Z g04 r04-B-spot: pushed 5e9e97348f (40 sampled games, 27 shards)"
  ],
  "paused": null,
  "phase": "EVAL_B_DONE",
