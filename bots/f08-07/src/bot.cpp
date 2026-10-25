@@ -73,18 +73,26 @@ std::vector<cambc::item_type> build_for(champion_type t) {
     return b;
 }
 
+constexpr int kClaimBytes = 5;  // bytes 0-4: each champion's target group + 1; bytes 5-7: last sighting
+constexpr bool kRichGold = true;  // gold worth 0.35 gems (0.5 for Vesper Vale), fading to 40% by round 900
+
 std::vector<cambc::item_type> g_build;
 int g_bought = 0;
 
-float gold_weight(int round, bool) { return round < 1000 ? 0.2f : (round < 1600 ? 0.1f : 0.03f); }
+float gold_weight(int round, bool bonus) {
+    if (!kRichGold) return round < 1000 ? 0.2f : (round < 1600 ? 0.1f : 0.03f);
+    return (bonus ? 0.5f : 0.35f) * std::max(0.4f, 1.0f - static_cast<float>(round) / 1500.0f);
+}
 
-constexpr int kClaimBytes = 5;
 constexpr bool kRetreatOnHit = false;  // leave a fight only when champions are hitting us
 constexpr float kEngageBias = -60.0f;  // simulated value margin to take a fight
 constexpr float kShareTurns = 20.0f;   // clears shorter than this (alone) are left to whoever claimed them
 constexpr bool kSharePenalty = false;  // ... measured worse
+constexpr int kBankMin = 15, kBankMax = 40;  // carried gems that start a walk to the altar (by its distance)
+constexpr float kTogether = 1.0f;      // bonus for a group allies claim (1.3: 15/40 vs 19/40)
 constexpr int kRallyTurns = 40;        // longest wait for the allies a strong group needs
-constexpr bool kRallyAll = false;      // strong groups wait for every claimer (measured worse)  // bytes 0-4: each champion's target group + 1; bytes 5-7: last sighting
+constexpr bool kRallyAll = false;      // strong groups wait for every claimer (measured worse)
+constexpr bool kRallyBoss = true;      // bosses (monolith, golem) wait for every claimer  // bytes 0-4: each champion's target group + 1; bytes 5-7: last sighting
 
 }  // namespace
 
@@ -191,6 +199,23 @@ void Bot::initialise() {
         for (auto t : G.tiles) if (home_.at(t) < kFar) reach = true;
         if (!reach) G.blocked_until = 1 << 30;
         g_.push_back(std::move(G));
+    }
+
+    // Altars whose every tribute tile is a camp spawn tile: those camps must die before anyone banks.
+    {
+        bool open_spot = false;
+        std::vector<int> plugs;
+        for (auto a : altars_)
+            for (int dx = -1; dx <= 1; ++dx)
+                for (int dy = -1; dy <= 1; ++dy) {
+                    const vec2 t{a.x + dx, a.y + dy};
+                    if (!inside(t) || raw_bit(block_.ptr(), t) || home_.at(t) >= kFar) continue;
+                    const int ci = camp_at_[tidx(t)];
+                    if (ci < 0) open_spot = true;
+                    else plugs.push_back(c_[ci].group);
+                }
+        if (!open_spot)
+            for (int gi : plugs) g_[gi].plug = true;
     }
 
     // Abilities.
@@ -305,6 +330,7 @@ void Bot::observe() {
             CampK& k = c_[i];
             k.hp = hp;
             k.alive = hp > 0;
+            k.awake = awake;
             now[i] = 1;
             if (awake && k.str > 0 && cheb(pos_, k.pos) <= k.range) {
                 // Camps hit the nearest champion: count it if no visible ally is closer.
@@ -468,7 +494,10 @@ bool Bot::step_down(const Field& f) {
 bool Bot::move_to(vec2 to) {
     auto& me = cambc::self();
     if (moved_ || move_fail_ || !me.can_move()) return false;
-    if (cambc::vision::has_champion(to) || cambc::vision::has_camp(to)) { move_fail_ = true; return false; }
+    if (cambc::vision::has_champion(to) || cambc::vision::has_camp(to) || cambc::vision::has_teleport(to)) {
+        move_fail_ = true;
+        return false;
+    }
     if (me.move_absolute(to)) {
         moved_ = true;
         pos_ = to;
@@ -492,15 +521,12 @@ bool Bot::dash_towards(const Field& f) {
         for (int dx = -2; dx <= 2; ++dx)
             for (int dy = -2; dy <= 2; ++dy) {
                 const vec2 t{pos_.x + dx, pos_.y + dy};
-                if (cheb(t, pos_) != 2 || !free_tile(t)) continue;
-                // A legal path needs a non-wall tile between us.
-                const vec2 mid{pos_.x + dx / 2, pos_.y + dy / 2};
-                if (raw_bit(cambc::map::walls().ptr(), mid)) continue;
+                if (cheb(t, pos_) != 2 || !free_tile(t) || !dash_path(t)) continue;
                 const int v = f.at(t);
                 if (v < best) { best = v; to = t; }
             }
         if (to == pos_) return false;
-        if (cambc::vision::has_champion(to) || cambc::vision::has_camp(to)) return false;
+        if (cambc::vision::has_champion(to) || cambc::vision::has_camp(to) || cambc::vision::has_teleport(to)) return false;
         try {
             if (ab.use(to)) {
                 cast_ = true;
@@ -513,6 +539,18 @@ bool Bot::dash_towards(const Field& f) {
             move_fail_ = true;
         } catch (const std::exception&) {}
         return false;
+    }
+    return false;
+}
+
+// A dash needs a free, non-wall tile between us and its landing tile (holes are fine).
+bool Bot::dash_path(vec2 t) const {
+    const auto& walls = cambc::map::walls();
+    for (auto d : kDirs) {
+        const vec2 m = pos_ + d;
+        if (!inside(m) || cheb(m, t) != 1) continue;
+        if (raw_bit(walls.ptr(), m) || raw_bit(occ_.ptr(), m)) continue;
+        return true;
     }
     return false;
 }
@@ -531,14 +569,12 @@ bool Bot::dash_towards_tile(vec2 target) {
         for (int dx = -2; dx <= 2; ++dx)
             for (int dy = -2; dy <= 2; ++dy) {
                 const vec2 t{pos_.x + dx, pos_.y + dy};
-                if (cheb(t, pos_) != 2 || !free_tile(t)) continue;
-                const vec2 mid{pos_.x + dx / 2, pos_.y + dy / 2};
-                if (raw_bit(cambc::map::walls().ptr(), mid)) continue;
+                if (cheb(t, pos_) != 2 || !free_tile(t) || !dash_path(t)) continue;
                 const int v = cheb(t, target);
                 if (v < best && v >= 1) { best = v; to = t; }
             }
         if (to == pos_) return false;
-        if (cambc::vision::has_champion(to) || cambc::vision::has_camp(to)) return false;
+        if (cambc::vision::has_champion(to) || cambc::vision::has_camp(to) || cambc::vision::has_teleport(to)) return false;
         try {
             if (ab.use(to)) {
                 cast_ = true;
@@ -1021,13 +1057,17 @@ bool Bot::shop_trip() {
 }
 
 bool Bot::want_bank() const {
-    if (gems_ <= 0) return false;
+    if (gems_ <= 0 || round_ < bank_block_until_) return false;
     const int d = altar_.at(pos_);
     if (d >= kFar) return false;
-    if (gems_ >= std::clamp(d, 20, 50)) return true;
+    if (gems_ >= std::clamp(d, kBankMin, kBankMax)) return true;
     if (d <= 3) return true;
     if (round_ + d + gems_ / 10 + 6 >= static_cast<int>(cambc::constants::max_rounds)) return true;
     if (gems_ >= 15 && !foes_.empty()) return true;
+    // Near the end of a race: what we carry decides it.
+    const int win = static_cast<int>(cambc::constants::winning_gems);
+    if (static_cast<int>(cambc::global_submitted_gems(team::ally)) + gems_ >= win) return true;
+    if (static_cast<int>(cambc::global_submitted_gems(team::enemy)) >= win - 150 && gems_ >= 5) return true;
     return false;
 }
 
@@ -1054,7 +1094,7 @@ bool Bot::bank() {
     }
     if (round_ > detour_until_) {
         if (altar_.at(pos_) > 5) dash_towards(altar_);
-        if (step_down(altar_)) return true;
+        if (step_down(altar_)) { bank_stuck_ = 0; return true; }
     }
     vec2 best = pos_;
     int bd = 9999;
@@ -1062,6 +1102,9 @@ bool Bot::bank() {
     // The static way is plugged (units or camps): keep routing around for a while.
     const bool ok = bd < 9999 && approach(best, r, false);
     if (ok && round_ > detour_until_) detour_until_ = round_ + 8;
+    // No way to an open tribute tile (camps or units on all of them): farm for a while instead.
+    if (ok || bd <= r) bank_stuck_ = 0;
+    else if (++bank_stuck_ >= 3) { bank_stuck_ = 0; bank_block_until_ = round_ + 40; }
     return ok;
 }
 
@@ -1144,7 +1187,10 @@ float Bot::score(int g) const {
         if (mate_alive_[i] && mates_[i].slot < kClaimBytes && claims_[mates_[i].slot] == g + 1) ++claimers;
     if (kSharePenalty && claimers > 0 && extra_mates == 0 && trips < 0.5f && kill * (claimers + 1) < kShareTurns)
         for (int c = 0; c < claimers; ++c) s *= 0.3f;
+    // Together we fight better: a group an ally works on is worth a little more.
+    if (claimers > 0) s *= kTogether;
     if (g == target_) s *= 1.2f;
+    if (G.plug) s *= 2.0f;  // nobody banks until it dies
     if (sight_age_ <= 15 && sight_many_ && cheb(sight_pos_, G.center) <= 8) s *= 0.6f;
     return s;
 }
@@ -1228,17 +1274,25 @@ void Bot::work(int g) {
         return;
     }
     // Not started yet: wait outside its reach until enough of the allies who claim it are here.
+    // Bosses: a damaged boss is not a started fight (camps do not heal); only an awake one is.
+    bool boss = false;
+    for (int ci : G.camps) if (c_[ci].alive && c_[ci].str >= 120) boss = true;
     bool started = last_hit_round_ >= round_ - 3;
-    for (int ci : G.camps) if (c_[ci].alive && c_[ci].hp < c_[ci].max_hp) started = true;
+    for (int ci : G.camps)
+        if (c_[ci].alive && (boss ? c_[ci].awake : c_[ci].hp < c_[ci].max_hp)) started = true;
     if (!started && G.total_str > 0) {
         float dps = base_dps_, tank = melee_ ? hp_ : hp_ * 0.8f, others_hp = 0, heal = healer_ ? 45.0f : 0.0f;
         bool coming = false;
+        int claimers = 0, present = 0, alive_mates = 0;
         for (size_t i = 0; i < mates_.size(); ++i) {
             const Mate& m = mates_[i];
+            if (mate_alive_[i]) ++alive_mates;
             if (!mate_alive_[i] || m.slot >= kClaimBytes || claims_[m.slot] != g + 1) continue;
+            ++claimers;
             const Seen* here = nullptr;
             for (const auto& f : friends_) if (f.type == m.type && cheb(f.pos, pos_) <= 7) here = &f;
             if (!here) { coming = true; continue; }
+            ++present;
             dps += m.dps;
             if (m.melee && here->hp > tank) { others_hp += tank; tank = here->hp; }
             else others_hp += here->hp;
@@ -1249,7 +1303,10 @@ void Bot::work(int g) {
         if (wait_g_ != g) { wait_g_ = g; wait_turns_ = 0; }
         // Wait while we are too weak for it and help is coming.
         const bool strong = kRallyAll ? (G.total_str >= 120 || trips > 1.2f) : trips > 1.2f;
-        if (strong && coming && wait_turns_ < (kRallyAll ? kRallyTurns : 30) && nearest <= G.reach + 4) {
+        // A boss waits for every ally who claims it, and for at least two of us.
+        const bool boss_wait = kRallyBoss && boss
+            && (present < claimers || present + 1 < std::min(3, alive_mates + 1)) && wait_turns_ < kRallyTurns;
+        if (((strong && coming && wait_turns_ < (kRallyAll ? kRallyTurns : 30)) || boss_wait) && nearest <= G.reach + 4) {
             ++wait_turns_;
             sub_ = 12;
             if (nearest <= G.reach + 1) retreat_step();

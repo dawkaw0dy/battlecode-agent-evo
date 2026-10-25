@@ -10,7 +10,7 @@ struct CampK {
     int group = -1;
     float max_hp = 1, hp = 1, str = 0;
     int range = 0;
-    bool alive = true;
+    bool alive = true, awake = false;
     bool attacker() const { return str > 0; }
 };
 
@@ -26,6 +26,7 @@ struct GroupK {
     int ready = 0;            // respawn round when respawning
     int seen = -1;            // last round any spawn tile was in vision
     int blocked_until = -1;   // given up on until this round
+    bool plug = false;        // its spawn tiles are the only tribute tiles
     Field field;              // walking distance to the spawn tiles, filled lazily
 };
 
@@ -101,6 +102,7 @@ class Bot {
     int hunt_until_ = -1;
     int ward_try_ = 0;
     int detour_until_ = -1;
+    int bank_stuck_ = 0, bank_block_until_ = -1;
     int prev_round_ = -10, champ_hit_round_ = -100;
     float prev_hp_ = 0, prev_camp_in_ = 0;
     int wait_g_ = -1, wait_turns_ = 0;
@@ -139,6 +141,7 @@ class Bot {
     bool go_home();
     bool dash_towards(const Field& f);
     bool dash_towards_tile(vec2 target);
+    bool dash_path(vec2 t) const;
     bool attack_camps(int g);
     bool attack_foe(const Seen* s);
     void reset_attack();
