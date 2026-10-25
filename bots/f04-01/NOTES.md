@@ -8,6 +8,7 @@ invalidate(), free_tile(), foes(), fill_fields(); now in fuel.cpp, shared.h and 
 - The vision snapshot, champion reads, camp-group states, altar locks, grow() and local field copies were made
   5-50x cheaper, so on big maps the bot stays far below the budget and the fixed fuel gates no longer skip moves.
 - fill_fields() only starts a walking field when the dearest one measured so far fits with room to spare.
+- Fixed a latent crash (heap-layout dependent): see "Changes".
 
 ## Key parameters
 - Field fill rule: start a field when fuel_remaining > max(min(reserve, 20k), 1.25·field_cost + 5k);
@@ -29,9 +30,19 @@ full field 30k [1.1k]; first Dist::load 23k (vector zero-fill) vs 2.6k after; ol
 - Profile (6 maps vs f03-04): parent avg 15–58k fuel/turn, up to 79 suspended turns per champion on 01big-world
   (2172 turns > 60k); now avg 8–30k, 1–2 suspended turns (the first turn: initialise() needs 240–330k on maps
   with many camps), 213 turns > 60k.
-- benchmark.py, 40 maps × 2 sides, 0 faults / 0 caught exceptions in all runs:
-  vs f03-05 (parent) 48/80 (+83); vs f03-04 53/80 (+246; parent 43/80, +130); vs f02-01 67/80 (+507; parent 69/80);
-  vs f00-03 70/80 (+612; parent 69/80); vs f01-07 70/80 (+553; parent 67/80); vs starter 40/40 (20 maps).
+- Crash found on the way: with the heap layout changed, 01boss-battle trapped (out-of-bounds read, engine
+  "bot faults") ~50 times a game. Cause, inherited from the parent: turn()'s plug block clears plug_ for a boss
+  guarding the only altar and then reads k_[plug_] and remaining(plug_) with plug_ = -1. Guarded now.
+- Also: the global View (bitboards) is built on first use (a bitboard sizes its storage from the SDK's layout,
+  itself set during dynamic initialisation), the camp layout is read with a buffer that fits it
+  (camp_groups_safe(); the SDK starts with a fixed 256-word buffer), the dash tries a raw cast instead of
+  throwing on refused landings, camp_groups() is read once at start, and reward groups are checked every turn.
+- benchmark.py, 40 maps × 2 sides, 0 faults / 0 caught exceptions in every run listed:
+  v1 (rewrite only): vs f03-05 (parent) 48/80 (+83); vs f03-04 53/80 (+246; parent's record 43/80, +130);
+  vs f02-01 67/80 (+507; parent 69/80); vs f00-03 70/80 (+612; parent 69/80); vs f01-07 70/80 (+553; parent
+  67/80); vs starter 40/40 (20 maps).
+  Final (v3 = v1 + the fixes above): vs f03-05 44/80 (+56); vs f03-04 49/80 (+200).
+  v4 (v3 with rewards checked every 4th turn again, as in the parent): vs f03-05 43/80 (−20); not kept.
 
 ## Tried and failed (keep entries from the parent's notes; add yours)
 - Fuel: host calls cost ~30–40 fuel, but every bitboard temporary (&, |, ~, shift) ~600 and a grow(r) ~4k·r;
@@ -51,6 +62,11 @@ full field 30k [1.1k]; first Dist::load 23k (vector zero-fill) vs 2.6k after; ol
 - me.attack(altar_lock_at(a)) throws "Target must be a visible enemy or neutral camp" (the parent's lock code
   never worked); a tribute at the locked altar is what hits the lock.
 - Hunting any enemy carrying ≥40 gems (prey even when far): 65/80 (+430), same as without; not kept.
+- A global (namespace-scope) cambc::bitboard in a .cpp file can be constructed before the SDK captures the map
+  layout: build boards on first use. Raw sdk_* reads (sdk_champion, sdk_camp_group_state, sdk_cast) are safe and
+  far cheaper than SDK handles, but return error codes instead of throwing: check them.
+- Changes that only move heap allocations can turn a latent out-of-range read into a trap: run every map
+  after allocation changes and look at "Engine faults", not only caught exceptions.
 
 ## Known weaknesses
 - Decisions are the parent's: still loses 00eight (both sides vs every opponent), 00stampede and 00gemfight
