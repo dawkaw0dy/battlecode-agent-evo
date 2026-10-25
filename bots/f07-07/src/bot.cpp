@@ -195,7 +195,7 @@ void Bot::init() {
     ready = true;
     debug_block({
         if (my_index == 0) {
-            for (auto a : altars) std::printf("ALTAR (%d,%d)\n", a.x, a.y);
+            for (auto a : altars) std::printf("ALTAR (%d,%d) range%d goals%u\n", a.x, a.y, cambc::constants::submit_gems_range, altar_goals.count());
             for (int y = height - 1; y >= 0; --y) {
                 char row[128] = {};
                 for (int x = 0; x < width && x < 127; ++x) {
@@ -1277,8 +1277,17 @@ bool Bot::farm() {
         return true;
     }
     if (group_visible && g.state == 3) {
+        const int prev = target;
         choose_target();
-        return false;
+        if (target != prev || target < 0) return false;
+        // Still the best: it comes back soon, wait here. A respawn that never comes (a unit holds a
+        // spawn tile) is given up after a while.
+        if (g.dead_until <= r && ++stuck_turns > 20) {
+            g.blocked_until = r + 60;
+            stuck_turns = 0;
+            target = -1;
+        }
+        return true;
     }
     cambc::bitboard goals;
     for (auto s : g.spawns) goals.draw_chebyshev(s, static_cast<float>(std::max(range, 1)));
@@ -1496,9 +1505,10 @@ void Bot::play_turn() {
         if (std::string_view(last_act) != "engage" && std::string_view(last_act) != "retreat") {
             std::snprintf(last_info, sizeof last_info, "hp%.0f pos(%d,%d) tgt%d cthr%.0f dmg%d en%zu gems%u bank%d", hp, pos.x, pos.y, target, camp_threat_at(pos), (int)damaged, enemies.size(), gems, (int)banking);
         }
-        if (my_index == 0 && round <= 300)
-            std::printf("v r%u pos(%d,%d) hp%.0f/%.0f tgt%d cthr%.0f thr%.0f mv%d at%d gems%u gold%u\n", round, pos.x, pos.y, hp, max_hp, target,
-                camp_threat_at(pos), threat_at(pos), (int)moved, (int)attacked, gems, gold);
+        if (my_index == 0 && round >= 595 && round <= 600)
+            std::printf("v r%u pos(%d,%d) hp%.0f/%.0f tgt%d cthr%.0f thr%.0f mv%d at%d gems%u gold%u act=%s en%zu camps%zu bank%d bbu%d st%d\n", round, pos.x, pos.y, hp, max_hp, target,
+                camp_threat_at(pos), threat_at(pos), (int)moved, (int)attacked, gems, gold, last_act, enemies.size(), camps.size(), (int)banking, bank_blocked_until,
+                target >= 0 ? groups[static_cast<std::size_t>(target)].state : -1);
         if (round % 50 == 0)
             std::printf("t r%u i%d t%d pos(%d,%d) hp%.0f gems%u gold%u tgt%d bank%d\n", round, my_index, type, pos.x, pos.y, hp,
                 gems, gold, target, (int)banking);
