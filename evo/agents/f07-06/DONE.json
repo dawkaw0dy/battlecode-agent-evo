@@ -1,0 +1,27 @@
+{
+ "agent": "f07-06",
+ "task_sha256": "1c742e22b3a998ec7748ecdb6e4b468c6cf787271f992564b31d03bb63c4be2f",
+ "base_commit": "36b20425834a24ffdb13cdb0dec47f6da756f822",
+ "session_id": "cse_01FDBAQfEBsmhZZqY4tapRD8",
+ "bot_dir": "bots/f07-06",
+ "self_eval": {
+  "vs": "f00-03",
+  "games": 16,
+  "wins": 7
+ },
+ "games_played": 165,
+ "summary": "Camp-sweep immigrant: per-champion value-per-turn farming loop with shared-memory claims, camp-aware routing, small-batch banking, engage at 0.7 power ratio",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "331e00405e703e1ed11507ef735572c37471ba802364d72d1aff92349dd5efba",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 18.46,
+  "remote": "true",
+  "session_id": "cse_01FDBAQfEBsmhZZqY4tapRD8",
+  "effort_level": "high",
+  "model": null
+ }
+}
