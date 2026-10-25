@@ -37,19 +37,20 @@ constexpr bool kLocks = true;       // carry an altar lock: drop it on enemy tri
 constexpr bool kLockRunner = true;  // the last pick carries locks to far altars
 constexpr int kLockRange = 2;       // altar lock placement range
 constexpr int kLockDetour = 8;      // walk this far (Chebyshev) out of our way to lock an altar
+constexpr int kRunnerLastRound = 1600;  // the lock runner stops here (1950 measured worse)
 // Endgame (this generation).
-constexpr bool kFinishBy = true;    // skip camps whose clear, capture and tribute cannot finish by the round limit
+constexpr bool kFinishBy = true;    // down-weight camps whose clear, capture and tribute cannot finish by the round limit
 constexpr int kFinishSlack = 4;     // rounds kept spare before the limit
 constexpr float kLateClear = 0.5f;  // share of the estimated clear time counted (allies help; trips are not counted)
 constexpr float kLateFactor = 0.1f; // ... rather than skip them: idle champions cede the map
-constexpr int kLateRound = 1500;
+constexpr int kLateRound = 1500;    // finish checks start here (games are chaotic: no extra work before)
 constexpr float kWinBag = 1500.0f;  // fight value of a carrier whose bag would win the race (0: off)
 constexpr bool kShopCutoff = true;  // no shopping trips once the game is nearly over
 constexpr int kShopLastRound = 1850;
 constexpr unsigned kShopLastGems = 900;
 constexpr bool kRaceBank = true;    // bank smaller bags once either team has kRaceLate gems tributed
 constexpr unsigned kRaceLate = 700;
-constexpr int kRaceBag = 25;    // finish checks start here (games are chaotic: no extra work before)
+constexpr int kRaceBag = 25;        // ... or 10 within 12 steps of an altar (parent: 45, or 20 within 10)
 
 namespace {
 // Debug: turns spent per activity, printed every 200 rounds.
@@ -1693,7 +1694,7 @@ void Bot::turn() {
     if (tribute()) return;
     fp("tribute");
     // The last pick runs locks to altars nobody passes (the enemy's own banks), between fights.
-    const bool runner = kLockRunner && slot_ == size_ - 1 && size_ >= 3 && now < 1600
+    const bool runner = kLockRunner && slot_ == size_ - 1 && size_ >= 3 && now < kRunnerLastRound
         && me.gem_count() == 0 && hp > max_hp * 0.6f;
     if (lock_altars(true, runner ? 60 : kLockDetour)) return;
     if (runner && !has_lock() && !at_spawn && incoming_ == 0 && me.gold_count() >= 10 && lock_needed()) {

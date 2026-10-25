@@ -1,0 +1,27 @@
+{
+ "agent": "f06-01",
+ "task_sha256": "839f1afbeb23021c217884cb737c5a74e45414c4f6ce11b54c951f341c90c04b",
+ "base_commit": "8ea5f84a9c9994dcece9da33a3c0ebc245df2144",
+ "session_id": "cse_01BbSKbQTSJN62Tk6yL2U2MD",
+ "bot_dir": "bots/f06-01",
+ "self_eval": {
+  "vs": "f04-05",
+  "games": 80,
+  "wins": 45
+ },
+ "games_played": 858,
+ "summary": "f05-02 + endgame rules (finish-by-limit camp choice, race banking, winning-bag fight/deny values, late shop cutoff), unreachable-altar fix, deterministic field fill: vs f04-05 45/80 (parent 41), vs f02-01 71/80 (69)",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "8da1437926729df349b76cd9c211931c90673786ec5e4c6c97fa449d9ba532c4",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 20.3,
+  "remote": "true",
+  "session_id": "cse_01BbSKbQTSJN62Tk6yL2U2MD",
+  "effort_level": "high",
+  "model": null
+ }
+}
