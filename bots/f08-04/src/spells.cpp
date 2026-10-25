@@ -12,8 +12,10 @@
 // Camps: a nuke goes where it removes the most incoming damage (the most threat per health, a kill, a
 // stun on a camp that would hit one of us next round); an exclusive nuke is cast only from a tile we
 // would not leave this turn anyway. A reset is spent only when a target is left to hit after it.
-// Fights: kills first, then stuns on whoever would hurt us most next turn (or is channelling), the
-// shield before blows land. Dashes and nukes stay in hand while enemies are about.
+// Fights: kills first (alone or with this turn's basic hit), nukes on the target the basic attacks
+// focus, stuns on whoever would hurt us most next turn (or is channelling), Marcella's stunning hit
+// before her nuke, the shield before blows land. Holding nukes or the dash for fights (kHoldRounds,
+// kDashHoldRounds) is wired in but off: it measured no gain.
 #include <cambc.h>
 #include "bot.h"
 #include "fuel.h"
@@ -28,6 +30,8 @@ constexpr int kHoldRounds = 0;        // keep nukes/stuns for fights this many r
 constexpr int kDashHoldRounds = 0;    // ... and the dash for escapes (0: never hold)
 constexpr int kHoldSighting = 10;     // an ally's fresh sighting this close counts as seeing an enemy
 constexpr float kStunCamp = 1.5f;     // value of a camp hit prevented, per point of its strength
+constexpr bool kRetreatCaught = false; // retreat stuns only on chasers we cannot step away from
+constexpr bool kWalkReset = false;    // ranged: walk into range, reset, shoot
 constexpr float kFocus = 300.0f;      // fight nukes: value of taking a target's whole remaining health
 
 // Debug: casts per use, printed every 500 rounds.
@@ -197,9 +201,10 @@ void Bot::spells_on_group(int group) {
 }
 
 // After a basic hit on the group: a second hit through the reset, only when something is left in range.
+// A ranged champion that walked into range gets its shot back the same way (a ready reset idles otherwise).
 void Bot::reset_hit(int group) {
     auto& me = cambc::self();
-    if (!attacked_ || !live() || !fuel(8000)) return;
+    if (!(attacked_ || (kWalkReset && moved_ && !move_failed_ && my_range_ > 1)) || !live() || !fuel(8000)) return;
     if (!me.can_attack() && !reset_ready()) return;
     const auto& v = view();
     const int range = me.attack_range();
@@ -280,9 +285,11 @@ void Bot::fight_spells(std::vector<Fighter>& theirs, bool engage) {
         auto& e = theirs[static_cast<size_t>(best)];
         // Marcella: hit, reset, stunning hit now; the nuke follows next turn (cooldowns run per slot).
         if (stun_by_hit && !ab.is_cc() && !best_kill) { count(fight_hold_marc); continue; }
-        // Retreating: only a kill, a stun on a chaser or a cancelled channel is worth the walk.
-        if (!engage && kit.exclusive
-            && !(best_kill || e.channel || (ab.is_cc() && !e.stunned && cheb(e.pos, pos_) <= 3))) {
+        // Retreating: only a kill, a stun on a chaser that hits us whatever step we take (melee beside us
+        // or a dash away, ranged a tile inside its range) or a cancelled channel is worth the walk.
+        const int de = cheb(e.pos, pos_);
+        const bool caught = kRetreatCaught ? (e.ranged ? de <= e.range - 1 : de <= 1 + (e.dasher ? 2 : 0)) : de <= 3;
+        if (!engage && kit.exclusive && !(best_kill || e.channel || (ab.is_cc() && !e.stunned && caught))) {
             count(flee_skip);
             continue;
         }
