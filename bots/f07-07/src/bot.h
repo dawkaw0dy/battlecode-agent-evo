@@ -115,6 +115,7 @@ private:
 
     // ---- farming ----
     int target = -1;
+    int opening = -1;                 // camp group the team invades first
     int last_plan = -100;
     cambc::distance_field my_field;
     int my_field_round = -100;

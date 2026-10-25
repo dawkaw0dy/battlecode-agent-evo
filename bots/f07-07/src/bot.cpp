@@ -25,12 +25,16 @@ constexpr std::array<vec2, 8> kDirs{vec2{0, 1}, vec2{1, 1}, vec2{1, 0}, vec2{1, 
 constexpr std::array<int, 13> kResets{1, 1, 1, 0, 1, 0, 0, 1, 1, 0, 1, 1, 0};
 constexpr std::array<float, 13> kSpellMult{1.0f, 0, 0, 2.0f, 0, 3.4f, 2.5f, 2.0f, 0, 0.75f, 0, 1.4f, 1.5f};
 
-constexpr float kEngageValue = 0.0f;    // fight when the simulated outcome is worth more than this
+constexpr float kEngageValue = 150.0f;  // fight when the simulated outcome is worth more than this
 constexpr float kRecallHp = 0.3f;
 constexpr int kBankGems = 20;
 constexpr int kChaseTurns = 6;
+constexpr float kOurEfficiency = 1.0f;  // share of our estimated damage that lands in a real fight
 constexpr float kBurstWeight = 0.0f;    // first-turn burst in the fight simulation (off: measured worse)
 constexpr int kHelpRange = 14;
+constexpr bool kRetreatHelp = false;    // a retreating champion asks allies to come (measured worse)
+constexpr int kOpeningEnd = 0;          // the whole team invades the enemy's first camp until this round (110: worse)
+constexpr int kOpeningReach = 45;       // ... if that camp is at most this far from our spawn
 
 int cheb(vec2 a, vec2 b) { return static_cast<int>(a.chebyshev_distance(b)); }
 
@@ -133,6 +137,17 @@ void Bot::init() {
             for (auto& g : groups)
                 for (auto t : g.spawns)
                     if (altar_goals.is_set(t)) g.guards_altar = true;
+        }
+    }
+
+    // Opening: the enemy's nearest camp with a reward, where their first farmer will be busy.
+    {
+        int best = 1 << 20;
+        for (int i = 0; i < static_cast<int>(groups.size()); ++i) {
+            const auto& g = groups[static_cast<std::size_t>(i)];
+            if (g.gems + g.gold <= 0 || g.boss || g.enemy_dist >= g.home_dist || g.home_dist > kOpeningReach) continue;
+            const int key = g.enemy_dist * 4 + g.home_dist;
+            if (key < best) best = key, opening = i;
         }
     }
 
@@ -730,7 +745,7 @@ bool Bot::combat() {
     for (int t = 0; t < 8; ++t) {
         float ours_dmg = 0, theirs_dmg = 0;
         for (const auto& u : ours)
-            if (u.hp > 0 && u.delay <= t) ours_dmg += u.dps + (u.delay == t ? u.burst * kBurstWeight : 0.0f);
+            if (u.hp > 0 && u.delay <= t) ours_dmg += (u.dps + (u.delay == t ? u.burst * kBurstWeight : 0.0f)) * kOurEfficiency;
         for (const auto& u : theirs)
             if (u.hp > 0 && u.delay <= t) theirs_dmg += u.dps + (u.delay == t ? u.burst * kBurstWeight : 0.0f);
         pour(theirs, ours_dmg, t);
@@ -817,7 +832,8 @@ bool Bot::combat() {
         if (!(alert_age <= 2 && alert_help)) post_alert(foes[0]->pos, false);
         return false;
     }
-    if (!(alert_age <= 2 && alert_help)) post_alert(foes[0]->pos, false);
+    // Being chased: call for help, the chaser may be outnumbered once allies arrive.
+    post_alert(foes[0]->pos, kRetreatHelp);
     debug_block({
         last_act = "retreat";
         std::snprintf(last_info, sizeof last_info, "hp%.0f ratio%.2f foes%zu allies%zu near_d%d dmg%d gems%u", hp, ratio, foes.size(), allies.size(), cheb(foes[0]->pos, pos), (int)damaged, gems);
@@ -974,6 +990,14 @@ bool Bot::go_bank() {
 void Bot::choose_target() {
     const int r = static_cast<int>(round);
     last_plan = r;
+    if (opening >= 0 && r < kOpeningEnd) {
+        const auto& g = groups[static_cast<std::size_t>(opening)];
+        if (g.dead_until <= r && g.state != 3) {
+            target = opening;
+            return;
+        }
+        opening = -1;
+    }
     if (r - my_field_round >= 4 || target < 0) {
         // Monsters we believe alive block the way like walls.
         cambc::bitboard walls = static_block | camp_spawns;
