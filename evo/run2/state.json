@@ -3486,9 +3486,11 @@
   },
   "f07-03": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evo-task-f07-03-b8ukcf",
+   "commit": "d8e17c3d555f218fba03fc3314201210f7bba5fd",
    "deadline_minutes": 120,
+   "done_at": 1792939501,
+   "effort_level": "high",
    "evidence": [
     {
      "gems_opponent": 1421,
@@ -3536,6 +3538,7 @@
    "generation": 7,
    "id": "f07-03",
    "kind": "child",
+   "model": null,
    "nudged": [],
    "operator": "tweak",
    "parents": [
@@ -3555,7 +3558,7 @@
    ],
    "slot": 3,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "0f8ec73ca80da67d07db2cdf864a9ae54aba3954bc5c8698d4a6e74b1514f241"
   },
   "f07-04": {
@@ -20240,7 +20243,6 @@
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-24T21:21:31Z g02 r02-A: pushed 1be03b8f37 with 21 shards",
   "2026-10-24T21:23:48Z g02 phase EVAL_A_DONE: results for r02-A",
   "2026-10-24T21:24:01Z g02 r02-A-spot: pushed 8564439734 (14 sampled games, 9 shards)",
   "2026-10-24T21:26:22Z g02 r02-A: verified, 672 rows, spot-check 14 OK",
@@ -20439,7 +20441,8 @@
   "2026-10-25T14:23:52Z g07 f07-04: launched session_012abcbCvejseLqxfFHp8FZe",
   "2026-10-25T14:24:03Z g07 f07-05: launched session_018WgTPhNFLmQd2YVxQPQVj6",
   "2026-10-25T14:24:14Z g07 f07-06: launched session_01FDBAQfEBsmhZZqY4tapRD8",
-  "2026-10-25T14:24:25Z g07 f07-07: launched session_01QbJFHuHzN7s7aAr6StK8mQ"
+  "2026-10-25T14:24:25Z g07 f07-07: launched session_01QbJFHuHzN7s7aAr6StK8mQ",
+  "2026-10-25T14:45:01Z g07 f07-03: done on origin/claude/evo-task-f07-03-b8ukcf at d8e17c3d55"
  ],
  "paused": null,
  "phase": "RUNNING",
