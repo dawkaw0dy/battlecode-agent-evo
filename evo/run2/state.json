@@ -32807,7 +32807,6 @@
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-25T13:16:03Z g06 f06-05: done on origin/claude/evo-task-f06-05-ykoxvg at 9014f4f62b",
   "2026-10-25T13:17:21Z g06 f06-02: done on origin/claude/evolution-f06-02-qrgrps at 1876747fda",
   "2026-10-25T13:19:56Z g06 f06-03: done on origin/claude/evo-f06-03-83ifrz at d5dd0bcf23",
   "2026-10-25T13:26:06Z g06 f06-01: done on origin/claude/evo-task-f06-01-sj4nxy at 435dab9d8e",
@@ -33006,10 +33005,11 @@
   "2026-10-25T22:15:22Z g10 phase SELECTED: final: f10-03, f10-01, f10-05, f10-02, f09-01, f08-04, f10-04, f10-06, f07-02, f10-07, starter",
   "2026-10-25T22:15:33Z g10 survivors ['f10-03', 'f10-01'], hall of fame ['f00-03', 'f01-07', 'f02-01', 'f03-05', 'f04-05', 'f05-02', 'f06-05', 'f07-02', 'f08-04', 'f09-01', 'f10-03']",
   "2026-10-25T22:15:33Z g11 phase PLANNED: 8 slots",
-  "2026-10-25T22:15:38Z g11 phase TASKS_PUSHED: 7 task files"
+  "2026-10-25T22:15:38Z g11 phase TASKS_PUSHED: 7 task files",
+  "2026-10-25T22:15:50Z g11 phase RUNNING"
  ],
  "paused": null,
- "phase": "TASKS_PUSHED",
+ "phase": "RUNNING",
  "sessions_launched": 78,
  "version": 1
 }
