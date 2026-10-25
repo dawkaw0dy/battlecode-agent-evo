@@ -63,6 +63,7 @@ constexpr int kRangedApproach = 2;
 constexpr int kSight = 3;  // shared-memory offset of the 4 sighting bytes (0..2 hold squad targets)
 constexpr bool kFuelProbe = false;
 constexpr int kShopGold = 180;
+constexpr float kAloneFactor = 1.0f;  // 1.6 (cautious when alone) lost badly
 constexpr float kCampRetreatRounds = 5.0f;  // leave when awake camps in range would kill us within this many rounds
 
 // ---------------------------------------------------------------- static map knowledge
@@ -714,6 +715,11 @@ bool handle_enemies() {
     if (alone && target->hp < my_dps * 3) need *= 0.6f;
     if (target->gems >= 20) need *= 0.85f;
     if (hp_frac < 0.3f) need *= 1.6f;
+    // Alone, only easy prey is worth a duel: lineage champions out-scale ours on gold.
+    int mates = 0;
+    for (const auto& a : v.allies)
+        if (dist(a.pos, v.me) <= 6) ++mates;
+    if (kAloneFactor != 1.0f && mates == 0 && !target->channel && target->hp > my_dps * 3) need *= kAloneFactor;
     const bool favourable = o.ours >= o.theirs * need;
     bool fight = favourable;
     const bool reachable = dist(target->pos, v.me) <= me.attack_range() + (ranged ? 0 : 1);
