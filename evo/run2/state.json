@@ -15150,17 +15150,18 @@
    "status": "verified"
   },
   "r05-A": {
+   "arrived_at": 1792931404,
    "generation": 5,
    "pushed_at": 1792931207,
    "pushed_commit": "2f5ffa42b8d7666a0791d7facb0732335d1fb814",
+   "results_commit": "a85415075ba802acc409f625a14ff303acc30b07",
    "retries": 0,
    "stage": "A",
-   "status": "pending"
+   "status": "arrived"
   }
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-24T16:49:06Z g01 phase TASKS_PUSHED: 7 task files",
   "2026-10-24T16:49:16Z g01 phase RUNNING",
   "2026-10-24T16:49:35Z g01 f01-01: launched session_01UW9jv8Ju7GyWXuJLMR4Adr",
   "2026-10-24T16:49:46Z g01 f01-02: launched session_01Gh66GxLLXpcTC7PEVC9uML",
@@ -15359,10 +15360,11 @@
   "2026-10-25T12:26:25Z g05 f05-06: admitted (d6095b0abe52)",
   "2026-10-25T12:26:29Z g05 f05-07: admitted (b370eceec339)",
   "2026-10-25T12:26:37Z g05 phase EVAL_A_PENDING",
-  "2026-10-25T12:26:47Z g05 r05-A: pushed 2f5ffa42b8 with 28 shards"
+  "2026-10-25T12:26:47Z g05 r05-A: pushed 2f5ffa42b8 with 28 shards",
+  "2026-10-25T12:30:04Z g05 phase EVAL_A_DONE: results for r05-A"
  ],
  "paused": null,
- "phase": "EVAL_A_PENDING",
+ "phase": "EVAL_A_DONE",
  "sessions_launched": 43,
  "version": 1
 }
