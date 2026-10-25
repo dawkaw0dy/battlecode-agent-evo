@@ -30,6 +30,8 @@ constexpr float kHealthBias = 1.6f; // >1 favours strength shards
 constexpr float kMinTripTurns = 5.0f, kMaxTrips = 6.0f;
 constexpr int kMaxChase = 4;
 constexpr int kLockDetour = 12;
+constexpr float kJoinBonus = 1.3f, kRaidWait = 15.0f;
+constexpr int kRaidHold = 30;
 constexpr int kSimTurns = 10;
 constexpr bool kUseSim = true;
 constexpr float kFightMargin = 20.0f, kHuntMargin = 120.0f;
@@ -922,7 +924,7 @@ bool flee() {
         for (const auto& e : g_enemies) margin = std::min(margin, cheb(p, e.pos) - e.range);
         int ally = 10;
         for (const auto& a : g_allies) ally = std::min(ally, cheb(p, a.pos));
-        return std::min(margin, 4) * 10.0f - ally * 3.0f - field_value(g_spawn_field, p) * 0.5f
+        return std::min(margin, 4) * 10.0f - ally * 3.0f - field_value(g_spawn_field, p) * 2.0f
             + (g_spawn.get(p) ? 60.0f : 0.0f);
     };
     float best_s = score(g_pos);
@@ -1016,7 +1018,37 @@ float gold_mult() {
     return mult;
 }
 
+// Shared bytes 6..7: an elk raid, a group one champion cannot clear alone; byte 7 packs the
+// poster's slot (3 bits) and the round it was last refreshed (5 bits).
+int raid_group() {
+    const int gi = static_cast<int>(g_shared[6]) - 1;
+    const int age = (g_round - (g_shared[7] >> 3)) & 31;
+    if (gi < 0 || gi >= static_cast<int>(g_groups.size()) || age > 3) return -1;
+    return gi;
+}
+int raid_owner() { return g_shared[7] & 7; }
+void post_raid(int gi) {
+    cambc::shared_memory[6] = static_cast<std::uint8_t>(gi + 1);
+    cambc::shared_memory[7] = static_cast<std::uint8_t>(((g_round & 31) << 3) | (g_index & 7));
+}
+bool g_target_raid = false; // our target needs a second champion
+int g_hold_turns = 0;
+
+float score_with(int gi, int dist, int n, float extra);
+
 float group_score(int gi, int dist) {
+    const int raid = raid_group();
+    if (raid == gi && raid_owner() != g_index) return score_with(gi, dist, 2, 0) * kJoinBonus;
+    return score_with(gi, dist, 1, 0);
+}
+
+// A group we cannot clear alone, scored as a two-champion raid (including the wait for help).
+float raid_score(int gi, int dist) {
+    if (g_team_size < 2 || g_groups[gi].big) return -1;
+    return score_with(gi, dist, 2, kRaidWait);
+}
+
+float score_with(int gi, int dist, int n, float extra) {
     auto& g = g_groups[gi];
     if (g.bad_until > g_round) return -1;
     int wait = 0;
@@ -1024,7 +1056,6 @@ float group_score(int gi, int dist) {
         wait = std::max(0, g.ready - g_round - dist);
         if (wait > 20) return -1;
     }
-    const int n = g_squad_alive;
     float hp = 0;
     if (g.state != 2)
         for (const auto& m : g.m) hp += g.state == 3 ? m.max_hp : m.hp;
@@ -1051,7 +1082,7 @@ float group_score(int gi, int dist) {
     float value = (g.gems * gem_w + g.gold * gold_mult()) / n;
     if (g_regions) value *= g.home == g_squad ? 1.0f : g.home >= 0 ? kOtherLane : kEnemySide;
     if (g_round - g.enemy_seen < 25) value *= 0.5f;
-    return value / (dist + kill + overhead + 6 + wait);
+    return value / (dist + kill + overhead + 6 + wait + extra);
 }
 
 void choose_target() {
@@ -1070,14 +1101,26 @@ void choose_target() {
     float best_s = 0;
     int best = -1;
     float cur_s = -1;
+    bool best_raid = false;
+    const int raid = raid_group();
+    const bool can_post = raid < 0 || raid_owner() == g_index;
     for (std::size_t i = 0; i < g_groups.size(); ++i) {
         const int dist = group_dist(g_groups[i], g_pos);
         if (dist >= 100000) continue;
-        const float s = group_score(static_cast<int>(i), dist);
+        float s = group_score(static_cast<int>(i), dist);
+        bool is_raid = false;
+        if (can_post && raid != static_cast<int>(i)) {
+            const float r = raid_score(static_cast<int>(i), dist);
+            if (r > s) { s = r; is_raid = true; }
+        }
         if (static_cast<int>(i) == g_target) cur_s = s;
-        if (s > best_s) { best_s = s; best = static_cast<int>(i); }
+        if (s > best_s) { best_s = s; best = static_cast<int>(i); best_raid = is_raid; }
     }
     if (g_target >= 0 && cur_s > 0 && best_s < cur_s * 1.3f) return;
+    g_target_raid = best_raid;
+    g_hold_turns = 0;
+    if (kDebug && best_raid) std::cout << "RAID r" << g_round << " me" << g_index << " g" << best << " s" << best_s << '\n';
+    if (kDebug && best >= 0 && raid_group() == best && raid_owner() != g_index) std::cout << "JOIN r" << g_round << " me" << g_index << " g" << best << '\n';
     if (best != g_target) {
         g_target = best;
         if (best >= 0 && !g_groups[best].has_field && cambc::fuel_remaining() > 45000)
@@ -1224,8 +1267,9 @@ void work_target() {
         }
         return;
     }
-    // Alive: a group too strong for us alone waits for a squad mate before we wake it.
-    if (g_squad_alive > 1 && clear_damage(g, my_dps()) > g_hp * 0.5f) {
+    // Alive: a group too strong for us alone waits for a mate before we wake it.
+    const bool needs_help = g_target_raid || (raid_group() == g_target && raid_owner() != g_index);
+    if (needs_help) {
         const bitboard awake = cambc::vision::awake_camp_tiles();
         bool woke = false;
         for (const auto& m : g.m)
@@ -1234,7 +1278,11 @@ void work_target() {
         for (const auto& a : g_allies)
             if (cheb(a.pos, g_pos) <= 4) ++mates;
         if (!woke && mates == 0) {
-            if (dist > 7) travel(g);
+            if (dist > 6) travel(g);
+            else if (++g_hold_turns > kRaidHold) {
+                g.bad_until = g_round + 80;
+                g_target = -1;
+            }
             return;
         }
     }
@@ -1664,8 +1712,8 @@ void Bot::play_turn() {
     if (kDebug) last_line = "r" + std::to_string(g_round) + " hp" + std::to_string(static_cast<int>(g_hp)) + " gems" + std::to_string(g_gems) + " tgt" + std::to_string(g_target) + " " + g_trace;
     g_trace.clear();
     // The squad leader publishes the squad target.
-    // Shared bytes 6..7: targets of squads 0 and 1 (later squads have one member).
-    if (g_leader && g_squad < 2) cambc::shared_memory[6 + g_squad] = static_cast<std::uint8_t>(g_target + 1);
+    if (g_target >= 0 && g_target_raid) post_raid(g_target);
+    else if (raid_group() >= 0 && raid_owner() == g_index) cambc::shared_memory[6] = 0;
     if (!g_enemies.empty()) {
         // Shared bytes 3..5: the latest enemy sighting.
         cambc::shared_memory[3] = static_cast<std::uint8_t>(g_enemies[0].pos.x);
