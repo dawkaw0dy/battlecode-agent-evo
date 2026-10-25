@@ -24,6 +24,7 @@ struct GroupMem {
     int enemy_dist = 999;       // walking distance from the enemy spawn
     int trips = 0;              // heal trips spent on the current life
     int travel = -1;            // walking distance from us at the last target choice
+    int skip_until = 0;         // unreachable or stuck: leave it alone until then
 };
 
 // Packed row-major tile bits, read locally (one export per board, no per-tile host calls).
@@ -125,6 +126,9 @@ private:
     bool escape_camps();
     bool hole_jump(const cambc::distance_field& field, const cambc::bitboard& seen);
     bool has_dash = false, dash_map = false;
+    cambc::bitboard wide_holes;
+    cambc::vec2 last_pos{-1, -1};
+    int last_progress = 0;
     bool try_dash(const cambc::distance_field& field, const cambc::bitboard& seen);
     bool attack_camps(int group);
     bool attack_enemies();

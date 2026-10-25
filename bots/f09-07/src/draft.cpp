@@ -7,6 +7,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <iostream>
 #include <vector>
 
 using cambc::vec2;
@@ -72,6 +73,7 @@ void make_plan() {
         if (j) jump_value += v;
     }
     const bool dash_map = jump_value > 0 && walk_value < 0.6 * jump_value;
+    debug_block({ std::cout << "DRAFT walk " << walk_value << " jump " << jump_value << " dash " << dash_map << "\n"; });
     if (dash_map) {
         kPicks = kDashPicks;
         // Plan regions with holes crossable.

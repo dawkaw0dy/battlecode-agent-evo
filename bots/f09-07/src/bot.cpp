@@ -157,12 +157,19 @@ void Bot::init() {
 }
 
 void Bot::init_fields() {
+    if (has_dash) {
+        const auto solid = ~(cambc::map::walls() | cambc::map::holes());
+        auto cross = (solid.shift_right(1) & solid.shift_right(-1)) | (solid.shift_up(1) & solid.shift_up(-1))
+            | (solid.shift_right(1).shift_up(1) & solid.shift_right(-1).shift_up(-1))
+            | (solid.shift_right(1).shift_up(-1) & solid.shift_right(-1).shift_up(1));
+        wide_holes = cambc::map::holes() & ~cross;
+    }
     auto bfs_walls = cambc::map::walls() | cambc::map::holes() | cambc::map::altars();
     home_field.compute(bfs_walls | cambc::map::spawn_region(team::enemy), cambc::map::spawn_region(team::ally), home_seen);
     if (has_dash) {
         cambc::distance_field jump;
         cambc::bitboard jump_seen;
-        jump.compute(cambc::map::walls() | cambc::map::altars() | cambc::map::spawn_region(team::enemy),
+        jump.compute(cambc::map::walls() | wide_holes | cambc::map::altars() | cambc::map::spawn_region(team::enemy),
             cambc::map::spawn_region(team::ally), jump_seen);
         for (auto& g : groups)
             for (auto t : g.tiles)
@@ -452,6 +459,7 @@ bool Bot::route_to(const cambc::bitboard& goals_in) {
     auto walls = cambc::map::walls() | cambc::map::altars()
         | cambc::map::spawn_region(team::enemy) | cambc::vision::champion_tiles() | cambc::vision::camp_tiles();
     if (!has_dash) walls |= cambc::map::holes();
+    else walls |= wide_holes;
     walls.set(pos, false);
     auto goals = goals_in & ~walls;
     if (has_dash) goals &= ~cambc::map::holes();
@@ -753,6 +761,8 @@ double Bot::group_score(int gi, double& trips_out, double floor) {
     const double w = round < 1400 ? 0.35 : 0.1;
     const double value = (g.gems + w * g.gold) * factor;
     if (value <= 0) return 0;
+    if (g.skip_until > round) return 0;
+    if (travel_ok && g.travel >= 9999) return 0;
     const double travel = (travel_ok && g.travel >= 0 ? g.travel : cheb(pos, g.center) * 1.3) + 1;
     double wait = 0;
     if (g.state == 2) {
@@ -809,6 +819,7 @@ int Bot::choose_target() {
         try {
             auto walls = cambc::map::walls() | cambc::map::altars() | cambc::map::spawn_region(team::enemy);
             if (!has_dash) walls |= cambc::map::holes();
+            else walls |= wide_holes;
             auto root = empty_board();
             root.set(pos);
             cambc::distance_field field;
@@ -960,6 +971,14 @@ bool Bot::farm() {
             if (try_dash(home_field, home_seen)) {}
             step_with(home_field, home_seen, false);
         }
+        return false;
+    }
+    // Stuck: no step and no hit for a while on the same target.
+    if (pos.x != last_pos.x || pos.y != last_pos.y || round - last_hit_round <= 1) { last_pos = pos; last_progress = round; }
+    if (round - last_progress > 15 && round - target_since > 15 && groups[target].state == 0) {
+        groups[target].skip_until = round + 150;
+        target = -1;
+        last_progress = round;
         return false;
     }
     auto& g = groups[target];
