@@ -1176,7 +1176,7 @@ void Bot::play_inner() {
     }
     if (tribute(false)) return;
     // Shop trip between fights: gold is damage.
-    if (me.gold_count() >= 250 && incoming <= 0 && enemies.empty() && !on_our_spawn(pos)
+    if (me.gold_count() >= 180 && incoming <= 0 && enemies.empty() && !on_our_spawn(pos)
         && me.champion_name() != cambc::champion_type::tavi) {
         bool engaged = false;
         if (target >= 0) for (int ci : groups[target].camps) if (camps[ci].hp > 0 && camps[ci].hp < camps[ci].max_hp) engaged = true;
