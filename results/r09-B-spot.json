@@ -1,0 +1,2320 @@
+{
+ "cambc_version": [
+  "cambc 3.0.5"
+ ],
+ "job_id": "r09-B-spot",
+ "missing_shards": [],
+ "requested_games": 80,
+ "rows": [
+  {
+   "a": "f09-01",
+   "b": "f07-02",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 1035,
+    "teamB": 356
+   },
+   "map": "00gem-fields",
+   "map_sha256": "80af89f07723d23d822ddc858616a0156ae60f9d41ffd8bd9105f924379677b5",
+   "outcome": "teamA",
+   "replay_sha256": "6d233eca98cc641f4da3687240ba6fbbebfd08790772ab206892da48a0781fae",
+   "rounds": 1205,
+   "side": "A",
+   "src_sha256": {
+    "f07-02": "ccb9f3204d24c0444839560e9a817e36470082d7f187faf31d6eefde7b5c53e0",
+    "f09-01": "43816d64dcee63f7aae46d7e312635401ab5533ce1d1299fdca2e20e78ecad39"
+   },
+   "stats_sha256": "b7b4ce693b2cb889e2563465cf36e932f4b3ab097506ac78fc428932540a3333"
+  },
+  {
+   "a": "f09-01",
+   "b": "f07-02",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 192,
+    "teamB": 1019
+   },
+   "map": "00gem-fields",
+   "map_sha256": "80af89f07723d23d822ddc858616a0156ae60f9d41ffd8bd9105f924379677b5",
+   "outcome": "teamB",
+   "replay_sha256": "feffece6679b157509d8253d7fa5be4cd8eb2154c240bbef523b47d32bbe9c19",
+   "rounds": 1200,
+   "side": "B",
+   "src_sha256": {
+    "f07-02": "ccb9f3204d24c0444839560e9a817e36470082d7f187faf31d6eefde7b5c53e0",
+    "f09-01": "43816d64dcee63f7aae46d7e312635401ab5533ce1d1299fdca2e20e78ecad39"
+   },
+   "stats_sha256": "6682789bf072ef0481c068fab2592582b7386317721c85d7bbdd48525f3fc183"
+  },
+  {
+   "a": "f09-01",
+   "b": "f07-02",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 1003,
+    "teamB": 284
+   },
+   "map": "00lost-world",
+   "map_sha256": "566697c98eace1c84152f571e9e1fa0b54ec64e038e4695305c874bd3dc2bc6e",
+   "outcome": "teamA",
+   "replay_sha256": "95cae08221d83065da73503feb6369e9fd369861adacbe97ebc25d141154deb6",
+   "rounds": 1231,
+   "side": "A",
+   "src_sha256": {
+    "f07-02": "ccb9f3204d24c0444839560e9a817e36470082d7f187faf31d6eefde7b5c53e0",
+    "f09-01": "43816d64dcee63f7aae46d7e312635401ab5533ce1d1299fdca2e20e78ecad39"
+   },
+   "stats_sha256": "761a91201bd37333409b83ff145b062a09dcdc37c81c9fa18631ea7e17375ad5"
+  },
+  {
+   "a": "f09-01",
+   "b": "f07-02",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 99,
+    "teamB": 1002
+   },
+   "map": "00lost-world",
+   "map_sha256": "566697c98eace1c84152f571e9e1fa0b54ec64e038e4695305c874bd3dc2bc6e",
+   "outcome": "teamB",
+   "replay_sha256": "7707c58cbdfbdaa6e3c6c54180d67c9e2e970544f3789f331afe4689f0a027cf",
+   "rounds": 1304,
+   "side": "B",
+   "src_sha256": {
+    "f07-02": "ccb9f3204d24c0444839560e9a817e36470082d7f187faf31d6eefde7b5c53e0",
+    "f09-01": "43816d64dcee63f7aae46d7e312635401ab5533ce1d1299fdca2e20e78ecad39"
+   },
+   "stats_sha256": "635529c5f6bfa5feb0f2e6fd534cb59d6cf22ff2472c23f02f1f9590bc8d2a29"
+  },
+  {
+   "a": "f09-01",
+   "b": "f07-02",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 792,
+    "teamB": 144
+   },
+   "map": "01elk-arena",
+   "map_sha256": "72b8e03bc4378d5f988f9c1c07609848bfb42fd8a883cce01820d96212f21c0a",
+   "outcome": "teamA",
+   "replay_sha256": "012cafb858c37eaf80fbcb353018daec15a0fa3fad6358817a7aa436e8d6d4c0",
+   "rounds": 2000,
+   "side": "A",
+   "src_sha256": {
+    "f07-02": "ccb9f3204d24c0444839560e9a817e36470082d7f187faf31d6eefde7b5c53e0",
+    "f09-01": "43816d64dcee63f7aae46d7e312635401ab5533ce1d1299fdca2e20e78ecad39"
+   },
+   "stats_sha256": "5029dd9bead4167918e2bddc23113d5f58d1126b8e8a1f36c70f49e6dca8972c"
+  },
+  {
+   "a": "f09-01",
+   "b": "f07-02",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 0,
+    "teamB": 1008
+   },
+   "map": "01elk-arena",
+   "map_sha256": "72b8e03bc4378d5f988f9c1c07609848bfb42fd8a883cce01820d96212f21c0a",
+   "outcome": "teamB",
+   "replay_sha256": "3c6c515fea977a511dbd85e4a029a1fb213ade36cabd26fc765a7406001cb9f7",
+   "rounds": 1731,
+   "side": "B",
+   "src_sha256": {
+    "f07-02": "ccb9f3204d24c0444839560e9a817e36470082d7f187faf31d6eefde7b5c53e0",
+    "f09-01": "43816d64dcee63f7aae46d7e312635401ab5533ce1d1299fdca2e20e78ecad39"
+   },
+   "stats_sha256": "3f4dd316f69fb7cfa68f9fbb6f653b9bc5a35c66136686a0a899166cd6740f72"
+  },
+  {
+   "a": "f09-01",
+   "b": "f07-02",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 1012,
+    "teamB": 22
+   },
+   "map": "01hooks",
+   "map_sha256": "23e58fe8f41ff66761ade251d3d10a9c3eead864f9ad74f12ad9e34f4bece378",
+   "outcome": "teamA",
+   "replay_sha256": "69ec1a32c72c9ff8c91e0835e8879287c2c18bc1b9332a46f6daadd0b78d5ab6",
+   "rounds": 1837,
+   "side": "A",
+   "src_sha256": {
+    "f07-02": "ccb9f3204d24c0444839560e9a817e36470082d7f187faf31d6eefde7b5c53e0",
+    "f09-01": "43816d64dcee63f7aae46d7e312635401ab5533ce1d1299fdca2e20e78ecad39"
+   },
+   "stats_sha256": "c6e36ae5a3d76fce3349f8ef005266dfd12d1f222974ccb907278c7e1371273e"
+  },
+  {
+   "a": "f09-01",
+   "b": "f07-02",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 0,
+    "teamB": 1001
+   },
+   "map": "01hooks",
+   "map_sha256": "23e58fe8f41ff66761ade251d3d10a9c3eead864f9ad74f12ad9e34f4bece378",
+   "outcome": "teamB",
+   "replay_sha256": "725f97b80ae5ec50d0f92af2c8689cd779a4d0182291f82f51507b2a462457f3",
+   "rounds": 1754,
+   "side": "B",
+   "src_sha256": {
+    "f07-02": "ccb9f3204d24c0444839560e9a817e36470082d7f187faf31d6eefde7b5c53e0",
+    "f09-01": "43816d64dcee63f7aae46d7e312635401ab5533ce1d1299fdca2e20e78ecad39"
+   },
+   "stats_sha256": "544ab1412948cc2afb98990730f382537061d3e92b6e20716c10ac95499bf471"
+  },
+  {
+   "a": "f09-01",
+   "b": "f07-02",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 1029,
+    "teamB": 931
+   },
+   "map": "h-1cec",
+   "map_sha256": "cd7bbee79257e81d33e3eda06ab17a960aa94e8d922a453b42739bc6dae8c261",
+   "outcome": "teamA",
+   "replay_sha256": "e8b975065f786bf32425bb41ef39e3b18a0479677bea70527eb61cc0ab4cf3ee",
+   "rounds": 1792,
+   "side": "A",
+   "src_sha256": {
+    "f07-02": "ccb9f3204d24c0444839560e9a817e36470082d7f187faf31d6eefde7b5c53e0",
+    "f09-01": "43816d64dcee63f7aae46d7e312635401ab5533ce1d1299fdca2e20e78ecad39"
+   },
+   "stats_sha256": "00f8037d20971f4755aecc169745feb677a6f18d01ee3c26e2c19bbf33ab964d"
+  },
+  {
+   "a": "f09-01",
+   "b": "f07-02",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 1008,
+    "teamB": 989
+   },
+   "map": "h-1cec",
+   "map_sha256": "cd7bbee79257e81d33e3eda06ab17a960aa94e8d922a453b42739bc6dae8c261",
+   "outcome": "teamA",
+   "replay_sha256": "a91302007ad4747a86866347327102a582791f31eee48c6100e48c4aa478eeb7",
+   "rounds": 1935,
+   "side": "B",
+   "src_sha256": {
+    "f07-02": "ccb9f3204d24c0444839560e9a817e36470082d7f187faf31d6eefde7b5c53e0",
+    "f09-01": "43816d64dcee63f7aae46d7e312635401ab5533ce1d1299fdca2e20e78ecad39"
+   },
+   "stats_sha256": "f54b96bb35ee1168712d1485b6bc9a7232bc79a2217b34bc2bacda50c399cf85"
+  },
+  {
+   "a": "f09-01",
+   "b": "f07-02",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 306,
+    "teamB": 1068
+   },
+   "map": "h-1e7e",
+   "map_sha256": "a1f7ddbf8cd539ca85a063e7f7b4a4761277aee24b88ecf8b942a1fa24ee0e40",
+   "outcome": "teamB",
+   "replay_sha256": "6daaac921c361bced743c0f8588bf682761ffc545f630dc0a713557f652d3be5",
+   "rounds": 1249,
+   "side": "A",
+   "src_sha256": {
+    "f07-02": "ccb9f3204d24c0444839560e9a817e36470082d7f187faf31d6eefde7b5c53e0",
+    "f09-01": "43816d64dcee63f7aae46d7e312635401ab5533ce1d1299fdca2e20e78ecad39"
+   },
+   "stats_sha256": "0a95777c69d43b22755e1edf5ac72b5d22f71fd38b9037c2c08639e65f5cdf7a"
+  },
+  {
+   "a": "f09-01",
+   "b": "f07-02",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 1020,
+    "teamB": 926
+   },
+   "map": "h-1e7e",
+   "map_sha256": "a1f7ddbf8cd539ca85a063e7f7b4a4761277aee24b88ecf8b942a1fa24ee0e40",
+   "outcome": "teamA",
+   "replay_sha256": "779374d42eb941e3131ba99bd9c9ec5cfe980469466725a89b340c51e8bd1f52",
+   "rounds": 1925,
+   "side": "B",
+   "src_sha256": {
+    "f07-02": "ccb9f3204d24c0444839560e9a817e36470082d7f187faf31d6eefde7b5c53e0",
+    "f09-01": "43816d64dcee63f7aae46d7e312635401ab5533ce1d1299fdca2e20e78ecad39"
+   },
+   "stats_sha256": "10f287ef8523a441dc1061eab27c759ebedbe5455d4d007ff56b9656ac5aeb63"
+  },
+  {
+   "a": "f09-01",
+   "b": "f08-04",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 1053,
+    "teamB": 99
+   },
+   "map": "01gold-rush",
+   "map_sha256": "6e564fdf09fdf67a4182a909d6985737b488742e64f2c3e164204e78bc64c898",
+   "outcome": "teamA",
+   "replay_sha256": "f93dd871e2934ab9706cf3e14ebba038be69564e6ccecabc83a81faa314bd975",
+   "rounds": 1618,
+   "side": "A",
+   "src_sha256": {
+    "f08-04": "a7b076bbcfd73f4e88ad4fbfb3e907067ea39ccff1604cdfe74a65a7406321a6",
+    "f09-01": "43816d64dcee63f7aae46d7e312635401ab5533ce1d1299fdca2e20e78ecad39"
+   },
+   "stats_sha256": "59fa65880723d85c6453273afd91c455965eed001cb53580afd4ea4ba9388e7f"
+  },
+  {
+   "a": "f09-01",
+   "b": "f08-04",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 286,
+    "teamB": 620
+   },
+   "map": "01gold-rush",
+   "map_sha256": "6e564fdf09fdf67a4182a909d6985737b488742e64f2c3e164204e78bc64c898",
+   "outcome": "teamB",
+   "replay_sha256": "cf5e40f433fca2fb20eacdbc378489bddb42e8baa66082a0b12e20db573f2c02",
+   "rounds": 2000,
+   "side": "B",
+   "src_sha256": {
+    "f08-04": "a7b076bbcfd73f4e88ad4fbfb3e907067ea39ccff1604cdfe74a65a7406321a6",
+    "f09-01": "43816d64dcee63f7aae46d7e312635401ab5533ce1d1299fdca2e20e78ecad39"
+   },
+   "stats_sha256": "8cfbbd27a1d0e79340c9329a4e12f71925e8c54dbf068bab2d26415f01ec6944"
+  },
+  {
+   "a": "f09-01",
+   "b": "f08-04",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 403,
+    "teamB": 1021
+   },
+   "map": "h-1e7e",
+   "map_sha256": "a1f7ddbf8cd539ca85a063e7f7b4a4761277aee24b88ecf8b942a1fa24ee0e40",
+   "outcome": "teamB",
+   "replay_sha256": "b69226c03a0cb15061f7d8da9136b479e1806e6a024df2b099938be95eeb2acb",
+   "rounds": 1202,
+   "side": "A",
+   "src_sha256": {
+    "f08-04": "a7b076bbcfd73f4e88ad4fbfb3e907067ea39ccff1604cdfe74a65a7406321a6",
+    "f09-01": "43816d64dcee63f7aae46d7e312635401ab5533ce1d1299fdca2e20e78ecad39"
+   },
+   "stats_sha256": "1848ecccc87ea48a1e26361985a9dee6c9d2f794c441e54d15acfc04cfe62cbf"
+  },
+  {
+   "a": "f09-01",
+   "b": "f08-04",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 1014,
+    "teamB": 674
+   },
+   "map": "h-1e7e",
+   "map_sha256": "a1f7ddbf8cd539ca85a063e7f7b4a4761277aee24b88ecf8b942a1fa24ee0e40",
+   "outcome": "teamA",
+   "replay_sha256": "1bc57d7ec72a7e26763b6d63e86c742581ae0605faaec3138608c41d47a5c743",
+   "rounds": 1331,
+   "side": "B",
+   "src_sha256": {
+    "f08-04": "a7b076bbcfd73f4e88ad4fbfb3e907067ea39ccff1604cdfe74a65a7406321a6",
+    "f09-01": "43816d64dcee63f7aae46d7e312635401ab5533ce1d1299fdca2e20e78ecad39"
+   },
+   "stats_sha256": "8f4227fc354d0d1958b4212110172e0617ccd53912d818580c45e2bd9daa5b8f"
+  },
+  {
+   "a": "f09-01",
+   "b": "f09-03",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 757,
+    "teamB": 1032
+   },
+   "map": "00great-wall",
+   "map_sha256": "1b22e5c068175913889a1ff497d310de303a9b1ddf78672f26c0777fda9f5bf2",
+   "outcome": "teamB",
+   "replay_sha256": "19273704329abb501eb4a1d9f553575c6790e2c24938caac6dce13418410deaa",
+   "rounds": 1800,
+   "side": "A",
+   "src_sha256": {
+    "f09-01": "43816d64dcee63f7aae46d7e312635401ab5533ce1d1299fdca2e20e78ecad39",
+    "f09-03": "5ce52402f783fe71a020d28bb4c35b5e97955783bc35dc3f70c3126b2e06fbc3"
+   },
+   "stats_sha256": "67aa7ef175c9abe354c648866f26f6eef75d06bee6fda8fc0024f9a56bf58873"
+  },
+  {
+   "a": "f09-01",
+   "b": "f09-03",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 327,
+    "teamB": 1003
+   },
+   "map": "00great-wall",
+   "map_sha256": "1b22e5c068175913889a1ff497d310de303a9b1ddf78672f26c0777fda9f5bf2",
+   "outcome": "teamB",
+   "replay_sha256": "32e7de5e9e6af3e6f4f35ece66ab874b45f43ac72834619d6be82ac990f53c27",
+   "rounds": 1504,
+   "side": "B",
+   "src_sha256": {
+    "f09-01": "43816d64dcee63f7aae46d7e312635401ab5533ce1d1299fdca2e20e78ecad39",
+    "f09-03": "5ce52402f783fe71a020d28bb4c35b5e97955783bc35dc3f70c3126b2e06fbc3"
+   },
+   "stats_sha256": "90f06e5d03e54242608b77fc4dff91a6511861c8f1e8d9ff5076e2e4a4fa1996"
+  },
+  {
+   "a": "f09-01",
+   "b": "f09-03",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 433,
+    "teamB": 142
+   },
+   "map": "00reverse-spiral",
+   "map_sha256": "f57669ffc98b76a5c2e4eccba41690dc193efc29f067ee960605617b2cfb48e5",
+   "outcome": "teamA",
+   "replay_sha256": "f05d98bc7c7d4143a5187cae3cfa5d4975b7c6f55e4f8357bacb04881e39f1b7",
+   "rounds": 2000,
+   "side": "A",
+   "src_sha256": {
+    "f09-01": "43816d64dcee63f7aae46d7e312635401ab5533ce1d1299fdca2e20e78ecad39",
+    "f09-03": "5ce52402f783fe71a020d28bb4c35b5e97955783bc35dc3f70c3126b2e06fbc3"
+   },
+   "stats_sha256": "1efe113257880c584e5f1fffcd08d8471affc32b76cac2ff70d71057b70b1f76"
+  },
+  {
+   "a": "f09-01",
+   "b": "f09-03",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 294,
+    "teamB": 52
+   },
+   "map": "00reverse-spiral",
+   "map_sha256": "f57669ffc98b76a5c2e4eccba41690dc193efc29f067ee960605617b2cfb48e5",
+   "outcome": "teamA",
+   "replay_sha256": "e3df2e7711aefb349674381f7606a20d03c87f54c70ea08f428906320ed5cd9e",
+   "rounds": 2000,
+   "side": "B",
+   "src_sha256": {
+    "f09-01": "43816d64dcee63f7aae46d7e312635401ab5533ce1d1299fdca2e20e78ecad39",
+    "f09-03": "5ce52402f783fe71a020d28bb4c35b5e97955783bc35dc3f70c3126b2e06fbc3"
+   },
+   "stats_sha256": "a7195c92ecfdfc6bc7a5be46c3bd65b09a653bbfd02e3abd0056059c2d20e6e9"
+  },
+  {
+   "a": "f09-01",
+   "b": "f09-03",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 1002,
+    "teamB": 810
+   },
+   "map": "h-1ced",
+   "map_sha256": "4f2b95d35f20f6a2bd223a56e4669911d9019a0d4af4b18c0dd69df04dfdaaad",
+   "outcome": "teamA",
+   "replay_sha256": "251a5993a96db01b1bd2b78be1f136fb949dcc68f446252ca12fece52ad59bb7",
+   "rounds": 1635,
+   "side": "A",
+   "src_sha256": {
+    "f09-01": "43816d64dcee63f7aae46d7e312635401ab5533ce1d1299fdca2e20e78ecad39",
+    "f09-03": "5ce52402f783fe71a020d28bb4c35b5e97955783bc35dc3f70c3126b2e06fbc3"
+   },
+   "stats_sha256": "91f1621977d5aeae97e391322f6d583ae668037b1eb7fda8f07a96971568012d"
+  },
+  {
+   "a": "f09-01",
+   "b": "f09-03",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 863,
+    "teamB": 1038
+   },
+   "map": "h-1ced",
+   "map_sha256": "4f2b95d35f20f6a2bd223a56e4669911d9019a0d4af4b18c0dd69df04dfdaaad",
+   "outcome": "teamB",
+   "replay_sha256": "00958a059c09941cf636e58e78b06ffc7c966e21bfb18d57f3d96a80fcb39919",
+   "rounds": 1608,
+   "side": "B",
+   "src_sha256": {
+    "f09-01": "43816d64dcee63f7aae46d7e312635401ab5533ce1d1299fdca2e20e78ecad39",
+    "f09-03": "5ce52402f783fe71a020d28bb4c35b5e97955783bc35dc3f70c3126b2e06fbc3"
+   },
+   "stats_sha256": "89b63099bbab417194dc8e5c3ae13c7ab9092a0d992b2f0fa4dc58c30db4b02e"
+  },
+  {
+   "a": "f09-01",
+   "b": "f09-03",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 1018,
+    "teamB": 374
+   },
+   "map": "h-1e7a",
+   "map_sha256": "770ec046edcf0c02690086c001ca3e681601d290f83f4f18a10dd4128116eecb",
+   "outcome": "teamA",
+   "replay_sha256": "419cb9b76d4a2c678fa7ea20b89b186a2738a5cd85c10f4ce70bfd158d9aeba4",
+   "rounds": 1017,
+   "side": "A",
+   "src_sha256": {
+    "f09-01": "43816d64dcee63f7aae46d7e312635401ab5533ce1d1299fdca2e20e78ecad39",
+    "f09-03": "5ce52402f783fe71a020d28bb4c35b5e97955783bc35dc3f70c3126b2e06fbc3"
+   },
+   "stats_sha256": "039737f504bd015bbdd2ee77dbdd4f39dd5ba9aa988346e0a806a9e58906b722"
+  },
+  {
+   "a": "f09-01",
+   "b": "f09-03",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 1022,
+    "teamB": 615
+   },
+   "map": "h-1e7a",
+   "map_sha256": "770ec046edcf0c02690086c001ca3e681601d290f83f4f18a10dd4128116eecb",
+   "outcome": "teamA",
+   "replay_sha256": "7c933076c0c644aef66b0e537b338da83eb03d4358edf4c1a2fda7ee185cb865",
+   "rounds": 1062,
+   "side": "B",
+   "src_sha256": {
+    "f09-01": "43816d64dcee63f7aae46d7e312635401ab5533ce1d1299fdca2e20e78ecad39",
+    "f09-03": "5ce52402f783fe71a020d28bb4c35b5e97955783bc35dc3f70c3126b2e06fbc3"
+   },
+   "stats_sha256": "590d1fe7a77b13bd6be22150ed4a4128ca94c96db453bf814382011c323499af"
+  },
+  {
+   "a": "f09-01",
+   "b": "f09-04",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 1012,
+    "teamB": 22
+   },
+   "map": "01hooks",
+   "map_sha256": "23e58fe8f41ff66761ade251d3d10a9c3eead864f9ad74f12ad9e34f4bece378",
+   "outcome": "teamA",
+   "replay_sha256": "2a9185ce18ab27d39c7d470e70c4d33afea77dd52eddbc39718b957a72b402a9",
+   "rounds": 1547,
+   "side": "A",
+   "src_sha256": {
+    "f09-01": "43816d64dcee63f7aae46d7e312635401ab5533ce1d1299fdca2e20e78ecad39",
+    "f09-04": "486ca135dac02abfbd152d894377fff11457d57d30282a992556d371698b8e33"
+   },
+   "stats_sha256": "a6c1bb83e60645a1201e3b79bfa929ebd67e1c5ee2c99570785990e3fa8ee00f"
+  },
+  {
+   "a": "f09-01",
+   "b": "f09-04",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 22,
+    "teamB": 1012
+   },
+   "map": "01hooks",
+   "map_sha256": "23e58fe8f41ff66761ade251d3d10a9c3eead864f9ad74f12ad9e34f4bece378",
+   "outcome": "teamB",
+   "replay_sha256": "b610dc6074ecb9d899f97fb69e40cf9b2bed95ed7cf0a83639989097625473bf",
+   "rounds": 1508,
+   "side": "B",
+   "src_sha256": {
+    "f09-01": "43816d64dcee63f7aae46d7e312635401ab5533ce1d1299fdca2e20e78ecad39",
+    "f09-04": "486ca135dac02abfbd152d894377fff11457d57d30282a992556d371698b8e33"
+   },
+   "stats_sha256": "ad42790ce07fd996e8509585baa89671b96677c87553e82d46b88aa1bd37ebaa"
+  },
+  {
+   "a": "f09-01",
+   "b": "f09-05",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 989,
+    "teamB": 1016
+   },
+   "map": "00expanse",
+   "map_sha256": "af4236f408f8450f7da871731f08ef80295f07fac86b541f6547639a78dc2205",
+   "outcome": "teamB",
+   "replay_sha256": "b7341ed79728ee8604ba6d9c755081241cc38eeb8dd366901349b2051809737c",
+   "rounds": 1359,
+   "side": "A",
+   "src_sha256": {
+    "f09-01": "43816d64dcee63f7aae46d7e312635401ab5533ce1d1299fdca2e20e78ecad39",
+    "f09-05": "51fcc6b5347410d54f8f2b8ac966d8c9785b2f9a10345af2725a907c28e03e75"
+   },
+   "stats_sha256": "8499e34c9ddbaac66eb492630aad30d8d6144676fb6e768d9df33131c69c224a"
+  },
+  {
+   "a": "f09-01",
+   "b": "f09-05",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 755,
+    "teamB": 1020
+   },
+   "map": "00expanse",
+   "map_sha256": "af4236f408f8450f7da871731f08ef80295f07fac86b541f6547639a78dc2205",
+   "outcome": "teamB",
+   "replay_sha256": "53e085ed5e2f763184ed5a3b251eb81eb714e31218c3c2ad3b579408403068e9",
+   "rounds": 1252,
+   "side": "B",
+   "src_sha256": {
+    "f09-01": "43816d64dcee63f7aae46d7e312635401ab5533ce1d1299fdca2e20e78ecad39",
+    "f09-05": "51fcc6b5347410d54f8f2b8ac966d8c9785b2f9a10345af2725a907c28e03e75"
+   },
+   "stats_sha256": "de428586bc53f1499d81805ea86236cc4aab436c1270f9306e3dc919b0be36a4"
+  },
+  {
+   "a": "f09-01",
+   "b": "f09-05",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 744,
+    "teamB": 1042
+   },
+   "map": "00quadrants",
+   "map_sha256": "261fe6c133f076653bda84e88965dc35c5a59a70e7730082b4c6df9ca892df92",
+   "outcome": "teamB",
+   "replay_sha256": "7e124e293d31ab7f9470175c658c6fb46beee7de54682848c79f7636d0fd40ad",
+   "rounds": 792,
+   "side": "A",
+   "src_sha256": {
+    "f09-01": "43816d64dcee63f7aae46d7e312635401ab5533ce1d1299fdca2e20e78ecad39",
+    "f09-05": "51fcc6b5347410d54f8f2b8ac966d8c9785b2f9a10345af2725a907c28e03e75"
+   },
+   "stats_sha256": "d305c234159782cd4113600d1a174ff71a2978a9211dde34d439b3359c59c1ef"
+  },
+  {
+   "a": "f09-01",
+   "b": "f09-05",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 623,
+    "teamB": 1001
+   },
+   "map": "00quadrants",
+   "map_sha256": "261fe6c133f076653bda84e88965dc35c5a59a70e7730082b4c6df9ca892df92",
+   "outcome": "teamB",
+   "replay_sha256": "51daed05e61e7782286cf156891b5594656cb55c06398b8e50969e5513959183",
+   "rounds": 697,
+   "side": "B",
+   "src_sha256": {
+    "f09-01": "43816d64dcee63f7aae46d7e312635401ab5533ce1d1299fdca2e20e78ecad39",
+    "f09-05": "51fcc6b5347410d54f8f2b8ac966d8c9785b2f9a10345af2725a907c28e03e75"
+   },
+   "stats_sha256": "6b08071d9bddaa921f4909f869186791b9d47b562cecc668ce0ad55d8271d334"
+  },
+  {
+   "a": "f09-01",
+   "b": "f09-05",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 1018,
+    "teamB": 706
+   },
+   "map": "h-1b5f",
+   "map_sha256": "8cbf98310de6c013efa1dfc4a8b8221606ff5a9ad65cd6975e1fc0c0abe0ca32",
+   "outcome": "teamA",
+   "replay_sha256": "b78f7143a8a6b678830eafa43061aa6b4ea4e0af1910033e1d588fea7ad8bd4d",
+   "rounds": 1753,
+   "side": "A",
+   "src_sha256": {
+    "f09-01": "43816d64dcee63f7aae46d7e312635401ab5533ce1d1299fdca2e20e78ecad39",
+    "f09-05": "51fcc6b5347410d54f8f2b8ac966d8c9785b2f9a10345af2725a907c28e03e75"
+   },
+   "stats_sha256": "d87d6b7cafee7a6716e132c7a8520411b93812ee69af7d25473ac2270e7429b7"
+  },
+  {
+   "a": "f09-01",
+   "b": "f09-05",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 353,
+    "teamB": 1016
+   },
+   "map": "h-1b5f",
+   "map_sha256": "8cbf98310de6c013efa1dfc4a8b8221606ff5a9ad65cd6975e1fc0c0abe0ca32",
+   "outcome": "teamB",
+   "replay_sha256": "ddeaf87d285e9b5b2521c31acc230a107efcb44cabe017fa6125a485c410901c",
+   "rounds": 1282,
+   "side": "B",
+   "src_sha256": {
+    "f09-01": "43816d64dcee63f7aae46d7e312635401ab5533ce1d1299fdca2e20e78ecad39",
+    "f09-05": "51fcc6b5347410d54f8f2b8ac966d8c9785b2f9a10345af2725a907c28e03e75"
+   },
+   "stats_sha256": "7c0d79061afe6e276b10e2263937577cbae0f576f0264473b87aab9c86c3da0c"
+  },
+  {
+   "a": "f09-01",
+   "b": "f09-05",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 1018,
+    "teamB": 945
+   },
+   "map": "h-1cec",
+   "map_sha256": "cd7bbee79257e81d33e3eda06ab17a960aa94e8d922a453b42739bc6dae8c261",
+   "outcome": "teamA",
+   "replay_sha256": "35968798d122b6a44e6e5dc14f1dbd0f83921db9cccd43a87efc04911d883da8",
+   "rounds": 1812,
+   "side": "A",
+   "src_sha256": {
+    "f09-01": "43816d64dcee63f7aae46d7e312635401ab5533ce1d1299fdca2e20e78ecad39",
+    "f09-05": "51fcc6b5347410d54f8f2b8ac966d8c9785b2f9a10345af2725a907c28e03e75"
+   },
+   "stats_sha256": "7db868cff7a3c77824e8987d543860bf845398f135d3b8269556c1b79e68d36a"
+  },
+  {
+   "a": "f09-01",
+   "b": "f09-05",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 875,
+    "teamB": 1012
+   },
+   "map": "h-1cec",
+   "map_sha256": "cd7bbee79257e81d33e3eda06ab17a960aa94e8d922a453b42739bc6dae8c261",
+   "outcome": "teamB",
+   "replay_sha256": "585ba0e00e15eb037dc59f4cac395bef9696256f121e12f2773e1de42b21d423",
+   "rounds": 1550,
+   "side": "B",
+   "src_sha256": {
+    "f09-01": "43816d64dcee63f7aae46d7e312635401ab5533ce1d1299fdca2e20e78ecad39",
+    "f09-05": "51fcc6b5347410d54f8f2b8ac966d8c9785b2f9a10345af2725a907c28e03e75"
+   },
+   "stats_sha256": "76f538062bded97bec81f0f23c868e75266c895229b1dfded074fd9846e74c51"
+  },
+  {
+   "a": "f09-01",
+   "b": "starter",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 1004,
+    "teamB": 8
+   },
+   "map": "00fragment",
+   "map_sha256": "46512bf4fe1fc57d1651b15d44c283cac69cfce1914a5000d19fab979f5b8bbb",
+   "outcome": "teamA",
+   "replay_sha256": "c9ffded98319dbea2a19707b2f339604fec88b4535a0fe4fbe64e03babdae9d6",
+   "rounds": 1501,
+   "side": "A",
+   "src_sha256": {
+    "f09-01": "43816d64dcee63f7aae46d7e312635401ab5533ce1d1299fdca2e20e78ecad39",
+    "starter": "9023e6a089796897d6ed661f26054d1b81b298e048a09a5df75d3b9cb5d3c6a9"
+   },
+   "stats_sha256": "2b71047a998cc346c95e4ff5ff8b48258a1a29aa0ded05df4ddd50a22fc3eba8"
+  },
+  {
+   "a": "f09-01",
+   "b": "starter",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 8,
+    "teamB": 1016
+   },
+   "map": "00fragment",
+   "map_sha256": "46512bf4fe1fc57d1651b15d44c283cac69cfce1914a5000d19fab979f5b8bbb",
+   "outcome": "teamB",
+   "replay_sha256": "a739a5f0a34c9a7bb02fe26219418aabaab287eb6d70707715d95a79fb7bb946",
+   "rounds": 1543,
+   "side": "B",
+   "src_sha256": {
+    "f09-01": "43816d64dcee63f7aae46d7e312635401ab5533ce1d1299fdca2e20e78ecad39",
+    "starter": "9023e6a089796897d6ed661f26054d1b81b298e048a09a5df75d3b9cb5d3c6a9"
+   },
+   "stats_sha256": "204ea559dd4fecdd090849a3270b77aa6a76f5aa78cd4f9e8ca1b9dc2b0ce4d1"
+  },
+  {
+   "a": "f09-03",
+   "b": "f06-05",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 1002,
+    "teamB": 98
+   },
+   "map": "00lost-world",
+   "map_sha256": "566697c98eace1c84152f571e9e1fa0b54ec64e038e4695305c874bd3dc2bc6e",
+   "outcome": "teamA",
+   "replay_sha256": "9ca77f8176b6db81edb07c163d9be97b9ce1b3eb73348f199b8047f1731927a4",
+   "rounds": 946,
+   "side": "A",
+   "src_sha256": {
+    "f06-05": "b2fdb1ef111ba1cf9913e7bf7a61c46f65047afabf6a17d7d5f3a4128947ecb9",
+    "f09-03": "5ce52402f783fe71a020d28bb4c35b5e97955783bc35dc3f70c3126b2e06fbc3"
+   },
+   "stats_sha256": "4b43047e69c79c603a508fa8b9fc40744d4a0b554ed2997a47394b30ae971278"
+  },
+  {
+   "a": "f09-03",
+   "b": "f06-05",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 56,
+    "teamB": 1006
+   },
+   "map": "00lost-world",
+   "map_sha256": "566697c98eace1c84152f571e9e1fa0b54ec64e038e4695305c874bd3dc2bc6e",
+   "outcome": "teamB",
+   "replay_sha256": "fdee071d000ebc8fad3a1fde898bc9fa652800a9e10e5f61654053970ed989b9",
+   "rounds": 1012,
+   "side": "B",
+   "src_sha256": {
+    "f06-05": "b2fdb1ef111ba1cf9913e7bf7a61c46f65047afabf6a17d7d5f3a4128947ecb9",
+    "f09-03": "5ce52402f783fe71a020d28bb4c35b5e97955783bc35dc3f70c3126b2e06fbc3"
+   },
+   "stats_sha256": "212ce44abcec506b707332764cc2792f6a4ca38702a971e7a5f9401f419129fc"
+  },
+  {
+   "a": "f09-03",
+   "b": "f06-05",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 1007,
+    "teamB": 118
+   },
+   "map": "00swirl",
+   "map_sha256": "e6f860670947b1326f34c86515db8ef6893c565eaa69e3f9a6464ec5744e1c93",
+   "outcome": "teamA",
+   "replay_sha256": "4d10ce08f9b9f51f74aeae59fff9d628717141a8a89bcf9798c9a5420b9db351",
+   "rounds": 1750,
+   "side": "A",
+   "src_sha256": {
+    "f06-05": "b2fdb1ef111ba1cf9913e7bf7a61c46f65047afabf6a17d7d5f3a4128947ecb9",
+    "f09-03": "5ce52402f783fe71a020d28bb4c35b5e97955783bc35dc3f70c3126b2e06fbc3"
+   },
+   "stats_sha256": "20978d9b351d713f4babb0d66bdc657aace7df7eb540cbfb7ca11809777b2cf6"
+  },
+  {
+   "a": "f09-03",
+   "b": "f06-05",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 172,
+    "teamB": 299
+   },
+   "map": "00swirl",
+   "map_sha256": "e6f860670947b1326f34c86515db8ef6893c565eaa69e3f9a6464ec5744e1c93",
+   "outcome": "teamB",
+   "replay_sha256": "b86e5ffed37ebde51d7938557f04d432f1ae2b3a376a0050ab8dec4ea1961cb9",
+   "rounds": 2000,
+   "side": "B",
+   "src_sha256": {
+    "f06-05": "b2fdb1ef111ba1cf9913e7bf7a61c46f65047afabf6a17d7d5f3a4128947ecb9",
+    "f09-03": "5ce52402f783fe71a020d28bb4c35b5e97955783bc35dc3f70c3126b2e06fbc3"
+   },
+   "stats_sha256": "e1630120716d922a80bbe94685c26b295379ef13086b9f9f9d2ec75e21448b6f"
+  },
+  {
+   "a": "f09-03",
+   "b": "f07-02",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 1007,
+    "teamB": 118
+   },
+   "map": "00swirl",
+   "map_sha256": "e6f860670947b1326f34c86515db8ef6893c565eaa69e3f9a6464ec5744e1c93",
+   "outcome": "teamA",
+   "replay_sha256": "6171c2fcae6d68f7340a9d172ccc70baf33926a12b49fca3017fd34944510c6f",
+   "rounds": 1750,
+   "side": "A",
+   "src_sha256": {
+    "f07-02": "ccb9f3204d24c0444839560e9a817e36470082d7f187faf31d6eefde7b5c53e0",
+    "f09-03": "5ce52402f783fe71a020d28bb4c35b5e97955783bc35dc3f70c3126b2e06fbc3"
+   },
+   "stats_sha256": "20978d9b351d713f4babb0d66bdc657aace7df7eb540cbfb7ca11809777b2cf6"
+  },
+  {
+   "a": "f09-03",
+   "b": "f07-02",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 172,
+    "teamB": 299
+   },
+   "map": "00swirl",
+   "map_sha256": "e6f860670947b1326f34c86515db8ef6893c565eaa69e3f9a6464ec5744e1c93",
+   "outcome": "teamB",
+   "replay_sha256": "ddf75794358cd5b1128b61bfc88a46d053abeb787146f98ed2d0a69af35a3ab0",
+   "rounds": 2000,
+   "side": "B",
+   "src_sha256": {
+    "f07-02": "ccb9f3204d24c0444839560e9a817e36470082d7f187faf31d6eefde7b5c53e0",
+    "f09-03": "5ce52402f783fe71a020d28bb4c35b5e97955783bc35dc3f70c3126b2e06fbc3"
+   },
+   "stats_sha256": "e1630120716d922a80bbe94685c26b295379ef13086b9f9f9d2ec75e21448b6f"
+  },
+  {
+   "a": "f09-03",
+   "b": "f08-04",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 77,
+    "teamB": 1187
+   },
+   "map": "01boss-battle",
+   "map_sha256": "53086e249294aed6f427fe647d578303589a081e953c62a0ff8f20cade9993fa",
+   "outcome": "teamB",
+   "replay_sha256": "d6a5fb53a8cadfee6da051823e5bd794565a134959519d124d7951e6d11858bb",
+   "rounds": 1337,
+   "side": "A",
+   "src_sha256": {
+    "f08-04": "a7b076bbcfd73f4e88ad4fbfb3e907067ea39ccff1604cdfe74a65a7406321a6",
+    "f09-03": "5ce52402f783fe71a020d28bb4c35b5e97955783bc35dc3f70c3126b2e06fbc3"
+   },
+   "stats_sha256": "5ae6a322e70c3c6d73c09bc11a035fc3480e49cb10241d02178e429cc2b31fbe"
+  },
+  {
+   "a": "f09-03",
+   "b": "f08-04",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 1035,
+    "teamB": 842
+   },
+   "map": "01boss-battle",
+   "map_sha256": "53086e249294aed6f427fe647d578303589a081e953c62a0ff8f20cade9993fa",
+   "outcome": "teamA",
+   "replay_sha256": "a0734559b07ddadf101983c42e321bbd9d1facb1b1889a3e65d01e047bffe5eb",
+   "rounds": 1885,
+   "side": "B",
+   "src_sha256": {
+    "f08-04": "a7b076bbcfd73f4e88ad4fbfb3e907067ea39ccff1604cdfe74a65a7406321a6",
+    "f09-03": "5ce52402f783fe71a020d28bb4c35b5e97955783bc35dc3f70c3126b2e06fbc3"
+   },
+   "stats_sha256": "2cebce8f8db4f1fd2624f4924c02bec69a21087b7574dc71789e45c760b5d10d"
+  },
+  {
+   "a": "f09-03",
+   "b": "starter",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 1073,
+    "teamB": 8
+   },
+   "map": "00swirl",
+   "map_sha256": "e6f860670947b1326f34c86515db8ef6893c565eaa69e3f9a6464ec5744e1c93",
+   "outcome": "teamA",
+   "replay_sha256": "964a6a48719e1734963705542f317fcd21aaa5867913be514da9c713ff94807b",
+   "rounds": 854,
+   "side": "A",
+   "src_sha256": {
+    "f09-03": "5ce52402f783fe71a020d28bb4c35b5e97955783bc35dc3f70c3126b2e06fbc3",
+    "starter": "9023e6a089796897d6ed661f26054d1b81b298e048a09a5df75d3b9cb5d3c6a9"
+   },
+   "stats_sha256": "146ffcd0d26a3501a89ff924bc81cbf7b45d2bb787748724ee0a166e88e078c3"
+  },
+  {
+   "a": "f09-03",
+   "b": "starter",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 0,
+    "teamB": 1015
+   },
+   "map": "00swirl",
+   "map_sha256": "e6f860670947b1326f34c86515db8ef6893c565eaa69e3f9a6464ec5744e1c93",
+   "outcome": "teamB",
+   "replay_sha256": "b5e4ff5fec9a9e0a98de425a6cdf74e7047d038c7875a66768efc14e142cd66d",
+   "rounds": 966,
+   "side": "B",
+   "src_sha256": {
+    "f09-03": "5ce52402f783fe71a020d28bb4c35b5e97955783bc35dc3f70c3126b2e06fbc3",
+    "starter": "9023e6a089796897d6ed661f26054d1b81b298e048a09a5df75d3b9cb5d3c6a9"
+   },
+   "stats_sha256": "2f0cab9cc7678f8fe97e0228c18bafbe86a7856530736e57a59ece2214803b04"
+  },
+  {
+   "a": "f09-03",
+   "b": "starter",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 1002,
+    "teamB": 52
+   },
+   "map": "h-1e78",
+   "map_sha256": "759985b04766d669cdee5f6ca49283c945be4044bcefa20ceaeba0f73baaa199",
+   "outcome": "teamA",
+   "replay_sha256": "12cc6e9d2453a4a19b425896aab591f4ec0ab787df5ef7702aa6b9b06af1eccc",
+   "rounds": 947,
+   "side": "A",
+   "src_sha256": {
+    "f09-03": "5ce52402f783fe71a020d28bb4c35b5e97955783bc35dc3f70c3126b2e06fbc3",
+    "starter": "9023e6a089796897d6ed661f26054d1b81b298e048a09a5df75d3b9cb5d3c6a9"
+   },
+   "stats_sha256": "fad4d5ace08fa2f8b6b936bc8a2fbd93fd4c3f43630eda2c324dd1d8cdf3da84"
+  },
+  {
+   "a": "f09-03",
+   "b": "starter",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 182,
+    "teamB": 1016
+   },
+   "map": "h-1e78",
+   "map_sha256": "759985b04766d669cdee5f6ca49283c945be4044bcefa20ceaeba0f73baaa199",
+   "outcome": "teamB",
+   "replay_sha256": "4568aa92890095359fbef2c88a7bb5df5f2853aac25065beee4360d28628bf4c",
+   "rounds": 933,
+   "side": "B",
+   "src_sha256": {
+    "f09-03": "5ce52402f783fe71a020d28bb4c35b5e97955783bc35dc3f70c3126b2e06fbc3",
+    "starter": "9023e6a089796897d6ed661f26054d1b81b298e048a09a5df75d3b9cb5d3c6a9"
+   },
+   "stats_sha256": "c77459084288476dda5b947a9df36f045dd2420b3ea845e19848c2a6c9d65236"
+  },
+  {
+   "a": "f09-04",
+   "b": "f06-05",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 929,
+    "teamB": 1015
+   },
+   "map": "01big-world",
+   "map_sha256": "f1ecb726472858efb1d75d00b0d7668be18d83a010b2abf9a1f8c38aab456aa5",
+   "outcome": "teamB",
+   "replay_sha256": "b427f57e4bc65308f88f39e704f01ab0e16e1dfcca2a7fb268dfc94f5ada1775",
+   "rounds": 1640,
+   "side": "A",
+   "src_sha256": {
+    "f06-05": "b2fdb1ef111ba1cf9913e7bf7a61c46f65047afabf6a17d7d5f3a4128947ecb9",
+    "f09-04": "486ca135dac02abfbd152d894377fff11457d57d30282a992556d371698b8e33"
+   },
+   "stats_sha256": "6e9c851a407d17dff016e9a96bdc78e53b266287350122b4d921485466798072"
+  },
+  {
+   "a": "f09-04",
+   "b": "f06-05",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 1030,
+    "teamB": 670
+   },
+   "map": "01big-world",
+   "map_sha256": "f1ecb726472858efb1d75d00b0d7668be18d83a010b2abf9a1f8c38aab456aa5",
+   "outcome": "teamA",
+   "replay_sha256": "94bf7d0f50b05cce5014133741b126a1b9af1650a5f6a175a7e9793e122417a5",
+   "rounds": 1553,
+   "side": "B",
+   "src_sha256": {
+    "f06-05": "b2fdb1ef111ba1cf9913e7bf7a61c46f65047afabf6a17d7d5f3a4128947ecb9",
+    "f09-04": "486ca135dac02abfbd152d894377fff11457d57d30282a992556d371698b8e33"
+   },
+   "stats_sha256": "c0d4677c9f827a9061c23a737a4293775ac47aa76066424d15a1a196f463c0ab"
+  },
+  {
+   "a": "f09-04",
+   "b": "f08-04",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 144,
+    "teamB": 394
+   },
+   "map": "00fragment",
+   "map_sha256": "46512bf4fe1fc57d1651b15d44c283cac69cfce1914a5000d19fab979f5b8bbb",
+   "outcome": "teamB",
+   "replay_sha256": "89006df45bfecf12b3cae9a3227fdc73596d589bf09212f43b507dee1b57fda2",
+   "rounds": 2000,
+   "side": "A",
+   "src_sha256": {
+    "f08-04": "a7b076bbcfd73f4e88ad4fbfb3e907067ea39ccff1604cdfe74a65a7406321a6",
+    "f09-04": "486ca135dac02abfbd152d894377fff11457d57d30282a992556d371698b8e33"
+   },
+   "stats_sha256": "c696777ee1a311d252ba3274c0ffedaa93d0e03ab9c4df7544457f7f98b6c85d"
+  },
+  {
+   "a": "f09-04",
+   "b": "f08-04",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 452,
+    "teamB": 136
+   },
+   "map": "00fragment",
+   "map_sha256": "46512bf4fe1fc57d1651b15d44c283cac69cfce1914a5000d19fab979f5b8bbb",
+   "outcome": "teamA",
+   "replay_sha256": "0bfc9e2d05ea3dd692fb92b657cf857a951effa86f27d35f041e0c8105b8162e",
+   "rounds": 2000,
+   "side": "B",
+   "src_sha256": {
+    "f08-04": "a7b076bbcfd73f4e88ad4fbfb3e907067ea39ccff1604cdfe74a65a7406321a6",
+    "f09-04": "486ca135dac02abfbd152d894377fff11457d57d30282a992556d371698b8e33"
+   },
+   "stats_sha256": "f177706af3a1b529dee73920461fc14fe453a44448311f6677d833385c11e332"
+  },
+  {
+   "a": "f09-04",
+   "b": "f08-04",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 979,
+    "teamB": 1024
+   },
+   "map": "01big-world",
+   "map_sha256": "f1ecb726472858efb1d75d00b0d7668be18d83a010b2abf9a1f8c38aab456aa5",
+   "outcome": "teamB",
+   "replay_sha256": "6932e48ef37d28a78416217e5dfad14f6a4f60cf70be8f19b99bd6d2b1a891c2",
+   "rounds": 1489,
+   "side": "A",
+   "src_sha256": {
+    "f08-04": "a7b076bbcfd73f4e88ad4fbfb3e907067ea39ccff1604cdfe74a65a7406321a6",
+    "f09-04": "486ca135dac02abfbd152d894377fff11457d57d30282a992556d371698b8e33"
+   },
+   "stats_sha256": "b8521e91203e36103d84a853bfda3af2a6ba003a75b3e22323c7165a776b9e06"
+  },
+  {
+   "a": "f09-04",
+   "b": "f08-04",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 1024,
+    "teamB": 728
+   },
+   "map": "01big-world",
+   "map_sha256": "f1ecb726472858efb1d75d00b0d7668be18d83a010b2abf9a1f8c38aab456aa5",
+   "outcome": "teamA",
+   "replay_sha256": "45d4c81dbc5ee76bb19118daaba6c263ccd1180ecb747dd73ce1eedf8f6b6b28",
+   "rounds": 1320,
+   "side": "B",
+   "src_sha256": {
+    "f08-04": "a7b076bbcfd73f4e88ad4fbfb3e907067ea39ccff1604cdfe74a65a7406321a6",
+    "f09-04": "486ca135dac02abfbd152d894377fff11457d57d30282a992556d371698b8e33"
+   },
+   "stats_sha256": "b4f0593616063bd8f3766a7d49479a249c51041c8cec78b67f378c1dff17c6dd"
+  },
+  {
+   "a": "f09-04",
+   "b": "f09-03",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 875,
+    "teamB": 793
+   },
+   "map": "00lanes",
+   "map_sha256": "8ca26ed2ea65c7d80ceb9604a7431ca1dc056922912b4e2f46cad06051e4886a",
+   "outcome": "teamA",
+   "replay_sha256": "14d10df59ebd8eecec194b7e1375341423ffc7a75330085857ac418bbcc68afa",
+   "rounds": 2000,
+   "side": "A",
+   "src_sha256": {
+    "f09-03": "5ce52402f783fe71a020d28bb4c35b5e97955783bc35dc3f70c3126b2e06fbc3",
+    "f09-04": "486ca135dac02abfbd152d894377fff11457d57d30282a992556d371698b8e33"
+   },
+   "stats_sha256": "b493bd79038d184d779fd9e5078523e9f06a919f84f62bfc052571845eda79fc"
+  },
+  {
+   "a": "f09-04",
+   "b": "f09-03",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 525,
+    "teamB": 1005
+   },
+   "map": "00lanes",
+   "map_sha256": "8ca26ed2ea65c7d80ceb9604a7431ca1dc056922912b4e2f46cad06051e4886a",
+   "outcome": "teamB",
+   "replay_sha256": "42f3186a4aad5b59cda329b091f62c4639b5f38230b1bd720bcf989e47f53d74",
+   "rounds": 1708,
+   "side": "B",
+   "src_sha256": {
+    "f09-03": "5ce52402f783fe71a020d28bb4c35b5e97955783bc35dc3f70c3126b2e06fbc3",
+    "f09-04": "486ca135dac02abfbd152d894377fff11457d57d30282a992556d371698b8e33"
+   },
+   "stats_sha256": "4ac937370b9d03d8e58f59e088ea95dcb7b4386b0c5762617ec1a5a167a782b1"
+  },
+  {
+   "a": "f09-04",
+   "b": "f09-03",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 684,
+    "teamB": 62
+   },
+   "map": "01starvation",
+   "map_sha256": "0b8e85603a85ca5778f92d2975c56da0e4b8df59264c42eef23108f8bbceec2a",
+   "outcome": "teamA",
+   "replay_sha256": "9d3820d124781a46e3024a5bcacb8b5386a43d2a49fd787df9b3ff20a587c0ae",
+   "rounds": 2000,
+   "side": "A",
+   "src_sha256": {
+    "f09-03": "5ce52402f783fe71a020d28bb4c35b5e97955783bc35dc3f70c3126b2e06fbc3",
+    "f09-04": "486ca135dac02abfbd152d894377fff11457d57d30282a992556d371698b8e33"
+   },
+   "stats_sha256": "d884d2c577f227cd6381e4a3a026100c52eb510a06f15aefac4f7323fa8c6f71"
+  },
+  {
+   "a": "f09-04",
+   "b": "f09-03",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 728,
+    "teamB": 304
+   },
+   "map": "01starvation",
+   "map_sha256": "0b8e85603a85ca5778f92d2975c56da0e4b8df59264c42eef23108f8bbceec2a",
+   "outcome": "teamA",
+   "replay_sha256": "e621c16989b4bccb9443d79deb0159d6b75d7034733f1e641d489a32344e7ce4",
+   "rounds": 2000,
+   "side": "B",
+   "src_sha256": {
+    "f09-03": "5ce52402f783fe71a020d28bb4c35b5e97955783bc35dc3f70c3126b2e06fbc3",
+    "f09-04": "486ca135dac02abfbd152d894377fff11457d57d30282a992556d371698b8e33"
+   },
+   "stats_sha256": "62346347065b57551e1d6a8fcd93a2c8918f07e84103e4879c0a06cb7f0d3239"
+  },
+  {
+   "a": "f09-04",
+   "b": "starter",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 1018,
+    "teamB": 31
+   },
+   "map": "00rows",
+   "map_sha256": "6a4203ae1bfe86ad0f6b083f390cfd8e2f5e45f7e4102f6a2f27205d5333e701",
+   "outcome": "teamA",
+   "replay_sha256": "a12980fbe28b1b7ef544710e3140bf6a80bcc462ea8405295d759675adecc883",
+   "rounds": 1411,
+   "side": "A",
+   "src_sha256": {
+    "f09-04": "486ca135dac02abfbd152d894377fff11457d57d30282a992556d371698b8e33",
+    "starter": "9023e6a089796897d6ed661f26054d1b81b298e048a09a5df75d3b9cb5d3c6a9"
+   },
+   "stats_sha256": "4cd683dec0ddfa61a1a0d08fe9a9c63c01d96c602b7e08000ceea105d3fb9ab2"
+  },
+  {
+   "a": "f09-04",
+   "b": "starter",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 31,
+    "teamB": 1006
+   },
+   "map": "00rows",
+   "map_sha256": "6a4203ae1bfe86ad0f6b083f390cfd8e2f5e45f7e4102f6a2f27205d5333e701",
+   "outcome": "teamB",
+   "replay_sha256": "d33b87f5b19f7162d2728846469cc9fbff10a55401381e23b9fcf49afb4546c9",
+   "rounds": 1471,
+   "side": "B",
+   "src_sha256": {
+    "f09-04": "486ca135dac02abfbd152d894377fff11457d57d30282a992556d371698b8e33",
+    "starter": "9023e6a089796897d6ed661f26054d1b81b298e048a09a5df75d3b9cb5d3c6a9"
+   },
+   "stats_sha256": "aa8f6af7e4d1184e1340f4c73422023b28b8fb233007ff1666c3c50821d94487"
+  },
+  {
+   "a": "f09-05",
+   "b": "f06-05",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 624,
+    "teamB": 168
+   },
+   "map": "01elk-arena",
+   "map_sha256": "72b8e03bc4378d5f988f9c1c07609848bfb42fd8a883cce01820d96212f21c0a",
+   "outcome": "teamA",
+   "replay_sha256": "3b77e722833ca6af9b662b2d63405d6b6d8313d2e398eae72085c9dccf3aecd1",
+   "rounds": 2000,
+   "side": "A",
+   "src_sha256": {
+    "f06-05": "b2fdb1ef111ba1cf9913e7bf7a61c46f65047afabf6a17d7d5f3a4128947ecb9",
+    "f09-05": "51fcc6b5347410d54f8f2b8ac966d8c9785b2f9a10345af2725a907c28e03e75"
+   },
+   "stats_sha256": "9d3d513909e37ece9c1aae4765a3b28ebb248a851cbe50e5348f889a865ed097"
+  },
+  {
+   "a": "f09-05",
+   "b": "f06-05",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 0,
+    "teamB": 936
+   },
+   "map": "01elk-arena",
+   "map_sha256": "72b8e03bc4378d5f988f9c1c07609848bfb42fd8a883cce01820d96212f21c0a",
+   "outcome": "teamB",
+   "replay_sha256": "05554f532bdeae39d8ee9c39fcf95a3ac5e5107ee0dbb60912b691ab363f4638",
+   "rounds": 2000,
+   "side": "B",
+   "src_sha256": {
+    "f06-05": "b2fdb1ef111ba1cf9913e7bf7a61c46f65047afabf6a17d7d5f3a4128947ecb9",
+    "f09-05": "51fcc6b5347410d54f8f2b8ac966d8c9785b2f9a10345af2725a907c28e03e75"
+   },
+   "stats_sha256": "2848ecf2ff3a0e4768ee6719357f0fa77ece78a9fcf894acec76d1537359b221"
+  },
+  {
+   "a": "f09-05",
+   "b": "f07-02",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 168,
+    "teamB": 1007
+   },
+   "map": "00lost-world",
+   "map_sha256": "566697c98eace1c84152f571e9e1fa0b54ec64e038e4695305c874bd3dc2bc6e",
+   "outcome": "teamB",
+   "replay_sha256": "c252e78056122e1d71da0acb84ea8eabfaa77315e382a794a3ab5290029def09",
+   "rounds": 1526,
+   "side": "A",
+   "src_sha256": {
+    "f07-02": "ccb9f3204d24c0444839560e9a817e36470082d7f187faf31d6eefde7b5c53e0",
+    "f09-05": "51fcc6b5347410d54f8f2b8ac966d8c9785b2f9a10345af2725a907c28e03e75"
+   },
+   "stats_sha256": "e1cf614c382a1335b73cd29503a30c84c28de20f0e2d50564207046eefb17ea8"
+  },
+  {
+   "a": "f09-05",
+   "b": "f07-02",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 318,
+    "teamB": 1019
+   },
+   "map": "00lost-world",
+   "map_sha256": "566697c98eace1c84152f571e9e1fa0b54ec64e038e4695305c874bd3dc2bc6e",
+   "outcome": "teamB",
+   "replay_sha256": "ab800e843955b2733eb748c8a42ccefe772d3b1113bf29abb3a9bb6289616917",
+   "rounds": 1404,
+   "side": "B",
+   "src_sha256": {
+    "f07-02": "ccb9f3204d24c0444839560e9a817e36470082d7f187faf31d6eefde7b5c53e0",
+    "f09-05": "51fcc6b5347410d54f8f2b8ac966d8c9785b2f9a10345af2725a907c28e03e75"
+   },
+   "stats_sha256": "b3167635a1e43df1cdc3eb4308bdef5dffff4824ff30ad78a3e57355d81ebc9d"
+  },
+  {
+   "a": "f09-05",
+   "b": "f07-02",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 1020,
+    "teamB": 164
+   },
+   "map": "00packs",
+   "map_sha256": "60ee7a86ee377a04a77d11008b78aaed9e2c1cfcfc4302055974195e078c675a",
+   "outcome": "teamA",
+   "replay_sha256": "a12b153f46d745a0ff94f02594067f61f7479e994d7b42e9b9ca26de6fc5ae87",
+   "rounds": 1911,
+   "side": "A",
+   "src_sha256": {
+    "f07-02": "ccb9f3204d24c0444839560e9a817e36470082d7f187faf31d6eefde7b5c53e0",
+    "f09-05": "51fcc6b5347410d54f8f2b8ac966d8c9785b2f9a10345af2725a907c28e03e75"
+   },
+   "stats_sha256": "80fc97bbff7ad37e4c3d583d59b7a9a8f25033446cebb3bf00a1ed2867317c9c"
+  },
+  {
+   "a": "f09-05",
+   "b": "f07-02",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 44,
+    "teamB": 1006
+   },
+   "map": "00packs",
+   "map_sha256": "60ee7a86ee377a04a77d11008b78aaed9e2c1cfcfc4302055974195e078c675a",
+   "outcome": "teamB",
+   "replay_sha256": "ae80b95f309c55bff91a900dd04ea7371490e4d8a0c00ed8531ff25e66061581",
+   "rounds": 1696,
+   "side": "B",
+   "src_sha256": {
+    "f07-02": "ccb9f3204d24c0444839560e9a817e36470082d7f187faf31d6eefde7b5c53e0",
+    "f09-05": "51fcc6b5347410d54f8f2b8ac966d8c9785b2f9a10345af2725a907c28e03e75"
+   },
+   "stats_sha256": "aad98e25e409df6f0a6e48177c40a04833f774908b85527e2e5e31afe7d00c0a"
+  },
+  {
+   "a": "f09-05",
+   "b": "f07-02",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 1018,
+    "teamB": 22
+   },
+   "map": "00swirl",
+   "map_sha256": "e6f860670947b1326f34c86515db8ef6893c565eaa69e3f9a6464ec5744e1c93",
+   "outcome": "teamA",
+   "replay_sha256": "a4b6dc07c8a772797c9b5172d8b64e946c0c7a6f030591ab547bfa55bb5a6344",
+   "rounds": 1483,
+   "side": "A",
+   "src_sha256": {
+    "f07-02": "ccb9f3204d24c0444839560e9a817e36470082d7f187faf31d6eefde7b5c53e0",
+    "f09-05": "51fcc6b5347410d54f8f2b8ac966d8c9785b2f9a10345af2725a907c28e03e75"
+   },
+   "stats_sha256": "56455142bc2f6808c63e5349074a8803b8f627e4b1b5ee21eb9b44e9032ac83d"
+  },
+  {
+   "a": "f09-05",
+   "b": "f07-02",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 387,
+    "teamB": 285
+   },
+   "map": "00swirl",
+   "map_sha256": "e6f860670947b1326f34c86515db8ef6893c565eaa69e3f9a6464ec5744e1c93",
+   "outcome": "teamA",
+   "replay_sha256": "37ca4db794abc174925adf442570d3e615f814873c889f9e752ef4e2c5e2b225",
+   "rounds": 2000,
+   "side": "B",
+   "src_sha256": {
+    "f07-02": "ccb9f3204d24c0444839560e9a817e36470082d7f187faf31d6eefde7b5c53e0",
+    "f09-05": "51fcc6b5347410d54f8f2b8ac966d8c9785b2f9a10345af2725a907c28e03e75"
+   },
+   "stats_sha256": "ff6457efd229f7d776fc9963b6c9df3eb49d3962c72fcc4ade69e4bbf763b75c"
+  },
+  {
+   "a": "f09-05",
+   "b": "f09-03",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 1008,
+    "teamB": 871
+   },
+   "map": "00gem-fields",
+   "map_sha256": "80af89f07723d23d822ddc858616a0156ae60f9d41ffd8bd9105f924379677b5",
+   "outcome": "teamA",
+   "replay_sha256": "2175cdaa1ffd6030c613dbb0765219d4fb32766dc78ead91dcb5ee6d04fcae67",
+   "rounds": 1421,
+   "side": "A",
+   "src_sha256": {
+    "f09-03": "5ce52402f783fe71a020d28bb4c35b5e97955783bc35dc3f70c3126b2e06fbc3",
+    "f09-05": "51fcc6b5347410d54f8f2b8ac966d8c9785b2f9a10345af2725a907c28e03e75"
+   },
+   "stats_sha256": "742896ef35224cb667e63992084b033e6de5029cd581d99916258ef396313ef4"
+  },
+  {
+   "a": "f09-05",
+   "b": "f09-03",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 498,
+    "teamB": 1000
+   },
+   "map": "00gem-fields",
+   "map_sha256": "80af89f07723d23d822ddc858616a0156ae60f9d41ffd8bd9105f924379677b5",
+   "outcome": "teamB",
+   "replay_sha256": "40e2f955df0ee4c09ddc0d0b42a7c7fbaf9e3b60f20ee1e54e23f1841e9cfb59",
+   "rounds": 1033,
+   "side": "B",
+   "src_sha256": {
+    "f09-03": "5ce52402f783fe71a020d28bb4c35b5e97955783bc35dc3f70c3126b2e06fbc3",
+    "f09-05": "51fcc6b5347410d54f8f2b8ac966d8c9785b2f9a10345af2725a907c28e03e75"
+   },
+   "stats_sha256": "c4e47fc86d101bbc5d7b5055671e66255d7c4031a69334e491a783494210c57a"
+  },
+  {
+   "a": "f09-05",
+   "b": "f09-03",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 1073,
+    "teamB": 246
+   },
+   "map": "00gemfight",
+   "map_sha256": "1dfe5669ebcdf39e7769b5abf933c707804ee4a216881f89178e75e3dbc27239",
+   "outcome": "teamA",
+   "replay_sha256": "e8d3af96d2a4495d14ac863cd21e62df74e19598e7fa78f962ea9a086dd18ef9",
+   "rounds": 1598,
+   "side": "A",
+   "src_sha256": {
+    "f09-03": "5ce52402f783fe71a020d28bb4c35b5e97955783bc35dc3f70c3126b2e06fbc3",
+    "f09-05": "51fcc6b5347410d54f8f2b8ac966d8c9785b2f9a10345af2725a907c28e03e75"
+   },
+   "stats_sha256": "1f919d935a87c6d3d8bae45aed04533bc8e50be35ca7fdbbc0e03c8b9f0514bf"
+  },
+  {
+   "a": "f09-05",
+   "b": "f09-03",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 890,
+    "teamB": 720
+   },
+   "map": "00gemfight",
+   "map_sha256": "1dfe5669ebcdf39e7769b5abf933c707804ee4a216881f89178e75e3dbc27239",
+   "outcome": "teamA",
+   "replay_sha256": "53c15310124f276cd627a2f52bcfa7244bb4838f7824c586db7e6b03c2eb145b",
+   "rounds": 2000,
+   "side": "B",
+   "src_sha256": {
+    "f09-03": "5ce52402f783fe71a020d28bb4c35b5e97955783bc35dc3f70c3126b2e06fbc3",
+    "f09-05": "51fcc6b5347410d54f8f2b8ac966d8c9785b2f9a10345af2725a907c28e03e75"
+   },
+   "stats_sha256": "1018ad5cc1790b9d6e9ff10ab5604bbf93bd42988e3212df290b178aead25d25"
+  },
+  {
+   "a": "f09-05",
+   "b": "f09-03",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 1049,
+    "teamB": 337
+   },
+   "map": "00monolith",
+   "map_sha256": "ba5674bf2ab26336eb99df0c9e97c16b27bd231deffc023de1d873a05a558313",
+   "outcome": "teamA",
+   "replay_sha256": "0daae1974214ec36c8179e7ee1ef4ed3481652947d1c887cafdb0cfb447c48b9",
+   "rounds": 1388,
+   "side": "A",
+   "src_sha256": {
+    "f09-03": "5ce52402f783fe71a020d28bb4c35b5e97955783bc35dc3f70c3126b2e06fbc3",
+    "f09-05": "51fcc6b5347410d54f8f2b8ac966d8c9785b2f9a10345af2725a907c28e03e75"
+   },
+   "stats_sha256": "a274b9a0f042952a4caa7bc392f07bf25b6b31215329dee8f8c591c63b017812"
+  },
+  {
+   "a": "f09-05",
+   "b": "f09-03",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 925,
+    "teamB": 1003
+   },
+   "map": "00monolith",
+   "map_sha256": "ba5674bf2ab26336eb99df0c9e97c16b27bd231deffc023de1d873a05a558313",
+   "outcome": "teamB",
+   "replay_sha256": "a73743ac32a00116ac074d6d500c9b95690b331688fcaedbc473a892ae295868",
+   "rounds": 1783,
+   "side": "B",
+   "src_sha256": {
+    "f09-03": "5ce52402f783fe71a020d28bb4c35b5e97955783bc35dc3f70c3126b2e06fbc3",
+    "f09-05": "51fcc6b5347410d54f8f2b8ac966d8c9785b2f9a10345af2725a907c28e03e75"
+   },
+   "stats_sha256": "8fa3e37748dada7ff73d9be43c5dca1b9e9e325de481e38e24c69309837437ef"
+  },
+  {
+   "a": "f09-05",
+   "b": "f09-04",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 1002,
+    "teamB": 218
+   },
+   "map": "00packs",
+   "map_sha256": "60ee7a86ee377a04a77d11008b78aaed9e2c1cfcfc4302055974195e078c675a",
+   "outcome": "teamA",
+   "replay_sha256": "497eb841087290be5f6d9521620a0ef8b97d044e3471995c7b09910ab55f202f",
+   "rounds": 1890,
+   "side": "A",
+   "src_sha256": {
+    "f09-04": "486ca135dac02abfbd152d894377fff11457d57d30282a992556d371698b8e33",
+    "f09-05": "51fcc6b5347410d54f8f2b8ac966d8c9785b2f9a10345af2725a907c28e03e75"
+   },
+   "stats_sha256": "f8e7153df31a7c0b3c9986860357a23becd1d238e1cf2d7a0a74f1c5357d3592"
+  },
+  {
+   "a": "f09-05",
+   "b": "f09-04",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 72,
+    "teamB": 1004
+   },
+   "map": "00packs",
+   "map_sha256": "60ee7a86ee377a04a77d11008b78aaed9e2c1cfcfc4302055974195e078c675a",
+   "outcome": "teamB",
+   "replay_sha256": "84bf5ad5ad85a9842b5b21c9c6e5df953eb8c0c22721c7b3f422f15ec85c52ae",
+   "rounds": 1782,
+   "side": "B",
+   "src_sha256": {
+    "f09-04": "486ca135dac02abfbd152d894377fff11457d57d30282a992556d371698b8e33",
+    "f09-05": "51fcc6b5347410d54f8f2b8ac966d8c9785b2f9a10345af2725a907c28e03e75"
+   },
+   "stats_sha256": "a466366867f4fb78bfee5439a97a6c4ef42c0643f05f5769556f732aee8c7a81"
+  },
+  {
+   "a": "f09-05",
+   "b": "f09-04",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 0,
+    "teamB": 880
+   },
+   "map": "01hooks",
+   "map_sha256": "23e58fe8f41ff66761ade251d3d10a9c3eead864f9ad74f12ad9e34f4bece378",
+   "outcome": "teamB",
+   "replay_sha256": "e6d6bc8e64c55f7f8b24202a734a5f5fc606d7c1c80f1c4bb39742f0f194d50b",
+   "rounds": 2000,
+   "side": "A",
+   "src_sha256": {
+    "f09-04": "486ca135dac02abfbd152d894377fff11457d57d30282a992556d371698b8e33",
+    "f09-05": "51fcc6b5347410d54f8f2b8ac966d8c9785b2f9a10345af2725a907c28e03e75"
+   },
+   "stats_sha256": "ddc85973ab1ee25b6cdffe3edf4a3734015d79edd70fc7049aba5104ce927590"
+  },
+  {
+   "a": "f09-05",
+   "b": "f09-04",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 990,
+    "teamB": 22
+   },
+   "map": "01hooks",
+   "map_sha256": "23e58fe8f41ff66761ade251d3d10a9c3eead864f9ad74f12ad9e34f4bece378",
+   "outcome": "teamA",
+   "replay_sha256": "9afb6667e4921f1c66ee4c0d6c33714800e6c9d18f2c88d08be971cf60a4dc63",
+   "rounds": 2000,
+   "side": "B",
+   "src_sha256": {
+    "f09-04": "486ca135dac02abfbd152d894377fff11457d57d30282a992556d371698b8e33",
+    "f09-05": "51fcc6b5347410d54f8f2b8ac966d8c9785b2f9a10345af2725a907c28e03e75"
+   },
+   "stats_sha256": "6a86f5d15cda7de27092fd606a3c421d1fbe4a2a805a946a645da62f905f2a49"
+  },
+  {
+   "a": "f09-05",
+   "b": "f09-04",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 1027,
+    "teamB": 893
+   },
+   "map": "h-1cef",
+   "map_sha256": "1024c41f6d1d2d491d883e9acbc7d48ec73beedfc45fa7e31bdd076d407dbd42",
+   "outcome": "teamA",
+   "replay_sha256": "6c7b642ec255eaea2c1bae26dc90668f0bb763b12f0adf45658dccf6bc4c35c2",
+   "rounds": 1060,
+   "side": "A",
+   "src_sha256": {
+    "f09-04": "486ca135dac02abfbd152d894377fff11457d57d30282a992556d371698b8e33",
+    "f09-05": "51fcc6b5347410d54f8f2b8ac966d8c9785b2f9a10345af2725a907c28e03e75"
+   },
+   "stats_sha256": "f06a64c1124f5c36401422b4e50cca024815a2906701995901ff4e1260b82a73"
+  },
+  {
+   "a": "f09-05",
+   "b": "f09-04",
+   "bot_errors": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "faults": {
+    "teamA": 0,
+    "teamB": 0
+   },
+   "gems": {
+    "teamA": 1043,
+    "teamB": 766
+   },
+   "map": "h-1cef",
+   "map_sha256": "1024c41f6d1d2d491d883e9acbc7d48ec73beedfc45fa7e31bdd076d407dbd42",
+   "outcome": "teamA",
+   "replay_sha256": "04a0e38c9c30ec9d1e57dd58e3d1440ccbf058f1ffc789c51feb4a0a2e159c89",
+   "rounds": 976,
+   "side": "B",
+   "src_sha256": {
+    "f09-04": "486ca135dac02abfbd152d894377fff11457d57d30282a992556d371698b8e33",
+    "f09-05": "51fcc6b5347410d54f8f2b8ac966d8c9785b2f9a10345af2725a907c28e03e75"
+   },
+   "stats_sha256": "826fdc89d0a3df60783e14bdd841953865044ddb0b94dc4dc4641c4e262bcf96"
+  }
+ ],
+ "run_attempt": "1",
+ "run_id": "40228502908",
+ "shards": {
+  "0": {
+   "build_failed": [],
+   "cambc_version": "cambc 3.0.5",
+   "nproc": 4,
+   "runner_name": "GitHub Actions 1000002112"
+  },
+  "1": {
+   "build_failed": [],
+   "cambc_version": "cambc 3.0.5",
+   "nproc": 4,
+   "runner_name": "GitHub Actions 1000002097"
+  },
+  "10": {
+   "build_failed": [],
+   "cambc_version": "cambc 3.0.5",
+   "nproc": 4,
+   "runner_name": "GitHub Actions 1000002111"
+  },
+  "11": {
+   "build_failed": [],
+   "cambc_version": "cambc 3.0.5",
+   "nproc": 4,
+   "runner_name": "GitHub Actions 1000002100"
+  },
+  "12": {
+   "build_failed": [],
+   "cambc_version": "cambc 3.0.5",
+   "nproc": 4,
+   "runner_name": "GitHub Actions 1000002092"
+  },
+  "13": {
+   "build_failed": [],
+   "cambc_version": "cambc 3.0.5",
+   "nproc": 4,
+   "runner_name": "GitHub Actions 1000002109"
+  },
+  "14": {
+   "build_failed": [],
+   "cambc_version": "cambc 3.0.5",
+   "nproc": 4,
+   "runner_name": "GitHub Actions 1000002098"
+  },
+  "15": {
+   "build_failed": [],
+   "cambc_version": "cambc 3.0.5",
+   "nproc": 4,
+   "runner_name": "GitHub Actions 1000002099"
+  },
+  "16": {
+   "build_failed": [],
+   "cambc_version": "cambc 3.0.5",
+   "nproc": 4,
+   "runner_name": "GitHub Actions 1000002103"
+  },
+  "17": {
+   "build_failed": [],
+   "cambc_version": "cambc 3.0.5",
+   "nproc": 4,
+   "runner_name": "GitHub Actions 1000002108"
+  },
+  "18": {
+   "build_failed": [],
+   "cambc_version": "cambc 3.0.5",
+   "nproc": 4,
+   "runner_name": "GitHub Actions 1000002106"
+  },
+  "19": {
+   "build_failed": [],
+   "cambc_version": "cambc 3.0.5",
+   "nproc": 4,
+   "runner_name": "GitHub Actions 1000002114"
+  },
+  "2": {
+   "build_failed": [],
+   "cambc_version": "cambc 3.0.5",
+   "nproc": 4,
+   "runner_name": "GitHub Actions 1000002095"
+  },
+  "20": {
+   "build_failed": [],
+   "cambc_version": "cambc 3.0.5",
+   "nproc": 4,
+   "runner_name": "GitHub Actions 1000002104"
+  },
+  "21": {
+   "build_failed": [],
+   "cambc_version": "cambc 3.0.5",
+   "nproc": 4,
+   "runner_name": "GitHub Actions 1000002115"
+  },
+  "22": {
+   "build_failed": [],
+   "cambc_version": "cambc 3.0.5",
+   "nproc": 4,
+   "runner_name": "GitHub Actions 1000002107"
+  },
+  "23": {
+   "build_failed": [],
+   "cambc_version": "cambc 3.0.5",
+   "nproc": 4,
+   "runner_name": "GitHub Actions 1000002110"
+  },
+  "3": {
+   "build_failed": [],
+   "cambc_version": "cambc 3.0.5",
+   "nproc": 4,
+   "runner_name": "GitHub Actions 1000002101"
+  },
+  "4": {
+   "build_failed": [],
+   "cambc_version": "cambc 3.0.5",
+   "nproc": 4,
+   "runner_name": "GitHub Actions 1000002102"
+  },
+  "5": {
+   "build_failed": [],
+   "cambc_version": "cambc 3.0.5",
+   "nproc": 4,
+   "runner_name": "GitHub Actions 1000002096"
+  },
+  "6": {
+   "build_failed": [],
+   "cambc_version": "cambc 3.0.5",
+   "nproc": 4,
+   "runner_name": "GitHub Actions 1000002113"
+  },
+  "7": {
+   "build_failed": [],
+   "cambc_version": "cambc 3.0.5",
+   "nproc": 4,
+   "runner_name": "GitHub Actions 1000002105"
+  },
+  "8": {
+   "build_failed": [],
+   "cambc_version": "cambc 3.0.5",
+   "nproc": 4,
+   "runner_name": "GitHub Actions 1000002093"
+  },
+  "9": {
+   "build_failed": [],
+   "cambc_version": "cambc 3.0.5",
+   "nproc": 4,
+   "runner_name": "GitHub Actions 1000002094"
+  }
+ },
+ "trigger_sha": "79cf27b8a81a47430b58d1087122dab01d0adfea",
+ "workflow_sha256": "453505d4ea9349dacadfbe052be90ab217b6339f6f0b5d79d69c093ee5c1f01b"
+}
