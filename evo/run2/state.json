@@ -20177,7 +20177,6 @@
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-24T21:20:33Z g02 f02-01: admitted (4c7ef7070e14)",
   "2026-10-24T21:20:39Z g02 f02-02: admitted (72553045cfcf)",
   "2026-10-24T21:20:46Z g02 f02-03: admitted (2c7e9157eb84)",
   "2026-10-24T21:20:53Z g02 f02-04: admitted (6578f915e5af)",
@@ -20376,10 +20375,11 @@
   "2026-10-25T14:22:18Z g06 phase SELECTED: final: f06-05, f05-02, f06-01, f06-04, f06-02, f06-03, f04-05, f03-05, f06-07, f06-06, starter",
   "2026-10-25T14:22:30Z g06 survivors ['f06-05', 'f05-02'], hall of fame ['f00-03', 'f01-07', 'f02-01', 'f03-05', 'f04-05', 'f05-02', 'f06-05']",
   "2026-10-25T14:22:31Z g07 phase PLANNED: 8 slots",
-  "2026-10-25T14:22:39Z g07 phase TASKS_PUSHED: 7 task files"
+  "2026-10-25T14:22:39Z g07 phase TASKS_PUSHED: 7 task files",
+  "2026-10-25T14:22:55Z g07 phase RUNNING"
  ],
  "paused": null,
- "phase": "TASKS_PUSHED",
+ "phase": "RUNNING",
  "sessions_launched": 50,
  "version": 1
 }
