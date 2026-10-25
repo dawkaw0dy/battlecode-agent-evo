@@ -1,0 +1,197 @@
+{
+ "env_manifest_sha256": "331e00405e703e1ed11507ef735572c37471ba802364d72d1aff92349dd5efba",
+ "generation": 6,
+ "heldout_repo": "dawkaw0dy/battlecode-agent-evo-heldout",
+ "job_id": "r06-B-spot",
+ "map_sha256": {
+  "00corners": "97906cc38f503e027c041b681a877465519b3fcb19a410c316cf6efc40c909ea",
+  "00eight": "76b5ce0895130f5f423f3ac6a630c5cf8e1202d4150e6ad4e287c75d21794765",
+  "00fragment": "46512bf4fe1fc57d1651b15d44c283cac69cfce1914a5000d19fab979f5b8bbb",
+  "00gem-fields": "80af89f07723d23d822ddc858616a0156ae60f9d41ffd8bd9105f924379677b5",
+  "00lost-world": "566697c98eace1c84152f571e9e1fa0b54ec64e038e4695305c874bd3dc2bc6e",
+  "00road-of-riches": "8365e18788720a079a906c0430e809317236acecccf888b517a1de409689b049",
+  "00swirl": "e6f860670947b1326f34c86515db8ef6893c565eaa69e3f9a6464ec5744e1c93",
+  "01broken-curve": "1763423b171f3b61128b2a913a10f46ba550e7a2e79ae27dd89e915c952b5117",
+  "01corridors": "794132d979b297de5a534da393af8932cd2d5cc9d831e79d2cefdb4617d4d5e8",
+  "01gold-rush": "6e564fdf09fdf67a4182a909d6985737b488742e64f2c3e164204e78bc64c898",
+  "01islands": "d97cf04b738393812fb51024582e2a6cfba8a850b19ce031f2c1ad3d7b916acb",
+  "01the-farm": "5cca9ed6eaaf6ef15a170a4ea78488237fda7b256e182a2e3360a14b485e09c3",
+  "01yellow-brick-road": "130453395278cdabb1ff80564357a99ca8394afaef006fdede8beb88924a8fa0",
+  "h-1b58": "87693b47f19c186e0a2f9605d90c89032b8877ff5216b9f18829095fe198cba6",
+  "h-1b5d": "5807dc75e0b71b41a1dc927fa5bc564988d4289782b56ba872aecc28a8b61885",
+  "h-1ce8": "7e8f4ef4618e4c4566567cf39f8b7933761210c6a844a24f6dacb6327511a71b",
+  "h-1ce9": "85704f93950c1337beac4efbe03e7bebe4fcd9c4789cacbf998edae5941797a5",
+  "h-1ced": "4f2b95d35f20f6a2bd223a56e4669911d9019a0d4af4b18c0dd69df04dfdaaad",
+  "h-1e7c": "5a8764a6c8f267bec4b87592787432d68497b1d40901398ee506ba2547f2c64b",
+  "h-1e7d": "30de071943beda86486c5b987fbd8a7fd88544429fe64ee5927da08a6d9143fd"
+ },
+ "runner_version": "cambc==3.0.5",
+ "runs_on": "ubuntu-22.04",
+ "shards": [
+  {
+   "a": "f05-02",
+   "b": "f06-01",
+   "maps": [
+    "01corridors"
+   ]
+  },
+  {
+   "a": "f05-02",
+   "b": "f06-04",
+   "maps": [
+    "01broken-curve",
+    "01the-farm"
+   ]
+  },
+  {
+   "a": "f05-02",
+   "b": "f06-04",
+   "heldout": true,
+   "maps": [
+    "h-1b5d",
+    "h-1e7d"
+   ]
+  },
+  {
+   "a": "f06-01",
+   "b": "f04-05",
+   "maps": [
+    "01the-farm"
+   ]
+  },
+  {
+   "a": "f06-01",
+   "b": "f06-04",
+   "maps": [
+    "00fragment"
+   ]
+  },
+  {
+   "a": "f06-01",
+   "b": "f06-04",
+   "heldout": true,
+   "maps": [
+    "h-1ce8"
+   ]
+  },
+  {
+   "a": "f06-01",
+   "b": "starter",
+   "maps": [
+    "00road-of-riches"
+   ]
+  },
+  {
+   "a": "f06-04",
+   "b": "f03-05",
+   "maps": [
+    "01the-farm"
+   ]
+  },
+  {
+   "a": "f06-04",
+   "b": "f04-05",
+   "maps": [
+    "01yellow-brick-road"
+   ]
+  },
+  {
+   "a": "f06-04",
+   "b": "f04-05",
+   "heldout": true,
+   "maps": [
+    "h-1b58"
+   ]
+  },
+  {
+   "a": "f06-04",
+   "b": "starter",
+   "maps": [
+    "00eight",
+    "00gem-fields",
+    "00lost-world",
+    "01islands"
+   ]
+  },
+  {
+   "a": "f06-04",
+   "b": "starter",
+   "heldout": true,
+   "maps": [
+    "h-1ce9",
+    "h-1ced"
+   ]
+  },
+  {
+   "a": "f06-05",
+   "b": "f03-05",
+   "maps": [
+    "01gold-rush"
+   ]
+  },
+  {
+   "a": "f06-05",
+   "b": "f04-05",
+   "heldout": true,
+   "maps": [
+    "h-1b58",
+    "h-1e7d"
+   ]
+  },
+  {
+   "a": "f06-05",
+   "b": "f05-02",
+   "maps": [
+    "00corners"
+   ]
+  },
+  {
+   "a": "f06-05",
+   "b": "f05-02",
+   "heldout": true,
+   "maps": [
+    "h-1b5d"
+   ]
+  },
+  {
+   "a": "f06-05",
+   "b": "f06-01",
+   "maps": [
+    "00lost-world"
+   ]
+  },
+  {
+   "a": "f06-05",
+   "b": "f06-04",
+   "maps": [
+    "00swirl"
+   ]
+  },
+  {
+   "a": "f06-05",
+   "b": "f06-04",
+   "heldout": true,
+   "maps": [
+    "h-1e7c"
+   ]
+  },
+  {
+   "a": "f06-05",
+   "b": "starter",
+   "heldout": true,
+   "maps": [
+    "h-1e7d"
+   ]
+  }
+ ],
+ "src_sha256": {
+  "f03-05": "98fd79ae338c3590096ff21eefa715cc1a22794c2ad03aa03d835bc96f9edc90",
+  "f04-05": "c28582254ff7f36476845698f622d6f6e8e2bb7e9a2e598c3fe489d65518f0f1",
+  "f05-02": "08b3cf162662187e7e92595402a256bb20bb492b81926414b0c7d5b4dee640ba",
+  "f06-01": "c50cb5c0333c2c04c339fc70335363da56e2be0f7c579d0e2596f7af8aa11854",
+  "f06-04": "537f8bceeaf71cdf638e3e4fa607563a21e13335c3a992f20e3e18b33452b2fe",
+  "f06-05": "b2fdb1ef111ba1cf9913e7bf7a61c46f65047afabf6a17d7d5f3a4128947ecb9",
+  "starter": "9023e6a089796897d6ed661f26054d1b81b298e048a09a5df75d3b9cb5d3c6a9"
+ },
+ "stage": "spot"
+}
