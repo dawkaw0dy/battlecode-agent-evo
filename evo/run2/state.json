@@ -3414,9 +3414,11 @@
   },
   "f07-02": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evo-f07-02-9nocn1",
+   "commit": "406490475f2a555bb334f3ed95846f2045110e98",
    "deadline_minutes": 120,
+   "done_at": 1792941299,
+   "effort_level": "high",
    "evidence": [
     {
      "gems_opponent": 1421,
@@ -3464,6 +3466,7 @@
    "generation": 7,
    "id": "f07-02",
    "kind": "child",
+   "model": null,
    "nudged": [],
    "operator": "crossover",
    "parents": [
@@ -3484,7 +3487,7 @@
    ],
    "slot": 2,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "58d49c96eb91530ad78d561a3b7d19d292819c4e53fff8ee13aaaccf41bb130f"
   },
   "f07-03": {
@@ -3643,9 +3646,11 @@
   },
   "f07-05": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evolution-agent-f07-05-zpvlm2",
+   "commit": "19bcbc62909d4108ffb81e434b95cb5149b5cea9",
    "deadline_minutes": 120,
+   "done_at": 1792941304,
+   "effort_level": "high",
    "evidence": [
     {
      "gems_opponent": 1486,
@@ -3693,6 +3698,7 @@
    "generation": 7,
    "id": "f07-05",
    "kind": "child",
+   "model": null,
    "nudged": [],
    "operator": "subsystem",
    "parents": [
@@ -3712,7 +3718,7 @@
    ],
    "slot": 5,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "2959384b3347ac004492d30adf98b7f97b10ad01d7b94f85f9ad3827edfdf2c9"
   },
   "f07-06": {
@@ -20252,8 +20258,6 @@
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-24T21:26:30Z g02 phase EVAL_B_PENDING: stage A ranked: f02-02, f02-01, f02-03, f02-05, f02-07, f02-04, f01-07, f00-03, f02-06, starter",
-  "2026-10-24T21:26:45Z g02 r02-B: pushed 70389b2b28 with 36 shards",
   "2026-10-24T21:30:11Z g02 phase EVAL_B_DONE: results for r02-B",
   "2026-10-24T21:30:23Z g02 r02-B-spot: pushed 4c4890649a (33 sampled games, 23 shards)",
   "2026-10-24T21:32:42Z g02 r02-B: verified, 1632 rows, spot-check 33 OK",
@@ -20451,7 +20455,9 @@
   "2026-10-25T14:45:01Z g07 f07-03: done on origin/claude/evo-task-f07-03-b8ukcf at d8e17c3d55",
   "2026-10-25T14:47:31Z g07 f07-06: done on origin/claude/evolution-agent-f07-06-yaw0rq at ceef044ce9",
   "2026-10-25T15:06:39Z g07 f07-04: done on origin/claude/evo-f07-04-qylpwh at d02c18e02b",
-  "2026-10-25T15:10:40Z g07 f07-01: done on origin/claude/evo-task-f07-01-8gev2d at 426ea7cf30"
+  "2026-10-25T15:10:40Z g07 f07-01: done on origin/claude/evo-task-f07-01-8gev2d at 426ea7cf30",
+  "2026-10-25T15:14:59Z g07 f07-02: done on origin/claude/evo-f07-02-9nocn1 at 406490475f",
+  "2026-10-25T15:15:04Z g07 f07-05: done on origin/claude/evolution-agent-f07-05-zpvlm2 at 19bcbc6290"
  ],
  "paused": null,
  "phase": "RUNNING",
