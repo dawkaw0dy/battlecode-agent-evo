@@ -3901,8 +3901,8 @@
     }
    ],
    "slot": 1,
-   "src_sha256": null,
-   "status": "done",
+   "src_sha256": "c7959dfe4f04fddbdacf060348d30f8bb83028c6b8ea7b066758ab15e8ab1fca",
+   "status": "admitted",
    "task_sha256": "a20d902539cfe37224b2ed015488568cf019095da60b0d174dfe01ab587e3aa0"
   },
   "f08-02": {
@@ -3978,8 +3978,8 @@
     }
    ],
    "slot": 2,
-   "src_sha256": null,
-   "status": "done",
+   "src_sha256": "5d3ae5f1fe0f56727b83cb81a7af8e594ff33fa7cbbcf7c3fe5e1ba5aa0d9469",
+   "status": "admitted",
    "task_sha256": "02a3fd11c1ea4cb6a02c3210dcbbb730db8ef8cbadd5ee502277d75a050e4b50"
   },
   "f08-03": {
@@ -4055,8 +4055,8 @@
     }
    ],
    "slot": 3,
-   "src_sha256": null,
-   "status": "done",
+   "src_sha256": "ccb9f3204d24c0444839560e9a817e36470082d7f187faf31d6eefde7b5c53e0",
+   "status": "admitted",
    "task_sha256": "bcefd791e51c06b088625af943b6d2b055d6b929d92ca92623c75ae2e6ab1219"
   },
   "f08-04": {
@@ -4132,8 +4132,8 @@
     }
    ],
    "slot": 4,
-   "src_sha256": null,
-   "status": "done",
+   "src_sha256": "a7b076bbcfd73f4e88ad4fbfb3e907067ea39ccff1604cdfe74a65a7406321a6",
+   "status": "admitted",
    "task_sha256": "fb2e5d2f6880c24cb2c2a8b81bb3e6efaae7d968912aeccbdd7a07a8755dc753"
   },
   "f08-05": {
@@ -4209,8 +4209,8 @@
     }
    ],
    "slot": 5,
-   "src_sha256": null,
-   "status": "done",
+   "src_sha256": "f76f866b33383eb9d430fd99ea218fb9c1b099461e927a93cf85096cf105d89d",
+   "status": "admitted",
    "task_sha256": "634b7dcca05df4a9d115fc5b235dd8060da09bd15a5b681e4e588e5262a4029f"
   },
   "f08-06": {
@@ -4261,8 +4261,8 @@
     }
    ],
    "slot": 6,
-   "src_sha256": null,
-   "status": "done",
+   "src_sha256": "b0d83c4445f1a21c68a50d6c8c1e9f84badcf1c41a42289322250eed2b10092d",
+   "status": "admitted",
    "task_sha256": "0264c0524f99f62d86650c38a110c1caf86bac375d8bbbb7bfec13b91e898f71"
   },
   "f08-07": {
@@ -4313,8 +4313,8 @@
     }
    ],
    "slot": 7,
-   "src_sha256": null,
-   "status": "done",
+   "src_sha256": "fc0f8a40c15b176b33fa042c079a871c64b0dd26200c169136a67882c4316674",
+   "status": "admitted",
    "task_sha256": "61b28407e5c784c46c5e855486eac5983eb02adff0da898d54b34c83fc041a12"
   }
  },
@@ -22887,6 +22887,16 @@
     "B": [],
     "C": []
    },
+   "members": [
+    "f07-02",
+    "f08-01",
+    "f08-02",
+    "f08-03",
+    "f08-04",
+    "f08-05",
+    "f08-06",
+    "f08-07"
+   ],
    "slots": [
     "f07-02",
     "f08-01",
@@ -23420,13 +23430,6 @@
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-25T08:21:16Z g03 f03-06: admitted (41232bd34b90)",
-  "2026-10-25T08:21:23Z g03 f03-07: admitted (e83d7b3286e3)",
-  "2026-10-25T08:21:31Z g03 phase EVAL_A_PENDING",
-  "2026-10-25T08:21:45Z g03 r03-A: pushed 3fdd740496 with 28 shards",
-  "2026-10-25T08:24:23Z g03 phase EVAL_A_DONE: results for r03-A",
-  "2026-10-25T08:24:43Z g03 r03-A-spot: pushed 124154c86a (18 sampled games, 15 shards)",
-  "2026-10-25T08:27:12Z g03 r03-A: verified, 896 rows, spot-check 18 OK",
   "2026-10-25T08:27:24Z g03 phase EVAL_B_PENDING: stage A ranked: f03-05, f03-04, f03-03, f03-01, f02-01, f03-02, f00-03, f03-06, f01-07, f03-07, starter",
   "2026-10-25T08:27:43Z g03 r03-B: pushed 03b90ca6c3 with 44 shards",
   "2026-10-25T08:33:25Z g03 phase EVAL_B_DONE: results for r03-B",
@@ -23619,7 +23622,14 @@
   "2026-10-25T17:23:38Z g08 f08-01: done on origin/claude/evo-task-f08-01-mn3r4n at 068413a93c",
   "2026-10-25T17:31:49Z g08 f08-02: done on origin/claude/evo-f08-02-48tp1u at 4da2cf6357",
   "2026-10-25T17:56:32Z g08 f08-07: done on origin/claude/evolution-agent-f08-07-9my3xf at db16a344e4",
-  "2026-10-25T17:56:32Z g08 phase ADMITTED"
+  "2026-10-25T17:56:32Z g08 phase ADMITTED",
+  "2026-10-25T17:56:44Z g08 f08-01: admitted (c7959dfe4f04)",
+  "2026-10-25T17:56:54Z g08 f08-02: admitted (5d3ae5f1fe0f)",
+  "2026-10-25T17:56:59Z g08 f08-03: admitted (ccb9f3204d24)",
+  "2026-10-25T17:57:03Z g08 f08-04: admitted (a7b076bbcfd7)",
+  "2026-10-25T17:57:08Z g08 f08-05: admitted (f76f866b3338)",
+  "2026-10-25T17:57:13Z g08 f08-06: admitted (b0d83c4445f1)",
+  "2026-10-25T17:57:19Z g08 f08-07: admitted (fc0f8a40c15b)"
  ],
  "paused": null,
  "phase": "ADMITTED",

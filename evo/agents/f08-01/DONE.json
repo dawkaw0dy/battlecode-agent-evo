@@ -1,0 +1,27 @@
+{
+ "agent": "f08-01",
+ "task_sha256": "a20d902539cfe37224b2ed015488568cf019095da60b0d174dfe01ab587e3aa0",
+ "base_commit": "c8567f3516cab8e9bde28c10ff667310c5e0452e",
+ "session_id": "cse_01LyibFxMrjPViSw2PAUT91f",
+ "bot_dir": "bots/f08-01",
+ "self_eval": {
+  "vs": "f07-02",
+  "games": 60,
+  "wins": 30
+ },
+ "games_played": 898,
+ "summary": "Combat rewritten in combat.cpp around the interleaved turn order (enemy actions before our next turn): threat per tile over real actions, escape-checked free shots; K/D up vs parent and f06-05, wins about parent level.",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "1a54a56bf1dc3f2480fe19e1b049da9db01d95df8ae8eea12ef882de23d6e83c",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 19.7,
+  "remote": "true",
+  "session_id": "cse_01LyibFxMrjPViSw2PAUT91f",
+  "effort_level": "high",
+  "model": null
+ }
+}

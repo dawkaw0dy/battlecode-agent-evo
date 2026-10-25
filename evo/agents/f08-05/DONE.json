@@ -1,0 +1,27 @@
+{
+ "agent": "f08-05",
+ "task_sha256": "634b7dcca05df4a9d115fc5b235dd8060da09bd15a5b681e4e588e5262a4029f",
+ "base_commit": "c8567f3516cab8e9bde28c10ff667310c5e0452e",
+ "session_id": "cse_01NL2NcyWHemE55iHL8KymWr",
+ "bot_dir": "bots/f08-05",
+ "self_eval": {
+  "vs": "f07-02",
+  "games": 80,
+  "wins": 49
+ },
+ "games_played": 884,
+ "summary": "Parent f07-03 plus a dash reserve: no travel dashes for 10 rounds after seeing an enemy (148/240 vs parent 136/240 vs f04-05/f05-02/f06-05/f07-02)",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "1a54a56bf1dc3f2480fe19e1b049da9db01d95df8ae8eea12ef882de23d6e83c",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 17.36,
+  "remote": "true",
+  "session_id": "cse_01NL2NcyWHemE55iHL8KymWr",
+  "effort_level": "high",
+  "model": null
+ }
+}

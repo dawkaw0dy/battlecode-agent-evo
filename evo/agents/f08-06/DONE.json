@@ -1,0 +1,27 @@
+{
+ "agent": "f08-06",
+ "task_sha256": "0264c0524f99f62d86650c38a110c1caf86bac375d8bbbb7bfec13b91e898f71",
+ "base_commit": "c8567f3516cab8e9bde28c10ff667310c5e0452e",
+ "session_id": "cse_01AKxis1E5ob2Q9xFobNNQNw",
+ "bot_dir": "bots/f08-06",
+ "self_eval": {
+  "vs": "f07-02",
+  "games": 40,
+  "wins": 11
+ },
+ "games_played": 690,
+ "summary": "Map-reader immigrant: draft writes plan, bank threshold and per-champion sectors; multi-trip camp scoring, shared claims and enemy sightings, cautious fights with kiting retreats",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "1a54a56bf1dc3f2480fe19e1b049da9db01d95df8ae8eea12ef882de23d6e83c",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 15.97,
+  "remote": "true",
+  "session_id": "cse_01AKxis1E5ob2Q9xFobNNQNw",
+  "effort_level": "high",
+  "model": null
+ }
+}
