@@ -26,7 +26,11 @@ constexpr float kEngage = 60.0f;   // fight value needed to engage
 constexpr double kCohesion = 0.25; // score bonus per ally target within 10 tiles
 constexpr int kWaryRounds = 15;
 constexpr float kBankPerTile = 1.5f; // carried gems per tile of altar distance that justify a trip
-constexpr int kBankMin = 8;    // after a sighting, heal sooner
+constexpr int kBankMin = 8;
+constexpr int kBankCap = 50;
+constexpr int kThreatPad = 2;      // retreat once a foe is this far outside its reach
+constexpr bool kCornered = false;
+constexpr bool kAvoidAwake = false;    // after a sighting, heal sooner
 constexpr float kWaryHeal = 0.5f;
 constexpr bool kHelp = false;       // answer allies' sightings
 constexpr int kHelpRange = 12;
@@ -169,7 +173,16 @@ void Bot::scan_units() {
 void Bot::compute_blocked() {
     blocked_ = world().terrain | cambc::vision::champion_tiles() | cambc::vision::camp_tiles()
         | cambc::vision::teleport_tiles();
+    // Awake camps of other groups: stay out of their reach.
+    for (auto p : cambc::vision::awake_camp_tiles().positions()) {
+        if (!kAvoidAwake) break;
+        const int gi = group_of_tile(p);
+        if (gi < 0 || gi == target_) continue;
+        for (const auto& m : world().groups[gi].m)
+            if (m.pos == p) blocked_.draw_chebyshev(p, static_cast<float>(m.range));
+    }
     blocked_.set(pos_, false);
+    phys_ = blocked_;
 }
 
 // Dash and step down a distance field that is valid at our position.
@@ -583,7 +596,7 @@ bool Bot::should_bank() {
     if (d <= 3) return true;
     // Worth the detour once the bag outweighs the walk; foes about make bags riskier.
     const float need = last_enemy_round_ >= round_ - kWaryRounds ? kBankPerTile * 0.6f : kBankPerTile;
-    return gems_ >= std::max(kBankMin, static_cast<int>(need * d));
+    return gems_ >= std::min(kBankCap, std::max(kBankMin, static_cast<int>(need * d)));
 }
 
 // Tribute at the nearest altar; an enemy lock on it is broken with basic attacks first.
@@ -866,8 +879,31 @@ bool Bot::handle_enemies() {
     blocked_.set(pos_, false);
     bool threat = false;
     for (const auto& f : foes_)
-        if (f.dist <= f.range + (f.range > 1 ? 2 : 3)) threat = true;
+        if (f.dist <= f.range + (f.range > 1 ? kThreatPad : kThreatPad + 1)) threat = true;
     if (!threat) return false;
+
+    // Cornered by a melee chaser we cannot outrun: trade blows instead of taking free hits.
+    if (kCornered && world().home.get(pos_) > 4) {
+        bool adjacent_melee = false;
+        for (const auto& f : foes_)
+            if (f.range <= 1 && f.dist <= 1) adjacent_melee = true;
+        if (adjacent_melee) {
+            bool escape = false;
+            for (auto d : kDirs) {
+                const vec2 p = pos_ + d;
+                if (!in_bounds(p) || phys_.is_set(p)) continue;
+                bool safe = true;
+                for (const auto& f : foes_)
+                    if (cheb(p, f.pos) <= f.range + (f.range > 1 ? 0 : 1)) safe = false;
+                if (safe) { escape = true; break; }
+            }
+            if (!escape) {
+                foe_spells(false);
+                hit_foe();
+                return true;
+            }
+        }
+    }
 
     // Outmatched: bank if an altar is right here, otherwise run home.
     if (gems_ > 0 && dmin >= 3) {
