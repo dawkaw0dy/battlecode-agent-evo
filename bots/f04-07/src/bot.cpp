@@ -57,6 +57,10 @@ constexpr int kCaptureTimeout = 14;
 constexpr int kGatherTurns = 12;
 constexpr float kHealHp = 0.75f;
 constexpr int kJungleShards = 5;
+constexpr float kOtherSquadFactor = 1.0f;
+constexpr bool kSplitCapture = true;
+constexpr int kRangedApproach = 2;
+constexpr int kSight = 3;  // shared-memory offset of the 4 sighting bytes (0..2 hold squad targets)
 
 // ---------------------------------------------------------------- static map knowledge
 struct Group {
@@ -530,13 +534,13 @@ bool hit_camp(vec2 pos) {
 
 // ---------------------------------------------------------------- sightings
 void write_sighting(const Unit& u, bool fighting, bool alone) {
-    mem_set(2, static_cast<std::uint8_t>(u.pos.x));
-    mem_set(3, static_cast<std::uint8_t>(u.pos.y));
-    mem_set(4, static_cast<std::uint8_t>(v.round & 255));
+    mem_set(kSight + 0, static_cast<std::uint8_t>(u.pos.x));
+    mem_set(kSight + 1, static_cast<std::uint8_t>(u.pos.y));
+    mem_set(kSight + 2, static_cast<std::uint8_t>(v.round & 255));
     std::uint8_t info = static_cast<std::uint8_t>(std::min(63, u.gems / 4));
     if (fighting) info |= 64;
     if (alone) info |= 128;
-    mem_set(5, info);
+    mem_set(kSight + 3, info);
 }
 
 struct Sighting {
@@ -547,11 +551,11 @@ struct Sighting {
 };
 Sighting read_sighting() {
     Sighting s;
-    const int age = (v.round - mem_get(4)) & 255;
+    const int age = (v.round - mem_get(kSight + 2)) & 255;
     if (age > 4) return s;
-    s.pos = {mem_get(2), mem_get(3)};
+    s.pos = {mem_get(kSight + 0), mem_get(kSight + 1)};
     if (!inb(s.pos)) return s;
-    const auto info = mem_get(5);
+    const auto info = mem_get(kSight + 3);
     s.gems = (info & 63) * 4;
     s.fighting = info & 64;
     s.alone = info & 128;
@@ -744,6 +748,7 @@ int choose_target(const std::vector<std::uint16_t>& field) {
     const float hp_pool = me.max_health() * static_cast<float>(std::max(1, squad_size));
     int best = -1;
     float best_score = 0;
+    const int other_target = squads == 2 ? static_cast<int>(mem_get(1 - squad)) - 1 : -1;
     for (std::size_t gi = 0; gi < groups.size(); ++gi) {
         const auto& g = groups[gi];
         int travel = 1 << 15;
@@ -771,6 +776,7 @@ int choose_target(const std::vector<std::uint16_t>& field) {
         const int de = dist(g.center, enemy_spawn_center), da = dist(g.center, ally_spawn_center);
         if (de < da) score *= 0.75f;
         if (static_cast<int>(gi) == target_group) score *= 1.25f;
+        if (static_cast<int>(gi) == other_target) score *= kOtherSquadFactor;
         if (score > best_score) best_score = score, best = static_cast<int>(gi);
     }
     return best;
@@ -988,6 +994,23 @@ void Bot::play_turn() {
                     place_ward(g.center);
                     return;
                 }
+            // One capturer is enough: the others move on to the next group.
+            bool ally_capturing = false;
+            for (const auto& a : v.allies)
+                for (auto t : g.tiles)
+                    if (a.pos == t) ally_capturing = true;
+            if (ally_capturing && kSplitCapture) {
+                g.skip_until = v.round + 8;
+                const int next = choose_target(field);
+                g.skip_until = -1;
+                if (next >= 0 && next != target_group) {
+                    auto& n = groups[next];
+                    bc::bitboard goal = ring_around(n.tiles, ranged ? 2 : 1);
+                    step_towards(goal);
+                    place_ward(n.center);
+                    return;
+                }
+            }
             bc::bitboard goal;
             for (auto t : g.tiles)
                 if (!v.blocked_bits.get(t)) goal.set(t);
@@ -1034,7 +1057,7 @@ void Bot::play_turn() {
             }
         }
         // Approach: melee to adjacent tiles, ranged to within range 2 for line of sight.
-        const int r = ranged ? 2 : 1;
+        const int r = ranged ? kRangedApproach : 1;
         std::vector<vec2> live;
         bool any_seen = false;
         for (auto t : g.tiles) {
