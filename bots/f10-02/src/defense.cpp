@@ -34,6 +34,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstdio>
 #include <cstdlib>
 #include <optional>
 #include <string>
@@ -49,13 +50,15 @@ constexpr int kRecallTicks = 5;         // our turn ends a recall takes (no Home
 constexpr int kRecallWalk = 6;          // retreat: home closer than this is walked
 constexpr bool kMemoryGate = true;      // remembered foes block recalls too (else visible ones only)
 constexpr bool kEtaRecall = false;      // recall gates from foe_eta() (else: every visible foe 7+ away, cancel at 5)
-constexpr int kRecallDist = 7;
+constexpr int kRecallDist = 6;          // ... start: every visible foe at least this far
+constexpr bool kLateCancel = true;      // ... cancel only when a visible foe hits us on its next turn (else within kCancelDist)
 constexpr int kCancelDist = 5;
 constexpr bool kCaughtShoot = true;     // ranged, an adjacent melee chaser: shoot back instead of a futile step
 constexpr int kCaughtHome = 3;          // ... unless home is this close
 constexpr bool kStunSafeStart = true;   // no tribute of 2+ ticks while a stun can reach us in it
 constexpr bool kContest = true;         // go for channelling enemies we can kill before the channel ends
 constexpr float kBagNeed = 3.0f;        // fight value needed to engage, per carried gem
+constexpr bool kSafeAltarFlee = true;   // ... only when we outlive the walk and the channel there
 constexpr int kFleeAltarGems = 10;      // fleeing with this many gems: run for the nearest altar when nearer than home
 constexpr int kAmbushRounds = 4;        // hidden shooter: evade this long after its last hit
 constexpr int kScoutRounds = 40;        // ward unseen bushes while enemies were seen this recently ...
@@ -66,6 +69,24 @@ constexpr float kRecoverHp = 0.45f;
 constexpr int kRecoverRounds = 12;
 
 int round_now() { return static_cast<int>(cambc::round_number()); }
+
+// Debug: retreat outcomes, printed every 400 rounds.
+constexpr bool kRetreatStats = false;
+enum Out { o_bank, o_hold, o_release, o_recall, o_swing, o_shot, o_nomove, o_dash, o_caught, o_step, o_boxed, n_out };
+std::array<int, n_out> g_out{};
+void tally(Out o) {
+    if (!kRetreatStats) return;
+    ++g_out[o];
+    static int last = 0;
+    const int r = round_now();
+    if (r / 400 != last) {
+        last = r / 400;
+        static const char* names[n_out] = {"bank", "hold", "release", "recall", "swing", "shot", "nomove", "dash", "caught", "step", "boxed"};
+        std::string line = "RET r" + std::to_string(r) + ' ' + std::string(cambc::to_string(cambc::self().champion_name()));
+        for (int i = 0; i < n_out; ++i) line += std::string(" ") + names[i] + '=' + std::to_string(g_out[static_cast<size_t>(i)]);
+        std::printf("%s\n", line.c_str());
+    }
+}
 
 int channel_ticks(int gems) { return std::max(1, (gems + 9) / 10); }
 
@@ -205,7 +226,7 @@ bool Bot::guard_channel() {
         // The first hit breaks it: stop now and walk while that hit is still to come.
         bool broken = false;
         for (const auto& e : theirs)
-            if (kEtaRecall ? hit_turn(e, pos_) <= left : cheb(e.pos, pos_) <= kCancelDist) broken = true;
+            if (kEtaRecall ? hit_turn(e, pos_) <= left : kLateCancel ? hit_turn(e, pos_) <= 1 : cheb(e.pos, pos_) <= kCancelDist) broken = true;
         if (!broken) return true;
         try { me.cancel_recall(); } catch (const cambc::error& e) { warn("cancel recall", e); return true; }
         invalidate();
@@ -400,17 +421,19 @@ bool Bot::retreat(std::vector<Fighter>& theirs, int dmin) {
     auto& me = cambc::self();
     track_foes();
     flee_round_ = round_now();
-    if (bank_under_fire(theirs)) return true;
+    if (bank_under_fire(theirs)) { tally(o_bank); return true; }
     if (spawn_local_.at(pos_)) {
         // The spawn heals us every turn and they cannot step on it: hold it and shoot from there.
-        if (++spawn_hold_ > 20) return false;
+        if (++spawn_hold_ > 20) { tally(o_release); return false; }
         strike(theirs);
+        tally(o_hold);
         return true;
     }
     spawn_hold_ = 0;
     // Nobody can break a recall before it lands: take it.
     if (!moved_ && incoming_ == 0 && live() && home_.at(pos_) > kRecallWalk && recall_safe(kRecallTicks)) {
         try { me.recall(); } catch (const cambc::error& e) { warn("flee recall", e); }
+        tally(o_recall);
         return true;
     }
     // Melee: a free swing at an adjacent enemy before stepping away.
@@ -421,6 +444,7 @@ bool Bot::retreat(std::vector<Fighter>& theirs, int dmin) {
                     if (!cambc::vision::has_champion(e.pos)) break;
                     me.attack(cambc::vision::champion_at(e.pos));
                     attacked_ = true;
+                    tally(o_swing);
                     invalidate();
                 } catch (const cambc::error& ex) { warn("swing", ex); }
                 break;
@@ -428,9 +452,11 @@ bool Bot::retreat(std::vector<Fighter>& theirs, int dmin) {
     // Ranged: a free shot when nobody can hit us here next turn.
     const bool ranged = me.attack_range() > 1;
     if (ranged && me.can_attack() && !moved_ && incoming_ == 0 && live() && threat_at(pos_, theirs) == 0
-        && strike(theirs))
+        && strike(theirs)) {
+        tally(o_shot);
         return true;
-    if (moved_ || move_failed_ || !me.can_move() || !live()) return true;
+    }
+    if (moved_ || move_failed_ || !me.can_move() || !live()) { tally(o_nomove); return true; }
     // Awake camps keep hitting whoever is nearest within their reach: stay out of it too.
     std::array<std::pair<vec2, CampSpec>, 24> hot;
     size_t n_hot = 0;
@@ -445,7 +471,14 @@ bool Bot::retreat(std::vector<Fighter>& theirs, int dmin) {
         }
     // With a bag, the nearest altar banks it under fire where home only keeps it.
     const int gems = static_cast<int>(me.gem_count());
-    const bool to_altar = gems >= kFleeAltarGems && eg_ready_ && altar_.at(pos_) < home_.at(pos_);
+    // Only when we would outlive the walk there and the channel: a carrier that reaches an altar it cannot
+    // bank at stands beside it under fire (the parent's carriers died that way at contested altars).
+    bool to_altar = gems >= kFleeAltarGems && eg_ready_ && altar_.at(pos_) < home_.at(pos_);
+    if (to_altar && kSafeAltarFlee) {
+        const int walk = altar_.at(pos_);
+        to_altar = !stun_within(pos_, walk + channel_ticks(gems), theirs)
+            && channel_damage(pos_, walk + channel_ticks(gems), theirs) < me.health() * 0.8f;
+    }
     auto dest = [&](vec2 t) { return to_altar ? altar_.at(t) : home_.at(t); };
     auto score = [&](vec2 t) {
         float danger = threat_at(t, theirs);
@@ -488,6 +521,7 @@ bool Bot::retreat(std::vector<Fighter>& theirs, int dmin) {
                     invalidate();
                     if (!ok) { move_failed_ = true; break; }
                     pos_ = me.position();
+                    tally(o_dash);
                     break;
                 } catch (const cambc::error&) {}
             }
@@ -500,7 +534,7 @@ bool Bot::retreat(std::vector<Fighter>& theirs, int dmin) {
         bool caught = false;
         for (const auto& e : theirs)
             if (inescapable(e, pos_)) caught = true;
-        if (caught && strike(theirs)) return true;
+        if (caught && strike(theirs)) { tally(o_caught); return true; }
     }
     vec2 best = pos_;
     float best_s = score(pos_);
@@ -513,8 +547,10 @@ bool Bot::retreat(std::vector<Fighter>& theirs, int dmin) {
     if (best == pos_) {
         // Boxed in: we take the hits here anyway, so hit back.
         if (me.can_attack() && live()) strike(theirs);
+        tally(o_boxed);
         return true;
     }
+    tally(o_step);
     moved_ = true;
     bool ok = false;
     try { ok = me.move_absolute(best); } catch (const cambc::error& e) { warn("flee move", e); }
