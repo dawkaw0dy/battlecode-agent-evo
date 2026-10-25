@@ -1,0 +1,239 @@
+{
+ "env_manifest_sha256": "115cd88fd4114caf0cb6833b9f885905db7678fd9dc70e4949b4f7e7f4141a60",
+ "generation": 9,
+ "heldout_repo": "dawkaw0dy/battlecode-agent-evo-heldout",
+ "job_id": "r09-B-spot",
+ "map_sha256": {
+  "00expanse": "af4236f408f8450f7da871731f08ef80295f07fac86b541f6547639a78dc2205",
+  "00fragment": "46512bf4fe1fc57d1651b15d44c283cac69cfce1914a5000d19fab979f5b8bbb",
+  "00gem-fields": "80af89f07723d23d822ddc858616a0156ae60f9d41ffd8bd9105f924379677b5",
+  "00gemfight": "1dfe5669ebcdf39e7769b5abf933c707804ee4a216881f89178e75e3dbc27239",
+  "00great-wall": "1b22e5c068175913889a1ff497d310de303a9b1ddf78672f26c0777fda9f5bf2",
+  "00lanes": "8ca26ed2ea65c7d80ceb9604a7431ca1dc056922912b4e2f46cad06051e4886a",
+  "00lost-world": "566697c98eace1c84152f571e9e1fa0b54ec64e038e4695305c874bd3dc2bc6e",
+  "00monolith": "ba5674bf2ab26336eb99df0c9e97c16b27bd231deffc023de1d873a05a558313",
+  "00packs": "60ee7a86ee377a04a77d11008b78aaed9e2c1cfcfc4302055974195e078c675a",
+  "00quadrants": "261fe6c133f076653bda84e88965dc35c5a59a70e7730082b4c6df9ca892df92",
+  "00reverse-spiral": "f57669ffc98b76a5c2e4eccba41690dc193efc29f067ee960605617b2cfb48e5",
+  "00rows": "6a4203ae1bfe86ad0f6b083f390cfd8e2f5e45f7e4102f6a2f27205d5333e701",
+  "00swirl": "e6f860670947b1326f34c86515db8ef6893c565eaa69e3f9a6464ec5744e1c93",
+  "01big-world": "f1ecb726472858efb1d75d00b0d7668be18d83a010b2abf9a1f8c38aab456aa5",
+  "01boss-battle": "53086e249294aed6f427fe647d578303589a081e953c62a0ff8f20cade9993fa",
+  "01elk-arena": "72b8e03bc4378d5f988f9c1c07609848bfb42fd8a883cce01820d96212f21c0a",
+  "01gold-rush": "6e564fdf09fdf67a4182a909d6985737b488742e64f2c3e164204e78bc64c898",
+  "01hooks": "23e58fe8f41ff66761ade251d3d10a9c3eead864f9ad74f12ad9e34f4bece378",
+  "01starvation": "0b8e85603a85ca5778f92d2975c56da0e4b8df59264c42eef23108f8bbceec2a",
+  "h-1b5f": "8cbf98310de6c013efa1dfc4a8b8221606ff5a9ad65cd6975e1fc0c0abe0ca32",
+  "h-1cec": "cd7bbee79257e81d33e3eda06ab17a960aa94e8d922a453b42739bc6dae8c261",
+  "h-1ced": "4f2b95d35f20f6a2bd223a56e4669911d9019a0d4af4b18c0dd69df04dfdaaad",
+  "h-1cef": "1024c41f6d1d2d491d883e9acbc7d48ec73beedfc45fa7e31bdd076d407dbd42",
+  "h-1e78": "759985b04766d669cdee5f6ca49283c945be4044bcefa20ceaeba0f73baaa199",
+  "h-1e7a": "770ec046edcf0c02690086c001ca3e681601d290f83f4f18a10dd4128116eecb",
+  "h-1e7e": "a1f7ddbf8cd539ca85a063e7f7b4a4761277aee24b88ecf8b942a1fa24ee0e40"
+ },
+ "runner_version": "cambc==3.0.5",
+ "runs_on": "ubuntu-22.04",
+ "shards": [
+  {
+   "a": "f09-01",
+   "b": "f07-02",
+   "maps": [
+    "00gem-fields",
+    "00lost-world",
+    "01elk-arena",
+    "01hooks"
+   ]
+  },
+  {
+   "a": "f09-01",
+   "b": "f07-02",
+   "heldout": true,
+   "maps": [
+    "h-1cec",
+    "h-1e7e"
+   ]
+  },
+  {
+   "a": "f09-01",
+   "b": "f08-04",
+   "maps": [
+    "01gold-rush"
+   ]
+  },
+  {
+   "a": "f09-01",
+   "b": "f08-04",
+   "heldout": true,
+   "maps": [
+    "h-1e7e"
+   ]
+  },
+  {
+   "a": "f09-01",
+   "b": "f09-03",
+   "maps": [
+    "00great-wall",
+    "00reverse-spiral"
+   ]
+  },
+  {
+   "a": "f09-01",
+   "b": "f09-03",
+   "heldout": true,
+   "maps": [
+    "h-1ced",
+    "h-1e7a"
+   ]
+  },
+  {
+   "a": "f09-01",
+   "b": "f09-04",
+   "maps": [
+    "01hooks"
+   ]
+  },
+  {
+   "a": "f09-01",
+   "b": "f09-05",
+   "maps": [
+    "00expanse",
+    "00quadrants"
+   ]
+  },
+  {
+   "a": "f09-01",
+   "b": "f09-05",
+   "heldout": true,
+   "maps": [
+    "h-1b5f",
+    "h-1cec"
+   ]
+  },
+  {
+   "a": "f09-01",
+   "b": "starter",
+   "maps": [
+    "00fragment"
+   ]
+  },
+  {
+   "a": "f09-03",
+   "b": "f06-05",
+   "maps": [
+    "00lost-world",
+    "00swirl"
+   ]
+  },
+  {
+   "a": "f09-03",
+   "b": "f07-02",
+   "maps": [
+    "00swirl"
+   ]
+  },
+  {
+   "a": "f09-03",
+   "b": "f08-04",
+   "maps": [
+    "01boss-battle"
+   ]
+  },
+  {
+   "a": "f09-03",
+   "b": "starter",
+   "maps": [
+    "00swirl"
+   ]
+  },
+  {
+   "a": "f09-03",
+   "b": "starter",
+   "heldout": true,
+   "maps": [
+    "h-1e78"
+   ]
+  },
+  {
+   "a": "f09-04",
+   "b": "f06-05",
+   "maps": [
+    "01big-world"
+   ]
+  },
+  {
+   "a": "f09-04",
+   "b": "f08-04",
+   "maps": [
+    "00fragment",
+    "01big-world"
+   ]
+  },
+  {
+   "a": "f09-04",
+   "b": "f09-03",
+   "maps": [
+    "00lanes",
+    "01starvation"
+   ]
+  },
+  {
+   "a": "f09-04",
+   "b": "starter",
+   "maps": [
+    "00rows"
+   ]
+  },
+  {
+   "a": "f09-05",
+   "b": "f06-05",
+   "maps": [
+    "01elk-arena"
+   ]
+  },
+  {
+   "a": "f09-05",
+   "b": "f07-02",
+   "maps": [
+    "00lost-world",
+    "00packs",
+    "00swirl"
+   ]
+  },
+  {
+   "a": "f09-05",
+   "b": "f09-03",
+   "maps": [
+    "00gem-fields",
+    "00gemfight",
+    "00monolith"
+   ]
+  },
+  {
+   "a": "f09-05",
+   "b": "f09-04",
+   "maps": [
+    "00packs",
+    "01hooks"
+   ]
+  },
+  {
+   "a": "f09-05",
+   "b": "f09-04",
+   "heldout": true,
+   "maps": [
+    "h-1cef"
+   ]
+  }
+ ],
+ "src_sha256": {
+  "f06-05": "b2fdb1ef111ba1cf9913e7bf7a61c46f65047afabf6a17d7d5f3a4128947ecb9",
+  "f07-02": "ccb9f3204d24c0444839560e9a817e36470082d7f187faf31d6eefde7b5c53e0",
+  "f08-04": "a7b076bbcfd73f4e88ad4fbfb3e907067ea39ccff1604cdfe74a65a7406321a6",
+  "f09-01": "43816d64dcee63f7aae46d7e312635401ab5533ce1d1299fdca2e20e78ecad39",
+  "f09-03": "5ce52402f783fe71a020d28bb4c35b5e97955783bc35dc3f70c3126b2e06fbc3",
+  "f09-04": "486ca135dac02abfbd152d894377fff11457d57d30282a992556d371698b8e33",
+  "f09-05": "51fcc6b5347410d54f8f2b8ac966d8c9785b2f9a10345af2725a907c28e03e75",
+  "starter": "9023e6a089796897d6ed661f26054d1b81b298e048a09a5df75d3b9cb5d3c6a9"
+ },
+ "stage": "spot"
+}
