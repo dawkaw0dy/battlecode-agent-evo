@@ -44,6 +44,15 @@ constexpr float kCampHp[6] = {1350, 2400, 120, 120, 20000, 5000};
 constexpr float kCampStr[6] = {20, 60, 0, 0, 200, 120};
 constexpr int kCampRange[6] = {3, 4, 0, 0, 5, 4};
 
+// ---------------------------------------------------------------- tuning
+constexpr float kDangerPool = 0.5f;   // expected camp damage vs the squad's health
+constexpr float kTankRounds = 10.0f;  // one champion must survive this many rounds of the group's hits
+constexpr float kFightNeed = 1.3f;    // square-law advantage needed to start a fight
+constexpr int kFleeRadius = 7;
+constexpr int kSquads = 1;
+constexpr int kChaseMargin = 4;
+constexpr float kRetreatHp = 0.35f;
+
 // ---------------------------------------------------------------- static map knowledge
 struct Group {
     std::vector<vec2> tiles;
@@ -152,7 +161,7 @@ void init_self() {
     team_size = static_cast<int>(allies.size());
     for (int i = 0; i < team_size; ++i)
         if (allies[i] == me) my_index = i;
-    squads = team_size >= 4 ? 2 : 1;
+    squads = kSquads > 1 && team_size >= 4 ? kSquads : 1;
     squad = my_index % squads;
     squad_size = (team_size + squads - 1 - squad) / squads;
     ranged = me.attack_range() > 1;
@@ -199,6 +208,11 @@ struct View {
 View v;
 
 float dps_of(const Unit& u) { return u.str + u.focus * 0.25f; }
+
+// Our half of the map, with a margin: chasing beyond it runs into the enemy's spawn and squads.
+bool own_side(vec2 p, int margin) {
+    return dist(p, ally_spawn_center) <= dist(p, enemy_spawn_center) + margin;
+}
 
 bool step_towards(const bc::bitboard& goals) {
     auto& me = bc::self();
@@ -643,12 +657,21 @@ bool handle_enemies() {
     if (!target) return false;
     const bool alone = v.enemies.size() == 1;
     write_sighting(*target, true, alone);
-    float need = 1.0f;
+    float need = kFightNeed;
     if (target->channel) need = 0.5f;
     if (alone && target->hp < my_dps * 3) need *= 0.6f;
     if (target->gems >= 20) need *= 0.85f;
     if (hp_frac < 0.3f) need *= 1.6f;
-    const bool fight = o.ours >= o.theirs * need;
+    const bool favourable = o.ours >= o.theirs * need;
+    bool fight = favourable;
+    const bool reachable = dist(target->pos, v.me) <= me.attack_range() + (ranged ? 0 : 1);
+    if (fight && !target->channel && !own_side(target->pos, kChaseMargin) && !reachable) fight = false;
+    if (fight && dist(target->pos, enemy_spawn_center) <= 6 && !reachable) fight = false;
+    // Stronger here but the target is out of bounds: carry on with our own business.
+    if (favourable && !fight) return false;
+    if (v.round % 25 == 2) {
+        debug_block({ std::cout << "  odds " << o.ours << " vs " << o.theirs << " need " << need << " near " << nearest << " fight " << fight << " t=(" << target->pos.x << "," << target->pos.y << ") hp " << target->hp << '\n'; });
+    }
     if (fight) {
         const Unit t = *target;
         // Lock the altar under a tributing enemy (placing a lock cancels its channel).
@@ -682,7 +705,7 @@ bool handle_enemies() {
         return true;
     }
     // Not favourable: leave if anyone can reach us soon.
-    if (nearest <= 6) {
+    if (nearest <= kFleeRadius) {
         // Parting shots from where we stand never cost a step for melee; ranged would lose the step.
         if (!ranged) {
             for (const auto& e : v.enemies)
@@ -728,7 +751,8 @@ int choose_target(const std::vector<std::uint16_t>& field) {
         const float hp = g.reward ? 0 : (g.hp_seen >= 0 ? g.hp_seen : g.hp_full);
         const float clear = hp / dps;
         const float damage = g.str * clear * 0.6f;
-        if (damage > hp_pool * 0.85f) continue;
+        if (damage > hp_pool * kDangerPool) continue;
+        if (g.str * kTankRounds > me.max_health()) continue;
         const float value = g.gems + g.gold * gold_w;
         if (value <= 0) continue;
         float score = value / (travel + wait + clear + 6.0f + (g.reward ? 0 : 5.0f));
@@ -797,8 +821,9 @@ void Bot::play_turn() {
         }
         return;
     }
+    if (!me.can_move() && !me.can_attack() && !me.can_cast()) return;
     read_view();
-    if (v.round % 50 == 1) {
+    if (v.round % 25 == 1) {
         debug_block({ std::cout << "r" << v.round << " me" << my_index << " (" << v.me.x << "," << v.me.y << ") tg=" << target_group << " hp=" << me.health() << " gems=" << me.gem_count() << " en=" << v.enemies.size() << '\n'; });
     }
     update_groups();
@@ -833,9 +858,9 @@ void Bot::play_turn() {
                 if (c.is_awake() && dist(p, v.me) <= c.attack_range()) { camp_threat = true; break; }
             } catch (const std::exception& e) { warn("threat", e); }
         }
-    if (!at_spawn && hp < max_hp * 0.3f) {
+    if (!at_spawn && hp < max_hp * kRetreatHp) {
         if (!camp_threat && v.enemies.empty()) {
-            me.recall();
+            try { me.recall(); } catch (const std::exception& e) { warn("recall", e); }
             return;
         }
         // Walk out of camp range first.
@@ -858,7 +883,7 @@ void Bot::play_turn() {
         // Adjacent to any altar: tribute there (a locked altar takes the hits instead).
         for (std::size_t i = 0; i < altars.size(); ++i)
             if (dist(v.me, altars[i]) <= bc::constants::submit_gems_range) {
-                me.submit_gems(altars[i]);
+                try { me.submit_gems(altars[i]); } catch (const std::exception& e) { warn("submit", e); }
                 return;
             }
         std::vector<vec2> targets;
@@ -881,7 +906,7 @@ void Bot::play_turn() {
     const Sighting s = read_sighting();
     if (s.fresh && hp > max_hp * 0.55f && gems < 30) {
         const int d = dist(v.me, s.pos);
-        if ((s.fighting && d <= 14) || (s.gems >= 12 && d <= 12)) {
+        if (own_side(s.pos, kChaseMargin) && ((s.fighting && d <= 14) || (s.gems >= 12 && d <= 12))) {
             bc::bitboard g = ring_around({s.pos}, 2);
             if (step_towards(g)) {
                 place_ward(s.pos);
@@ -921,7 +946,7 @@ void Bot::play_turn() {
 
     if (target_group >= 0) {
         auto& g = groups[target_group];
-        if (v.round % 50 == 1) {
+        if (v.round % 25 == 1) {
             debug_block({ std::cout << "  tgt c=(" << g.center.x << "," << g.center.y << ") reward=" << g.reward << " ru=" << g.respawn_until << " hp=" << g.hp_seen << " allies=" << v.allies.size() << " wait=" << wait_turns << '\n'; });
         }
         // Capture: stand on a spawn tile of a defeated group.
@@ -940,7 +965,20 @@ void Bot::play_turn() {
         }
         // Wait for a respawn just outside camp range.
         if (g.respawn_until >= 0 && g.respawn_until > v.round) {
-            bc::bitboard goal = ring_around(g.tiles, g.range + 1);
+            // Never stand on a spawn tile: an occupied tile delays the whole group's respawn.
+            const int inner = std::max(1, g.range);
+            bc::bitboard goal;
+            for (auto c : g.tiles)
+                for (int dy = -inner - 1; dy <= inner + 1; ++dy)
+                    for (int dx = -inner - 1; dx <= inner + 1; ++dx) {
+                        const vec2 p{c.x + dx, c.y + dy};
+                        if (!inb(p) || terrain_bits.get(p) || group_at[p.y * W + p.x] >= 0) continue;
+                        bool close = false;
+                        for (auto t : g.tiles)
+                            if (dist(t, p) <= inner) { close = true; break; }
+                        if (!close) goal.set(p);
+                    }
+            if (goal.is_empty()) goal = ring_around(g.tiles, inner + 1);
             if (!goal.is_set(v.me)) step_towards(goal);
             place_ward(g.center);
             return;
