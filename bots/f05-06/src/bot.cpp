@@ -797,6 +797,9 @@ bool Bot::fight_or_flee() {
     if (on_spawn()) need *= 0.5;  // we heal here every turn
     report(near[0]->pos, static_cast<int>(near.size()), threat && ratio >= need);
 
+    // Hurt, or alone against several: anyone in sight is a threat.
+    if (closest <= 8 && my_hp < me.max_health() * 0.5f) threat = true;
+    if (closest <= 6 && n_us == 1 && n_them >= 2) threat = true;
     if (!threat && ratio < need * 1.3) {
         // Busy foes at a distance: keep farming, but stay away from them.
         avoid_until_ = round_ + 6;
@@ -1204,7 +1207,7 @@ void Bot::play_turn() {
                     std::cout << "\n";
                 }
                 static int last_mode = -1, last_tg = -2;
-                const bool change = b->round_ < 80 && b->round_ % 5 == 0;
+                const bool change = b->round_ >= 40 && b->round_ < 82 && b->kind_ == 2;
                 if (b->kind_ == 7) last_mode = b->mode_, last_tg = b->target_;
                 if (b->kind_ == 2) last_mode = b->mode_, last_tg = b->target_;
                 if (change || f0 - cambc::fuel_remaining() > 90000) {
