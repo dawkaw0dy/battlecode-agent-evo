@@ -844,13 +844,26 @@ void Bot::farm(int group) {
     bool any = false;
     for (size_t c = 0; c < g.tiles.size(); ++c)
         if (k.hp[c] > 0) { living.set(g.tiles[c]); any = true; }
+    if (!any && k.state != Known::respawning) {
+        // Alive but no camp left in memory: one hides where we cannot see (a bush). Look there,
+        // or drop the group for a while when every tile is in view and empty.
+        for (size_t c = 0; c < g.tiles.size(); ++c)
+            if (!lvis_.at(g.tiles[c])) { k.hp[c] = camp_spec(g.kinds[c]).hp; living.set(g.tiles[c]); any = true; }
+        if (!any) {
+            k.skip_until = now() + 15;
+            k.state = Known::unknown;
+            for (size_t c = 0; c < g.tiles.size(); ++c) k.hp[c] = camp_spec(g.kinds[c]).hp;
+            chosen_at_ = -100;
+            return;
+        }
+    }
     if (!any || k.state == Known::respawning) {
         // Wait on (or walk to) the group's tiles.
         g_mode = 13;
-        if (gtiles_[group].is_set(pos_)) return;
-        auto near = grow(gtiles_[group], 1) & ~g_walls;
-        if (near.is_set(pos_) && k.state == Known::respawning) return;
-        go(k.state == Known::respawning ? near : gtiles_[group], true);
+        // Never on the spawn tiles themselves: an occupied spawn tile delays the respawn.
+        auto near = grow(gtiles_[group], 2) & ~gtiles_[group] & ~g_walls;
+        if (near.is_set(pos_)) return;
+        go(near, true);
         return;
     }
     spells_on_group(group);
@@ -1015,9 +1028,9 @@ void Bot::play_turn() {
         if (go_home_or_recall(8)) return;
     }
     g_mode = 15;
-    if (kStats && t % 10 == 0 && t <= 300 && type_ == cambc::champion_type::marcella)
+    if (kStats && t % 25 == 0 && t <= 600 && type_ == cambc::champion_type::vendetta)
         std::cout << "trace r" << t << " pos " << pos_.x << ',' << pos_.y << " tgt " << target_ << " c " << g_[target_].center.x << ',' << g_[target_].center.y
-                  << " st " << int(k_[target_].state) << " rem " << remaining(target_) << " hp " << hp << " foes " << foes_.size() << '\n';
+                  << " st " << int(k_[target_].state) << " rem " << remaining(target_) << " hp " << hp << " foes " << foes_.size() << " ready " << k_[target_].ready << " eta " << home_.at(pos_) << '\n';
     farm(target_);
     if (attacked_ || cast_) best_eta_ = 0, stuck_since_ = t;
 }
