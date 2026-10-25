@@ -29,6 +29,7 @@ constexpr int kHuntRange = 14;           // answer a pack sighting this far away
 constexpr int kShopGold = 270;           // recall to shop with this much gold
 constexpr int kPackSize = 1;             // champions per farming pack
 constexpr int kGemWeight = 5;            // a gem is worth this much gold when choosing camps
+constexpr int kKeepAway = 5;             // back off from stronger foes this close
 constexpr bool kHunt = false;            // answer pack sightings
 constexpr int kHuntAge = 6;              // rounds a sighting stays valid
 
@@ -622,6 +623,14 @@ void turn_body_impl() {
         if (!melee && !moved_this_turn(start) && dist(g_pos, t.p) <= my_range) hit(t.p, true);
         if (hp < max_hp * kRecallHp && nearest_foe >= 7 && me.can_move()) safe("recall", [&] { me.recall(); return true; });
         return;
+    }
+
+    // Unengaged but outmatched foes close by: keep our distance instead of walking into them.
+    if (ti < 0 && nearest_foe <= kKeepAway) {
+        const float ours = power_of(allies, g_pos, 6), theirs = power_of(foes, g_pos, 8);
+        if (theirs > ours * kEngageRatio) {
+            if (step_away(foes)) return;
+        }
     }
 
     // ---- recover -----------------------------------------------------------------------------------
