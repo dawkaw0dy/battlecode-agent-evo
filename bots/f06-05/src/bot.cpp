@@ -28,12 +28,13 @@ void fp(const char* tag) {
     g_f0 = f;
 }
 constexpr float kShareTurns = 15.0f;
-constexpr int kChaseTurns = 5;      // approach turns without a hit before giving up a chase
+constexpr int kChaseTurns = 8;      // approach turns without a hit before giving up a chase
 constexpr float kEngageBias = -150.0f;  // fight value needed to engage
 constexpr float kStick = 0.0f;       // fight value margin in favour of the last decision
 constexpr bool kDoomedFights = false;  // fight back when fleeing looks fatal anyway
 constexpr bool kCaughtFights = false;  // fight back when a melee chaser would hit us all the way home
 constexpr bool kFreeShots = true;     // retreating ranged: shoot when nobody can hit us here next turn
+constexpr float kAllyPull = 0.0f;      // retreat score per tile of distance to the nearest fighting ally
 constexpr float kBossTurns = 8.0f;  // turns a champion must be able to tank a boss
 constexpr int kSimTurns = 10;       // turns the fight simulation looks ahead
 constexpr bool kLocks = true;       // carry an altar lock: drop it on enemy tributes and on altars we pass
@@ -1055,6 +1056,11 @@ bool Bot::retreat(std::vector<Fighter>& theirs, int dmin) {
         const int hd = home_.at(t);
         s += static_cast<float>(hd >= kFar ? 200 : hd);
         if (camp_block_.is_set(t)) s += 500;
+        if (kAllyPull > 0 && !ally_near_.empty()) {
+            int ad = 10;
+            for (auto a : ally_near_) ad = std::min(ad, cheb(a, t));
+            s += kAllyPull * static_cast<float>(ad);
+        }
         return s;
     };
     const float here = score(pos_);
@@ -1297,6 +1303,8 @@ bool Bot::enemies() {
         f.delay = std::max(0, d - f.range - (f.ranged ? 0 : 1));
         if (f.stunned) f.delay = std::max(f.delay, 1);
     };
+    ally_near_.clear();
+    for (size_t i = 1; i < ours.size(); ++i) ally_near_.push_back(ours[i].pos);
     for (auto& f : ours) set_delay(f, theirs);
     for (auto& f : theirs) set_delay(f, ours);
     ours[0].camp_in = 0;
