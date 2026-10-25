@@ -922,7 +922,7 @@ int Bot::choose_target() {
     const bool rep = read_report(rp, rc, rage);
     const auto taken = claims();
     const float wgold = round_ < 400 ? 0.4f : round_ < 1000 ? 0.25f : round_ < 1600 ? 0.1f : 0.02f;
-    struct Cand { int gi, eta, wait; float value, factor, bound; };
+    struct Cand { int gi, eta, wait; float value, factor, bound; bool shared; };
     std::vector<Cand> cands;
     cands.reserve(groups_.size());
     for (size_t gi = 0; gi < groups_.size(); ++gi) {
@@ -952,13 +952,17 @@ int Bot::choose_target() {
         else if (g.owner == dm::kEnemySide) factor = 0.45f;
         else factor = 0.55f;
         if (static_cast<int>(gi) == target_) factor *= 1.25f;
+        bool shared = false;
         for (int c : taken)
-            if (c == static_cast<int>(gi % 255) + 1) factor *= 0.3f;
+            if (c == static_cast<int>(gi % 255) + 1) shared = true;
+        // Big groups are worth sharing: camps hit only the nearest champion.
+        const bool big = !g.dirty && g.status == 0 && g.plan_dmg > maxhp * 0.6f;
+        if (shared && !big) factor *= 0.3f;
         if (g.status == 1) factor *= (round_ - g.my_hit < 40) ? 1.3f : 0.4f;
         if (round_ <= flee_until_ + 20 && cheb(flee_from_, g.center) <= 10) factor *= 0.2f;
         if (round_ <= avoid_until_ && cheb(avoid_pos_, g.center) <= 5) factor *= 0.5f;
         if (rep && rc >= 2 && cheb(rp, g.center) <= 9) factor *= 0.3f;
-        cands.push_back({static_cast<int>(gi), eta, wait, value, factor, value * factor / (eta + wait + 13.0f)});
+        cands.push_back({static_cast<int>(gi), eta, wait, value, factor, value * factor / (eta + wait + 13.0f), shared && big});
     }
     std::sort(cands.begin(), cands.end(), [](const Cand& a, const Cand& b) { return a.bound > b.bound; });
     int best = -1;
@@ -977,14 +981,16 @@ int Bot::choose_target() {
             clear = g.plan_time;
             if (g.plan_time <= 0 && g.status == 0) continue;
             const float budget = maxhp * 0.8f;
-            const int trips = static_cast<int>(std::ceil((g.plan_dmg + 1) / budget));
+            float dmg = g.plan_dmg;
+            if (c.shared) clear *= 0.5f, dmg *= 0.5f;  // reward split, but half the work
+            const int trips = static_cast<int>(std::ceil((dmg + 1) / budget));
             if (trips > 3) continue;
             trip = (trips - 1) * (12.0f + g.dspawn);
             if (g.plan_dmg > hp - maxhp * 0.15f && hp < maxhp * 0.9f)
                 trip += 10.0f + std::min<int>(g.dspawn, 60);  // heal first
         }
         const float time = c.eta + c.wait + clear + 5 + trip + 8;
-        const float sc = c.value * c.factor / time;
+        const float sc = c.value * c.factor * (c.shared ? 0.5f : 1.0f) / time;
         if (sc > bests) bests = sc, best = c.gi;
     }
     return best;
