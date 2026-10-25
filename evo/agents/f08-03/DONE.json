@@ -1,0 +1,27 @@
+{
+ "agent": "f08-03",
+ "task_sha256": "bcefd791e51c06b088625af943b6d2b055d6b929d92ca92623c75ae2e6ab1219",
+ "base_commit": "c8567f3516cab8e9bde28c10ff667310c5e0452e",
+ "session_id": "cse_014hM57mCjuzPwywThQgssQ3",
+ "bot_dir": "bots/f08-03",
+ "self_eval": {
+  "vs": "f05-02",
+  "games": 80,
+  "wins": 58
+ },
+ "games_played": 820,
+ "summary": "Spell tweaks (cast-in-reach, focus-target spells, eager Varg shield, dash hold, no retreat stun) all measured below the parent; shipped the parent's source unchanged.",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "1a54a56bf1dc3f2480fe19e1b049da9db01d95df8ae8eea12ef882de23d6e83c",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 23.95,
+  "remote": "true",
+  "session_id": "cse_014hM57mCjuzPwywThQgssQ3",
+  "effort_level": "high",
+  "model": null
+ }
+}
