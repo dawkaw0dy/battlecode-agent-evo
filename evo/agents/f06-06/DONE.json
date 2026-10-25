@@ -1,0 +1,27 @@
+{
+ "agent": "f06-06",
+ "task_sha256": "b8e7aa31b5e8d4473ddde4037d7eb33e016f27847780a9cda47d20a18c235c37",
+ "base_commit": "8ea5f84a9c9994dcece9da33a3c0ebc245df2144",
+ "session_id": "cse_01GF9qbNn3MXFZHJGBG8jKTc",
+ "bot_dir": "bots/f06-06",
+ "self_eval": {
+  "vs": "f03-05",
+  "games": 80,
+  "wins": 7
+ },
+ "games_played": 855,
+ "summary": "Safe-banker immigrant: solo multi-trip farming, early banking, altar locks, square-law fight/flee with dash escapes; 0 faults/bot errors; weak vs lineage hunters",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "8da1437926729df349b76cd9c211931c90673786ec5e4c6c97fa449d9ba532c4",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 20.81,
+  "remote": "true",
+  "session_id": "cse_01GF9qbNn3MXFZHJGBG8jKTc",
+  "effort_level": "high",
+  "model": null
+ }
+}
