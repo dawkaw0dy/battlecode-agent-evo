@@ -8875,6 +8875,131 @@
      ]
     ]
    ],
+   "ranking_A": [
+    "f03-05",
+    "f03-04",
+    "f03-03",
+    "f03-01",
+    "f02-01",
+    "f03-02",
+    "f00-03",
+    "f03-06",
+    "f01-07",
+    "f03-07",
+    "starter"
+   ],
+   "ratings_A": {
+    "f00-03": {
+     "disqualified": false,
+     "fault_rate": 0.0,
+     "interval": [
+      -0.6812177585708176,
+      0.2752726689616794
+     ],
+     "mean_margin": -161.46484375,
+     "strength": -0.16594925501085256
+    },
+    "f01-07": {
+     "disqualified": false,
+     "fault_rate": 0.0,
+     "interval": [
+      -0.725586551397877,
+      -0.08469374091795494
+     ],
+     "mean_margin": -195.3046875,
+     "strength": -0.35316107708926925
+    },
+    "f02-01": {
+     "disqualified": false,
+     "fault_rate": 0.0,
+     "interval": [
+      -0.014165199281106947,
+      0.42636728055056355
+     ],
+     "mean_margin": 69.121875,
+     "strength": 0.18050572015553368
+    },
+    "f03-01": {
+     "disqualified": false,
+     "fault_rate": 0.0,
+     "interval": [
+      0.08130866419646485,
+      0.771859210824793
+     ],
+     "mean_margin": 389.015625,
+     "strength": 0.4469211370861313
+    },
+    "f03-02": {
+     "disqualified": false,
+     "fault_rate": 0.0,
+     "interval": [
+      -0.28382044865491657,
+      0.41647435555867257
+     ],
+     "mean_margin": 249.7734375,
+     "strength": 0.024180117797977636
+    },
+    "f03-03": {
+     "disqualified": false,
+     "fault_rate": 0.0,
+     "interval": [
+      0.37547437863237365,
+      0.9201325334558765
+     ],
+     "mean_margin": 412.25,
+     "strength": 0.6283180965731852
+    },
+    "f03-04": {
+     "disqualified": false,
+     "fault_rate": 0.0,
+     "interval": [
+      0.9240142196871466,
+      2.0473957843978132
+     ],
+     "mean_margin": 513.828125,
+     "strength": 1.4009387598841374
+    },
+    "f03-05": {
+     "disqualified": false,
+     "fault_rate": 0.0,
+     "interval": [
+      1.0055313521065927,
+      2.0202733795602543
+     ],
+     "mean_margin": 583.6328125,
+     "strength": 1.4009387598841374
+    },
+    "f03-06": {
+     "disqualified": false,
+     "fault_rate": 0.0,
+     "interval": [
+      -0.6948170553577976,
+      0.026019494878251462
+     ],
+     "mean_margin": 155.65625,
+     "strength": -0.3439959875089846
+    },
+    "f03-07": {
+     "disqualified": false,
+     "fault_rate": 0.0,
+     "interval": [
+      -1.4717409144175955,
+      -0.36934586024112226
+     ],
+     "mean_margin": 22.5,
+     "strength": -0.9064752077464744
+    },
+    "starter": {
+     "disqualified": false,
+     "fault_rate": 0.0,
+     "interval": [
+      -5.604504188189704,
+      -4.069378665859594
+     ],
+     "mean_margin": -892.9609375,
+     "strength": -4.765403882832871
+    }
+   },
    "slots": [
     "f02-01",
     "f03-01",
@@ -9100,14 +9225,19 @@
    "results_commit": "09a6359c0847f3d91b766fb7572e20fee2d4fef1",
    "retries": 0,
    "spotcheck": {
+    "arrived_at": 1792916831,
     "games": 18,
     "job": "r03-A-spot",
+    "mismatches": [],
+    "missing": 0,
     "pushed_at": 1792916683,
     "pushed_commit": "124154c86a9372f281da539bd1544df25bc9a983",
-    "status": "pending"
+    "results_commit": "368d0fe2ea0cd3e53143a702de3180f1f38f3416",
+    "runner": "ubuntu-22.04",
+    "status": "done"
    },
    "stage": "A",
-   "status": "arrived"
+   "status": "verified"
   }
  },
  "launch_errors_in_a_row": 0,
@@ -9280,10 +9410,12 @@
   "2026-10-25T08:21:31Z g03 phase EVAL_A_PENDING",
   "2026-10-25T08:21:45Z g03 r03-A: pushed 3fdd740496 with 28 shards",
   "2026-10-25T08:24:23Z g03 phase EVAL_A_DONE: results for r03-A",
-  "2026-10-25T08:24:43Z g03 r03-A-spot: pushed 124154c86a (18 sampled games, 15 shards)"
+  "2026-10-25T08:24:43Z g03 r03-A-spot: pushed 124154c86a (18 sampled games, 15 shards)",
+  "2026-10-25T08:27:12Z g03 r03-A: verified, 896 rows, spot-check 18 OK",
+  "2026-10-25T08:27:24Z g03 phase EVAL_B_PENDING: stage A ranked: f03-05, f03-04, f03-03, f03-01, f02-01, f03-02, f00-03, f03-06, f01-07, f03-07, starter"
  ],
  "paused": null,
- "phase": "EVAL_A_DONE",
+ "phase": "EVAL_B_PENDING",
  "sessions_launched": 29,
  "version": 1
 }
