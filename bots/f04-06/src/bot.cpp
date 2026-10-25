@@ -27,7 +27,8 @@ constexpr int kBankGems = 30;            // carry at most this many gems before 
 constexpr int kNearAltar = 7;            // bank any gems when an altar is this close
 constexpr int kHuntRange = 14;           // answer a pack sighting this far away
 constexpr int kShopGold = 270;           // recall to shop with this much gold
-constexpr int kPackSize = 2;             // champions per farming pack
+constexpr int kPackSize = 1;             // champions per farming pack
+constexpr bool kHunt = false;            // answer pack sightings
 constexpr int kHuntAge = 6;              // rounds a sighting stays valid
 
 struct Group {
@@ -63,7 +64,7 @@ bool g_attacked = false;
 float g_last_hp = 0;
 int g_shards = 0;
 int g_pack = 0;                   // champions farm in packs: {0,2}, {1,3}, {4} by draft slot
-constexpr std::array<int, 3> kPackByte{0, 1, 6};
+constexpr std::array<int, 5> kPackByte{0, 1, 5, 6, 7};
 
 // Run one engine action; a refused action is logged and reported as false.
 template<class F> bool safe(const char* what, F&& f) {
@@ -143,8 +144,8 @@ void init_map() {
     {
         using ct = cambc::champion_type;
         static constexpr std::array order{ct::vendetta, ct::ryth, ct::vesper_vale, ct::marcella, ct::varg};
-        static constexpr std::array pack_of{0, 1, 0, 1, 2};
-        g_pack = 2;
+        static constexpr std::array pack_of{0, 1, 2, 3, 4};
+        g_pack = 4;
         const auto mine = cambc::self().champion_name();
         for (size_t i = 0; i < order.size(); ++i)
             if (order[i] == mine) g_pack = pack_of[i];
@@ -217,7 +218,7 @@ bool step_away(const std::vector<Foe>& foes) {
         int m = 99;
         for (const auto& f : foes) m = std::min(m, dist(p, f.p) - f.range);
         const int hd = home_dist(p);
-        return std::min(m, 4) * 10 - (hd == 65535 ? 999 : hd);
+        return std::min(m, 8) * 10 - (hd == 65535 ? 999 : hd);
     };
     vec2 best = g_pos;
     int bs = score(g_pos);
@@ -444,7 +445,7 @@ float power_of(const std::vector<Foe>& v, vec2 around, int radius) {
     return hp * dps;
 }
 
-int pick_group(int team_n, int ex1, int ex2) {
+int pick_group(int team_n, const std::array<int, 5>& taken) {
     int best = -1;
     float bs = 0;
     const float team_dps = 55.0f * static_cast<float>(std::max(1, team_n));
@@ -452,7 +453,7 @@ int pick_group(int team_n, int ex1, int ex2) {
     for (size_t i = 0; i < g_groups.size(); ++i) {
         const auto& g = g_groups[i];
         const int d = dist(g_pos, g.center);
-        if (static_cast<int>(i) == ex1 || static_cast<int>(i) == ex2) continue;
+        if (std::find(taken.begin(), taken.end(), static_cast<int>(i)) != taken.end()) continue;
         if (g.ready && g.ready > g_round + d) continue;
         const float turns = g.hp / team_dps;
         if (g.str * turns > 0.6f * team_hp) continue;
@@ -517,7 +518,6 @@ void turn_body_impl() {
         g_mem[2] = static_cast<std::uint8_t>(sx / n);
         g_mem[3] = static_cast<std::uint8_t>(sy / n);
         g_mem[4] = static_cast<std::uint8_t>(g_round & 255);
-        g_mem[5] = static_cast<std::uint8_t>(n);
         mem_store();
     }
 
@@ -575,7 +575,8 @@ void turn_body_impl() {
         const float ours = power_of(allies, g_pos, 6);
         const float theirs = power_of(foes, g_pos, 9);
         const int gems = static_cast<int>(me.gem_count());
-        const float need = gems >= 25 ? kCarrierRatio : kEngageRatio;
+        float need = gems >= 25 ? kCarrierRatio : kEngageRatio;
+        if (home_dist(g_pos) <= 8) need *= 0.6f;  // spawn heals us and tempts them
         const auto& t = foes[static_cast<size_t>(ti)];
         const float my_burst = me.strength() * 2.0f + me.focus() * 1.5f;
         const bool killable = t.hp <= my_burst && dist(g_pos, t.p) <= my_range + 1;
@@ -652,10 +653,10 @@ void turn_body_impl() {
     }
 
     // ---- hunt a fresh pack sighting ------------------------------------------------------------------
-    if (g_mem[4] != 0 || g_mem[2] != 0) {
+    if (kHunt && (g_mem[4] != 0 || g_mem[2] != 0)) {
         const vec2 seen{g_mem[2], g_mem[3]};
         if (age(g_mem[4]) <= kHuntAge && dist(g_pos, seen) <= kHuntRange && hp > max_hp * 0.6f
-            && static_cast<int>(allies.size()) >= g_mem[5] && static_cast<int>(allies.size()) >= 2) {
+            && static_cast<int>(allies.size()) >= 2) {
             if (step_to(ring(seen, 1))) return;
         }
     }
@@ -664,14 +665,19 @@ void turn_body_impl() {
     const int byte = kPackByte[static_cast<size_t>(g_pack)];
     int target = static_cast<int>(g_mem[static_cast<size_t>(byte)]) - 1;
     if (!group_valid(target)) {
-        const int o1 = static_cast<int>(g_mem[static_cast<size_t>(kPackByte[(g_pack + 1) % 3])]) - 1;
-        const int o2 = static_cast<int>(g_mem[static_cast<size_t>(kPackByte[(g_pack + 2) % 3])]) - 1;
-        target = pick_group(kPackSize, o1, o2);
-        if (target < 0) target = pick_group(kPackSize, -1, -1);
+        std::array<int, 5> taken{-1, -1, -1, -1, -1};
+        for (int k = 0; k < 5; ++k)
+            if (k != g_pack) taken[static_cast<size_t>(k)] = static_cast<int>(g_mem[static_cast<size_t>(kPackByte[static_cast<size_t>(k)])]) - 1;
+        target = pick_group(kPackSize, taken);
+        if (target < 0) target = pick_group(kPackSize, std::array<int, 5>{-1, -1, -1, -1, -1});
         g_mem[static_cast<size_t>(byte)] = static_cast<std::uint8_t>(target + 1);
         mem_store();
     }
 
+    if (g_round < 160 && g_pack == 0) {
+        const auto& gg = g_groups[static_cast<size_t>(std::max(0, target))];
+        std::cout << "dbg farm r" << g_round << " pos " << g_pos.x << "," << g_pos.y << " hp " << int(hp) << " tgt " << target << " c " << gg.center.x << "," << gg.center.y << " ready " << gg.ready << " rew " << gg.reward << " gems " << me.gem_count() << "\n";
+    }
     // Hit any awake camp in range first (they are hitting us), then target-group camps.
     const auto awake = cambc::vision::awake_camp_tiles();
     vec2 best_camp{-1, -1};
