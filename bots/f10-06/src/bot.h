@@ -28,6 +28,7 @@ struct Group {
     enum State { alive, reward, respawning } state = alive;
     int ready = 0;                // round it is back (respawning)
     int enemy_seen = -1000;       // last round an enemy champion was seen near it
+    int blocked_until = -1;       // given up (unreachable or stuck) until this round
     float hp_left() const { float s = 0; for (float h : hp) s += h; return s; }
     float str_left() const;
 };
@@ -59,6 +60,9 @@ class Bot {
     int target_ = -1;
     int target_since_ = 0;
     int no_hit_turns_ = 0;
+    int idle_turns_ = 0;
+    int last_hit_ = -1000;
+    bool waiting_ = false;
     int shrink_ = 0;
     int last_enemy_ = -1000;
     int build_ = 0;               // shop plan

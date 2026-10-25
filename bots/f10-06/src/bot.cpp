@@ -16,7 +16,10 @@ namespace {
 constexpr bool kDebug = false;
 constexpr int kFar = 65535;
 constexpr float kPack = 0.0f;
+constexpr int kStuckTurns = 12;
+constexpr int kNoProgress = 120;   // rounds on one target without a hit before it is given up    // idle turns before a target is given up
 constexpr int kRaidParty = 3;      // champions a boss raid waits for
+constexpr int kRallyWait = 40;     // rounds a raid waits for its party
 constexpr bool kScout = true;      // ward unseen bushes beside us while enemies are about
 constexpr int kAvoidRounds = 15;   // skip groups where an enemy was seen this recently
 constexpr int kHelpRange = 0;      // answer an ally's fight within this many tiles
@@ -658,7 +661,7 @@ int Bot::choose() {
             if (!path_) path_ = std::make_unique<cambc::distance_field>();
             cambc::bitboard roots, seen;
             roots.set(pos_, true);
-            path_->compute(static_block_, roots, seen, 250);
+            path_->compute(static_block_, roots, seen, 600);
             path_round_ = now_;
             path_from_ = pos_;
         }
@@ -670,9 +673,10 @@ int Bot::choose() {
     for (size_t i = 0; i < g_.size(); ++i) {
         const auto& g = g_[i];
         int travel = raw_dist(pf, g.center);
-        if (travel >= kFar) travel = cheb(pos_, g.center) * 3;
+        if (travel >= kFar) continue;  // not reachable on foot
         travel = std::max(0, travel - cheb(path_from_, pos_));
         if (g.state == Group::respawning && g.ready > now_ + travel + 2) continue;
+        if (g.blocked_until > now_) continue;
         if (g.enemy_seen > now_ - kAvoidRounds && static_cast<int>(i) != target_) continue;
         const int c = claims(static_cast<int>(i));
         float score;
@@ -909,8 +913,9 @@ void Bot::farm(int gi) {
 
     if (g.big && need > 1 && !awake && with_me < std::min(need, kRaidParty)) {
         if (rally_since_ < 0) rally_since_ = now_;
-        if (now_ - rally_since_ < 40) {
+        if (now_ - rally_since_ < kRallyWait) {
             // Wait just outside the camps' reach.
+            waiting_ = true;
             g_act_now = 10;
             const auto ring = approach(gi, max_range + 2);
             if (!bit(ring, pos_)) go(ring, true);
@@ -1104,7 +1109,25 @@ void Bot::turn() {
     }
 
     const int gi = choose();
+    const vec2 before = pos_;
+    waiting_ = false;
     farm(gi);
+    // No step and no hit for a while: the target is out of reach (or we block each other). Give it up.
+    if (gi >= 0 && pos_ == before && !attacked_ && !cast_ && !waiting_) {
+        if (++idle_turns_ >= kStuckTurns) {
+            g_[static_cast<size_t>(gi)].blocked_until = now_ + 80;
+            target_ = -1;
+            idle_turns_ = 0;
+        }
+    } else {
+        idle_turns_ = 0;
+    }
+    if (attacked_) last_hit_ = now_;
+    // A target we keep walking to without ever landing a hit: give it up for a while.
+    if (gi >= 0 && !waiting_ && now_ - std::max(target_since_, last_hit_) > kNoProgress) {
+        g_[static_cast<size_t>(gi)].blocked_until = now_ + 150;
+        target_ = -1;
+    }
     if (kDebug && now_ % 25 == 0) {
         std::cout << "r" << now_ << " s" << slot_ << " p" << pos_.x << "," << pos_.y << " t" << gi;
         if (gi >= 0) std::cout << " st" << g_[gi].state << " hp" << static_cast<int>(g_[gi].hp_left()) << " need" << need_for(g_[gi], camp_dps_, max_hp_, size_) << " big" << g_[gi].big << " c" << g_[gi].center.x << "," << g_[gi].center.y;
