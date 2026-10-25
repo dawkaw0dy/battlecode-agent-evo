@@ -67,6 +67,8 @@ constexpr float kTankShare = 0.8f;         // max health needed: this share of a
 constexpr float kGateTankShare = 0.4f;     // the same for a group that blocks every altar
 constexpr int kFleeMemory = 8;             // after running, keep out of their reach this long
 constexpr int kRecallSafe = 10;            // no recall with an enemy seen this close in the last 3 rounds
+constexpr int kWaryRounds = 10;            // an enemy seen this recently ...
+constexpr float kWaryHp = 0.5f;            // ... sends us home below this share of health
 constexpr int kSightRounds = 24;           // an enemy sighting counts this long
 constexpr float kSightValue1 = 1.0f;       // value of a group near one sighted enemy when alone
 constexpr float kSightValue2 = 0.35f;      // ... near two or more
@@ -620,6 +622,9 @@ bool Bot::handle_health() {
     });
     float low = 0.3f;
     if (enemy_near) low = 0.4f;
+    // Hurt after a fight with enemies still about: go heal before they come back for us.
+    for (const auto& rs : seen_enemies)
+        if (W.round - rs.round <= kWaryRounds && cheb(rs.u.pos, pos) <= 12) low = std::max(low, kWaryHp);
     if (r >= low && !must_leave) return false;
     // A camp about to die is worth finishing when it cannot kill us first.
     if (camp_hits && !enemy_near && !must_leave) {
