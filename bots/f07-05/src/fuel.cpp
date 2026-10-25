@@ -4,11 +4,16 @@
 // - The heap: every allocation is hundreds of fuel and a growing vector reallocates log(n) times. The parent's
 //   initialisation (camp_groups(), analyse_map(), per-group vectors) cost ~450k on 01boss-battle: every
 //   champion lost its first two to four turns on all five-champion maps. Here the camp layout is read raw
-//   into one reused buffer, every vector is sized before it is filled, and nothing is allocated per turn.
+//   into one buffer, every vector is sized before it is filled, and the per-turn camp bookkeeping (observe(),
+//   the camp-block board) reads precomputed raw bit positions.
 // - Host BFS (~3 fuel per reached tile): one walking field from our spawn serves the home distance, the
 //   distance of every group from our spawn and, through the map's symmetry, from the enemy spawn.
-// - Local loops (~50-80 fuel per element): every loop is bounded by what it needs (near groups, our tiles).
-// A turn that runs out is suspended and resumes next round on stale state, so expensive steps check fuel().
+// - Local loops (~30-80 fuel per element) and memset/memcpy (1 fuel per byte): loops are bounded by what they
+//   need (near groups, changed groups); a static SDK initialisation takes ~22k of the first turn's 200k.
+// A turn that runs out is suspended and resumes next round on stale state, so expensive steps check fuel(), and
+// initialisation is split into steps that each wait for a turn with room for them (see initialise()).
+// Fuel left over is spent on movement: equally short steps are told apart by danger, and the dash is kept for
+// fights while enemies are about.
 #include <cambc.h>
 #include "bot.h"
 #include "fuel.h"
@@ -114,15 +119,6 @@ void fill(Dist& d, const cambc::bitboard& tiles) {
 
 int fdist(const cambc::distance_field& f, vec2 p) { return inside(p) ? raw_dist(f.ptr(), p) : kFar; }
 
-// The tile mirrored by the map's symmetry (the enemy's view of p).
-vec2 mirror(vec2 p) {
-    switch (cambc::map::symmetry()) {
-    case cambc::symmetry::horizontal: return {map_w() - 1 - p.x, p.y};
-    case cambc::symmetry::vertical: return {p.x, map_h() - 1 - p.y};
-    case cambc::symmetry::rotational180: return {map_w() - 1 - p.x, map_h() - 1 - p.y};
-    }
-    return {map_w() - 1 - p.x, map_h() - 1 - p.y};
-}
 }  // namespace
 
 void andnot_into(const cambc::bitboard& a, const cambc::bitboard& b, cambc::bitboard& out) {
@@ -249,7 +245,7 @@ void Bot::init_map() {
     s.hard |= cambc::map::walls();
     s.hard |= cambc::map::altars();
     g_hard_local.bind(s.hard);
-    auto& me = cambc::self();
+    (void)cambc::self();  // as measured: the handle is read here, before the camp layout
     const auto& ally_spawn = cambc::map::spawn_region(team::ally);
     mark("boards");
 
@@ -393,85 +389,84 @@ void Bot::init_step(int step) {
     const auto& ally_spawn = cambc::map::spawn_region(team::ally);
     const size_t ng = g_.size();
     if (step == 1) {
-    const auto allies = cambc::champions(team::ally);
-    size_ = static_cast<int>(allies.size());
-    // Cassi and Issac count as one pick.
-    const auto my_type = me.champion_name();
-    slot_ = slot_of(my_type, size_);
-    const auto* mem = cambc::draft_memory.data();
-    home_slot_.clear();
-    if (static_cast<char>(mem[dm::magic]) == 'E' && static_cast<int>(mem[dm::ngroups]) == static_cast<int>(std::min<size_t>(ng, 250))) {
-        size_ = static_cast<int>(mem[dm::size]);
+        const auto allies = cambc::champions(team::ally);
+        size_ = static_cast<int>(allies.size());
+        // Cassi and Issac count as one pick.
+        const auto my_type = me.champion_name();
         slot_ = slot_of(my_type, size_);
-        home_slot_.assign(ng, 255);
-        const size_t nm = std::min<size_t>(ng, 250);
-        for (size_t i = 0; i < nm; ++i) home_slot_[i] = static_cast<std::uint8_t>(mem[dm::home + i]);
-    } else {
-        home_slot_ = assign_homes(g_, std::max(1, size_));
-    }
-    for (const auto& ab : me.abilities())
-        if (ab.is_dash()) dasher_ = true;
-    my_range_ = me.attack_range();
-    spawn_local_.bind(ally_spawn);
-    {
-        const int self_h = static_cast<int>(static_cast<cambc::handle_champion_t>(me));
-        others_.reserve(allies.size());
-        for (const auto& a : allies)
-            if (static_cast<int>(static_cast<cambc::handle_champion_t>(a)) != self_h) others_.push_back(a);
-    }
-    mark("team");
+        const auto* mem = cambc::draft_memory.data();
+        home_slot_.clear();
+        if (static_cast<char>(mem[dm::magic]) == 'E' && static_cast<int>(mem[dm::ngroups]) == static_cast<int>(std::min<size_t>(ng, 250))) {
+            size_ = static_cast<int>(mem[dm::size]);
+            slot_ = slot_of(my_type, size_);
+            home_slot_.assign(ng, 255);
+            const size_t nm = std::min<size_t>(ng, 250);
+            for (size_t i = 0; i < nm; ++i) home_slot_[i] = static_cast<std::uint8_t>(mem[dm::home + i]);
+        } else {
+            home_slot_ = assign_homes(g_, std::max(1, size_));
+        }
+        for (const auto& ab : me.abilities())
+            if (ab.is_dash()) dasher_ = true;
+        my_range_ = me.attack_range();
+        spawn_local_.bind(ally_spawn);
+        {
+            const int self_h = static_cast<int>(static_cast<cambc::handle_champion_t>(me));
+            others_.reserve(allies.size());
+            for (const auto& a : allies)
+                if (static_cast<int>(static_cast<cambc::handle_champion_t>(a)) != self_h) others_.push_back(a);
+        }
+        mark("team");
     } else if (step == 4) {
-    build_threats();
-    mark("threats");
+        build_threats();
+        mark("threats");
     } else if (step == 2) {
-
-    // Tiles from which an altar takes a tribute, written straight into the board, then the walk to them.
-    const int ar = cambc::constants::submit_gems_range;
-    altars_ = cambc::map::altars().positions();
-    enemy_lock_.assign(altars_.size(), -1);
-    lock_seen_.assign(altars_.size(), -1000);
-    altar_spots_.clear();
-    for (auto a : altars_)
-        for (int dy = -ar; dy <= ar; ++dy)
-            for (int dx = -ar; dx <= ar; ++dx) {
-                const vec2 t{a.x + dx, a.y + dy};
-                if (inside(t) && !g_walls_local.at(t)) raw_set(altar_spots_.ptr(), t);
+        // Tiles from which an altar takes a tribute, written straight into the board, then the walk to them.
+        const int ar = cambc::constants::submit_gems_range;
+        altars_ = cambc::map::altars().positions();
+        enemy_lock_.assign(altars_.size(), -1);
+        lock_seen_.assign(altars_.size(), -1000);
+        altar_spots_.clear();
+        for (auto a : altars_)
+            for (int dy = -ar; dy <= ar; ++dy)
+                for (int dx = -ar; dx <= ar; ++dx) {
+                    const vec2 t{a.x + dx, a.y + dy};
+                    if (inside(t) && !g_walls_local.at(t)) raw_set(altar_spots_.ptr(), t);
+                }
+        altar_.compute(walk_walls(), altar_spots_, s.seen);
+        for (auto t : ally_spawn.positions()) home_altar_ = std::min(home_altar_, altar_.at(t));
+        bank_d_.assign(ng, kFar);
+        {
+            const std::uint16_t* aq = altar_.q;
+            for (size_t i = 0; i < ng; ++i) {
+                int b = kFar;
+                for (auto t : g_[i].tiles)
+                    if (inside(t)) b = std::min(b, raw_dist(aq, t));
+                bank_d_[i] = b;
             }
-    altar_.compute(walk_walls(), altar_spots_, s.seen);
-    for (auto t : ally_spawn.positions()) home_altar_ = std::min(home_altar_, altar_.at(t));
-    bank_d_.assign(ng, kFar);
-    {
-        const std::uint16_t* aq = altar_.q;
-        for (size_t i = 0; i < ng; ++i) {
-            int b = kFar;
-            for (auto t : g_[i].tiles)
-                if (inside(t)) b = std::min(b, raw_dist(aq, t));
-            bank_d_[i] = b;
         }
-    }
-    mark("altars");
+        mark("altars");
     } else if (step == 3) {
-
-    // Order in which the groups' own walking fields are filled: our home groups first, then by distance
-    // (ties by index, as a stable sort).
-    {
-        std::vector<std::uint64_t> key(ng);
-        const bool homes = home_slot_.size() == ng;
-        for (size_t i = 0; i < ng; ++i) {
-            const bool mine = homes && home_slot_[i] == slot_;
-            key[i] = (static_cast<std::uint64_t>(mine ? 0 : 1) << 40) | (static_cast<std::uint64_t>(g_[i].d_ally) << 20) | i;
+        // Order in which the groups' own walking fields are filled: our home groups first, then by distance
+        // (ties by index, as a stable sort).
+        {
+            std::vector<std::uint64_t> key(ng);
+            const bool homes = home_slot_.size() == ng;
+            for (size_t i = 0; i < ng; ++i) {
+                const bool mine = homes && home_slot_[i] == slot_;
+                key[i] = (static_cast<std::uint64_t>(mine ? 0 : 1) << 40) | (static_cast<std::uint64_t>(g_[i].d_ally) << 20) | i;
+            }
+            std::sort(key.begin(), key.end());
+            fill_order_.resize(ng);
+            for (size_t i = 0; i < ng; ++i) fill_order_[i] = static_cast<int>(key[i] & 0xfffff);
         }
-        std::sort(key.begin(), key.end());
-        fill_order_.resize(ng);
-        for (size_t i = 0; i < ng; ++i) fill_order_[i] = static_cast<int>(key[i] & 0xfffff);
-    }
-    mark("order");
+        mark("order");
     }
     if constexpr (kProbe) g_probe += " r" + std::to_string(cambc::round_number()) + "s" + std::to_string(step) + " est=" + std::to_string(step_cost(step));
 }
 
 // The first choice's caches, resumable over turns: every group's clear cost (~1k + 40 per pair of its camps;
-// the first choice weighs every group), then the field from our tile. True when all are done.
+// the first choice weighs every group), the field from our tile, the first choice's goals when there is room
+// for them, and the camp-block board. True when the required ones are done.
 bool Bot::prewarm() {
     for (; g_warm < g_.size(); ++g_warm) {
         const std::uint64_t n = g_[g_warm].tiles.size();
@@ -526,13 +521,11 @@ int Bot::eta(int group) const {
     }
     if (g_[group].d_ally >= kFar) return kFar;
     if (g_unfilled >= kHereMin && here_field(pos_, kFieldFuel)) {
-        {
-            const std::uint16_t* q = g_here->f.ptr();
-            int best = kFar;
-            for (auto t : g_[group].tiles)
-                if (inside(t)) best = std::min(best, raw_dist(q, t));
-            return best;
-        }
+        const std::uint16_t* q = g_here->f.ptr();
+        int best = kFar;
+        for (auto t : g_[group].tiles)
+            if (inside(t)) best = std::min(best, raw_dist(q, t));
+        return best;
     }
     return cheb(pos_, g_[group].center) * 5 / 4 + 2;
 }
