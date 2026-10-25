@@ -28641,17 +28641,18 @@
    "status": "verified"
   },
   "r09-B": {
+   "arrived_at": 1792958259,
    "generation": 9,
    "pushed_at": 1792957932,
    "pushed_commit": "8ec2b8d38748871b6b1efce23c06aeb24729edd2",
+   "results_commit": "b9fdbcacf5a2b205679fc117aac4e5db1dcb8e2c",
    "retries": 0,
    "stage": "B",
-   "status": "pending"
+   "status": "arrived"
   }
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-25T10:41:39Z g05 phase PLANNED: 8 slots",
   "2026-10-25T10:41:44Z g05 phase TASKS_PUSHED: 7 task files",
   "2026-10-25T10:41:54Z g05 phase RUNNING",
   "2026-10-25T10:42:12Z g05 f05-01: launched session_01MKxXcycWbEzGAPcQmWBvcE",
@@ -28850,10 +28851,11 @@
   "2026-10-25T19:49:32Z g09 r09-A-spot: pushed 906aeae710 (18 sampled games, 14 shards)",
   "2026-10-25T19:51:48Z g09 r09-A: verified, 896 rows, spot-check 18 OK",
   "2026-10-25T19:51:56Z g09 phase EVAL_B_PENDING: stage A ranked: f09-01, f09-05, f09-04, f09-03, f09-02, f07-02, f08-04, f06-05, f09-06, f09-07, starter",
-  "2026-10-25T19:52:12Z g09 r09-B: pushed 8ec2b8d387 with 44 shards"
+  "2026-10-25T19:52:12Z g09 r09-B: pushed 8ec2b8d387 with 44 shards",
+  "2026-10-25T19:57:39Z g09 phase EVAL_B_DONE: results for r09-B"
  ],
  "paused": null,
- "phase": "EVAL_B_PENDING",
+ "phase": "EVAL_B_DONE",
  "sessions_launched": 71,
  "version": 1
 }
