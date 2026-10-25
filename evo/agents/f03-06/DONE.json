@@ -1,0 +1,27 @@
+{
+ "agent": "f03-06",
+ "task_sha256": "b93281052b94f1409f9648c75d637604773967c2c7308f0302b026922ce627c9",
+ "base_commit": "b439ae5b176d76127fe12d28044d2dc898794f0c",
+ "session_id": "cse_01KdzCukGtLV56bpMtToMfD7",
+ "bot_dir": "bots/f03-06",
+ "self_eval": {
+  "vs": "f02-01",
+  "games": 12,
+  "wins": 4
+ },
+ "games_played": 890,
+ "summary": "Map-reader squads: draft sizes squads by camp danger and map size, leaders share targets, team boss raids, focus-fire fights, early banking",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "c1c41cadabeb6984130d228ebd97fd8f99a611679eee5d7d3367a26fda5dc837",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 14.92,
+  "remote": "true",
+  "session_id": "cse_01KdzCukGtLV56bpMtToMfD7",
+  "effort_level": "high",
+  "model": null
+ }
+}

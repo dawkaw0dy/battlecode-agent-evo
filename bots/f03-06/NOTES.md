@@ -26,8 +26,10 @@ foe attacking a friend, retreat home when low or outnumbered; Willow heals; gems
 
 ## Changes this generation
 - New bot (immigrant, map-reader archetype) on the starter's main loop.
-- Local results (final versions): vs starter 12/12; vs f02-01 19/80 on all 40 maps mid-generation, later subsets
-  5/16 and 6/16; vs f00-03 2–3/12, vs f01-07 2/12 on 6-map subsets. 0 faults, 0 bot errors.
+- Local results, final version (6-map subsets, both sides): vs starter 12/12 (+801), vs f02-01 4/12 (−171),
+  vs f00-03 4/12 (−106), vs f01-07 5/12 (−107). Mid-generation vs f02-01 on all 40 maps: 19/80.
+  The last fight-threshold change (stand at ratio ≥ 0.65) took the f02-01 subset from 1/12 (−574) to 4/12.
+  0 faults, 0 bot errors.
 
 ## Tried and failed (keep entries from the parent's notes; add yours)
 - Fuel: iostream output costs ~10k fuel per line; per-turn traces pushed turns over 100k and every other round was
