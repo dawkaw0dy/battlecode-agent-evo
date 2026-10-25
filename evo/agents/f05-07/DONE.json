@@ -1,0 +1,27 @@
+{
+ "agent": "f05-07",
+ "task_sha256": "418a2b88055847920785902f564a11b72829959d244431419c227d8d5644bc1d",
+ "base_commit": "eb988a6d870de914fd683b8d104845bef9579798",
+ "session_id": "cse_016imJFvD6ZFEY9EQvF6jXs8",
+ "bot_dir": "bots/f05-07",
+ "self_eval": {
+  "vs": "f00-03",
+  "games": 80,
+  "wins": 17
+ },
+ "games_played": 900,
+ "summary": "Big-game hunter immigrant: solo claimed farming with multi-trip wear-down, whole-team golem/monolith raids with staging and tank rotation; 17/80 vs f00-03, 12/12 vs starter",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "e29689cdcad2cd316aa883dc7a1b92bc3628933c8fd3a82200703046a835d98a",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 16.97,
+  "remote": "true",
+  "session_id": "cse_016imJFvD6ZFEY9EQvF6jXs8",
+  "effort_level": "high",
+  "model": null
+ }
+}

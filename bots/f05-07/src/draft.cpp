@@ -4,7 +4,7 @@
 #include <array>
 #include <vector>
 
-// Big-game hunter line-up: sturdy melee with resets and stuns, one ranged gold earner.
+// Line-up: two ranged gold/damage dealers and three sturdy melee with resets, stuns and a shield.
 // The order doubles as the champion's slot index in shared memory (see bot.cpp).
 const std::array<cambc::champion_draft, 5> kPicks{
     cambc::champion_draft::vesper_vale, cambc::champion_draft::vendetta, cambc::champion_draft::marcella,

@@ -18,8 +18,8 @@ struct Group {
     bool reward_ready = false;
     int max_respawn = 60;
     int last_seen = -1000;
-    int home_dist = 0;
-    bool enemy_side = false;         // closer to the enemy spawn than to ours               // walking distance from our spawn (65535: unreachable)
+    int home_dist = 0;               // walking distance from our spawn (65535: unreachable)
+    bool enemy_side = false;         // closer to the enemy spawn than to ours
 };
 
 // Per-champion state survives between turns.
