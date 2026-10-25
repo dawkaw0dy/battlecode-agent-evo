@@ -17,7 +17,8 @@
 
 namespace {
 
-constexpr int kHoldRange = 7;          // an enemy champion this close: keep stuns and nukes for it
+constexpr int kHoldRange = 0;          // an enemy champion this close: keep stuns and nukes for it (0: off;
+                                       // 7 measured 44/80 vs f03-05 against 49/80 off)
 constexpr float kMinCampValue = 30.0f; // a cast on camps must add at least this much
 
 struct SpellInfo {
@@ -104,7 +105,7 @@ void Bot::spells_on_group(int group) {
     const vec2 pos = me.position();
     const int range = me.attack_range();
     const float str = me.strength();
-    const bool hold = nearest_foe(pos) <= kHoldRange;
+    const bool hold = kHoldRange > 0 && nearest_foe(pos) <= kHoldRange;
     // Camp damage on us next round: awake camps that reach us, or the ones our hit this turn wakes.
     float threat = incoming_;
     if (threat <= 0) {
@@ -236,7 +237,11 @@ void Bot::fight_spells(std::vector<Fighter>& theirs, bool engage) {
             else if (follow && dmg + str >= e.hp) val += 600.0f + 0.5f * e.value;
             else val += 150.0f * (1.0f - e.hp / e.max_hp) * (dmg / std::max(1.0f, e.hp));  // focus the wounded
             if (ab.is_cc() && !e.stunned) {
-                val += e.sustain + 0.5f * e.burst;           // its next turn of damage
+                // Its next turn of damage, if it can reach one of us then.
+                const int reach = static_cast<int>(e.threat_reach());
+                bool threatens = cheb(e.pos, pos) <= reach;
+                for (size_t a = 0; a < v.allies.size() && !threatens; ++a) threatens = cheb(e.pos, v.allies[a]) <= reach;
+                val += (threatens ? 1.0f : 0.3f) * (e.sustain + 0.5f * e.burst);
                 if (tribute) val += 300.0f + 5.0f * e.gems;  // a stun cancels a tribute
                 else if (e.channel) val += 150.0f;           // ... and a recall
             } else if (e.channel && !tribute && dmg > 0) {
