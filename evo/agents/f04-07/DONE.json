@@ -1,0 +1,27 @@
+{
+ "agent": "f04-07",
+ "task_sha256": "8ccd26209d08390af9104688782a3c0cfa478d3a71740d226b55a8628617abc5",
+ "base_commit": "1f5589e51c3a846cb8d8cf6565c8815c90f39c83",
+ "session_id": "cse_01JbTePEteoJaNKpNmfXAd4T",
+ "bot_dir": "bots/f04-07",
+ "self_eval": {
+  "vs": "f00-03",
+  "games": 32,
+  "wins": 10
+ },
+ "games_played": 895,
+ "summary": "vision-ambush immigrant: two squads share camp targets, shared-memory sightings, wards/bush ambush, altar locks, fuel-safe travel estimates; beats starter, ~1/3 vs f00-03, loses to f03-05",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "16f38370f9e03b42263aab52253053e6123fa9667adec78e1e8ed8551fb817de",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 21.72,
+  "remote": "true",
+  "session_id": "cse_01JbTePEteoJaNKpNmfXAd4T",
+  "effort_level": "high",
+  "model": null
+ }
+}
