@@ -32,6 +32,7 @@ constexpr int kChaseTurns = 6;
 constexpr float kHomeWeight = 1.0f;     // retreat step: walking distance home ...
 constexpr float kThreatWeight = 10.0f;  // ... against the damage the step exposes us to (10/3: more deaths)
 constexpr float kCloserPenalty = 0.0f;  // ... and stepping towards an enemy
+constexpr float kIslandShare = 0.3f;    // use teleport crystals when islands hold this share of the value
 constexpr bool kWards = true;           // ward hidden bushes next to us
 constexpr float kOurEfficiency = 1.0f;  // share of our estimated damage that lands in a real fight
 constexpr float kBurstWeight = 0.0f;    // first-turn burst in the fight simulation (off: measured worse)
@@ -131,7 +132,18 @@ void Bot::init() {
                 if (e != cambc::distance_field::unreachable) G.enemy_dist = std::min(G.enemy_dist, e);
             }
         }
+        G.island = G.home_dist >= 1000;
         groups.push_back(std::move(G));
+    }
+    // Teleport crystals only where islands hold a good share of the map's value.
+    {
+        float island_value = 0, total_value = 0;
+        for (const auto& g : groups) {
+            const float v = static_cast<float>(g.gems) + 0.3f * static_cast<float>(g.gold);
+            total_value += v;
+            if (g.island) island_value += v;
+        }
+        need_crystal = total_value > 0 && island_value >= kIslandShare * total_value;
     }
 
     // Groups standing on the only free tiles next to every altar must die before anyone banks.
@@ -942,12 +954,79 @@ bool Bot::step_home() {
     return false;
 }
 
+bool Bot::has_crystal() const {
+    return cambc::self().consumables()[cambc::consumable_type::tp_crystal].count() > 0;
+}
+
+bool Bot::on_island() const {
+    return home_field.get(pos) == cambc::distance_field::unreachable;
+}
+
+// Reach goals across holes: walk to a tile within teleport range of the goals' island, then teleport.
+bool Bot::jump_to(const cambc::bitboard& goals_in) {
+    auto& me = cambc::self();
+    if (moved || move_blocked || cast_exclusive) return false;
+    auto walls = static_block | occupied;
+    walls.set(pos, false);
+    const auto roots = goals_in & ~walls;
+    if (roots.is_empty()) return false;
+    cambc::distance_field gfield;
+    cambc::bitboard greach;
+    gfield.compute(walls, roots, greach);
+    debug_block({
+        if (round % 10 == 0)
+            std::printf("J i%d r%u pos(%d,%d) reach%d crystal%d gold%u\n", my_index, round, pos.x, pos.y, (int)greach.is_set(pos), (int)has_crystal(), gold);
+    });
+    if (greach.is_set(pos)) return step_to(goals_in);
+    if (!has_crystal()) return false;
+    const auto landing = greach & ~walls & ~camp_spawns;
+    // Tiles within teleport range (3) of a landing tile.
+    auto near = landing;
+    for (int i = 0; i < 3; ++i) {
+        near |= near.shift_right(1) | near.shift_right(-1);
+        near |= near.shift_up(1) | near.shift_up(-1);
+    }
+    if (!near.is_set(pos)) {
+        cambc::bitboard start, mreach;
+        start.set(pos);
+        cambc::distance_field mfield;
+        mfield.compute(walls, start, mreach);
+        const auto jumpoff = near & mreach;
+        if (jumpoff.is_empty()) return false;
+        return step_to(jumpoff);
+    }
+    vec2 best{-1, -1};
+    int bd = cambc::distance_field::unreachable;
+    for (int dx = -3; dx <= 3; ++dx) {
+        for (int dy = -3; dy <= 3; ++dy) {
+            const vec2 t{pos.x + dx, pos.y + dy};
+            if (!in_map(t, width, height) || !landing.is_set(t)) continue;
+            const int v = gfield.get(t);
+            if (v < bd) bd = v, best = t;
+        }
+    }
+    if (best.x < 0) return false;
+    try {
+        if (me.consumables()[cambc::consumable_type::tp_crystal].use(best)) {
+            moved = true;
+            return true;
+        }
+        move_blocked = true;
+    } catch (const std::exception& e) { warn("teleport", e); }
+    return false;
+}
+
 // ---------------------------------------------------------------------------------------------
 // Economy
 // ---------------------------------------------------------------------------------------------
 
 void Bot::shop() {
     auto& me = cambc::self();
+    if (need_crystal) {
+        try {
+            if (!has_crystal() && me.can_buy(cambc::consumable_type::tp_crystal)) me.buy(cambc::consumable_type::tp_crystal);
+        } catch (const std::exception& e) { warn("crystal", e); }
+    }
     if (me.gold_count() < 30) return;
     // Damage dealers mostly buy strength, some health; casters buy focus.
     auto pick = [&](int n) {
@@ -1049,7 +1128,12 @@ void Bot::choose_target() {
                 if (v != cambc::distance_field::unreachable && v < d) d = v;
             }
         }
-        if (d >= (1 << 20)) continue;
+        if (d >= (1 << 20)) {
+            // Across the holes with a teleport crystal (bought at spawn: fetch one first).
+            if (!g.island || !need_crystal || on_island() || (!has_crystal() && gold < 10)) continue;
+            if (has_crystal()) d = cheb(pos, g.center) * 3 / 2 + 6;
+            else d = std::min<int>(home_field.get(pos), 8) + cheb(home_center, g.center) * 3 / 2 + 6;
+        }
         const float left = g.hp_left >= 0 ? g.hp_left : g.max_hp;
         int claimers = 0;
         for (int a = 0; a < 5 && a < team_count; ++a)
@@ -1101,6 +1185,22 @@ bool Bot::farm() {
     if (my_index < 5) mem[static_cast<std::size_t>(my_index)] = static_cast<std::uint8_t>(target >= 0 ? target : 255);
     if (target < 0) return false;
     auto& g = groups[static_cast<std::size_t>(target)];
+    // An island target without a crystal: home to buy one (recall when it is far).
+    if (g.island && need_crystal && !has_crystal() && !on_island()) {
+        auto& me = cambc::self();
+        if (ally_spawn.is_set(pos)) {
+            target = -1;  // shop() could not buy one
+            return false;
+        }
+        if (home_field.get(pos) > 8 && camp_threat_at(pos) <= 0 && !damaged && r - last_enemy_round > 4) {
+            try {
+                me.recall();
+                return true;
+            } catch (const std::exception& e) { warn("crystal recall", e); }
+        }
+        step_to(ally_spawn);
+        return true;
+    }
 
     // Living camps of the group in sight: hit the weakest in range, else close in.
     const CampSeen* hit = nullptr;
@@ -1130,8 +1230,19 @@ bool Bot::farm() {
                 cov1 |= disk;
             }
             const auto edge = goals & ~cov2;
-            if (n >= 3 && !(edge & ~(static_block | occupied)).is_empty()) step_to(edge);
-            else step_to(goals);
+            bool went;
+            if (n >= 3 && !(edge & ~(static_block | occupied)).is_empty()) went = step_to(edge);
+            else went = g.island && need_crystal ? jump_to(goals) : step_to(goals);
+            if (!went && !move_blocked && !goals.is_set(pos)) {
+                // In sight but out of reach (holes, crowding): another group for a while.
+                if (++stuck_turns >= 4) {
+                    g.blocked_until = r + 40;
+                    stuck_turns = 0;
+                    target = -1;
+                }
+            } else if (went) {
+                stuck_turns = 0;
+            }
             for (const auto& cc : camps)
                 if (cc.group == target && cheb(cc.pos, pos) <= range) { attack_camp(cc); break; }
         }
@@ -1152,7 +1263,17 @@ bool Bot::farm() {
             if (s == pos) return true;  // capturing
         cambc::bitboard goals;
         for (auto s : g.spawns) goals.set(s);
-        step_to(goals);
+        const bool went = g.island && need_crystal ? jump_to(goals) : step_to(goals);
+        if (!went && !move_blocked) {
+            // Spawn tiles out of reach (taken, or across holes): give the reward up for a while.
+            if (++stuck_turns >= 4) {
+                g.blocked_until = r + 40;
+                stuck_turns = 0;
+                target = -1;
+            }
+        } else {
+            stuck_turns = 0;
+        }
         return true;
     }
     if (group_visible && g.state == 3) {
@@ -1161,7 +1282,8 @@ bool Bot::farm() {
     }
     cambc::bitboard goals;
     for (auto s : g.spawns) goals.draw_chebyshev(s, static_cast<float>(std::max(range, 1)));
-    if (!step_to(goals) && !move_blocked && !goals.is_set(pos)) {
+    const bool went = g.island && need_crystal ? jump_to(goals) : step_to(goals);
+    if (!went && !move_blocked && !goals.is_set(pos)) {
         // No way through (monsters or units in the way): try another group for a while.
         if (++stuck_turns >= 4) {
             g.blocked_until = r + 60;
@@ -1335,6 +1457,14 @@ void Bot::play_turn() {
             if (banking) done = go_bank();
             debug_block({ if (banking) last_act = "bank"; });
         } catch (const std::exception& e) { warn("bank", e); }
+    }
+    const bool island_idle = target < 0 || groups[static_cast<std::size_t>(target)].dead_until > r + 5;
+    if (!done && on_island() && !at_spawn && (gems >= kBankGems || island_idle) && camp_threat_at(pos) <= 0 && !damaged) {
+        // Stranded on an island (crystal spent): recall carries us and our gems home.
+        try {
+            me.recall();
+            done = true;
+        } catch (const std::exception& e) { warn("island recall", e); }
     }
     if (!done) {
         try {

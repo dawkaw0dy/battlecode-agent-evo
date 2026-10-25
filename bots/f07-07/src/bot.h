@@ -51,6 +51,7 @@ struct Group {
     int danger_until = 0;   // enemies were seen near it
     int blocked_until = 0;  // we could not get there
     bool guards_altar = false; // holds the only way onto an altar
+    bool island = false;    // not reachable on foot from our spawn (holes): needs a teleport crystal
 };
 
 // One of our ability slots, decoded once.
@@ -121,6 +122,7 @@ private:
     int my_field_round = -100;
     bool banking = false;
     int bank_blocked_until = 0;
+    bool need_crystal = false;        // the map has islands worth a teleport
     cambc::vec2 stuck_pos{-1, -1};
     int stuck_turns = 0;
 
@@ -151,6 +153,9 @@ private:
     void engage(const Body& target);
     void retreat();
     bool step_home();
+    bool jump_to(const cambc::bitboard& goals);
+    bool has_crystal() const;
+    bool on_island() const;
     bool farm();
     bool bank();
     bool go_bank();
