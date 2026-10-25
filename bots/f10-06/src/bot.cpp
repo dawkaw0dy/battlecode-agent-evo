@@ -278,16 +278,24 @@ bool Bot::go(const cambc::bitboard& goals_in, bool allow_dash) {
     auto& me = cambc::self();
     if (move_failed_ || !me.can_move()) return false;
     if (bit(goals_in, pos_)) return false;
+    // Keep out of the reach of awake camps we are not fighting, unless already inside one.
+    const cambc::bitboard* walls = &block_;
+    cambc::bitboard with_hot{cambc::uninitialized};
+    if (hot_any_ && !bit(hot_, pos_)) {
+        with_hot = block_;
+        with_hot |= hot_;
+        walls = &with_hot;
+    }
     cambc::bitboard goals = goals_in;
-    goals &= ~block_;
+    goals &= ~*walls;
     if (goals.is_empty()) return false;
     cambc::bitboard dest;
     dest.set(pos_, true);
     cambc::bitboard seen;
-    field_->compute_to(block_, goals, dest, seen, 400);
+    field_->compute_to(*walls, goals, dest, seen, 400);
     const auto* f = static_cast<const cambc::distance_field&>(*field_).ptr();
     const auto* sb = seen.ptr();
-    const auto* bb = block_.ptr();
+    const auto* bb = walls->ptr();
     int here = raw_bit(sb, pos_) ? raw_dist(f, pos_) : kFar;
     if (here == kFar) return false;
 
@@ -350,6 +358,16 @@ float Bot::danger_at(vec2 p) const {
     return s;
 }
 
+// How deep inside awake camps' reach a tile is, weighted by their strength.
+float Bot::camp_pressure(vec2 p) const {
+    float s = 0;
+    for (const auto& a : awake_) {
+        const int d = cheb(p, a.pos);
+        if (d <= a.range) s += static_cast<float>(a.range + 1 - d) * a.str;
+    }
+    return s;
+}
+
 // Pressure enemy champions put on a tile: how far inside their reach (one step and a margin) it is.
 float Bot::foe_pressure(vec2 p) const {
     float s = 0;
@@ -404,11 +422,11 @@ bool Bot::flee() {
     if (hot && foe_d > 6) {
         // Step to the neighbour with the least camp fire and enemy reach, preferring the way home.
         vec2 best = pos_;
-        float bv = danger_at(pos_) * 10 + foe_pressure(pos_) + static_cast<float>(cheb(pos_, spawn_center_)) * 3;
+        float bv = camp_pressure(pos_) * 10 + foe_pressure(pos_) + static_cast<float>(cheb(pos_, spawn_center_)) * 3;
         for (auto d : kDirs) {
             const vec2 q = pos_ + d;
             if (!inside(q) || bit(block_, q)) continue;
-            const float v = danger_at(q) * 10 + foe_pressure(q) + static_cast<float>(cheb(q, spawn_center_)) * 3;
+            const float v = camp_pressure(q) * 10 + foe_pressure(q) + static_cast<float>(cheb(q, spawn_center_)) * 3;
             if (v < bv) { bv = v; best = q; }
         }
         if (best != pos_ && me.can_move()) {
@@ -1018,6 +1036,23 @@ void Bot::turn() {
                 if (g.hp[i] > 0 && !raw_bit(v, g.tiles[i])) raw_set(w, g.tiles[i]);
         }
         raw_clear(w, pos_);
+    }
+    hot_.clear();
+    hot_any_ = false;
+    {
+        auto* w = hot_.ptr();
+        for (const auto& a : awake_) {
+            bool ours = false;
+            if (target_ >= 0 && target_ < static_cast<int>(g_.size()))
+                for (auto t : g_[static_cast<size_t>(target_)].tiles) ours |= t == a.pos;
+            if (ours) continue;
+            hot_any_ = true;
+            for (int dy = -a.range; dy <= a.range; ++dy)
+                for (int dx = -a.range; dx <= a.range; ++dx) {
+                    const vec2 q{a.pos.x + dx, a.pos.y + dy};
+                    if (inside(q)) raw_set(w, q);
+                }
+        }
     }
 
     const bool at_spawn = bit(spawn_, pos_);

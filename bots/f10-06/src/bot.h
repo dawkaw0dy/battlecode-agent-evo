@@ -45,7 +45,9 @@ class Bot {
     std::vector<Group> g_;
     std::vector<vec2> altars_;
     cambc::bitboard static_block_;   // walls, holes, altars, enemy spawn
-    cambc::bitboard block_;          // this turn's blocked tiles (without our own)
+    cambc::bitboard block_;
+    cambc::bitboard hot_;            // reach of awake camps we are not fighting
+    bool hot_any_ = false;          // this turn's blocked tiles (without our own)
     cambc::bitboard spawn_;
     vec2 spawn_center_{};
     std::unique_ptr<cambc::distance_field> field_;
@@ -104,6 +106,8 @@ class Bot {
     bool in_range_of_awake(vec2 p) const;
     float danger_at(vec2 p) const;
     float foe_pressure(vec2 p) const;
+    float camp_pressure(vec2 p) const;
+    int avoid_group_ = -1;           // awake camps of this group may be walked into (our target)
     int claims(int gi) const;
     void claim(int gi);
     cambc::bitboard approach(int gi, int r) const;
