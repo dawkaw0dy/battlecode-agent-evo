@@ -1000,8 +1000,9 @@ void Bot::choose_target(bool force) {
             if (visited.is_set(t)) d = std::min(d, static_cast<int>(field.get(t)));
         }
         if (d >= kFar) {
-            if (G.dA >= kFar || cheb(G.center, pos_) < kChooseRadius - 10) continue;
-            d = cheb(G.center, pos_) * 3 / 2;
+            if (G.dA >= kFar) continue;
+            // Beyond the search radius: at least the radius, at least the spawn-distance difference.
+            d = std::max({static_cast<int>(kChooseRadius) + 1, G.dA - std::min(home_dist(pos_), 500), cheb(G.center, pos_) * 6 / 5});
         }
 
         int claimers = 0;
@@ -1317,7 +1318,7 @@ bool Bot::raid_step(int g) {
     const auto claims = read_claims();
     for (int s = 0; s < static_cast<int>(plan_.picks.size()) && s < sm::kSlots; ++s)
         if (claims[static_cast<size_t>(s)] != -2) ++alive;
-    const int need = std::max(1, std::min(G.mono ? 4 : 2, alive - 1));
+    const int need = std::max(1, std::min(G.dps >= 200 ? 4 : 2, alive - 1));
     if (near >= need || ++rally_wait_ > 40) {
         rally_wait_ = 0;
         mark_engaged();

@@ -33,7 +33,11 @@ constexpr int kBankPct = EVO_BANK_PCT;
 #ifndef EVO_SECTORS
 #define EVO_SECTORS 0
 #endif
-constexpr bool kSectors = EVO_SECTORS;   // raid bosses on every map (measured worse: deaths at the boss)
+constexpr bool kSectors = EVO_SECTORS;
+#ifndef EVO_FOCUS
+#define EVO_FOCUS 1
+#endif
+constexpr bool kFocusGroups = EVO_FOCUS;   // raid bosses on every map (measured worse: deaths at the boss)
 
 // Split our side's camp groups into one angular sector per champion around our spawn, each sector
 // holding about the same farming value, so champions cycle their own groups instead of crowding.
@@ -132,6 +136,21 @@ Plan make_plan(const MapInfo& m, int team_size) {
     if (p.raid >= 0) {
         p.raid_round = boss_map ? 200 : kRaidRound;
         if (p.mode == kModeFarm) p.mode = kModeBoss;
+    }
+    // One group holding most of the map's gems (a contested centre): everyone gathers for each respawn.
+    if (p.raid < 0 && all_gems > 0 && kFocusGroups) {
+        int top = -1;
+        for (int i = 0; i < n; ++i) {
+            const auto& g = m.groups[static_cast<size_t>(i)];
+            if (g.dA >= kFar || g.boss) continue;
+            if (top < 0 || g.gems > m.groups[static_cast<size_t>(top)].gems) top = i;
+        }
+        if (top >= 0 && m.groups[static_cast<size_t>(top)].gems * 2 >= all_gems) {
+            const bool strong = m.groups[static_cast<size_t>(top)].dps >= 200;
+            p.raid = top;
+            p.raid_pow = strong ? 90 : 0;
+            p.raid_round = strong ? 400 : 0;
+        }
     }
     p.bank = (m.spawn_gap <= 30 ? 25 : (m.spawn_gap >= 90 ? 60 : 40)) * kBankPct / 100;
     if (p.mode == kModeSmall) p.flags |= planflag::kAggro;
