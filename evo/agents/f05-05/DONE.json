@@ -1,0 +1,27 @@
+{
+ "agent": "f05-05",
+ "task_sha256": "8d45cebe5f9313698370663407f4e843c2cc23ec57a0a2cb2e7bd85d6a437c94",
+ "base_commit": "eb988a6d870de914fd683b8d104845bef9579798",
+ "session_id": "cse_019cvvpWK5DtJxeWnyNfoepk",
+ "bot_dir": "bots/f05-05",
+ "self_eval": {
+  "vs": "f04-05",
+  "games": 80,
+  "wins": 43
+ },
+ "games_played": 872,
+ "summary": "Fuel subsystem rewrite: zero-copy chunk reads of boards/fields, in-place boards, no-throw ally/foe/group reads, cost-aware searches and exact-bound choose(); turns cut short 2.6%->0.1% on big maps; vs f03-05 45/80 (parent 40), vs f04-05 43/80 (parent 33)",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "e29689cdcad2cd316aa883dc7a1b92bc3628933c8fd3a82200703046a835d98a",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 19.91,
+  "remote": "true",
+  "session_id": "cse_019cvvpWK5DtJxeWnyNfoepk",
+  "effort_level": "high",
+  "model": null
+ }
+}

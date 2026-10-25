@@ -1,0 +1,27 @@
+{
+ "agent": "f05-04",
+ "task_sha256": "047efeab9c186b7cf566712ea09d369e7df9ba00f3d08354d1c17a1c3e991e4f",
+ "base_commit": "eb988a6d870de914fd683b8d104845bef9579798",
+ "session_id": "cse_01FvoKkFvNFyPXqxhvubA3ij",
+ "bot_dir": "bots/f05-04",
+ "self_eval": {
+  "vs": "f04-05",
+  "games": 26,
+  "wins": 14
+ },
+ "games_played": 813,
+ "summary": "f04-03 + whole-team raid on a boss guarding the only altar, doomed retreat, recall at 35% near enemies, unseen-attacker flee, help range 15, bank at 30 gems",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "e29689cdcad2cd316aa883dc7a1b92bc3628933c8fd3a82200703046a835d98a",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 18.08,
+  "remote": "true",
+  "session_id": "cse_01FvoKkFvNFyPXqxhvubA3ij",
+  "effort_level": "high",
+  "model": null
+ }
+}

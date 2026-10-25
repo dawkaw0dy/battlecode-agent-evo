@@ -1,0 +1,27 @@
+{
+ "agent": "f05-03",
+ "task_sha256": "da4a0714c819e0e40ea7736200f7fd04a21462211a3e538aced9011203cd0a76",
+ "base_commit": "eb988a6d870de914fd683b8d104845bef9579798",
+ "session_id": "cse_01AgPwQfZCUmjYorzqqBKDqH",
+ "bot_dir": "bots/f05-03",
+ "self_eval": {
+  "vs": "f03-05",
+  "games": 80,
+  "wins": 52
+ },
+ "games_played": 906,
+ "summary": "Endgame subsystem rewrite (endgame.cpp): walkable-only altars (sealed-pocket fix), lock memory/breaking, race banking rule, recall of stranded bags, boss-spawn tribute tile hold, contest of channelling enemies; 906 games (6 over budget)",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "e29689cdcad2cd316aa883dc7a1b92bc3628933c8fd3a82200703046a835d98a",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 19.07,
+  "remote": "true",
+  "session_id": "cse_01AgPwQfZCUmjYorzqqBKDqH",
+  "effort_level": "high",
+  "model": null
+ }
+}

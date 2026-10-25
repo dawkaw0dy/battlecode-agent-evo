@@ -1,0 +1,27 @@
+{
+ "agent": "f05-06",
+ "task_sha256": "fb4d93c0d7f7d11c0b9a03c484e0fc71597a56485d2ef36c232e0648ee0fd7c8",
+ "base_commit": "eb988a6d870de914fd683b8d104845bef9579798",
+ "session_id": "cse_01GprprW45QM9MmgY8XHg1Mm",
+ "bot_dir": "bots/f05-06",
+ "self_eval": {
+  "vs": "f02-01",
+  "games": 80,
+  "wins": 44
+ },
+ "games_played": 857,
+ "summary": "Split-farm immigrant: draft-time angular regions, value-per-turn farming with claims, raids on gem-concentrated groups, threat-based flight, spawn hold, altar locks; 44/80 vs f02-01",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "e29689cdcad2cd316aa883dc7a1b92bc3628933c8fd3a82200703046a835d98a",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 26.04,
+  "remote": "true",
+  "session_id": "cse_01GprprW45QM9MmgY8XHg1Mm",
+  "effort_level": "high",
+  "model": null
+ }
+}
