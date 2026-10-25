@@ -750,7 +750,7 @@ double Bot::group_score(int gi, double& trips_out, double floor) {
     if (gi == target) factor *= round - target_since > 8 ? 1.5 : 1.25;
     if (report_age <= 20 && report_count >= 2 && cheb(report_pos, g.center) <= 10) factor *= 0.2;
     if (g.state == 1 && (round - g.seen > 10 || cheb(pos, g.center) > 15) && gi != target) return 0;
-    const double w = round < 600 ? 0.3 : round < 1400 ? 0.15 : 0.05;
+    const double w = round < 1400 ? 0.35 : 0.1;
     const double value = (g.gems + w * g.gold) * factor;
     if (value <= 0) return 0;
     const double travel = (travel_ok && g.travel >= 0 ? g.travel : cheb(pos, g.center) * 1.3) + 1;
@@ -791,9 +791,9 @@ double Bot::group_score(int gi, double& trips_out, double floor) {
     const double first = std::max(0.0, hp - 0.25 * max_hp);
     double trips = 0;
     if (dmg > first) trips = std::ceil((dmg - first) / (0.7 * max_hp));
-    if (trips > (round - last_enemy_seen < 100 ? 1 : 3)) return 0;
+    if (trips > (round - last_enemy_seen < 100 ? 3 : 6)) return 0;
     trips_out = trips;
-    const double trip_cost = trips * (g.home_dist * 2.0 + 14);
+    const double trip_cost = trips * (g.home_dist + 10.0);
     return value / (travel + wait + away + clear + trip_cost + 8);
 }
 
@@ -1114,6 +1114,15 @@ void Bot::play_inner() {
         if (escape_camps()) return;
     }
     if (tribute(false)) return;
+    // Shop trip between fights: gold is damage.
+    if (me.gold_count() >= 250 && incoming <= 0 && enemies.empty() && !on_our_spawn(pos)
+        && me.champion_name() != cambc::champion_type::tavi) {
+        bool engaged = false;
+        if (target >= 0) for (int ci : groups[target].camps) if (camps[ci].hp > 0 && camps[ci].hp < camps[ci].max_hp) engaged = true;
+        if (!engaged) {
+            try { me.recall(); return; } catch (const cambc::error&) {}
+        }
+    }
     if (answer_report()) return;
     farm();
 }
