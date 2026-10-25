@@ -46,7 +46,7 @@ constexpr float kFleeHp = 0.5f;     // ... above this health fraction
 constexpr int kHuntPad = 3;         // engaged, but nobody within our range + this: farm unless a kill is expected
 constexpr float kHelpHp = 0.6f;     // answer an ally's sighting above this health fraction
 constexpr bool kLocks = true;       // carry an altar lock: drop it on enemy tributes and on altars we pass
-constexpr bool kLockRunner = true;  // the last pick carries locks to far altars
+constexpr bool kLockRunner = false;  // the last pick carries locks to far altars
 constexpr int kLockDetour = 8;      // walk this far (Chebyshev) out of our way to lock an altar
 
 namespace {
@@ -618,8 +618,8 @@ int Bot::choose(int& wait_out) {
         const int wait = std::max(0, avail - (now + e));
         float f = 1.0f;
         if (home_slot_.size() == g_.size()) {
-            if (home_slot_[i] == 255) f = 0.9f;
-            else if (home_slot_[i] != slot_) f = 0.8f;
+            if (home_slot_[i] == 255) f = 0.8f;
+            else if (home_slot_[i] != slot_) f = 0.6f;
         }
         if (g.d_enemy + 3 < g.d_ally) f *= 0.7f;
         if (k.state == Known::reward) f *= 1.3f;
