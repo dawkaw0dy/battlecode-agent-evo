@@ -25909,17 +25909,18 @@
    "status": "verified"
   },
   "r08-C": {
+   "arrived_at": 1792952084,
    "generation": 8,
    "pushed_at": 1792951945,
    "pushed_commit": "476961c7df2e19f4bededb778f19bbce11c1647b",
+   "results_commit": "dbdee21bdbfb26f2523063b554fc708e21558dbc",
    "retries": 0,
    "stage": "C",
-   "status": "pending"
+   "status": "arrived"
   }
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-25T08:37:46Z g04 f04-03: launched session_01Aj8kzpM3dwnJ2b5rZXuMQ1",
   "2026-10-25T08:37:58Z g04 f04-04: launched session_01AkmucjDbQzsy6kxG372xnd",
   "2026-10-25T08:38:09Z g04 f04-05: launched session_01Winrb6m3K71KbQwzDaiM8a",
   "2026-10-25T08:38:20Z g04 f04-06: launched session_013pJi6b3rXrK6nFdM8jEW1a",
@@ -26118,10 +26119,11 @@
   "2026-10-25T18:09:24Z g08 r08-B-spot: pushed 2dcb93e6ca (34 sampled games, 24 shards)",
   "2026-10-25T18:11:51Z g08 r08-B: verified, 1658 rows, spot-check 34 OK",
   "2026-10-25T18:12:04Z g08 phase EVAL_C_PENDING: stage C for f08-05 vs f08-02",
-  "2026-10-25T18:12:25Z g08 r08-C: pushed 476961c7df with 9 shards"
+  "2026-10-25T18:12:25Z g08 r08-C: pushed 476961c7df with 9 shards",
+  "2026-10-25T18:14:44Z g08 phase EVAL_C_DONE: results for r08-C"
  ],
  "paused": null,
- "phase": "EVAL_C_PENDING",
+ "phase": "EVAL_C_DONE",
  "sessions_launched": 64,
  "version": 1
 }
