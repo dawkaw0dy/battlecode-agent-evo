@@ -1,15 +1,17 @@
-// Endgame: when and where carried gems are banked, and the altar locks of both teams.
+// Endgame: when and where carried gems are banked, the altars both teams use, and the locks on them.
 //
-// Carried gems count for nothing until tributed, and the first team to tribute 1000 wins, so a bag is
-// worth banking once the walk is short against what the bag risks. Every altar is read once: the tiles
-// we can actually walk to that take a tribute there (an altar in a sealed pocket has none, and a camp
-// tile counts only once its camp is dead), the walk from each spawn, and a walking field to it, filled
-// lazily. Each turn the visible altars update what we know of the locks on them: an enemy lock blocks us
-// until five hits break it (attack() refuses locks: a tribute at the locked altar is what hits it), our
-// lock blocks only the enemy. A bag goes to the cheapest altar by walk, plus the hits a lock there costs,
-// plus a penalty where enemies were seen lately; a walk that makes no progress gives that altar up for
-// a while. Our own locks go on every altar we pass, on an enemy tribute in progress (placing one cancels
-// the channel), and the last pick runs them to altars nobody passes.
+// Carried gems count for nothing until tributed, and the first team to tribute 1000 wins. Every altar is
+// read once: the tiles we can actually walk to that take a tribute there (an altar in a sealed pocket has
+// none; a tile under a living camp counts once it is cleared). Each turn the visible altars update what
+// we know of the locks on them: an enemy lock blocks us until five hits break it (attack() refuses locks:
+// a tribute at the locked altar is what hits it), ours blocks only the enemy.
+// A bag goes to the bank when it is full, the walk is short, enemies are about, the clock runs out, or
+// the race is in its last stretch (then every bag, since ours together may finish it); to the nearest open
+// altar by road, through a lock only when it is close or every altar is locked, by recall when the spawn
+// is nearer an altar or no walk leads to one. Nobody cancels a tribute and a champion in the channel
+// cannot act: one we can kill before its channel ends is ours for the taking, otherwise our lock on its
+// altar cancels the channel. Our locks also go on every altar we pass, and the last pick runs them to
+// far altars. Where the only altar takes tributes from a boss's spawn tiles alone, we hold one.
 
 #include <cambc.h>
 #include "bot.h"
@@ -26,7 +28,6 @@ constexpr bool kTraceLock = false;
 constexpr int kLockRange = 2;          // altar lock placement range
 constexpr int kEnemyLockMemory = 200;  // an enemy lock seen this long ago may still stand
 constexpr int kOurLockMemory = 150;    // ... and ours
-constexpr int kFoeNear = 4;            // an enemy this close to an altar "uses" it
 constexpr int kRaceGap = 120;          // this close to 1000 tributed, every bag is banked promptly
 constexpr bool kContest = true;        // go for channelling enemies we can kill before the channel ends
 
@@ -77,7 +78,6 @@ void Bot::eg_init() {
                 if (cheb(t, A.at) > ar) continue;
                 A.spots.push_back(t);
                 raw_set(A.goal.ptr(), t);
-                A.home_d = std::min(A.home_d, home_.at(t));
             }
     }
     // The only altar we can reach takes tributes only from a boss's spawn tiles: hold one (hold_tile()).
@@ -113,7 +113,7 @@ bool Bot::enemy_locked(size_t i) const {
     return enemy_lock_[i] >= 0 && round_now() - enemy_lock_[i] < kEnemyLockMemory;
 }
 
-// What the visible altars tell us about the locks on them, and where enemies stand: once per turn.
+// What the visible altars tell us about the locks on them: once per turn.
 void Bot::eg_observe() {
     const int now = round_now();
     if (!eg_ready_ || eg_round_ == now) return;
@@ -125,19 +125,9 @@ void Bot::eg_observe() {
         const vec2 a = alt_[i].at;
         if (!v.lvis.at(a)) continue;
         const bool o = bit(ours, a);
-        if (!o && lock_seen_[i] > -1000 && now - lock_seen_[i] < kOurLockMemory) {
-            // Our lock is gone: this enemy breaks them.
-            alt_[i].lock_broken = now;
-            foe_breaks_ = true;
-            if (kTraceLock) std::cout << "LOCKGONE r" << now << " slot" << slot_ << " altar " << a.x << ',' << a.y << " enemy " << bit(theirs, a) << '\n';
-        }
         lock_seen_[i] = o ? now : -1000;
         enemy_lock_[i] = bit(theirs, a) ? now : -1;
     }
-    if (!v.foes.is_empty())
-        for (auto p : v.foes.positions())
-            for (auto& A : alt_)
-                if (cheb(p, A.at) <= kFoeNear) A.foe_seen = now;
 }
 
 // ---------------------------------------------------------------- banking

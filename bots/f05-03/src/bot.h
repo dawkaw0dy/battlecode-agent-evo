@@ -37,9 +37,6 @@ struct Altar {
     std::vector<vec2> spots;     // tiles we can walk to that take a tribute here
     cambc::bitboard goal;        // ... as a board
     cambc::bitboard lock_goal;   // reachable tiles in lock range
-    int home_d = kFar;           // walk from our spawn
-    int foe_seen = -1000;        // last round an enemy stood near it
-    int lock_broken = -1000;     // last round we found our lock gone
 };
 
 // Per-champion state survives between turns.
@@ -67,7 +64,6 @@ class Bot {
     std::vector<Altar> alt_;
     bool eg_ready_ = false;
     int eg_round_ = -1;                 // last round eg_observe() ran
-    bool foe_breaks_ = false;           // we saw one of our locks broken
     int hold_i_ = -1;                   // the only altar, whose tribute tiles a boss respawns on
     cambc::bitboard eg_seen_, bank_goal_;
 
