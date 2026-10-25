@@ -25,6 +25,7 @@ struct GroupMem {
     int trips = 0;              // heal trips spent on the current life
     int travel = -1;            // walking distance from us at the last target choice
     int skip_until = 0;         // unreachable or stuck: leave it alone until then
+    int danger_until = 0;       // we fled enemies here
 };
 
 // Packed row-major tile bits, read locally (one export per board, no per-tile host calls).
@@ -77,6 +78,9 @@ private:
     bool enemy_field_ready = false;
     std::vector<Ability> abilities;
     std::vector<cambc::vec2> altars;
+    std::vector<int> altar_ban;
+    int trib_round = -100, trib_since = 0, trib_best = 999;
+    cambc::vec2 prev_pos{-1, -1};
 
     // Per-turn state.
     int round = 0;

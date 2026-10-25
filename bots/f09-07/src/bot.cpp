@@ -84,6 +84,7 @@ void Bot::init() {
     our_spawn.load(cambc::map::spawn_region(team::ally));
     camp_at_tile.assign(n, -1);
     altars = cambc::map::altars().positions();
+    altar_ban.assign(altars.size(), 0);
 
     // Draft plan.
     const auto* mem = reinterpret_cast<const std::uint8_t*>(cambc::draft_memory.data());
@@ -361,6 +362,7 @@ bool Bot::step_with(const cambc::distance_field& field, const cambc::bitboard& s
             if (!free_tile(q) || !seen.is_set(q)) continue;
             const int d = field.get(q);
             if (d > here) continue;
+            if (d == here && q.x == prev_pos.x && q.y == prev_pos.y) continue;  // no back-and-forth
             double s = (d - here) * 10.0;
             if (d == here) s += 6;  // sideways only when the straight steps are blocked
             if (away) {
@@ -375,6 +377,7 @@ bool Bot::step_with(const cambc::distance_field& field, const cambc::bitboard& s
     try {
         if (me.move_absolute(best)) {
             moved = true;
+            prev_pos = pos;
             pos = best;
             return true;
         }
@@ -682,6 +685,9 @@ bool Bot::fight_or_flight() {
     const int cd = cheb(enemies[closest].pos, pos);
     if (cd <= std::max(6, enemies[closest].range + 4) || (incoming > 0 && cd <= 9)) {
         fleeing_until = round + 8;
+        // The enemy holds this ground: farm elsewhere for a while.
+        for (auto& g : groups)
+            if (cheb(g.center, pos) <= 8) g.danger_until = round + 120;
         spells_on_enemy();
         flee_home();
         return true;
@@ -699,7 +705,8 @@ bool Bot::tribute(bool force) {
     const int gems = static_cast<int>(me.gem_count());
     if (gems <= 0) return false;
     int nearest = 999;
-    for (auto a : altars) nearest = std::min(nearest, cheb(a, pos));
+    for (std::size_t ai = 0; ai < altars.size(); ++ai)
+        if (altar_ban[ai] <= round) nearest = std::min(nearest, cheb(altars[ai], pos));
     int rx, ry, rcount, rage;
     read_report(rx, ry, rcount, rage);
     const bool danger = round - last_enemy_seen < 80 || rage <= 20;
@@ -721,11 +728,22 @@ bool Bot::tribute(bool force) {
     }
     auto goals = empty_board();
     bool any = false;
+    // No progress towards any altar for a while: ban the nearest one for a long time.
+    if (round - trib_round > 3) { trib_best = nearest; trib_since = round; }
+    trib_round = round;
+    if (nearest < trib_best) { trib_best = nearest; trib_since = round; }
+    if (round - trib_since > 12) {
+        for (std::size_t ai = 0; ai < altars.size(); ++ai)
+            if (altar_ban[ai] <= round && cheb(altars[ai], pos) == nearest) altar_ban[ai] = round + 150;
+        trib_since = round;
+        trib_best = 999;
+    }
     // The host search picks the nearest reachable altar from the union of approach tiles.
     const bool home_ok = false;
-    for (auto a : altars) {
+    for (std::size_t ai = 0; ai < altars.size(); ++ai) {
+        const auto a = altars[ai];
         if (home_ok && !(a.x == home_altar.x && a.y == home_altar.y)) continue;
-        if (enemy_locked(a)) continue;
+        if (enemy_locked(a) || altar_ban[ai] > round) continue;
         add_box(goals, a, cambc::constants::submit_gems_range, width, height);
         any = true;
     }
@@ -756,6 +774,7 @@ double Bot::group_score(int gi, double& trips_out, double floor) {
         else factor = middle ? 0.6 : 0.7;
     }
     if (gi == target) factor *= round - target_since > 8 ? 1.5 : 1.25;
+    if (g.danger_until > round) factor *= 0.25;
     if (report_age <= 20 && report_count >= 2 && cheb(report_pos, g.center) <= 10) factor *= 0.2;
     if (g.state == 1 && (round - g.seen > 10 || cheb(pos, g.center) > 15) && gi != target) return 0;
     const double w = round < 1400 ? 0.35 : 0.1;
@@ -1024,9 +1043,15 @@ bool Bot::answer_report() {
     purpose = 7;
     int rx, ry, count, age;
     read_report(rx, ry, count, age);
-    if (age > 3 || count > 2 || hp < 0.7f * max_hp || cambc::self().gem_count() > 20) return false;
+    if (age > 3 || count > 1 || hp < 0.7f * max_hp || cambc::self().gem_count() > 20) return false;
     const vec2 r{rx, ry};
-    if (!in_bounds(r) || cheb(r, pos) > 12 || cheb(r, pos) <= 3) return false;
+    if (!in_bounds(r) || cheb(r, pos) > 10 || cheb(r, pos) <= 3) return false;
+    // Only invaders in our own region.
+    bool mine = false;
+    for (const auto& g : groups)
+        if ((g.owner & 0x7F) == slot && g.owner != plan::kEnemySide && g.owner != plan::kNoOwner && cheb(g.center, r) <= 6)
+            mine = true;
+    if (!mine) return false;
     auto goal = empty_board();
     add_box(goal, r, 2, width, height);
     return route_to(goal);
