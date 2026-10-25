@@ -4396,9 +4396,11 @@
   },
   "f09-02": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evolution-f09-02-2nb8wk",
+   "commit": "bac9e0f2478831af5be89c5480668247eca5a5a0",
    "deadline_minutes": 120,
+   "done_at": 1792954829,
+   "effort_level": "high",
    "evidence": [
     {
      "gems_opponent": 1091,
@@ -4446,6 +4448,7 @@
    "generation": 9,
    "id": "f09-02",
    "kind": "child",
+   "model": null,
    "nudged": [],
    "operator": "subsystem",
    "parents": [
@@ -4465,7 +4468,7 @@
    ],
    "slot": 2,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "d71b409fcce8b3359f4aaeacc32b684d402ec6d9111866f3493c535a3b2d0cb8"
   },
   "f09-03": {
@@ -4621,9 +4624,11 @@
   },
   "f09-05": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evolution-f09-05-pnnp1t",
+   "commit": "1bf3bcda8ded9117179f9625b7df0c1368f1fec2",
    "deadline_minutes": 120,
+   "done_at": 1792954835,
+   "effort_level": "high",
    "evidence": [
     {
      "gems_opponent": 1331,
@@ -4671,6 +4676,7 @@
    "generation": 9,
    "id": "f09-05",
    "kind": "child",
+   "model": null,
    "nudged": [],
    "operator": "tweak",
    "parents": [
@@ -4690,7 +4696,7 @@
    ],
    "slot": 5,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "2cdc441960b5d1cf1b1dc628d4dfa6348cdae828cc750b7c608a308cb285504a"
   },
   "f09-06": {
@@ -26561,8 +26567,6 @@
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-25T10:21:56Z g04 f04-05: admitted (c28582254ff7)",
-  "2026-10-25T10:22:00Z g04 f04-06: admitted (6ead6ddbdb3d)",
   "2026-10-25T10:22:04Z g04 f04-07: admitted (8b1f348f210d)",
   "2026-10-25T10:22:11Z g04 phase EVAL_A_PENDING",
   "2026-10-25T10:22:21Z g04 r04-A: pushed 53e6664468 with 28 shards",
@@ -26760,7 +26764,9 @@
   "2026-10-25T18:19:48Z g09 f09-06: launched session_01CWpPnEipoic9pNx1XSJdTG",
   "2026-10-25T18:19:58Z g09 f09-07: launched session_017dxW1cJTYHhb9fet7Dyb3X",
   "2026-10-25T18:57:39Z g09 f09-04: done on origin/claude/evo-f09-04-v7g1kz at 6155ad03ef",
-  "2026-10-25T18:59:01Z g09 f09-01: done on origin/claude/evo-f09-01-i5ow1u at 32efcde7c4"
+  "2026-10-25T18:59:01Z g09 f09-01: done on origin/claude/evo-f09-01-i5ow1u at 32efcde7c4",
+  "2026-10-25T19:00:29Z g09 f09-02: done on origin/claude/evolution-f09-02-2nb8wk at bac9e0f247",
+  "2026-10-25T19:00:35Z g09 f09-05: done on origin/claude/evolution-f09-05-pnnp1t at 1bf3bcda8d"
  ],
  "paused": null,
  "phase": "RUNNING",
