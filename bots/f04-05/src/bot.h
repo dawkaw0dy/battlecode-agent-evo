@@ -61,7 +61,6 @@ class Bot {
     int last_enemy_seen_ = -1000;
     cambc::bitboard camp_block_;        // tiles of camps we believe alive, seen or not
     bool block_dirty_ = true;
-    std::vector<std::uint8_t> block_buf_;
     std::vector<int> reach_;            // largest distance from a group's centre to its camps
     cambc::bitboard awake_;             // awake camps in view this turn, and ones seen awake lately
     std::vector<std::pair<vec2, int>> awake_mem_;  // awake camp tile, last round seen awake
