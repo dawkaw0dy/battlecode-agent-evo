@@ -85,6 +85,10 @@ class Bot {
 
     void turn();
     void initialise();
+    void init_map();                    // initialisation steps (fuel.cpp)
+    void init_step(int step);
+    std::uint64_t step_cost(int step) const;
+    bool prewarm();
     void fill_fields(std::uint64_t reserve);
     void observe();
     void measure();

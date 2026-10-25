@@ -76,13 +76,38 @@ void block_changed(size_t i, bool& dirty) {
 constexpr std::uint64_t kFieldFuel = 40000;      // left over after a walking field (plus ~6 per reachable tile)
 std::uint64_t g_reachable = 10000;                // tiles we can walk to (set at initialisation)
 size_t g_unfilled = 0;                            // groups whose own walking field is not computed yet
+int g_stage = 0;                                  // initialisation steps done
+size_t g_warm = 0;                                // groups whose clear cost is cached
+std::uint64_t g_pairs = 0;                        // (fighting camp, camp) pairs inside groups
+std::uint64_t g_altars = 0;
+bool g_chose = false;                             // the first choice was made ahead (its goals cached)
+constexpr std::uint64_t kStepMargin = 6000;       // kept on top of a step's expected cost
+constexpr std::uint64_t kTurnFuel = 75000;        // a first turn once every cache is warm
+constexpr std::uint64_t kChooseFuel = 15000;      // making the first choice ahead (clear costs cached; ~1k a group)
+constexpr std::uint64_t kGoalFuel = 55000;        // ... and caching its goals (up to ~45k)
 constexpr size_t kHereMin = 3;                    // fewer unfilled groups than this: guess their etas instead
+
+// The walking field from tile `at` (~3-6 fuel per reachable tile), unless it is already there; false when it
+// is not there and fuel does not allow it (more than `reserve` must be left after it).
+bool here_field(vec2 at, std::uint64_t reserve) {
+    if (!inside(at) || g_walls_local.at(at)) return false;
+    if (!g_here) g_here = new Here;
+    Here& h = *g_here;
+    if (h.ok && h.origin == at) return true;
+    if (!fuel(reserve + 6 * g_reachable) || !live()) return false;
+    auto& s = scratch();
+    s.here.clear();
+    raw_set(s.here.ptr(), at);
+    h.f.compute(walk_walls(), s.here, h.seen);
+    h.origin = at;
+    h.ok = true;
+    return true;
+}
 
 void fill(Dist& d, const cambc::bitboard& tiles) {
     d.compute(walk_walls(), tiles, scratch().seen);
     if (g_unfilled > 0) --g_unfilled;
 }
-constexpr std::uint64_t kFirstTurnFuel = 100000;  // needed after initialisation to play the first turn
 
 int fdist(const cambc::distance_field& f, vec2 p) { return inside(p) ? raw_dist(f.ptr(), p) : kFar; }
 
@@ -187,9 +212,33 @@ void mark(const char* tag) {
 }
 }  // namespace
 
+// Initialisation is a queue of steps, each run only when what is left of the turn covers its expected cost:
+// a turn that runs dry is suspended and its remainder wastes the next round too (live() fails there). The map
+// step comes first (the first turn's 2x fuel always has room for it); then the team, the altar walk, the
+// field order, the camp threat tables and the first choice's caches (every group's clear cost, the field from
+// our tile). The first real turn is played once all are done and a turn's worth of fuel is left.
 void Bot::initialise() {
-    if constexpr (kProbe) { g_probe.clear(); g_mark = cambc::fuel_remaining(); }
+    if (g_stage == 0) {
+        init_map();
+        g_stage = 1;
+    }
+    while (g_stage < 6) {
+        if (!live()) return;
+        if (g_stage == 5) {
+            if (!prewarm()) { g_round = ~std::uint32_t{0}; return; }
+        } else {
+            if (!fuel(step_cost(g_stage) + kStepMargin)) { g_round = ~std::uint32_t{0}; return; }
+            init_step(g_stage);
+        }
+        ++g_stage;
+    }
     init_ = true;
+    if constexpr (kProbe) g_probe += " left=" + std::to_string(cambc::fuel_remaining());
+    if (!fuel(kTurnFuel)) g_round = ~std::uint32_t{0};
+}
+
+void Bot::init_map() {
+    if constexpr (kProbe) { g_probe.clear(); g_mark = cambc::fuel_remaining(); }
     init_dims();
     auto& s = scratch();
     g_walls_local.bind(walk_walls());
@@ -313,8 +362,34 @@ void Bot::initialise() {
     g_block_mark.assign(ng, 0);
     g_unfilled = ng;
     g_block_groups.reserve(ng);
+    g_altars = cambc::map::altars().count();
+    // The threat tables cost ~90 per pair of (fighting camp, camp) inside a group.
+    g_pairs = 0;
+    for (size_t i = 0; i < ng; ++i) {
+        std::uint64_t hostile = 0;
+        for (auto kind : g_[i].kinds) hostile += camp_spec(kind).str > 0;
+        g_pairs += hostile * g_[i].kinds.size();
+    }
     mark("groups");
+}
 
+std::uint64_t Bot::step_cost(int step) const {
+    const std::uint64_t ng = g_.size();
+    switch (step) {
+    case 1: return 8000;                            // team, slots, home regions
+    case 2: return 6000 + 3 * g_reachable + 1500 * g_altars;  // altar spots and the walk to them
+    case 3: return 2000 + 250 * ng;                 // field order
+    case 4: return 2000 + 90 * g_pairs + 60 * g_key.size();  // camp threat tables
+    }
+    return 0;
+}
+
+void Bot::init_step(int step) {
+    auto& s = scratch();
+    auto& me = cambc::self();
+    const auto& ally_spawn = cambc::map::spawn_region(team::ally);
+    const size_t ng = g_.size();
+    if (step == 1) {
     const auto allies = cambc::champions(team::ally);
     size_ = static_cast<int>(allies.size());
     // Cassi and Issac count as one pick.
@@ -342,8 +417,10 @@ void Bot::initialise() {
             if (static_cast<int>(static_cast<cambc::handle_champion_t>(a)) != self_h) others_.push_back(a);
     }
     mark("team");
+    } else if (step == 4) {
     build_threats();
     mark("threats");
+    } else if (step == 2) {
 
     // Tiles from which an altar takes a tribute, written straight into the board, then the walk to them.
     const int ar = cambc::constants::submit_gems_range;
@@ -370,6 +447,7 @@ void Bot::initialise() {
         }
     }
     mark("altars");
+    } else if (step == 3) {
 
     // Order in which the groups' own walking fields are filled: our home groups first, then by distance
     // (ties by index, as a stable sort).
@@ -385,27 +463,41 @@ void Bot::initialise() {
         for (size_t i = 0; i < ng; ++i) fill_order_[i] = static_cast<int>(key[i] & 0xfffff);
     }
     mark("order");
-    // Too little left for a turn (~60-90k: the first choice costs every group's clear): end this one now. A
-    // turn that runs dry is suspended and its rest wasted on the next round as well (live() fails there).
-    if (cambc::fuel_remaining() < kFirstTurnFuel) g_round = ~std::uint32_t{0};
-    if constexpr (kProbe) {
-        g_probe += " left=" + std::to_string(cambc::fuel_remaining());
-        g_probe += " ng=" + std::to_string(ng);
-        if (slot_ == 0) {
-            const auto ref = analyse_map();
-            int bad = 0;
-            for (size_t i = 0; i < ng && i < ref.size(); ++i) {
-                const auto& a = g_[i]; const auto& b = ref[i];
-                if (a.tiles != b.tiles || a.kinds != b.kinds || a.center != b.center || a.gems != b.gems || a.gold != b.gold || a.respawn != b.respawn || a.hp != b.hp || a.str != b.str || a.range != b.range || a.boss != b.boss || a.d_ally != b.d_ally || a.d_enemy != b.d_enemy) ++bad;
-            }
-            g_probe += " bad=" + std::to_string(bad) + " refn=" + std::to_string(ref.size());
-        }
     }
+    if constexpr (kProbe) g_probe += " r" + std::to_string(cambc::round_number()) + "s" + std::to_string(step) + " est=" + std::to_string(step_cost(step));
+}
+
+// The first choice's caches, resumable over turns: every group's clear cost (~1k + 40 per pair of its camps;
+// the first choice weighs every group), then the field from our tile. True when all are done.
+bool Bot::prewarm() {
+    for (; g_warm < g_.size(); ++g_warm) {
+        const std::uint64_t n = g_[g_warm].tiles.size();
+        if (!fuel(kStepMargin + 1000 + 40 * n * n) || !live()) return false;
+        clear_cost(static_cast<int>(g_warm));
+    }
+    if (g_unfilled >= kHereMin && !here_field(pos_, kStepMargin)) return false;
+    // With room to spare: make the first choice now and cache its goals (a raid's rally ring or the approach
+    // tiles cost up to ~50k on a big group); the turn that plays makes the same choice and finds them cached.
+    if (!g_chose && fuel(kChooseFuel + 1200 * g_.size() + kGoalFuel) && live()) {
+        g_chose = true;
+        init_ = true;  // choose() and the goals read the finished tables
+        int wait = 0;
+        const int t = choose(wait);
+        if (t >= 0 && k_[t].state != Known::reward && k_[t].state != Known::respawning && fuel(kGoalFuel)) {
+            if (raid_n_ >= 2 && rally_need_) rally_goal(t);
+            else approach_goal(t, std::max(1, my_range_));
+        }
+        init_ = false;
+    }
+    if (fuel(kStepMargin + 80 * g_key.size()) && live()) rebuild_camp_block();
+    mark("prewarm");
+    return true;
 }
 
 // Walking fields to each group's tiles, one host BFS each (no export), while fuel lasts: the current target
 // first (its field steers the stuck check and the dash decisions every turn), then in fill order.
 void Bot::fill_fields(std::uint64_t reserve) {
+    if (!init_) return;
     if (target_ >= 0 && gfield_[target_].empty()) {
         if (!fuel(reserve) || !live()) return;
         fill(gfield_[target_], gtiles_[target_]);
@@ -430,19 +522,9 @@ int Bot::eta(int group) const {
         return d >= kFar ? kFar : d;
     }
     if (g_[group].d_ally >= kFar) return kFar;
-    if (g_unfilled >= kHereMin && inside(pos_) && !walls_local().at(pos_)) {
-        if (!g_here) g_here = new Here;
-        Here& h = *g_here;
-        if (!(h.ok && h.origin == pos_) && fuel(kFieldFuel + 6 * g_reachable) && live()) {
-            auto& s = scratch();
-            s.here.clear();
-            raw_set(s.here.ptr(), pos_);
-            h.f.compute(walk_walls(), s.here, h.seen);
-            h.origin = pos_;
-            h.ok = true;
-        }
-        if (h.ok && h.origin == pos_) {
-            const std::uint16_t* q = h.f.ptr();
+    if (g_unfilled >= kHereMin && here_field(pos_, kFieldFuel)) {
+        {
+            const std::uint16_t* q = g_here->f.ptr();
             int best = kFar;
             for (auto t : g_[group].tiles)
                 if (inside(t)) best = std::min(best, raw_dist(q, t));
@@ -461,6 +543,9 @@ bool Bot::group_awake(int group) const {
 // ---------------------------------------------------------------- knowledge
 
 void Bot::observe() {
+    if constexpr (kProbe) {
+        if (!g_probe.empty() && live()) { std::cout << "PROBE r" << g_round << g_probe << " left=" << cambc::fuel_remaining() << std::endl; g_probe.clear(); }
+    }
     if (!live()) return;  // a suspended turn resumed on the next round, or the turn that initialised
     const int now = static_cast<int>(cambc::round_number());
     const size_t ng = g_.size();
