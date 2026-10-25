@@ -7,6 +7,8 @@
 struct EnemyView {
     vec2 pos{};
     float hp = 0, maxhp = 1, str = 0;
+    float dps = 0, burst = 0;   // sustained damage per turn and opening spell damage
+    bool dasher = false;
     int range = 1;
     int gems = 0;
     bool channel = false;   // tributing or recalling: cannot fight back this turn
@@ -16,7 +18,14 @@ struct EnemyView {
 struct AllyView {
     vec2 pos{};
     float hp = 0, maxhp = 1, str = 0;
+    float dps = 0;
     int range = 1;
+};
+
+struct AwakeCamp {
+    vec2 pos{};
+    float str = 0, hp = 0;
+    int range = 0;
 };
 
 // One ability slot per role (-1 = none).
@@ -34,7 +43,11 @@ struct GroupKnow {
     int seen = -1;          // last round any of its tiles was in vision
     bool reward = false;    // monsters dead, capture pending
     int enemy_round = -1000;  // last round enemies were seen near it
+    float hp_seen = -1;       // monster health left when last seen alive (-1 = full)
 };
+
+bool dash_capable(cambc::champion_type t);
+void champion_power(cambc::champion_type t, float str, float focus, float* dps, float* burst);
 
 class Bot {
 public:
@@ -54,17 +67,23 @@ private:
 
     // decisions
     bool handle_enemies();
+    float fight_value(bool* i_die) const;
+    bool flee();
+    bool engage();
+    float danger_at(vec2 t, bool dash_reach) const;
+    float camp_danger_at(vec2 t) const;
     bool should_recall();
     bool bank();
+    void choose_altar();
     void farm();
-    void choose_target();
+    void choose_target(bool force);
     bool execute_target(int g);
     bool attack_camps_in_range(int g);
-    bool retreat_from(const std::vector<vec2>& threats);
     void idle();
 
     // helpers
     bool step_towards(bitboard goals, bool allow_dash);
+    bool walk_to(vec2 t);
     bitboard blocked_now() const;
     const bitboard& approach_tiles(int g);
     int group_value(int g) const;
@@ -72,9 +91,12 @@ private:
     bool use_reset_and_attack(const cambc::unit& target);
     bool cast_on_camp(const cambc::camp& c, bool will_move);
     void cast_support();
-    float reach_of(const EnemyView& e) const;
     int home_dist(vec2 p) const;
     void write_claim(int g);
+    void update_squad();
+    bool same_squad(int s) const {
+        return slot_ < 5 && s < 5 && plan_.squad[static_cast<size_t>(s)] == plan_.squad[static_cast<size_t>(slot_)];
+    }
     std::array<int, 6> read_claims() const;
 
     bool inited_ = false;
@@ -99,9 +121,14 @@ private:
     int last_enemy_round_ = -1000;
     vec2 last_enemy_pos_{-1, -1};
     int banking_ = 0;           // 1 while on a bank trip
+    int bank_altar_ = -1, bank_choice_ = -100;
+    std::vector<bool> altar_locked_;   // enemy lock last seen on each altar
     float last_hp_ = 0;
     int warns_ = 0;
     int branch_ = 0;
+    enum Act { kActDead, kActChannel, kActHeal, kActFight, kActFlee, kActBank, kActHit, kActWalk, kActCapture, kActIdle, kActWait, kActRecall, kActs };
+    int act_ = 0;
+    std::array<int, kActs> acts_{};
 
     // turn snapshot
     int round_ = 0;
@@ -109,9 +136,17 @@ private:
     float hp_ = 0, maxhp_ = 1, str_ = 0;
     int gems_ = 0, gold_ = 0, range_ = 1;
     bool damaged_ = false;
+    float dmg_taken_ = 0;
     bool moved_ = false, attacked_ = false, cast_ = false, move_failed_ = false;
     bool at_spawn_ = false;
     bitboard visible_, enemy_tiles_, ally_tiles_, camp_tiles_;
     std::vector<EnemyView> enemies_;
     std::vector<AllyView> allies_;
+    std::vector<AwakeCamp> awake_;
+    std::vector<EnemyView> threats_;             // visible enemies plus those seen in the last 2 rounds
+    std::array<EnemyView, 16> mem_{};
+    std::array<int, 16> mem_round_{};
+    int flee_until_ = -1;
+    int leader_slot_ = 0, leader_target_ = -1, squad_n_ = 1;
+    float my_dps_ = 0, my_burst_ = 0;
 };

@@ -16,6 +16,7 @@ constexpr int kFar = 9999;
 #define EVO_TRACE 0
 #endif
 constexpr bool kTrace = EVO_TRACE;
+constexpr int kTraceSlot = 2, kTraceFrom = 150, kTraceTo = 330;
 constexpr std::uint16_t kUnreached = 65535;
 
 inline int cheb(vec2 a, vec2 b) {
@@ -64,6 +65,7 @@ constexpr int bank = 9;      // gem bank threshold
 constexpr int raid = 10;     // boss raid group index + 1 (0 = none)
 constexpr int raid_pow = 11; // strength (per champion, /4) required before raiding
 constexpr int flags = 12;    // misc plan flags
+constexpr int squads = 20;   // 5 bytes: squad id per pick slot
 constexpr int ngroups = 16;  // number of groups recorded
 constexpr int group = 32;    // one byte per group: plan class
 constexpr int kMaxGroups = 240;
@@ -76,6 +78,9 @@ enum GroupClass : std::uint8_t { kGHome = 0, kGContested = 1, kGEnemy = 2, kGBos
 
 // Shared memory layout (8 bytes).
 namespace sm {
-constexpr int claims = 0;   // bytes 0..5: claimed group + 1 per body slot
-constexpr int alert = 6;    // bytes 6..7: last enemy sighting (x, y), 255 = none
+constexpr int claims = 0;       // bytes 0..4: claimed group + 1 per body slot (0 = none)
+constexpr int alert = 5;        // bytes 5..6: last enemy sighting (x, y)
+constexpr int alert_round = 7;  // byte 7: round of that sighting (mod 256)
+constexpr int kSlots = 5;
+constexpr std::uint8_t kDead = 0xFE;
 }  // namespace sm

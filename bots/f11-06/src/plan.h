@@ -10,6 +10,7 @@ struct Plan {
     int raid = -1;          // boss group to raid together (-1 = none)
     int raid_pow = 0;       // mean strength per champion needed before the raid
     std::uint8_t flags = 0;
+    std::array<std::uint8_t, 5> squad{0, 1, 2, 3, 4};   // squad id per pick slot
     std::vector<std::uint8_t> cls;  // GroupClass per group
 };
 

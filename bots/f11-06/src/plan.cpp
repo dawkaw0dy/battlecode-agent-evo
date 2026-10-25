@@ -3,6 +3,11 @@
 
 using cd = cambc::champion_draft;
 
+#ifndef EVO_SQUAD
+#define EVO_SQUAD 0
+#endif
+constexpr int kSquadMode = EVO_SQUAD;   // 0 solo, 1 pairs, 2 one ball
+
 Plan make_plan(const MapInfo& m, int team_size) {
     Plan p;
     const int n = static_cast<int>(m.groups.size());
@@ -40,6 +45,13 @@ Plan make_plan(const MapInfo& m, int team_size) {
     }
     p.bank = m.spawn_gap <= 30 ? 25 : (m.spawn_gap >= 90 ? 60 : 40);
     if (p.mode == kModeSmall) p.flags |= planflag::kAggro;
+    // Squads: one ball on small maps, solo farmers elsewhere.
+    for (int i = 0; i < 5; ++i) {
+        int sq = i;
+        if (kSquadMode == 1) sq = i / 2;
+        else if (kSquadMode == 2) sq = 0;
+        p.squad[static_cast<size_t>(i)] = static_cast<std::uint8_t>(sq);
+    }
 
     std::vector<cd> order{cd::vendetta, cd::vesper_vale, cd::marcella, cd::tavi, cd::varg};
     order.resize(static_cast<size_t>(std::clamp(team_size, 1, 5)));
@@ -57,6 +69,7 @@ void write_plan(const Plan& p, const MapInfo& m, std::span<std::byte> mem) {
     put(dm::raid, p.raid + 1);
     put(dm::raid_pow, p.raid_pow / 4);
     put(dm::flags, p.flags);
+    for (int i = 0; i < 5; ++i) put(dm::squads + i, p.squad[static_cast<size_t>(i)]);
     const int n = std::min<int>(static_cast<int>(m.groups.size()), dm::kMaxGroups);
     put(dm::ngroups, n);
     for (int i = 0; i < n; ++i) put(dm::group + i, p.cls[static_cast<size_t>(i)]);
@@ -77,6 +90,7 @@ Plan read_plan(const MapInfo& m) {
     p.raid = get(dm::raid) - 1;
     p.raid_pow = get(dm::raid_pow) * 4;
     p.flags = static_cast<std::uint8_t>(get(dm::flags));
+    for (int i = 0; i < 5; ++i) p.squad[static_cast<size_t>(i)] = static_cast<std::uint8_t>(get(dm::squads + i));
     const int n = static_cast<int>(m.groups.size());
     const int stored = get(dm::ngroups);
     p.cls.assign(static_cast<size_t>(n), kGHome);

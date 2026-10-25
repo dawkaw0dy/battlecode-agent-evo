@@ -6,6 +6,7 @@
 #include <array>
 #include <cstddef>
 #include <span>
+#include <cstdio>
 #include <vector>
 
 // The draft sees the whole map: measure it, choose the plan and the picks, and write both
@@ -19,6 +20,12 @@ void play_draft() {
         const auto& m = map_info();
         const Plan plan = make_plan(m, size);
         order = plan.picks;
+        if (kTrace) {
+            int nb = 0, ng = 0, nc = 0;
+            for (auto c : plan.cls) nb += c == kGHome, ng += c == kGContested, nc += c == kGEnemy;
+            std::printf("PLAN %dx%d size%d gap%d mode%d bank%d raid%d groups%zu home%d cont%d enemy%d altars%zu\n", m.w, m.h, size, m.spawn_gap,
+                plan.mode, plan.bank, plan.raid, m.groups.size(), nb, ng, nc, m.altars.size());
+        }
         std::array<std::byte, 1024> mem{};
         write_plan(plan, m, mem);
         cambc::draft_memory = std::span<const std::byte>{mem.data(), mem.size()};
