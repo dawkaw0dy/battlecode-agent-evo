@@ -44,6 +44,7 @@ struct Awake {
 class Bot {
     bool init_ = false;
     int slot_ = 0, size_ = 1;
+    int buddy_ = -1;                    // the ally we farm with (lower slot leads)
     std::vector<Group> g_;
     std::vector<std::int16_t> group_at_;  // spawn tile -> group
     std::vector<vec2> altars_;
@@ -57,6 +58,7 @@ class Bot {
     int me_f_round_ = -100;
     vec2 me_f_pos_{-1, -1};
     bool melee_ = true;
+    bool remote_shop_ = false;          // Tavi buys shards anywhere
     int range_ = 1;
 
     // Per turn.
@@ -78,7 +80,6 @@ class Bot {
     std::vector<int> lock_seen_;        // per altar: round we last saw our lock on it
     bool has_lock_ = false;
     const char* mode_ = "";
-    std::array<std::uint64_t, 7> prof_{};
 
     void initialise();
     void turn();

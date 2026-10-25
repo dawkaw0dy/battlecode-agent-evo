@@ -39,9 +39,11 @@ constexpr float kFight = 1.2f;     // our power over theirs needed to start a fi
 constexpr float kTrapped = 0.25f;  // ... or to hit back when a melee foe has us and we cannot outrun it
 constexpr int kReplan = 12;        // rounds between target re-plans
 constexpr float kHurtFight = 0.35f; // below this share of health we stop starting fights
+constexpr float kHurtRecall = 0.45f; // below this share, out of camp reach, we go home to heal
 constexpr bool kLocks = true;
+constexpr bool kBuddies = false;   // slots 0+1 and 2+3 farm together (off: slower farming, no fewer deaths)
 constexpr int kLockRange = 2;      // altar lock placement reach
-constexpr int kLockDetour = 0;     // walk this far off our way to lock an altar (detours cost more lives than they denied)
+constexpr int kLockDetour = 0;     // walk this far off our way to lock an altar (off: detours cost more lives than they denied)
 constexpr float kHelperHp = 3000;  // one more champion may join a group per this much camp health
 
 float ability_range(const cambc::ability& ab) {
@@ -137,8 +139,10 @@ void Bot::initialise() {
         for (auto t : g.tiles) group_at_[tidx(t)] = static_cast<std::int16_t>(gi);
         g_.push_back(std::move(g));
     }
+    if (kBuddies && (slot_ ^ 1) < size_) buddy_ = slot_ ^ 1;
     range_ = me.attack_range();
     melee_ = range_ <= 1;
+    remote_shop_ = me.passive() == cambc::passive_type::remote_shop;
     update_blocks();
 }
 
@@ -810,7 +814,7 @@ int Bot::choose_target() {
     std::array<int, 8> taken{};
     taken.fill(-1);
     for (int s = 0; s < size_ && s < 5; ++s)
-        if (s != slot_) {
+        if (s != slot_ && s != buddy_) {
             const int v = read_status(s);
             if (v > 0 && v <= static_cast<int>(g_.size()) && v < kHelp) taken[static_cast<std::size_t>(s)] = v - 1;
         }
@@ -1063,11 +1067,8 @@ void Bot::play_turn() {
     debug_block({
         const auto left = cambc::fuel_remaining();
         if (left < 30000 || static_cast<int>(cambc::round_number()) != round_) {
-            std::cout << "LOWFUEL r" << round_ << " s" << slot_ << " left" << left << " mode " << mode_;
-            for (auto v : prof_) std::cout << " " << v;
-            std::cout << '\n';
+            std::cout << "LOWFUEL r" << round_ << " s" << slot_ << " left" << left << " mode " << mode_ << '\n';
         }
-        prof_.fill(0);
     });
 }
 
@@ -1099,11 +1100,9 @@ void Bot::turn() {
     if (me.is_recalling() || me.is_teleporting()) { mode_ = "recalling"; return; }
     if (me.is_submitting_gems()) { mode_ = "submitting"; return; }
     if (!me.can_move() && !me.can_attack() && !me.can_cast()) { mode_ = "stunned"; return; }
-    prof_[0] = cambc::fuel_remaining();
     observe();
-    prof_[1] = cambc::fuel_remaining();
     const bool at_spawn = bit(cambc::map::spawn_region(team::ally), pos_);
-    if (at_spawn) shop();
+    if (at_spawn || (remote_shop_ && me.gold_count() >= 30)) shop();
     measure();
     read_sighting();
     lock_altars();
@@ -1116,15 +1115,13 @@ void Bot::turn() {
         return;
     }
     mode_ = "tribute";
-    prof_[2] = cambc::fuel_remaining();
     if (tribute()) return;
-    prof_[3] = cambc::fuel_remaining();
     if (lock_detour()) return;
 
     const float hp = me.health();
     const int sd = fdist(spawn_f_, spawn_seen_, pos_);
     // Hurt and out of camp reach: go home to heal unless the target is nearly finished.
-    if (incoming_ <= 0 && !at_spawn && hp < me.max_health() * 0.45f) {
+    if (incoming_ <= 0 && !at_spawn && hp < me.max_health() * kHurtRecall) {
         bool finish = false;
         if (target_ >= 0 && g_[target_].state == Group::alive && cheb(g_[target_].center, pos_) <= 6)
             finish = damage_taken(g_[target_], std::max(1.0f, my_dps())) < hp - me.max_health() * 0.15f;
@@ -1141,7 +1138,7 @@ void Bot::turn() {
     if (answer_help()) return;
 
     // Spend gold between fights: items are permanent.
-    if (!at_spawn && incoming_ <= 0 && me.gold_count() >= kShopGold && me.gem_count() == 0) {
+    if (!remote_shop_ && !at_spawn && incoming_ <= 0 && me.gold_count() >= kShopGold && me.gem_count() == 0) {
         bool busy = false;
         if (target_ >= 0 && g_[target_].state == Group::alive)
             for (const auto& a : awake_) busy = busy || group_at_[tidx(a.pos)] == target_;
@@ -1158,11 +1155,18 @@ void Bot::turn() {
     bool replan = target_ < 0 || round_ - target_since_ >= kReplan || g_[target_].avoid_until > round_;
     if (replan && target_ >= 0 && cambc::fuel_remaining() < 45000) replan = false;  // a full-map search costs ~30k
     if (!replan && g_[target_].state == Group::respawning && g_[target_].ready - round_ > 12) replan = true;
+    // A follower takes its leader's target: pairs win the fights lone farmers lose.
+    if (buddy_ >= 0 && buddy_ < slot_) {
+        const int v = read_status(buddy_);
+        if (v > 0 && v <= static_cast<int>(g_.size()) && v < kHelp && g_[v - 1].avoid_until <= round_) {
+            if (target_ != v - 1) target_since_ = round_;
+            target_ = v - 1;
+            replan = false;
+        }
+    }
     if (replan) {
         const int prev = target_;
-        prof_[4] = cambc::fuel_remaining();
         target_ = choose_target();
-        prof_[5] = cambc::fuel_remaining();
         target_since_ = round_;
         debug_block({
             if (prev != target_ && prev >= 0 && g_[prev].state == Group::alive && g_[prev].avoid_until <= round_)
@@ -1175,6 +1179,5 @@ void Bot::turn() {
         mode_ = "idle";
         return;
     }
-    prof_[6] = cambc::fuel_remaining();
     farm(target_);
 }
