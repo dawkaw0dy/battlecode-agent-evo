@@ -648,7 +648,7 @@ bool Bot::fight_or_flight() {
         theirs += enemies[i].channel ? enemies[i].power * 0.3f : enemies[i].power;
         if (cheb(enemies[i].pos, pos) < cheb(enemies[closest].pos, pos)) closest = i;
     }
-    float need = 1.5f + me.gem_count() / 100.0f + (hp < 0.5f * max_hp ? 0.5f : 0.0f);
+    float need = 1.25f + me.gem_count() / 100.0f + (hp < 0.5f * max_hp ? 0.5f : 0.0f);
     if (on_our_spawn(pos)) need *= 0.6f;
     if (round < fleeing_until) need *= 1.6f;  // once running, keep running unless clearly ahead
     const bool strong = mine >= need * theirs && hp >= 0.35f * max_hp;
