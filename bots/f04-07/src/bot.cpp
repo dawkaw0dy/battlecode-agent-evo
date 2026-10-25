@@ -45,11 +45,11 @@ constexpr float kCampStr[6] = {20, 60, 0, 0, 200, 120};
 constexpr int kCampRange[6] = {3, 4, 0, 0, 5, 4};
 
 // ---------------------------------------------------------------- tuning
-constexpr float kDangerPool = 0.5f;   // expected camp damage vs the squad's health
-constexpr float kTankRounds = 10.0f;  // one champion must survive this many rounds of the group's hits
+constexpr float kDangerPool = 0.7f;   // expected camp damage vs the squad's health
+constexpr float kTankRounds = 5.0f;  // one champion must survive this many rounds of the group's hits
 constexpr float kFightNeed = 1.3f;    // square-law advantage needed to start a fight
 constexpr int kFleeRadius = 7;
-constexpr int kSquads = 1;
+constexpr int kSquads = 2;
 constexpr int kChaseMargin = 4;
 constexpr float kRetreatHp = 0.35f;
 
@@ -164,6 +164,7 @@ void init_self() {
     squads = kSquads > 1 && team_size >= 4 ? kSquads : 1;
     squad = my_index % squads;
     squad_size = (team_size + squads - 1 - squad) / squads;
+    if (kSquads == 0) squad_size = 1;
     ranged = me.attack_range() > 1;
     const auto abilities = me.abilities();
     for (int s = 0; s < 2; ++s) {
@@ -752,10 +753,10 @@ int choose_target(const std::vector<std::uint16_t>& field) {
         const float clear = hp / dps;
         const float damage = g.str * clear * 0.6f;
         if (damage > hp_pool * kDangerPool) continue;
-        if (g.str * kTankRounds > me.max_health()) continue;
+        if (g.str * kTankRounds > me.max_health() * static_cast<float>(std::max(1, squad_size))) continue;
         const float value = g.gems + g.gold * gold_w;
         if (value <= 0) continue;
-        float score = value / (travel + wait + clear + 6.0f + (g.reward ? 0 : 5.0f));
+        float score = value / (travel + wait * 2.0f + clear + 6.0f + (g.reward ? 0 : 5.0f));
         // Deep enemy territory is where their squads roam.
         const int de = dist(g.center, enemy_spawn_center), da = dist(g.center, ally_spawn_center);
         if (de < da) score *= 0.75f;
@@ -923,7 +924,7 @@ void Bot::play_turn() {
 
     // Choose a camp group (shared per squad).
     const auto field = distance_from_me();
-    int shared = static_cast<int>(mem_get(squad)) - 1;
+    int shared = kSquads == 0 ? -1 : static_cast<int>(mem_get(squad)) - 1;
     if (shared >= static_cast<int>(groups.size())) shared = -1;
     if (shared >= 0) {
         const auto& g = groups[shared];
@@ -941,7 +942,7 @@ void Bot::play_turn() {
             target_group = pick;
             wait_turns = 0;
         }
-        mem_set(squad, static_cast<std::uint8_t>(target_group + 1));
+        if (kSquads != 0) mem_set(squad, static_cast<std::uint8_t>(target_group + 1));
     }
 
     if (target_group >= 0) {
