@@ -101,6 +101,8 @@ class Bot {
     const cambc::ability* ready_dash(std::array<cambc::ability, 2>& abs) const;
     bool spell_on_foe(bool stun_only);
     bool tribute();
+    void lock_altars();
+    bool free_altar(vec2 a) const;
     float my_dps() const;
     float taken_mult() const;
     float remaining_hp(const Group& g, bool full = false) const;

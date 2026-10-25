@@ -34,6 +34,8 @@ constexpr float kGoldValue = 0.35f;
 constexpr float kFight = 1.2f;     // our power over theirs needed to start a fight
 constexpr float kTrapped = 0.25f;  // ... or to hit back when a melee foe has us and we cannot outrun it
 constexpr int kReplan = 12;        // rounds between target re-plans
+constexpr bool kLocks = true;
+constexpr int kLockRange = 2;      // altar lock placement reach
 constexpr float kHelperHp = 3000;  // one more champion may join a group per this much camp health
 
 float ability_range(const cambc::ability& ab) {
@@ -317,6 +319,12 @@ void Bot::shop() {
     const std::array plan{Step{it::jungle_shard_of_strength, it::jungle_emblem_of_strength},
         Step{it::durability_shard_of_health, it::durability_emblem_of_health},
         Step{it::home_shard_of_strength, it::home_emblem_of_strength}};
+    // An altar lock first: ours block only enemy tributes (10 gold, one carried at a time).
+    try {
+        if (kLocks && me.consumables()[cambc::consumable_type::altar_lock].count() == 0
+            && me.can_buy(cambc::consumable_type::altar_lock))
+            me.buy(cambc::consumable_type::altar_lock);
+    } catch (const std::exception& e) { warn("buy lock", e); }
     for (int guard = 0; guard < 16; ++guard) {
         if (me.gold_count() < 30) return;
         const auto counts = me.item_count();
@@ -512,7 +520,7 @@ void Bot::flee() {
     // Bank on the way if an altar is right here: damage does not stop a tribute.
     if (me.gem_count() > 0 && me.gem_count() <= 20)
         for (auto a : altars_)
-            if (cheb(a, pos_) <= cambc::constants::submit_gems_range && !cambc::vision::has_altar_lock(a)) {
+            if (cheb(a, pos_) <= cambc::constants::submit_gems_range && free_altar(a)) {
                 try { me.submit_gems(a); return; } catch (const std::exception& e) { warn("submit", e); }
             }
     int dmin = 99;
@@ -647,6 +655,32 @@ bool Bot::handle_enemies() {
     return true;
 }
 
+// An altar we may tribute at: no lock, or our own.
+bool Bot::free_altar(vec2 a) const {
+    if (!cambc::vision::has_altar_lock(a)) return true;
+    try {
+        return cambc::vision::altar_lock_at(a).is_ally();
+    } catch (const std::exception& e) { warn("lock read", e); }
+    return false;
+}
+
+// Lock any free altar within reach: the enemy cannot tribute there until it breaks the lock.
+void Bot::lock_altars() {
+    if (!kLocks) return;
+    auto& me = cambc::self();
+    bool near = false;
+    for (auto a : altars_) near = near || cheb(a, pos_) <= kLockRange;
+    if (!near) return;
+    const auto& lock = me.consumables()[cambc::consumable_type::altar_lock];
+    if (lock.count() == 0) return;
+    for (auto a : altars_) {
+        if (cheb(a, pos_) > kLockRange || cambc::vision::has_altar_lock(a)) continue;
+        try {
+            if (lock.use(a)) return;
+        } catch (const std::exception& e) { warn("lock altar", e); return; }
+    }
+}
+
 // ---------------------------------------------------------------- banking
 
 bool Bot::tribute() {
@@ -656,10 +690,10 @@ bool Bot::tribute() {
     const int sr = cambc::constants::submit_gems_range;
     for (auto a : altars_) {
         if (cheb(a, pos_) > sr) continue;
-        if (cambc::vision::has_altar_lock(a)) {
+        if (!free_altar(a)) {
             try {
                 const auto lock = cambc::vision::altar_lock_at(a);
-                if (lock.is_enemy() && me.can_attack() && cheb(a, pos_) <= range_) {
+                if (me.can_attack() && cheb(a, pos_) <= range_) {
                     me.attack(lock);
                     attacked_ = true;
                     return true;
@@ -752,7 +786,9 @@ bool Bot::disengage() {
     if (incoming_ <= 0) return false;
     auto& me = cambc::self();
     const float hp = me.health();
-    if (hp >= incoming_ * taken_mult() * 3.0f + me.max_health() * 0.1f) return false;
+    int exit_steps = 1;
+    for (const auto& a : awake_) exit_steps = std::max(exit_steps, a.range - cheb(a.pos, pos_) + 1);
+    if (hp >= incoming_ * taken_mult() * static_cast<float>(exit_steps + 1) + me.max_health() * 0.1f) return false;
     if (!me.can_move() || moved_ || stop_move_) return false;
     cambc::bitboard blocked = terrain_ | cambc::vision::champion_tiles() | cambc::vision::camp_tiles();
     blocked |= camp_block_;
@@ -998,6 +1034,7 @@ void Bot::turn() {
     if (at_spawn) shop();
     measure();
     read_sighting();
+    lock_altars();
 
     if (handle_enemies()) return;
 
