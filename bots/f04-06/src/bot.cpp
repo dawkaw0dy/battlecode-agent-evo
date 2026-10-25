@@ -36,6 +36,7 @@ constexpr int kEnemySideSlack = 99;      // skip camps this much closer to the e
 constexpr int kTraceFrom = -1, kTraceTo = -1;
 constexpr int kBankFirstRange = 9;       // with gems and an altar this close, bank before recalling
 constexpr int kHistRound = 300;
+constexpr int kNearAltarWalk = 10;       // small bags bank only when the altar is this short a walk
 constexpr bool kHunt = false;            // answer pack sightings
 constexpr int kHuntAge = 6;              // rounds a sighting stays valid
 
@@ -792,8 +793,11 @@ void turn_body_impl() {
                 bitboard visited, root;
                 root.clear();
                 root.set(g_pos);
-                f.compute(g_static, root, visited);
+                const bool small = gems < kBankGems && g_round <= 1850 && !bank_first;
+                if (small) f.compute(g_static, root, visited, static_cast<std::uint16_t>(kNearAltarWalk));
+                else f.compute(g_static, root, visited);
                 int bd = 1 << 30;
+                g_bank_altar = -1;
                 for (size_t k = 0; k < g_altars.size(); ++k)
                     for (int dy = -1; dy <= 1; ++dy)
                         for (int dx = -1; dx <= 1; ++dx) {
@@ -802,14 +806,13 @@ void turn_body_impl() {
                             const int d = f.get(q);
                             if (d < bd) { bd = d; g_bank_altar = static_cast<int>(k); }
                         }
+                // A small bag is only worth a short walk; the crow-flies trigger can hide a long road.
+                if (small && bd > kNearAltarWalk) g_bank_altar = -1;
             }
-            if (g_bank_altar < 0) return;
-            const vec2 altar = g_altars[static_cast<size_t>(g_bank_altar)];
-            const vec2 before = g_pos;
-            const bool ok = step_to(ring(altar, cambc::constants::submit_gems_range)) || step_to(ring(altar, 2));
-            if (g_round >= kTraceFrom && g_round <= kTraceTo)
-                std::cout << "dbg B r" << g_round << " c" << static_cast<int>(me.champion_name()) << " " << before.x << "," << before.y << " -> " << g_pos.x << "," << g_pos.y << " ok" << ok << " gems" << gems << " altar " << altar.x << "," << altar.y << " nf" << nearest_foe << "\n";
-            if (ok) return;
+            if (g_bank_altar >= 0) {
+                const vec2 altar = g_altars[static_cast<size_t>(g_bank_altar)];
+                if (step_to(ring(altar, cambc::constants::submit_gems_range)) || step_to(ring(altar, 2))) return;
+            }
         }
     }
 
