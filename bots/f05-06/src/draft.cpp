@@ -14,7 +14,7 @@ namespace {
 
 // Preference order; the first team_size() picks form the lineup. Toughest farmers first.
 constexpr std::array<champion_draft, 7> kOrder{champion_draft::vendetta, champion_draft::marcella,
-    champion_draft::vesper_vale, champion_draft::varg, champion_draft::tavi, champion_draft::ryth,
+    champion_draft::vesper_vale, champion_draft::tavi, champion_draft::varg, champion_draft::ryth,
     champion_draft::ren};
 
 // How well a champion soaks a hard region (higher = gets the harder region).
