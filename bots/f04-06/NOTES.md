@@ -30,7 +30,7 @@ All bench2.py vs f03-05 on the same 10 maps × 2 sides unless noted; 0 faults / 
 - Init fuel (in-place groups, exported home field: init no longer spills into rounds 2–4), altar by walking
   distance + keep banking once committed: −151 (8/20).
 - Final eval (benchmark.py): vs f02-01 10/20, vs f01-07 13/20, vs f00-03 14/20 and 6/20 on two 10-map sets,
-  vs starter 10/10, vs f03-05 8/20. 884 games in total.
+  vs starter 16/16, vs f03-05 8/20. 890 games in total (budget 900).
 
 ## Tried and failed (keep entries from the parent's notes; add yours)
 - Hunting shared-memory sightings with the whole pack: chased kiting enemies across the map into their team.
