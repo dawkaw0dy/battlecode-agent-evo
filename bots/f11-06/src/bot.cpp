@@ -36,6 +36,10 @@ constexpr int kBankWary = EVO_BANK_WARY;
 #define EVO_ALTAR_DANGER 15
 #endif
 constexpr int kAltarDanger = EVO_ALTAR_DANGER;
+#ifndef EVO_LOCKS
+#define EVO_LOCKS 1
+#endif
+constexpr bool kLocks = EVO_LOCKS;   // carry an altar lock and place it on altars we pass
 #ifndef EVO_OTHER_SECTOR
 #define EVO_OTHER_SECTOR 0.5f
 #endif
@@ -200,6 +204,7 @@ void Bot::play_turn() {
     try {
         shop();
         cast_support();
+        place_lock();
     } catch (const std::exception& e) {
         ++warns_;
         std::printf("warn: shop %s\n", e.what());
@@ -437,6 +442,13 @@ void Bot::update_groups() {
 void Bot::shop() {
     auto& me = cambc::self();
     const bool alive = me.is_alive();
+    if (kLocks && (at_spawn_ || !alive) && gold_ >= 10) {
+        const auto lock = cambc::consumable_type::altar_lock;
+        if (me.can_buy(lock)) {
+            me.buy(lock);
+            gold_ -= 10;
+        }
+    }
     if (alive && !at_spawn_ && !tavi_) return;
     int guard = 0;
     while (gold_ >= 30 && guard++ < 8) {
@@ -448,6 +460,26 @@ void Bot::shop() {
         me.buy(item, static_cast<std::uint32_t>(count));
         shards_ += count;
         gold_ -= 30 * count;
+    }
+}
+
+// An altar we pass without a lock gets ours: enemy tributes there wait until they break it.
+void Bot::place_lock() {
+    if (!kLocks || (gems_ > 0 && banking_)) return;   // never delay our own tribute
+    auto& me = cambc::self();
+    const auto& alt = map_info().altars;
+    for (size_t i = 0; i < alt.size(); ++i) {
+        if (cheb(alt[i], pos_) > 2 || !visible_.is_set(alt[i])) continue;
+        if (vision::has_altar_lock(alt[i])) continue;
+        const auto& c = me.consumables()[cambc::consumable_type::altar_lock];
+        if (c.count() == 0) return;
+        try {
+            c.use(alt[i]);
+        } catch (const std::exception& e) {
+            ++warns_;
+            if (kTrace) std::printf("warn: lock place %s\n", e.what());
+        }
+        return;
     }
 }
 

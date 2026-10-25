@@ -64,6 +64,7 @@ private:
     void update_groups();
     void shop();
     void finish_turn();
+    void place_lock();
 
     // decisions
     bool handle_enemies();
