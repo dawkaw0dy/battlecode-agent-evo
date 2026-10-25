@@ -233,6 +233,7 @@ void plan_opening(const std::vector<GroupInfo>& groups, const std::vector<cambc:
     std::vector<char> taken(groups.size(), 0);
     std::vector<int> free_slots;
     for (int s = 0; s < slots; ++s) free_slots.push_back(s);
+    float top = 0;  // the first (best) plan's rate
     while (!free_slots.empty()) {
         // Free slots, strongest first: a team of n is the n strongest still free.
         std::stable_sort(free_slots.begin(), free_slots.end(),
@@ -259,7 +260,9 @@ void plan_opening(const std::vector<GroupInfo>& groups, const std::vector<cambc:
                 break;  // the smallest team that can do it
             }
         }
-        if (best_g < 0) break;
+        // Far worse than the first plan (a long walk for leftovers): the champions' own choice does better.
+        if (best_g < 0 || best < kOpenCut * top) break;
+        top = std::max(top, best);
         taken[static_cast<size_t>(best_g)] = 1;
         for (int k = 0; k < best_n; ++k) {
             const int s = free_slots[static_cast<size_t>(k)];

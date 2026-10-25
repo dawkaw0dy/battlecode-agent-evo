@@ -34,6 +34,7 @@ constexpr int open_g = 257;   // per slot: first group, 255 = none
 constexpr int open_n = 262;   // per slot: champions that group's plan counts on
 }
 constexpr int kOpenTeam = 3;  // largest team the opening plan sends to one group
+constexpr float kOpenCut = 0.5f;  // slots whose best plan rates below this share of the first are left free
 // Draft-time opening: every slot's first group and the team it clears it with, chosen jointly (each
 // champion's own choice is greedy: two of them planned half a raid each and waited for help that never came).
 void plan_opening(const std::vector<GroupInfo>& groups, const std::vector<cambc::champion_draft>& picks,
