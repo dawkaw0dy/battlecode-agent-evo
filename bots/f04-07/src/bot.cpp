@@ -831,7 +831,13 @@ int choose_target() {
 
 
 // Attack camps in range: awake ones first, then the target group's.
-bool fight_camps() {
+bool camp_alive(vec2 p) {
+    try {
+        return bc::vision::camp_at(p).health() > 0;
+    } catch (const std::exception&) { return false; }
+}
+
+bool fight_camps(vec2 skip = {-1, -1}) {
     auto& me = bc::self();
     const int range = me.attack_range();
     vec2 best{-1, -1};
@@ -839,7 +845,7 @@ bool fight_camps() {
     for (int dy = -range; dy <= range; ++dy)
         for (int dx = -range; dx <= range; ++dx) {
             const vec2 p{v.me.x + dx, v.me.y + dy};
-            if (!v.camp_bits.get(p) || !v.vis.get(p)) continue;
+            if (p == skip || !v.camp_bits.get(p) || !v.vis.get(p)) continue;
             try {
                 auto c = bc::vision::camp_at(p);
                 const bool awake = c.is_awake();
@@ -852,7 +858,11 @@ bool fight_camps() {
             } catch (const std::exception& e) { warn("campscan", e); }
         }
     if (best.x < 0) return false;
-    if (v.enemies.empty()) cast_on_camp(best, true);
+    if (skip.x < 0 && v.enemies.empty() && cast_on_camp(best, true) && !camp_alive(best)) {
+        // The spell finished it: spend the basic attack on another camp in reach.
+        fight_camps(best);
+        return true;
+    }
     hit_camp(best);
     return true;
 }

@@ -26,7 +26,9 @@ bench2.py throughout; 0 faults and 0 `bot error:` lines in every run after the f
   replaced by a static spawn field (travel ≈ max(Chebyshev, |Δ spawn distance|)); wait rings and approach tiles
   precomputed at init. Now 0 turns > 90k, max ~89k. Speed 1624 → 1586.
 - Recall to shop at 180 gold: speed 1542. Camp-aware retreat: speed 1616 but vs f00-03 8/32 → 10/32 (−246 → −192).
-- Final: vs f00-03 10/32 (−192, 16 maps), vs f03-05 0/16 (−667), vs starter 16/16 (+854).
+- Spell kill on a camp no longer wastes the basic attack (hit another camp in reach): speed 1616 → 1526.
+- Final: vs f00-03 10/32 (−192, 16 maps; before the last speed fix), vs f03-05 0/16 (−667),
+  vs starter 16/16 (+882). About 895 games in total.
 
 ## Tried and failed (keep entries from the parent's notes; add yours)
 - (parent = starter, no inherited entries)
