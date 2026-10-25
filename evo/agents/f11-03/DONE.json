@@ -1,0 +1,27 @@
+{
+ "agent": "f11-03",
+ "task_sha256": "b50f8334ad0eb7df0db00459815a0d643559ac4b23dac724cc2524c8b3384089",
+ "base_commit": "ec117b57163b37bc1cc47acab8e179db37a17271",
+ "session_id": "cse_01GsBCtTKrPXSjMPp2mN9QEw",
+ "bot_dir": "bots/f11-03",
+ "self_eval": {
+  "vs": "f09-01",
+  "games": 80,
+  "wins": 53
+ },
+ "games_played": 854,
+ "summary": "Opening rewrite: draft packs the map analysis into draft memory (on most maps champions act from round 1 instead of losing turns 1-4 to init), Ryth replaces Varg; vs f09-01 53/80 (+195) vs parent 50/80 (+58), vs parent 41/80",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "2c6270c1adfbe38115a3054c5689b7922583b2ddc0669d6c5534cb8ae5bf5fd1",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 18.8,
+  "remote": "true",
+  "session_id": "cse_01GsBCtTKrPXSjMPp2mN9QEw",
+  "effort_level": "high",
+  "model": null
+ }
+}
