@@ -427,7 +427,7 @@ bool Bot::fight() {
     our_dps = std::max(our_dps, 1.f);
     their_dps = std::max(their_dps, 1.f);
     our_dps += 0.f;
-    float bias = plan_kind == plan::aggro ? 1.2f : 1.35f;
+    float bias = plan_kind == plan::aggro ? 1.35f : 1.5f;
     if (me.gem_count() >= 30) bias += 0.25f;
     const float camp_dps = camp_threat_near(pos, 1);
     const float t_kill_them = their_hp / our_dps;
