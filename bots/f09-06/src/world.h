@@ -44,6 +44,8 @@ struct Altar {
     int enemy_lock_seen = -1000;  // last round we saw an enemy lock here
     int ally_lock_seen = -1000;
     bool gated = false;           // every approach tile is a camp tile
+    bool enemy_locked = false;    // an enemy lock was on it when we last saw it
+    Field field;                  // terrain distance to the approach tiles (filled lazily)
 };
 
 // A visible champion this turn.
@@ -97,6 +99,7 @@ struct World {
     void mark(Member& m, bool alive);
     // Terrain field of a group; computed now when fuel allows, else nullptr.
     const Field* group_field(int gi, bool compute = true);
+    const Field* altar_field(int ai, bool compute = true);
     void precompute_some();       // fill missing group fields with spare fuel
     void partition(int packs);    // split our side's groups into one sector per pack
     int group_at(vec2 p) const {

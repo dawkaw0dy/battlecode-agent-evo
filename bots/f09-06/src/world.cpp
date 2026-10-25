@@ -177,8 +177,17 @@ void World::refresh() {
                 }
     }
 
-    // Group states for groups with a spawn tile in vision; beliefs for the rest.
+    // Lock state of the altars in sight.
     const auto* vis = visible.ptr();
+    if (!altars.empty()) {
+        const auto locks = cambc::vision::altar_lock_tiles(team::enemy);
+        for (auto& A : altars)
+            if (raw_bit(vis, A.pos)) {
+                A.enemy_locked = raw_bit(locks.ptr(), A.pos);
+                if (A.enemy_locked) A.enemy_lock_seen = round;
+            }
+    }
+    // Group states for groups with a spawn tile in vision; beliefs for the rest.
     const auto* cb = campb.ptr();
     for (auto& G : groups) {
         bool seen = false;
@@ -233,7 +242,19 @@ const Field* World::group_field(int gi, bool compute) {
     return &G.field;
 }
 
+const Field* World::altar_field(int ai, bool compute) {
+    auto& A = altars[static_cast<std::size_t>(ai)];
+    if (A.field.ready()) return &A.field;
+    if (!compute || cambc::fuel_remaining() < 70000 || A.approach.empty()) return nullptr;
+    cambc::bitboard roots;
+    for (auto q : A.approach) roots.set(q);
+    A.field.compute(blocked, roots);
+    return &A.field;
+}
+
 void World::precompute_some() {
+    for (int i = 0; i < static_cast<int>(altars.size()); ++i)
+        if (!altars[static_cast<std::size_t>(i)].field.ready()) { altar_field(i); return; }
     // Nearest groups first.
     int best = -1;
     for (const auto& G : groups)

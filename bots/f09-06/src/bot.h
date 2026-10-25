@@ -40,6 +40,7 @@ private:
     int chase_turns = 0, chase_block_until = -1;
     int flee_until = -1;            // keep out of remembered enemies' reach until then
     bool banking = false;
+    int bank_altar = -1;            // altar we are walking to
     bool healing = false;
     const char* act = "";         // what this turn was spent on (debug)
     int locks_placed = 0;

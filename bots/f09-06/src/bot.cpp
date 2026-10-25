@@ -40,7 +40,9 @@ bool has_lock() {
 float unit_dps(const Unit& u) { return u.str + 0.25f * u.focus; }
 
 constexpr int kLockRange = 2;              // altar locks are placed within this distance
-constexpr int kLockGems = 15;              // lock ahead of an enemy carrying at least this many gems
+constexpr int kLockGems = 15;
+constexpr int kBreakCost = 12;             // turns an enemy lock adds to an altar (5 hits and the risk)
+constexpr int kBankStick = 6;              // keep the chosen altar unless another is this much closer              // lock ahead of an enemy carrying at least this many gems
 constexpr float kForeignValue = 0.5f;      // groups on the enemy side
 constexpr float kOtherSectorValue = 0.85f; // groups in another champion's sector
 constexpr float kCampDamageTaken = 1.0f;   // share of camp damage we expect to take (jungle emblem, stuns)
@@ -669,48 +671,41 @@ bool Bot::handle_bank() {
     act = "bank-walk";
 
     const int ar = cambc::constants::submit_gems_range;
-    const auto enemy_locks = cambc::vision::altar_lock_tiles(team::enemy);
-    for (auto& a : W.altars) {
-        if (cheb(a.pos, pos) > ar) continue;
-        const bool locked = bit(enemy_locks, a.pos);
-        if (locked) a.enemy_lock_seen = W.round;
-        try {
-            if (locked) {
-                if (me.can_attack()) { me.submit_gems(a.pos); attacked = true; act = "break-lock"; return true; }
-                continue;
-            }
-            if (!can_tribute_safely(g)) return false;
-            act = "tribute";
-            // With enemies about, our own lock keeps theirs (which would cancel us) off this altar.
-            if (!W.enemies.empty()) place_lock(a.pos);
-            me.submit_gems(a.pos);
-            banking = false;
+    // Pick one altar: walking distance, plus the turns a known enemy lock costs to break.
+    int best = -1, best_c = kFar;
+    for (int i = 0; i < static_cast<int>(W.altars.size()); ++i) {
+        const auto& a = W.altars[static_cast<std::size_t>(i)];
+        if (a.approach.empty()) continue;
+        const Field* f = W.altar_field(i, false);
+        int c = f ? f->at(pos) : cheb(a.pos, pos) * 5 / 4;
+        if (c >= kFar) continue;
+        if (a.enemy_locked) c += kBreakCost;
+        if (i == bank_altar) c -= kBankStick;  // keep the choice unless another is clearly better
+        if (c < best_c) { best_c = c; best = i; }
+    }
+    if (best < 0) return false;
+    bank_altar = best;
+    auto& A = W.altars[static_cast<std::size_t>(best)];
+    if (cheb(A.pos, pos) > ar) {
+        cambc::bitboard goal;
+        for (auto q : A.approach) goal.set(q);
+        if (N.step(goal, W.altar_field(best))) walked = true;
+    }
+    if (cheb(A.pos, me.position()) > ar) return true;
+    try {
+        if (A.enemy_locked || cambc::vision::has_altar_lock(A.pos) && !bit(cambc::vision::altar_lock_tiles(team::ally), A.pos)) {
+            // Tributing at a locked altar hits the lock instead.
+            if (me.can_attack()) { me.submit_gems(A.pos); attacked = true; act = "break-lock"; }
             return true;
-        } catch (const std::exception&) {
-            return false;
         }
-    }
-    cambc::bitboard goal;
-    bool any = false;
-    for (const auto& a : W.altars) {
-        if (bit(enemy_locks, a.pos) || W.round - a.enemy_lock_seen < 30) continue;
-        for (auto q : a.approach) goal.set(q);
-        any = true;
-    }
-    if (!any)
-        for (const auto& a : W.altars)
-            for (auto q : a.approach) goal.set(q);
-    if (N.step(goal, any && g_from_altars.ready() ? &g_from_altars : nullptr)) walked = true;
-    // Arrived this turn: start at once.
-    for (const auto& a : W.altars) {
-        if (cheb(a.pos, me.position()) > ar || bit(enemy_locks, a.pos)) continue;
-        if (!can_tribute_safely(g)) break;
-        try {
-            me.submit_gems(a.pos);
-            banking = false;
-        } catch (const std::exception&) {}
-        break;
-    }
+        if (!can_tribute_safely(g)) return true;
+        act = "tribute";
+        // With enemies about, our own lock keeps theirs (which would cancel us) off this altar.
+        if (!W.enemies.empty()) place_lock(A.pos);
+        me.submit_gems(A.pos);
+        banking = false;
+        bank_altar = -1;
+    } catch (const std::exception&) {}
     return true;
 }
 
