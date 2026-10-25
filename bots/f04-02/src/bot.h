@@ -51,12 +51,13 @@ struct CampIndex {
 class Bot {
     // Static knowledge.
     bool init_ = false;
-    int slot_ = -1, size_ = 1, region_ = -1;  // region_: our home region (shared in pairs)
+    int slot_ = -1, size_ = 1, pair_region_ = -1;  // pair_region_: our opening home region (shared in pairs)
     bool dasher_ = false;
     std::vector<GroupInfo> g_;
     std::vector<cambc::map::camp_group> h_;
     std::vector<cambc::bitboard> gtiles_;
     std::vector<std::uint8_t> home_slot_;
+    std::vector<std::uint8_t> home_pair_;  // opening home regions, one per pair of slots
     std::vector<Dist> gfield_;          // walking distance to each group, filled lazily
     std::vector<int> fill_order_;
     CampIndex camp_index_;              // tile -> group of the camp spawned there, and its index inside the group

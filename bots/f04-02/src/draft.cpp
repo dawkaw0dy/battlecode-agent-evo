@@ -16,14 +16,22 @@ void play_draft() {
         int home_altar = kFar;
         const auto groups = analyse_map(&home_altar);
         const int n = static_cast<int>(picks.size());
-        const auto home = assign_homes(groups, region_count(n), region_weights(n));
+        const auto home = assign_homes(groups, region_count(n, false), region_weights(n, false));
+        const auto pair_home = assign_homes(groups, region_count(n, true), region_weights(n, true));
         std::array<std::byte, 1024> mem{};
         mem[dm::magic] = std::byte{'E'};
         mem[dm::size] = static_cast<std::byte>(picks.size());
         const size_t ng = std::min<size_t>(groups.size(), 250);
         mem[dm::ngroups] = static_cast<std::byte>(ng);
         for (size_t i = 0; i < ng; ++i) mem[dm::home + i] = static_cast<std::byte>(home[i]);
-        if (groups.size() <= 250 && write_table(groups, home_altar, mem.data(), dm::home + ng, mem.size())) mem[dm::table] = std::byte{'T'};
+        size_t at = dm::home + ng;
+        if (kOpenPairs) {
+            for (size_t i = 0; i < ng; ++i) mem[at + i] = static_cast<std::byte>(pair_home[i]);
+            at += ng;
+        }
+        const bool table = groups.size() <= 250 && write_table(groups, home_altar, mem.data(), at, mem.size());
+        if (table) mem[dm::table] = std::byte{kOpenPairs ? 'P' : 'T'};
+        else if (kOpenPairs) mem[dm::table] = std::byte{'Q'};
         cambc::draft_memory = std::span<const std::byte>{mem.data(), mem.size()};
     }
     const auto chosen = cambc::draft::current_draft(team::ally);

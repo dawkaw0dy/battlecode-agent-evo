@@ -243,8 +243,11 @@ void Bot::initialise() {
     const size_t mem_n = cambc::draft_memory.size();
     int table_home_altar = kFar;
     const bool drafted = mem_n >= 8 && static_cast<char>(mem[dm::magic]) == 'E';
-    bool table = drafted && static_cast<char>(mem[dm::table]) == 'T'
-        && read_table(mem, dm::home + static_cast<size_t>(mem[dm::ngroups]), mem_n, static_cast<size_t>(mem[dm::ngroups]), g_, table_home_altar);
+    const char layout = drafted ? static_cast<char>(mem[dm::table]) : 0;
+    const size_t mem_ng = drafted ? static_cast<size_t>(mem[dm::ngroups]) : 0;
+    const bool mem_pairs = layout == 'P' || layout == 'Q';
+    bool table = (layout == 'T' || layout == 'P')
+        && read_table(mem, dm::home + (mem_pairs ? 2 : 1) * mem_ng, mem_n, mem_ng, g_, table_home_altar);
     if (kProfileInit)
         g_ip_log += " drafted " + std::to_string(drafted) + " T " + std::to_string(static_cast<int>(mem[dm::table])) + " ng "
             + std::to_string(static_cast<int>(mem[dm::ngroups])) + " memn " + std::to_string(mem_n) + " table " + std::to_string(table);
@@ -308,8 +311,13 @@ void Bot::initialise() {
         slot_ = slot_of(me.champion_name(), size_);
         for (size_t i = 0; i < g_.size(); ++i)
             home_slot_.push_back(i < 250 ? static_cast<std::uint8_t>(mem[dm::home + i]) : 255);
+        if (mem_pairs)
+            for (size_t i = 0; i < g_.size(); ++i)
+                home_pair_.push_back(i < 250 ? static_cast<std::uint8_t>(mem[dm::home + mem_ng + i]) : 255);
     } else {
-        home_slot_ = assign_homes(g_, region_count(std::max(1, size_)), region_weights(std::max(1, size_)));
+        const int n = std::max(1, size_);
+        home_slot_ = assign_homes(g_, region_count(n, false), region_weights(n, false));
+        if (kOpenPairs) home_pair_ = assign_homes(g_, region_count(n, true), region_weights(n, true));
     }
     IP("tables");
     kit_ = read_kit();
@@ -339,10 +347,10 @@ void Bot::initialise() {
     }
     IP("altar");
 
-    region_ = region_of(slot_, size_);
+    pair_region_ = region_of(slot_, size_, true);
     for (size_t i = 0; i < g_.size(); ++i) fill_order_.push_back(static_cast<int>(i));
     std::stable_sort(fill_order_.begin(), fill_order_.end(), [&](int a, int b) {
-        const bool ma = home_slot_[a] == region_, mb = home_slot_[b] == region_;
+        const bool ma = home_slot_[a] == slot_, mb = home_slot_[b] == slot_;
         if (ma != mb) return ma;
         return g_[a].d_ally < g_[b].d_ally;
     });
@@ -1014,6 +1022,10 @@ int Bot::choose(int& wait_out) {
     const float gold_w = (me.champion_name() == cambc::champion_type::vesper_vale ? 0.5f : 0.35f)
         * std::max(0.4f, 1.0f - now / 1500.0f);
     const int alive = 1 + static_cast<int>(view().allies.size());
+    // Opening: home regions shared in pairs.
+    const bool paired = kOpenPairs && now < kOpenRounds && home_pair_.size() == g_.size() && size_ >= 3;
+    const auto& home = paired ? home_pair_ : home_slot_;
+    const int region = paired ? pair_region_ : slot_;
     int best = -1;
     Plan best_plan;
     wait_out = 0;
@@ -1041,9 +1053,9 @@ int Bot::choose(int& wait_out) {
         const int avail = k.state == Known::respawning ? k.ready : now;
         const int wait = std::max(0, avail - (now + e));
         float f = 1.0f;
-        if (home_slot_.size() == g_.size()) {
-            if (home_slot_[i] == 255) f = 0.8f;
-            else if (home_slot_[i] != region_) f = 0.6f;
+        if (home.size() == g_.size()) {
+            if (home[i] == 255) f = 0.8f;
+            else if (home[i] != region) f = 0.6f;
         }
         if (g.d_enemy + 3 < g.d_ally) f *= 0.7f;
         if (k.state == Known::reward) f *= 1.3f;

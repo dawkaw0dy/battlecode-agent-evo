@@ -208,9 +208,9 @@ int slot_of(cambc::champion_type t, int size) {
     return -1;
 }
 
-std::vector<double> region_weights(int size) {
-    std::vector<double> w(static_cast<size_t>(std::max(1, region_count(size))), 0.0);
-    for (int s = 0; s < size; ++s) w[static_cast<size_t>(region_of(s, size))] += 1.0;
+std::vector<double> region_weights(int size, bool pairs) {
+    std::vector<double> w(static_cast<size_t>(std::max(1, region_count(size, pairs))), 0.0);
+    for (int s = 0; s < size; ++s) w[static_cast<size_t>(region_of(s, size, pairs))] += 1.0;
     return w;
 }
 

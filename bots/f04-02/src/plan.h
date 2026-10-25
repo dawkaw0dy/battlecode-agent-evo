@@ -29,7 +29,7 @@ namespace dm {
 constexpr int magic = 0;      // 'E'
 constexpr int size = 1;       // team size the plan was made for
 constexpr int ngroups = 2;    // number of groups (<= 250)
-constexpr int table = 3;      // 'T' when the group table follows the home slots
+constexpr int table = 3;      // what follows the home slots: 'T' the group table, 'P' pair homes then the table, 'Q' pair homes only
 constexpr int home = 4;       // one byte per group: home slot, 255 = shared
 // Table: home_altar (2), then per group n (+128: gems, gold, respawn follow; otherwise they are the sums
 // and maximum of the camp kinds' values), d_ally, d_enemy, bank_d; per camp x, y, kind.
@@ -45,8 +45,10 @@ void altar_field(cambc::bitboard& spots, cambc::distance_field& f, cambc::bitboa
 // share of the value region k should hold (its champion count), empty for equal shares.
 std::vector<std::uint8_t> assign_homes(const std::vector<GroupInfo>& groups, int slots,
                                        const std::vector<double>& weight = {});
-// Opening squads: champions share home regions in pairs, so first contacts are not one on one.
-constexpr bool kPairs = false;
-inline int region_count(int size) { return kPairs && size >= 3 ? (size + 1) / 2 : size; }
-inline int region_of(int slot, int size) { return kPairs && size >= 3 && slot >= 0 ? slot / 2 : slot; }
-std::vector<double> region_weights(int size);
+// Opening squads: for the first kOpenRounds champions share home regions in pairs, so the first contacts
+// (which decide most games) are not one on one; later everyone farms a region of its own.
+constexpr bool kOpenPairs = false;
+constexpr int kOpenRounds = 200;
+inline int region_count(int size, bool pairs) { return pairs && size >= 3 ? (size + 1) / 2 : size; }
+inline int region_of(int slot, int size, bool pairs) { return pairs && size >= 3 && slot >= 0 ? slot / 2 : slot; }
+std::vector<double> region_weights(int size, bool pairs);
