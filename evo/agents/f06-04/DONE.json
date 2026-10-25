@@ -1,0 +1,27 @@
+{
+ "agent": "f06-04",
+ "task_sha256": "b316a35dd1066a742aeff626f8a165beca8324499281d100944e2a0652da08d6",
+ "base_commit": "8ea5f84a9c9994dcece9da33a3c0ebc245df2144",
+ "session_id": "cse_0151MaHNFFqqYy9NC6ypDrTQ",
+ "bot_dir": "bots/f06-04",
+ "self_eval": {
+  "vs": "f05-02",
+  "games": 80,
+  "wins": 42
+ },
+ "games_played": 898,
+ "summary": "f05-03 + draft-time joint opening plan (first group and team per slot, own-side groups only, weak leftovers left free): vs f05-02 34->42/80, vs f05-03 47/80, vs f04-05 44/80",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "8da1437926729df349b76cd9c211931c90673786ec5e4c6c97fa449d9ba532c4",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 15.43,
+  "remote": "true",
+  "session_id": "cse_0151MaHNFFqqYy9NC6ypDrTQ",
+  "effort_level": "high",
+  "model": null
+ }
+}
