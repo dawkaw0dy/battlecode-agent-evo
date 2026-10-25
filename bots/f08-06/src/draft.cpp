@@ -83,14 +83,14 @@ void build_plan(DraftPlan& dp) {
 
     // Choose the plan from map size, spawn gap and where the gems are.
     plan::kind kind = plan::farm;
-    const bool small = area <= 2100 || (spawn_gap != cambc::distance_field::unreachable && spawn_gap <= 30);
+    const bool small = area <= 1600 || (spawn_gap != cambc::distance_field::unreachable && spawn_gap <= 24);
     if (gem_rate > 0 && near_boss_rate >= 0.35 * gem_rate) kind = plan::boss;
     else if (small && cluster_rate < 0.5 * gem_rate) kind = plan::aggro;
     dp.kind = kind;
 
     m[plan::kMagic] = 'M';
     m[plan::kKind] = kind;
-    m[plan::kBank] = kind == plan::aggro ? 20 : kind == plan::boss ? 45 : 30;
+    m[plan::kBank] = kind == plan::aggro ? 20 : kind == plan::boss ? 35 : 25;
     m[plan::kTeam] = static_cast<std::uint8_t>(team_size);
     m[plan::kGroups] = static_cast<std::uint8_t>(ng);
     for (int i = 0; i < 12; ++i) m[plan::kSlots + i] = 255;

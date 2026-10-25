@@ -15,6 +15,8 @@ using cambc::vec2;
 using cambc::team;
 
 constexpr bool kDebug = false;
+constexpr float kMaxTrips = 6;
+constexpr float kGoldEarly = 0.5f, kGoldLate = 0.2f;
 int dbg_engage = 0, dbg_flee = 0, dbg_ignore = 0;
 namespace {
 
@@ -95,6 +97,7 @@ void Bot::init() {
             const int base = plan::kGroupBase + 4 * g;
             grp.flags = static_cast<std::uint8_t>(byte(base + plan::gFlags));
             grp.dist_us = 2 * byte(base + plan::gDistUs);
+            grp.dist_them = 2 * byte(base + plan::gDistThem);
         }
         all_spawns |= grp.spawns;
         groups.push_back(grp);
@@ -103,7 +106,10 @@ void Bot::init() {
     cambc::bitboard visited;
     const auto altars = cambc::map::altars();
     altar_field.compute(terrain & ~altars, altars, visited);
+    altar_roots = altars;
     spawn_field.compute(terrain, cambc::map::spawn_region(team::ally), visited);
+    for (auto p : cambc::map::spawn_region(team::ally).positions())
+        altar_from_spawn = std::min<int>(altar_from_spawn, altar_field.get(p));
     ready = true;
 }
 
@@ -180,7 +186,8 @@ int Bot::choose_target() {
     std::array<std::uint8_t, 8> claims{};
     cambc::shared_memory.read(0, std::span{claims});
 
-    const float gold_w = round < 600 ? 0.35f : 0.15f;
+    const float gold_w = round < 600 ? kGoldEarly : kGoldLate;
+    const float camp_taken = shards >= 10 ? 0.7f : 1.f; // jungle emblem
     int best = -1;
     float best_score = 0;
     for (std::size_t gi = 0; gi < groups.size(); ++gi) {
@@ -197,14 +204,21 @@ int Bot::choose_target() {
         const float clear = hp / (my_dps * party);
         const float wait = std::max(0, grp.ready_round - round - eta);
         float value = grp.gems + gold_w * grp.gold;
-        float score = value / (eta + clear + wait + 6.f);
+        // Camps never heal: a group too strong for one trip is worn down over several,
+        // each extra trip costing a walk home and back.
+        float trips = 0;
         if (grp.dps > 0 && !grp.reward) {
-            const float incoming = grp.dps * clear;      // taken by whoever tanks
-            const float pool = my_hp * 0.8f * party;
-            if (incoming > pool) score *= std::max(0.05f, pool / incoming * 0.5f);
+            const float incoming = grp.dps * clear * camp_taken;
+            const float per_trip = my_hp * 0.65f * party;
+            trips = std::ceil(incoming / per_trip) - 1.f;
+            if (trips > kMaxTrips) continue;
         }
+        const float trip_cost = trips * (12.f + 2.f * grp.dist_us);
+        float score = value / (eta + clear + wait + trip_cost + 6.f);
         if (grp.flags & plan::f_boss) score *= plan_kind == plan::boss ? 1.2f : 0.6f;
-        if ((grp.flags & plan::f_contested) && plan_kind != plan::aggro) score *= 0.7f;
+        // Stay on our half: groups nearer the enemy spawn are where we die with our gems.
+        if (grp.dist_them < grp.dist_us) score *= plan_kind == plan::aggro ? 0.5f : 0.3f;
+        else if (grp.dist_them < grp.dist_us + 8) score *= 0.75f;
         if (others > 0 && (grp.dps == 0 || grp.hp_left < 1500)) score *= 0.35f;
         if (static_cast<int>(gi) == target) score *= 1.3f;
         if (score > best_score) { best_score = score; best = static_cast<int>(gi); }
@@ -214,12 +228,16 @@ int Bot::choose_target() {
 
 // Step to a free neighbour with a smaller field value; stop once the value is at most stop_at.
 // When units block every such step, route around them with a fresh search from the same roots.
-bool Bot::step_field(const cambc::distance_field& field, int stop_at, const cambc::bitboard& roots) {
+bool Bot::step_field(const cambc::distance_field& base, int stop_at, const cambc::bitboard& roots) {
     auto& me = cambc::self();
     if (moved || !me.can_move()) return false;
     const vec2 pos = me.position();
+    const int round = static_cast<int>(cambc::round_number());
+    // A detour around units stays in use for a while, so we do not step back into the jam.
+    const bool use_detour = detour_of == &base && round <= detour_until;
+    const cambc::distance_field& field = use_detour ? detour : base;
     const int here = field.get(pos);
-    if (here <= stop_at) return false;
+    if (here <= stop_at || base.get(pos) <= stop_at) return false;
     const auto occupied = cambc::vision::champion_tiles() | cambc::vision::camp_tiles() | cambc::vision::teleport_tiles();
     vec2 best = pos;
     int best_d = here;
@@ -237,11 +255,12 @@ bool Bot::step_field(const cambc::distance_field& field, int stop_at, const camb
         walls.set(pos, false);
         cambc::bitboard dest, visited;
         dest.set(pos, true);
-        cambc::distance_field dyn;
-        dyn.compute_to(walls, roots, dest, visited);
-        const int dv = dyn.get(pos);
-        if (dv == kUnreached || dv <= stop_at) return false;
-        const auto step = dyn.next_move_from(pos);
+        detour.compute(walls, roots, visited);
+        detour_of = &base;
+        detour_until = round + 12;
+        const int dv = detour.get(pos);
+        if (dv == kUnreached || dv <= stop_at) { detour_until = 0; return false; }
+        const auto step = detour.next_move_from(pos);
         if (!step) return false;
         const vec2 n = add(pos, *step);
         if (n.x < 0 || n.y < 0 || n.x >= width || n.y >= height) return false;
@@ -417,6 +436,19 @@ bool Bot::fight() {
     }
     if (!close) { ++dbg_ignore; return false; }
     ++dbg_flee;
+    // Tributes survive damage: finish one at the altar if we live through the channel.
+    const std::uint32_t gems = me.gem_count();
+    if (gems > 0) {
+        const int turns = static_cast<int>((gems + 9) / 10) + 1;
+        for (auto a : cambc::map::altars().positions()) {
+            if (cheb(a, pos) > cambc::constants::submit_gems_range) continue;
+            if (me.health() > (their_dps + camp_dps) * turns * 1.3f) {
+                me.submit_gems(a);
+                return true;
+            }
+        }
+        avoid_altar_near(pos);
+    }
     if (flee(threats)) return true;
     // Cornered: hit back.
     for (const auto& e : enemies) {
@@ -424,6 +456,34 @@ bool Bot::fight() {
         if (attack_unit_at(e.p, true)) return true;
     }
     return true;
+}
+
+// Enemies guard the altar we were heading for: route to the others for a while.
+void Bot::avoid_altar_near(vec2 pos) {
+    const int round = static_cast<int>(cambc::round_number());
+    const auto altars = cambc::map::altars().positions();
+    if (altars.size() < 2 || altar_field.get(pos) > 12) return;
+    int best = -1, bd = 1 << 20;
+    for (std::size_t i = 0; i < altars.size(); ++i)
+        if (cheb(altars[i], pos) < bd) { bd = cheb(altars[i], pos); best = static_cast<int>(i); }
+    if (best < 0 || bd > 10) return;
+    if (altar_avoid.size() != altars.size()) altar_avoid.assign(altars.size(), 0);
+    altar_avoid[best] = round + 60;
+    rebuild_altar_field();
+}
+
+void Bot::rebuild_altar_field() {
+    const int round = static_cast<int>(cambc::round_number());
+    const auto altars = cambc::map::altars().positions();
+    cambc::bitboard roots;
+    for (std::size_t i = 0; i < altars.size(); ++i)
+        if (i >= altar_avoid.size() || altar_avoid[i] <= round) roots.set(altars[i], true);
+    if (roots.is_empty()) roots = cambc::map::altars();
+    altar_roots = roots;
+    if (detour_of == &altar_field) detour_until = 0;
+    cambc::bitboard visited;
+    altar_field.compute(terrain & ~cambc::map::altars(), roots, visited);
+    altar_field_until = round + 60;
 }
 
 bool Bot::bank(bool force) {
@@ -437,13 +497,20 @@ bool Bot::bank(bool force) {
     const int round = static_cast<int>(cambc::round_number());
     const bool endgame = round >= 2000 - d - 30 || ours + gems >= 1000;
     if (!force && !endgame && static_cast<int>(gems) < bank_at && !(gems >= 8 && d <= 4)) return false;
+    if (kDebug && cambc::round_number() % 20 == 0) std::printf("BANK r%u c%d pos %d,%d d %d gems %u afs %d stuck %d\n", cambc::round_number(), (int)me.champion_name(), pos.x, pos.y, d, gems, altar_from_spawn, stuck);
+    // Far from every altar but the spawn is near one: recall there instead of walking.
+    if (d > altar_from_spawn + 10 && camp_threat_near(pos, 1) == 0
+        && cambc::vision::champion_tiles(team::enemy).is_empty() && !me.buffs().has_stun()) {
+        me.recall();
+        return true;
+    }
     for (auto a : cambc::map::altars().positions()) {
         if (cheb(a, pos) <= cambc::constants::submit_gems_range) {
             me.submit_gems(a);
             return true;
         }
     }
-    step_field(altar_field, 1, cambc::map::altars());
+    step_field(altar_field, 1, altar_roots);
     return true;
 }
 
@@ -461,6 +528,7 @@ void Bot::farm() {
     }
     auto& grp = groups[t];
     if (field_group != t) {
+        if (detour_of == &target_field) detour_until = 0;
         // Other groups' camps block the way; route around them.
         cambc::bitboard visited;
         auto walls = terrain | all_spawns;
@@ -548,17 +616,35 @@ void Bot::farm() {
 }
 
 void Bot::play_turn() {
+    static int hist[12] = {};
+    int st = turn_inner();
+    hist[st]++;
+    if (kDebug && (cambc::round_number() == 1000 || cambc::round_number() == 600)) {
+        std::printf("HIST c%d", (int)cambc::self().champion_name());
+        for (int k = 0; k < 12; ++k) std::printf(" %d", hist[k]);
+        std::printf("\n");
+    }
+}
+
+// Returns which branch handled the turn (debug histogram).
+int Bot::turn_inner() {
     auto& me = cambc::self();
     if (!ready) init();
     moved = attacked = casted = false;
 
-    if (!me.is_alive()) { shop(); return; }
-    if (me.is_recalling() || me.is_submitting_gems() || me.is_teleporting()) return;
+    if (!me.is_alive()) { shop(); return 0; }
+    if (me.is_recalling() || me.is_submitting_gems() || me.is_teleporting()) return 1;
+    if (me.buffs().has_stun() || (!me.can_move() && !me.can_attack() && !me.can_cast())) return 2;
 
     const vec2 pos = me.position();
     const bool at_spawn = cambc::map::spawn_region(team::ally).is_set(pos);
     if (at_spawn) shop();
     observe();
+    if (altar_field_until > 0 && static_cast<int>(cambc::round_number()) >= altar_field_until && cambc::fuel_remaining() > 60000) {
+        altar_field_until = 0;
+        rebuild_altar_field();
+        altar_field_until = 0;
+    }
 
     // Shields whenever something is hitting us.
     const float threat = camp_threat_near(pos, 0);
@@ -568,9 +654,9 @@ void Bot::play_turn() {
             if (ab.is_shield() && ab.is_ready() && ab.use()) { casted = true; break; }
     }
 
-    if (at_spawn && me.health() < 0.9f * me.max_health() && !enemy_near) return; // heals at turn end
+    if (at_spawn && me.health() < 0.9f * me.max_health() && !enemy_near) return 3; // heals at turn end
 
-    if (fight()) return;
+    if (fight()) return 4;
 
     // Hurt: get out of camp reach first, then recall.
     const float hp = me.health();
@@ -580,19 +666,18 @@ void Bot::play_turn() {
         } else {
             me.recall();
         }
-        return;
+        return 5;
     }
 
-    if (bank(false)) return;
+    if (bank(false)) return 6;
 
     // Gold to spend: bank what we carry, then go shopping.
     if (!at_spawn && me.gold_count() >= 210 && threat == 0) {
-        if (me.gem_count() > 0 && bank(true)) return;
+        if (me.gem_count() > 0 && bank(true)) return 7;
         const auto home = spawn_field.get(pos);
-        if (home != kUnreached && home > 8) { me.recall(); return; }
+        if (home != kUnreached && home > 8) { me.recall(); return 7; }
     }
 
     farm();
-    if (kDebug && cambc::round_number() % 50 == 1) std::printf("DBG r%u c%d pos %d,%d tgt %d hp %d gems %u gold %u plan %d | c %d,%d hpl %d dps %d rdy %d rw %d fd %d idle %d att %d E%d F%d I%d s%d\n", cambc::round_number(), (int)me.champion_name(), me.position().x, me.position().y, target, (int)me.health(), me.gem_count(), me.gold_count(), plan_kind,
-      target>=0?groups[target].center.x:-1, target>=0?groups[target].center.y:-1, target>=0?(int)groups[target].hp_left:-1, target>=0?(int)groups[target].dps:-1, target>=0?groups[target].ready_round:-1, target>=0?(int)groups[target].reward:-1, target>=0?(int)target_field.get(me.position()):-1, idle_hits, (int)attacked, dbg_engage, dbg_flee, dbg_ignore, slot);
+    return attacked ? 8 : moved ? 9 : target < 0 ? 10 : 11;
 }
