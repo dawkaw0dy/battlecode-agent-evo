@@ -132,6 +132,10 @@ bool Nav::flee(const std::vector<vec2>& threats, const std::vector<int>& reach) 
     auto score = [&](vec2 q) {
         // Head home unless that walks into someone's reach.
         float s = -2.0f * static_cast<float>(std::min(W.from_spawn.at(q), 300));
+        // Dead ends trap us: count the ways out of the tile.
+        int exits = 0;
+        for (auto e : kDirs) if (W.passable(q + e)) ++exits;
+        if (exits <= 3) s -= 25.0f * static_cast<float>(4 - exits);
         for (std::size_t i = 0; i < threats.size(); ++i) {
             const int d = cheb(q, threats[i]);
             const int r = reach[i];
@@ -148,6 +152,18 @@ bool Nav::flee(const std::vector<vec2>& threats, const std::vector<int>& reach) 
         const float s = score(q);
         if (s > best_s) { best_s = s; best = q; }
     }
+    debug_block({
+        if (best == pos) {
+            std::cout << "  FLEE-STUCK r" << W.round << " at " << pos.x << "," << pos.y << " s " << best_s << ":";
+            for (auto d : kDirs) {
+                const vec2 q = pos + d;
+                std::cout << " [" << q.x << "," << q.y << " free" << W.free(q) << " s" << (W.free(q) ? score(q) : 0.0f) << "]";
+            }
+            std::cout << " threats";
+            for (std::size_t i = 0; i < threats.size(); ++i) std::cout << " " << threats[i].x << "," << threats[i].y << "/" << reach[i];
+            std::cout << "\n";
+        }
+    });
     if (best == pos) return false;
     return move_to(best);
 }

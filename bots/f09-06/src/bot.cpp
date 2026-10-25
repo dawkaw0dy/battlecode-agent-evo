@@ -39,25 +39,41 @@ bool has_lock() {
 
 float unit_dps(const Unit& u) { return u.str + 0.25f * u.focus; }
 
+constexpr int kLockRange = 2;              // altar locks are placed within this distance
+constexpr int kLockGems = 15;              // lock ahead of an enemy carrying at least this many gems
 constexpr float kForeignValue = 0.5f;      // groups on the enemy side
 constexpr float kOtherSectorValue = 0.85f; // groups in another champion's sector
-constexpr float kCampDamageTaken = 1.0f;
+constexpr float kCampDamageTaken = 1.0f;   // share of camp damage we expect to take (jungle emblem, stuns)
 constexpr float kEngageRatio = 1.5f;       // fight when our hp*dps beats theirs by this much
 constexpr float kFleeRatio = 0.85f;        // run when below this and they can reach us
 constexpr int kDeepChase = 7;              // never chase targets this close to their spawn
 constexpr int kChaseTurns = 4;             // approach turns without a hit before giving up
-constexpr int kChaseReach = 2;
-constexpr int kRallyTurns = 12;
-constexpr bool kUseDanger = false;
-constexpr float kGateValue = 400.0f;
-constexpr int kExtraHelpers = 2;
-constexpr int kEscapeMargin = 2;
-constexpr float kRoomHp = 0.55f;
-constexpr float kTankShare = 0.8f;
-constexpr float kGateTankShare = 0.4f;
+constexpr int kChaseReach = 2;             // close in only on targets this far beyond our range
+constexpr int kRallyTurns = 12;            // wait this long for helpers at a strong group
+constexpr bool kUseDanger = false;         // keep farming/banking steps out of enemy reach (measured worse)
+constexpr float kGateValue = 400.0f;       // bonus for a group that blocks every altar
+constexpr int kExtraHelpers = 2;           // teammates a strong group may call in
+constexpr float kCallCost = 10.0f;         // turns lost waiting for called helpers
+constexpr int kEscapeMargin = 2;           // extra turns of camp hits budgeted when leaving
+constexpr float kRoomHp = 0.55f;           // make room for a teammate below this share of health
+constexpr float kTankShare = 0.8f;         // max health needed: this share of a group's hits until out of range
+constexpr float kGateTankShare = 0.4f;     // the same for a group that blocks every altar
 constexpr int kFleeMemory = 8;             // after running, keep out of their reach this long
-constexpr int kRecallSafe = 10;            // no recall with an enemy seen this close in the last 3 rounds     // the same for a group that blocks every altar         // max health needed: this share of a group's hits until out of range           // make room for a teammate below this share of health           // extra turns of camp hits budgeted when leaving           // teammates a strong group may call in
-constexpr float kCallCost = 10.0f;         // turns lost waiting for called helpers        // bonus for a group that blocks every altar         // keep farming/banking steps out of enemy reach (measured worse)            // wait this long for helpers at a strong group             // close in only on targets this far beyond our range  // share of camp damage we expect to take (jungle emblem, stuns)
+constexpr int kRecallSafe = 10;            // no recall with an enemy seen this close in the last 3 rounds
+constexpr int kSightRounds = 24;           // an enemy sighting counts this long
+constexpr float kSightValue1 = 1.0f;       // value of a group near one sighted enemy when alone
+constexpr float kSightValue2 = 0.35f;      // ... near two or more
+
+// Put our lock on an altar within reach. Returns true when it was placed.
+bool place_lock(vec2 altar) {
+    if (!has_lock() || cambc::vision::has_altar_lock(altar)) return false;
+    if (cheb(cambc::self().position(), altar) > kLockRange) return false;
+    try {
+        return cambc::self().consumables()[cambc::consumable_type::altar_lock].use(altar);
+    } catch (const std::exception&) {
+        return false;
+    }
+}
 
 Field g_from_altars;  // static distance to the nearest altar approach tile
 std::vector<int> g_bad_until;
@@ -356,6 +372,29 @@ bool Bot::dash_towards(vec2 p, bool away) {
     return false;
 }
 
+// ---------------------------------------------------------------- altar control
+
+// Locks block the enemy's tributes at an altar (not ours) and placing one cancels their running channels.
+bool Bot::handle_locks() {
+    if (!has_lock() || W.enemies.empty()) return false;
+    const vec2 pos = cambc::self().position();
+    for (auto& a : W.altars) {
+        if (cheb(a.pos, pos) > kLockRange || cambc::vision::has_altar_lock(a.pos)) continue;
+        bool want = false;
+        for (const auto& e : W.enemies) {
+            if (e.tribute && cheb(e.pos, a.pos) <= cambc::constants::submit_gems_range) want = true;  // cancel it
+            if (e.gems >= kLockGems && cheb(e.pos, a.pos) <= 4) want = true;                          // shut the door
+        }
+        if (want && place_lock(a.pos)) {
+            a.ally_lock_seen = W.round;
+            act = "lock";
+            ++locks_placed;
+            return true;
+        }
+    }
+    return false;
+}
+
 // ---------------------------------------------------------------- fights
 
 bool Bot::handle_fight() {
@@ -471,8 +510,23 @@ bool Bot::handle_fight() {
                     if (sl.valid && sl.kind == cambc::ability_kind::cc && !sl.excl) { cast_on_enemy(e); break; }
                 break;
             }
-        if (!dash_towards(threats[0], true))
+        if (!dash_towards(threats[0], true)) {
             if (N.flee(threats, reach)) walked = true;
+            else if (!N.blocked_this_turn && tgt) {
+                // Cornered: running is not possible, so make them pay.
+                act = "cornered";
+                cast_on_enemy(*tgt);
+                if (cheb(tgt->pos, pos) <= me.attack_range()) {
+                    attack_unit_at(tgt->pos);
+                    reset_and_hit(tgt->pos);
+                } else if (!casted || !(kit[0].excl || kit[1].excl)) {
+                    cambc::bitboard goal;
+                    add_square(goal, tgt->pos, ranged ? me.attack_range() : 1);
+                    if (N.step(goal)) walked = true;
+                    if (cheb(me.position(), tgt->pos) <= me.attack_range()) attack_unit_at(tgt->pos);
+                }
+            }
+        }
         return true;
     }
 
@@ -627,6 +681,8 @@ bool Bot::handle_bank() {
             }
             if (!can_tribute_safely(g)) return false;
             act = "tribute";
+            // With enemies about, our own lock keeps theirs (which would cancel us) off this altar.
+            if (!W.enemies.empty()) place_lock(a.pos);
             me.submit_gems(a.pos);
             banking = false;
             return true;
@@ -675,6 +731,11 @@ int Bot::choose_group() {
     const float dps1 = std::max(10.0f, my_dps());
     const float hp1 = me.max_health();
     const float gold_w = W.round < 600 ? 0.15f : (W.round < 1200 ? 0.08f : 0.03f);
+    // The team's latest enemy sighting (shared memory bytes 5-7).
+    const vec2 sight{sm_get(5), sm_get(6)};
+    const int sb = sm_get(7);
+    const int sight_count = sb >> 6;
+    const int sight_age = sb == 0 ? 999 : (((W.round >> 2) - (sb & 0x3F)) & 0x3F) * 4;
     int best = -1;
     float best_s = -1;
     for (const auto& G : W.groups) {
@@ -699,7 +760,10 @@ int Bot::choose_group() {
         const int have = helpers_on(G.id) + 1;
         const int most = G.gate ? team_n : std::min(team_n, have + kExtraHelpers);
         float base = static_cast<float>(G.gems) + gold_w * static_cast<float>(G.gold);
-        if (G.sector != pack) base *= G.sector < 0 && G.ours > G.theirs + 6 ? kForeignValue : kOtherSectorValue;
+        if (G.sector != pack) base *= G.sector < 0 && G.ours > G.theirs + 2 ? kForeignValue : kOtherSectorValue;
+        // Enemies seen there lately: alone we are prey.
+        if (sight_age <= kSightRounds && cheb(G.center, sight) <= G.radius + 7 && have < 2)
+            base *= sight_count >= 2 ? kSightValue2 : kSightValue1;
         if (G.gate && G.state == GroupState::alive) base += kGateValue;
         float s = -1;
         for (int k = have; k <= std::max(have, most); ++k) {
@@ -883,7 +947,7 @@ void Bot::play_turn() {
     auto& me = cambc::self();
     if (!inited) {
         init();
-        if (W.round <= 2) for (int k = 0; k < 5; ++k) sm_set(k, 0xFF);
+        if (W.round <= 2) { for (int k = 0; k < 5; ++k) sm_set(k, 0xFF); sm_set(7, 0); }
     }
     casted = walked = attacked = false;
     act = "idle";
@@ -920,6 +984,16 @@ void Bot::play_turn() {
         return;
     }
     if (bit(W.our_spawn, me.position())) shop();
+    if (!W.enemies.empty()) {
+        // Report the enemy nearest to our spawn, with how many we see.
+        const Unit* e0 = nullptr;
+        for (const auto& e : W.enemies)
+            if (!e0 || W.from_spawn.at(e.pos) < W.from_spawn.at(e0->pos)) e0 = &e;
+        const int cnt = std::min(3, static_cast<int>(W.enemies.size()));
+        sm_set(5, static_cast<std::uint8_t>(e0->pos.x));
+        sm_set(6, static_cast<std::uint8_t>(e0->pos.y));
+        sm_set(7, static_cast<std::uint8_t>((cnt << 6) | ((W.round >> 2) & 0x3F) | (cnt == 0 ? 1 : 0)));
+    }
     cast_support();
 
     const char* mode = "farm";
@@ -931,6 +1005,7 @@ void Bot::play_turn() {
             if (W.round - rs.round <= kFleeMemory) { at.push_back(rs.u.pos); reach.push_back(rs.u.range + 2); }
         N.set_danger(at, reach);
     }
+    handle_locks();
     if (handle_fight()) mode = "fight";
     else if (handle_health()) mode = "health";
     else if (handle_bank()) mode = "bank";

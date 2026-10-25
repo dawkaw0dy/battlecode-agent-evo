@@ -42,6 +42,7 @@ private:
     bool banking = false;
     bool healing = false;
     const char* act = "";         // what this turn was spent on (debug)
+    int locks_placed = 0;
 
     void init();
     void shop();
@@ -56,6 +57,7 @@ private:
 
     // Decisions.
     bool handle_fight();           // true when the turn is spent on enemies
+    bool handle_locks();           // place our altar lock against enemy tributes
     bool handle_health();          // retreat / recall / heal on spawn
     bool handle_bank();
     void handle_farm();

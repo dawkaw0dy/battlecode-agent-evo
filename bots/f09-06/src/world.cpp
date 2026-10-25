@@ -247,7 +247,7 @@ void World::partition(int packs) {
     float total = 0;
     for (auto& G : groups) {
         G.sector = -1;
-        if (G.island || G.boss || G.ours >= kFar || G.ours > G.theirs + 6) continue;
+        if (G.island || G.boss || G.ours >= kFar || G.ours > G.theirs + 2) continue;
         const float a = std::atan2(static_cast<float>(G.center.y - our_center.y), static_cast<float>(G.center.x - our_center.x));
         const float w = std::min(60.0f, static_cast<float>(G.gems) + 0.15f * static_cast<float>(G.gold)) + 10.0f;
         cs.push_back({a, w, G.id});
