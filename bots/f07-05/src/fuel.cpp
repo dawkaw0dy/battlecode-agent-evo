@@ -73,6 +73,7 @@ void block_changed(size_t i, bool& dirty) {
     g_block_groups.push_back(static_cast<int>(i));
 }
 
+constexpr bool kSafeSteps = true;                 // break ties between equally short steps by danger
 constexpr std::uint64_t kFieldFuel = 40000;      // left over after a walking field (plus ~6 per reachable tile)
 std::uint64_t g_reachable = 10000;                // tiles we can walk to (set at initialisation)
 size_t g_unfilled = 0;                            // groups whose own walking field is not computed yet
@@ -764,15 +765,49 @@ bool Bot::step_on(const cambc::distance_field& f, const cambc::bitboard& seen, c
     const vec2 from = me.position();
     if (!inside(from)) return moved_;
     if (bit(goals, from)) return true;
+    // Among the steps that gain the most, the one where the fewest awake camps (they hit the nearest champion
+    // in reach) and enemy champions can hit us next round.
+    std::array<std::pair<vec2, int>, 16> hot;  // awake fighting camp, its reach
+    std::array<int, 16> hot_str;
+    size_t n_hot = 0;
+    if (kSafeSteps && !awake_.is_empty())
+        for (auto p : awake_.positions()) {
+            if (cheb(p, from) > 7 || n_hot >= hot.size()) continue;
+            const int gi = group_at_[static_cast<size_t>(tidx(p))];
+            const int ci = camp_at_[static_cast<size_t>(tidx(p))];
+            if (gi < 0 || ci < 0) continue;
+            const auto cs = camp_spec(g_[gi].kinds[static_cast<size_t>(ci)]);
+            if (cs.str <= 0) continue;
+            hot_str[n_hot] = static_cast<int>(cs.str);
+            hot[n_hot++] = {p, cs.range};
+        }
+    std::array<vec2, 8> foes;
+    size_t n_foes = 0;
+    if (kSafeSteps) {
+        const auto& v = view();
+        if (!v.foes.is_empty())
+            for (auto p : v.foes.positions())
+                if (cheb(p, from) <= 6 && n_foes < foes.size()) foes[n_foes++] = p;
+    }
+    auto danger = [&](vec2 t) {
+        int d = 0;
+        for (size_t i = 0; i < n_hot; ++i)
+            if (cheb(t, hot[i].first) <= hot[i].second) d += hot_str[i];
+        for (size_t i = 0; i < n_foes; ++i)
+            if (cheb(t, foes[i]) <= 4) d += 150;
+        return d;
+    };
     vec2 failed{-1, -1};
     for (int attempt = 0; attempt < 2; ++attempt) {
         vec2 best = from;
-        int best_d = bit(seen, from) ? fdist(f, from) : kFar;
+        int best_d = bit(seen, from) ? fdist(f, from) : kFar, best_risk = 0;
         for (auto d : kDirs) {
             const vec2 t{from.x + d.x, from.y + d.y};
             if (t == failed || !free_tile(t) || !bit(seen, t) || bit(blocked, t)) continue;
             const int fd = raw_dist(f.ptr(), t);
-            if (fd < best_d) { best_d = fd; best = t; }
+            if (fd > best_d || (fd == best_d && best == from)) continue;
+            const int risk = n_hot + n_foes > 0 ? danger(t) : 0;
+            if (fd < best_d || risk < best_risk) { best_d = fd; best = t; best_risk = risk; }
         }
         if (best == from || !live()) return moved_;
         bool ok = false;
