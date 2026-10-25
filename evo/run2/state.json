@@ -1709,7 +1709,7 @@
    ],
    "slot": 5,
    "src_sha256": "98fd79ae338c3590096ff21eefa715cc1a22794c2ad03aa03d835bc96f9edc90",
-   "status": "admitted",
+   "status": "rated",
    "task_sha256": "1b3f7f33dc0b5e6fa4abd7c43af8070de4f9137926884431c546e010879aa77d"
   },
   "f03-06": {
@@ -1899,7 +1899,7 @@
    ],
    "slot": 1,
    "src_sha256": "d8b981488947d2497d3f57937ac8966a550fb83429702dc3404dd422cff38fc4",
-   "status": "admitted",
+   "status": "rated",
    "task_sha256": "151505d55cd2c3207c40a7489318b8face8954980f189220052e238624f52cdc"
   },
   "f04-02": {
@@ -1980,7 +1980,7 @@
    ],
    "slot": 2,
    "src_sha256": "e3a103716b75d6509ab6f86de0670c54ef462a2bf267a006213f1e449dd4262c",
-   "status": "admitted",
+   "status": "rated",
    "task_sha256": "7267f47a6dfcf5de8f4ce179500c07389ddf6e126b1e76779de5a2673dde2416"
   },
   "f04-03": {
@@ -2060,7 +2060,7 @@
    ],
    "slot": 3,
    "src_sha256": "21d00cdad97e68418e0d99300ab87fe037e6ce76f61264015a1c39f85c0c3bd1",
-   "status": "admitted",
+   "status": "rated",
    "task_sha256": "04b17b6338d72e5c98e67c20f3984abad25226228a769adb1c57e1aebb58bfa0"
   },
   "f04-04": {
@@ -2140,7 +2140,7 @@
    ],
    "slot": 4,
    "src_sha256": "54743f36053d9190964be62c07a1d5446e8d43e19c8017451e0a31338bf6a0e9",
-   "status": "admitted",
+   "status": "rated",
    "task_sha256": "593b837dd1fd0258d9126262d4e5382d6a1c22d97f721911f4486c8925dfae92"
   },
   "f04-05": {
@@ -2275,7 +2275,7 @@
    ],
    "slot": 6,
    "src_sha256": "6ead6ddbdb3d9ad5e58b3eca5be37d73b32c3522285baea74ddddeee292e5164",
-   "status": "admitted",
+   "status": "rated",
    "task_sha256": "5ee2d77279324db632c1a97f3d4d0bf927ec654405d7229701cd7a680ab23508"
   },
   "f04-07": {
@@ -2330,11 +2330,417 @@
    ],
    "slot": 7,
    "src_sha256": "8b1f348f210dbb768e2b730278f38f5a52b6de7fe49022e3688b1f18ca5beacd",
-   "status": "admitted",
+   "status": "rated",
    "task_sha256": "8ccd26209d08390af9104688782a3c0cfa478d3a71740d226b55a8628617abc5"
+  },
+  "f05-01": {
+   "archetype": null,
+   "branch": null,
+   "commit": null,
+   "deadline_minutes": 120,
+   "evidence": [
+    {
+     "gems_opponent": 1857,
+     "gems_parent": 0,
+     "map": "01boss-battle",
+     "opponent": "f04-03",
+     "rounds": 1368,
+     "side": "A"
+    },
+    {
+     "gems_opponent": 1078,
+     "gems_parent": 57,
+     "map": "h-1b5c",
+     "opponent": "f04-04",
+     "rounds": 1514,
+     "side": "A"
+    },
+    {
+     "gems_opponent": 1037,
+     "gems_parent": 19,
+     "map": "00gemfight",
+     "opponent": "f04-04",
+     "rounds": 1282,
+     "side": "A"
+    }
+   ],
+   "failed_ideas": [
+    "f03-05: Fuel: host calls cost ~30\u201340 fuel, but every bitboard temporary (&, |, ~, shift) ~600 and a grow(r) ~4k\u00b7r;",
+    "f03-05: local loops ~50 per element. Function-local statics add a guard check per call. Turns above 100k fuel resume",
+    "f03-05: next round with the champion possibly dead: position() then reads (-1,-1) and field reads throw engine error 5.",
+    "f03-05: A route-tracing loop with host field reads cost ~70k fuel; use an exported local copy (unreached = 65535).",
+    "f03-05: Enemy memory (3 rounds) + fight/flee hysteresis: 23\u201324/80 vs 34/80 without. Vision flicker is not the problem.",
+    "f03-05: Unseen (\"unknown\") camp groups blocking the route reset the plug logic every turn: champions stood still.",
+    "f03-05: Ranged champions stalled on range-3 tiles without line of sight: shrink the approach radius when nothing is hit.",
+    "f03-05: Boss raids gated at 2.5 tank-turns: everyone walked into monoliths and never hit them; 8 turns works.",
+    "f03-05: Raid and current-target bonuses on a respawning boss kept all five champions waiting 150 rounds.",
+    "f03-05: Rotation-aware retreat (exit after 1 step when an ally is as close to the camp): 43/80 vs 50/80 vs parent.",
+    "f03-05: Games are chaotic: debug prints (fuel) alone moved 00lost-world B from 1069 to 524 rounds. Judge changes on",
+    "f03-05: full 80-game runs, never on single maps; rounds-to-win vs starter is a less noisy farming-speed metric.",
+    "f03-05: iostream float printing costs 10\u201330k fuel per line: traces distort fuel profiles.",
+    "f03-05: Lock detours of 14 tiles + idle champions running locks to far altars (\u226440): 57/80 vs 65/80 at 8 tiles.",
+    "f03-05: me.attack(altar_lock_at(a)) throws \"Target must be a visible enemy or neutral camp\" (the parent's lock code"
+   ],
+   "focus": "opening",
+   "generation": 5,
+   "id": "f05-01",
+   "kind": "child",
+   "nudged": [],
+   "operator": "crossover",
+   "parents": [
+    "f04-05",
+    "f04-03"
+   ],
+   "reason": null,
+   "rng_key": "21376769:5:1",
+   "sessions": [],
+   "slot": 1,
+   "src_sha256": null,
+   "status": "planned",
+   "task_sha256": null
+  },
+  "f05-02": {
+   "archetype": null,
+   "branch": null,
+   "commit": null,
+   "deadline_minutes": 120,
+   "evidence": [
+    {
+     "gems_opponent": 1857,
+     "gems_parent": 0,
+     "map": "01boss-battle",
+     "opponent": "f04-03",
+     "rounds": 1368,
+     "side": "A"
+    },
+    {
+     "gems_opponent": 1078,
+     "gems_parent": 57,
+     "map": "h-1b5c",
+     "opponent": "f04-04",
+     "rounds": 1514,
+     "side": "A"
+    },
+    {
+     "gems_opponent": 1037,
+     "gems_parent": 19,
+     "map": "00gemfight",
+     "opponent": "f04-04",
+     "rounds": 1282,
+     "side": "A"
+    }
+   ],
+   "failed_ideas": [
+    "f03-05: Fuel: host calls cost ~30\u201340 fuel, but every bitboard temporary (&, |, ~, shift) ~600 and a grow(r) ~4k\u00b7r;",
+    "f03-05: local loops ~50 per element. Function-local statics add a guard check per call. Turns above 100k fuel resume",
+    "f03-05: next round with the champion possibly dead: position() then reads (-1,-1) and field reads throw engine error 5.",
+    "f03-05: A route-tracing loop with host field reads cost ~70k fuel; use an exported local copy (unreached = 65535).",
+    "f03-05: Enemy memory (3 rounds) + fight/flee hysteresis: 23\u201324/80 vs 34/80 without. Vision flicker is not the problem.",
+    "f03-05: Unseen (\"unknown\") camp groups blocking the route reset the plug logic every turn: champions stood still.",
+    "f03-05: Ranged champions stalled on range-3 tiles without line of sight: shrink the approach radius when nothing is hit.",
+    "f03-05: Boss raids gated at 2.5 tank-turns: everyone walked into monoliths and never hit them; 8 turns works.",
+    "f03-05: Raid and current-target bonuses on a respawning boss kept all five champions waiting 150 rounds.",
+    "f03-05: Rotation-aware retreat (exit after 1 step when an ally is as close to the camp): 43/80 vs 50/80 vs parent.",
+    "f03-05: Games are chaotic: debug prints (fuel) alone moved 00lost-world B from 1069 to 524 rounds. Judge changes on",
+    "f03-05: full 80-game runs, never on single maps; rounds-to-win vs starter is a less noisy farming-speed metric.",
+    "f03-05: iostream float printing costs 10\u201330k fuel per line: traces distort fuel profiles.",
+    "f03-05: Lock detours of 14 tiles + idle champions running locks to far altars (\u226440): 57/80 vs 65/80 at 8 tiles.",
+    "f03-05: me.attack(altar_lock_at(a)) throws \"Target must be a visible enemy or neutral camp\" (the parent's lock code"
+   ],
+   "focus": "spells",
+   "generation": 5,
+   "id": "f05-02",
+   "kind": "child",
+   "nudged": [],
+   "operator": "subsystem",
+   "parents": [
+    "f04-05"
+   ],
+   "reason": null,
+   "rng_key": "21376769:5:2",
+   "sessions": [],
+   "slot": 2,
+   "src_sha256": null,
+   "status": "planned",
+   "task_sha256": null
+  },
+  "f05-03": {
+   "archetype": null,
+   "branch": null,
+   "commit": null,
+   "deadline_minutes": 120,
+   "evidence": [
+    {
+     "gems_opponent": 1857,
+     "gems_parent": 0,
+     "map": "01boss-battle",
+     "opponent": "f04-03",
+     "rounds": 1368,
+     "side": "A"
+    },
+    {
+     "gems_opponent": 1078,
+     "gems_parent": 57,
+     "map": "h-1b5c",
+     "opponent": "f04-04",
+     "rounds": 1514,
+     "side": "A"
+    },
+    {
+     "gems_opponent": 1037,
+     "gems_parent": 19,
+     "map": "00gemfight",
+     "opponent": "f04-04",
+     "rounds": 1282,
+     "side": "A"
+    }
+   ],
+   "failed_ideas": [
+    "f03-05: Fuel: host calls cost ~30\u201340 fuel, but every bitboard temporary (&, |, ~, shift) ~600 and a grow(r) ~4k\u00b7r;",
+    "f03-05: local loops ~50 per element. Function-local statics add a guard check per call. Turns above 100k fuel resume",
+    "f03-05: next round with the champion possibly dead: position() then reads (-1,-1) and field reads throw engine error 5.",
+    "f03-05: A route-tracing loop with host field reads cost ~70k fuel; use an exported local copy (unreached = 65535).",
+    "f03-05: Enemy memory (3 rounds) + fight/flee hysteresis: 23\u201324/80 vs 34/80 without. Vision flicker is not the problem.",
+    "f03-05: Unseen (\"unknown\") camp groups blocking the route reset the plug logic every turn: champions stood still.",
+    "f03-05: Ranged champions stalled on range-3 tiles without line of sight: shrink the approach radius when nothing is hit.",
+    "f03-05: Boss raids gated at 2.5 tank-turns: everyone walked into monoliths and never hit them; 8 turns works.",
+    "f03-05: Raid and current-target bonuses on a respawning boss kept all five champions waiting 150 rounds.",
+    "f03-05: Rotation-aware retreat (exit after 1 step when an ally is as close to the camp): 43/80 vs 50/80 vs parent.",
+    "f03-05: Games are chaotic: debug prints (fuel) alone moved 00lost-world B from 1069 to 524 rounds. Judge changes on",
+    "f03-05: full 80-game runs, never on single maps; rounds-to-win vs starter is a less noisy farming-speed metric.",
+    "f03-05: iostream float printing costs 10\u201330k fuel per line: traces distort fuel profiles.",
+    "f03-05: Lock detours of 14 tiles + idle champions running locks to far altars (\u226440): 57/80 vs 65/80 at 8 tiles.",
+    "f03-05: me.attack(altar_lock_at(a)) throws \"Target must be a visible enemy or neutral camp\" (the parent's lock code"
+   ],
+   "focus": "endgame",
+   "generation": 5,
+   "id": "f05-03",
+   "kind": "child",
+   "nudged": [],
+   "operator": "subsystem",
+   "parents": [
+    "f04-05"
+   ],
+   "reason": null,
+   "rng_key": "21376769:5:3",
+   "sessions": [],
+   "slot": 3,
+   "src_sha256": null,
+   "status": "planned",
+   "task_sha256": null
+  },
+  "f05-04": {
+   "archetype": null,
+   "branch": null,
+   "commit": null,
+   "deadline_minutes": 120,
+   "evidence": [
+    {
+     "gems_opponent": 2110,
+     "gems_parent": 0,
+     "map": "01boss-battle",
+     "opponent": "f03-05",
+     "rounds": 1820,
+     "side": "B"
+    },
+    {
+     "gems_opponent": 1055,
+     "gems_parent": 18,
+     "map": "00gemfight",
+     "opponent": "f04-05",
+     "rounds": 1016,
+     "side": "A"
+    },
+    {
+     "gems_opponent": 1196,
+     "gems_parent": 165,
+     "map": "01gold-rush",
+     "opponent": "f03-05",
+     "rounds": 1682,
+     "side": "B"
+    }
+   ],
+   "failed_ideas": [
+    "f03-05: Fuel: host calls cost ~30\u201340 fuel, but every bitboard temporary (&, |, ~, shift) ~600 and a grow(r) ~4k\u00b7r;",
+    "f03-05: local loops ~50 per element. Function-local statics add a guard check per call. Turns above 100k fuel resume",
+    "f03-05: next round with the champion possibly dead: position() then reads (-1,-1) and field reads throw engine error 5.",
+    "f03-05: A route-tracing loop with host field reads cost ~70k fuel; use an exported local copy (unreached = 65535).",
+    "f03-05: Enemy memory (3 rounds) + fight/flee hysteresis: 23\u201324/80 vs 34/80 without. Vision flicker is not the problem.",
+    "f03-05: Unseen (\"unknown\") camp groups blocking the route reset the plug logic every turn: champions stood still.",
+    "f03-05: Ranged champions stalled on range-3 tiles without line of sight: shrink the approach radius when nothing is hit.",
+    "f03-05: Boss raids gated at 2.5 tank-turns: everyone walked into monoliths and never hit them; 8 turns works.",
+    "f03-05: Raid and current-target bonuses on a respawning boss kept all five champions waiting 150 rounds.",
+    "f03-05: Rotation-aware retreat (exit after 1 step when an ally is as close to the camp): 43/80 vs 50/80 vs parent.",
+    "f03-05: Games are chaotic: debug prints (fuel) alone moved 00lost-world B from 1069 to 524 rounds. Judge changes on",
+    "f03-05: full 80-game runs, never on single maps; rounds-to-win vs starter is a less noisy farming-speed metric.",
+    "f03-05: iostream float printing costs 10\u201330k fuel per line: traces distort fuel profiles.",
+    "f03-05: Lock detours of 14 tiles + idle champions running locks to far altars (\u226440): 57/80 vs 65/80 at 8 tiles.",
+    "f03-05: me.attack(altar_lock_at(a)) throws \"Target must be a visible enemy or neutral camp\" (the parent's lock code"
+   ],
+   "focus": "defense",
+   "generation": 5,
+   "id": "f05-04",
+   "kind": "child",
+   "nudged": [],
+   "operator": "tweak",
+   "parents": [
+    "f04-03"
+   ],
+   "reason": null,
+   "rng_key": "21376769:5:4",
+   "sessions": [],
+   "slot": 4,
+   "src_sha256": null,
+   "status": "planned",
+   "task_sha256": null
+  },
+  "f05-05": {
+   "archetype": null,
+   "branch": null,
+   "commit": null,
+   "deadline_minutes": 120,
+   "evidence": [
+    {
+     "gems_opponent": 2110,
+     "gems_parent": 0,
+     "map": "01boss-battle",
+     "opponent": "f03-05",
+     "rounds": 1820,
+     "side": "B"
+    },
+    {
+     "gems_opponent": 1055,
+     "gems_parent": 18,
+     "map": "00gemfight",
+     "opponent": "f04-05",
+     "rounds": 1016,
+     "side": "A"
+    },
+    {
+     "gems_opponent": 1196,
+     "gems_parent": 165,
+     "map": "01gold-rush",
+     "opponent": "f03-05",
+     "rounds": 1682,
+     "side": "B"
+    }
+   ],
+   "failed_ideas": [
+    "f03-05: Fuel: host calls cost ~30\u201340 fuel, but every bitboard temporary (&, |, ~, shift) ~600 and a grow(r) ~4k\u00b7r;",
+    "f03-05: local loops ~50 per element. Function-local statics add a guard check per call. Turns above 100k fuel resume",
+    "f03-05: next round with the champion possibly dead: position() then reads (-1,-1) and field reads throw engine error 5.",
+    "f03-05: A route-tracing loop with host field reads cost ~70k fuel; use an exported local copy (unreached = 65535).",
+    "f03-05: Enemy memory (3 rounds) + fight/flee hysteresis: 23\u201324/80 vs 34/80 without. Vision flicker is not the problem.",
+    "f03-05: Unseen (\"unknown\") camp groups blocking the route reset the plug logic every turn: champions stood still.",
+    "f03-05: Ranged champions stalled on range-3 tiles without line of sight: shrink the approach radius when nothing is hit.",
+    "f03-05: Boss raids gated at 2.5 tank-turns: everyone walked into monoliths and never hit them; 8 turns works.",
+    "f03-05: Raid and current-target bonuses on a respawning boss kept all five champions waiting 150 rounds.",
+    "f03-05: Rotation-aware retreat (exit after 1 step when an ally is as close to the camp): 43/80 vs 50/80 vs parent.",
+    "f03-05: Games are chaotic: debug prints (fuel) alone moved 00lost-world B from 1069 to 524 rounds. Judge changes on",
+    "f03-05: full 80-game runs, never on single maps; rounds-to-win vs starter is a less noisy farming-speed metric.",
+    "f03-05: iostream float printing costs 10\u201330k fuel per line: traces distort fuel profiles.",
+    "f03-05: Lock detours of 14 tiles + idle champions running locks to far altars (\u226440): 57/80 vs 65/80 at 8 tiles.",
+    "f03-05: me.attack(altar_lock_at(a)) throws \"Target must be a visible enemy or neutral camp\" (the parent's lock code"
+   ],
+   "focus": "fuel",
+   "generation": 5,
+   "id": "f05-05",
+   "kind": "child",
+   "nudged": [],
+   "operator": "subsystem",
+   "parents": [
+    "f04-03"
+   ],
+   "reason": null,
+   "rng_key": "21376769:5:5",
+   "sessions": [],
+   "slot": 5,
+   "src_sha256": null,
+   "status": "planned",
+   "task_sha256": null
+  },
+  "f05-06": {
+   "archetype": "split-farm",
+   "branch": null,
+   "commit": null,
+   "deadline_minutes": 120,
+   "evidence": [],
+   "failed_ideas": [
+    "f03-05: Fuel: host calls cost ~30\u201340 fuel, but every bitboard temporary (&, |, ~, shift) ~600 and a grow(r) ~4k\u00b7r;",
+    "f03-05: local loops ~50 per element. Function-local statics add a guard check per call. Turns above 100k fuel resume",
+    "f03-05: next round with the champion possibly dead: position() then reads (-1,-1) and field reads throw engine error 5.",
+    "f03-05: A route-tracing loop with host field reads cost ~70k fuel; use an exported local copy (unreached = 65535).",
+    "f03-05: Enemy memory (3 rounds) + fight/flee hysteresis: 23\u201324/80 vs 34/80 without. Vision flicker is not the problem.",
+    "f03-05: Unseen (\"unknown\") camp groups blocking the route reset the plug logic every turn: champions stood still.",
+    "f03-05: Ranged champions stalled on range-3 tiles without line of sight: shrink the approach radius when nothing is hit.",
+    "f03-05: Boss raids gated at 2.5 tank-turns: everyone walked into monoliths and never hit them; 8 turns works.",
+    "f03-05: Raid and current-target bonuses on a respawning boss kept all five champions waiting 150 rounds.",
+    "f03-05: Rotation-aware retreat (exit after 1 step when an ally is as close to the camp): 43/80 vs 50/80 vs parent.",
+    "f03-05: Games are chaotic: debug prints (fuel) alone moved 00lost-world B from 1069 to 524 rounds. Judge changes on",
+    "f03-05: full 80-game runs, never on single maps; rounds-to-win vs starter is a less noisy farming-speed metric.",
+    "f03-05: iostream float printing costs 10\u201330k fuel per line: traces distort fuel profiles.",
+    "f03-05: Lock detours of 14 tiles + idle champions running locks to far altars (\u226440): 57/80 vs 65/80 at 8 tiles.",
+    "f03-05: me.attack(altar_lock_at(a)) throws \"Target must be a visible enemy or neutral camp\" (the parent's lock code"
+   ],
+   "focus": null,
+   "generation": 5,
+   "id": "f05-06",
+   "kind": "immigrant",
+   "nudged": [],
+   "operator": null,
+   "parents": [
+    "starter"
+   ],
+   "reason": null,
+   "rng_key": "21376769:5:6",
+   "sessions": [],
+   "slot": 6,
+   "src_sha256": null,
+   "status": "planned",
+   "task_sha256": null
+  },
+  "f05-07": {
+   "archetype": "big-game-hunter",
+   "branch": null,
+   "commit": null,
+   "deadline_minutes": 120,
+   "evidence": [],
+   "failed_ideas": [
+    "f03-05: Fuel: host calls cost ~30\u201340 fuel, but every bitboard temporary (&, |, ~, shift) ~600 and a grow(r) ~4k\u00b7r;",
+    "f03-05: local loops ~50 per element. Function-local statics add a guard check per call. Turns above 100k fuel resume",
+    "f03-05: next round with the champion possibly dead: position() then reads (-1,-1) and field reads throw engine error 5.",
+    "f03-05: A route-tracing loop with host field reads cost ~70k fuel; use an exported local copy (unreached = 65535).",
+    "f03-05: Enemy memory (3 rounds) + fight/flee hysteresis: 23\u201324/80 vs 34/80 without. Vision flicker is not the problem.",
+    "f03-05: Unseen (\"unknown\") camp groups blocking the route reset the plug logic every turn: champions stood still.",
+    "f03-05: Ranged champions stalled on range-3 tiles without line of sight: shrink the approach radius when nothing is hit.",
+    "f03-05: Boss raids gated at 2.5 tank-turns: everyone walked into monoliths and never hit them; 8 turns works.",
+    "f03-05: Raid and current-target bonuses on a respawning boss kept all five champions waiting 150 rounds.",
+    "f03-05: Rotation-aware retreat (exit after 1 step when an ally is as close to the camp): 43/80 vs 50/80 vs parent.",
+    "f03-05: Games are chaotic: debug prints (fuel) alone moved 00lost-world B from 1069 to 524 rounds. Judge changes on",
+    "f03-05: full 80-game runs, never on single maps; rounds-to-win vs starter is a less noisy farming-speed metric.",
+    "f03-05: iostream float printing costs 10\u201330k fuel per line: traces distort fuel profiles.",
+    "f03-05: Lock detours of 14 tiles + idle champions running locks to far altars (\u226440): 57/80 vs 65/80 at 8 tiles.",
+    "f03-05: me.attack(altar_lock_at(a)) throws \"Target must be a visible enemy or neutral camp\" (the parent's lock code"
+   ],
+   "focus": null,
+   "generation": 5,
+   "id": "f05-07",
+   "kind": "immigrant",
+   "nudged": [],
+   "operator": null,
+   "parents": [
+    "starter"
+   ],
+   "reason": null,
+   "rng_key": "21376769:5:7",
+   "sessions": [],
+   "slot": 7,
+   "src_sha256": null,
+   "status": "planned",
+   "task_sha256": null
   }
  },
- "generation": 4,
+ "generation": 5,
  "generations": {
   "0": {
    "approval": null,
@@ -13513,6 +13919,8 @@
      "strength": -4.1705686980778784
     }
    },
+   "selection_done": true,
+   "similar_skipped": [],
    "slots": [
     "f03-05",
     "f04-01",
@@ -13527,11 +13935,37 @@
     "f04-03",
     "f04-04"
    ],
+   "survivors": [
+    "f04-05",
+    "f04-03"
+   ],
    "top": [
     "f04-05",
     "f04-04",
     "f04-02",
     "f04-03"
+   ]
+  },
+  "5": {
+   "approval": null,
+   "elites": [
+    "f04-05"
+   ],
+   "env_failed": 0,
+   "jobs": {
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "slots": [
+    "f04-05",
+    "f05-01",
+    "f05-02",
+    "f05-03",
+    "f05-04",
+    "f05-05",
+    "f05-06",
+    "f05-07"
    ]
   }
  },
@@ -13539,7 +13973,8 @@
   "f00-03",
   "f01-07",
   "f02-01",
-  "f03-05"
+  "f03-05",
+  "f04-05"
  ],
  "halted": null,
  "jobs": {
@@ -13854,8 +14289,6 @@
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-24T16:33:05Z g00 f00-07: done on origin/claude/evolution-agent-f00-07-vkm4zp at e584b64508",
-  "2026-10-24T16:33:05Z g00 phase ADMITTED",
   "2026-10-24T16:33:14Z g00 f00-00: admitted (c8571e849420)",
   "2026-10-24T16:33:19Z g00 f00-01: admitted (898b63a6c173)",
   "2026-10-24T16:33:23Z g00 f00-02: admitted (c4d4337abffa)",
@@ -14053,10 +14486,12 @@
   "2026-10-25T10:38:56Z g04 phase EVAL_C_DONE: results for r04-C",
   "2026-10-25T10:39:05Z g04 r04-C-spot: pushed c8fc0a2a5c (4 sampled games, 3 shards)",
   "2026-10-25T10:41:21Z g04 r04-C: verified, 144 rows, spot-check 4 OK",
-  "2026-10-25T10:41:31Z g04 phase SELECTED: final: f04-05, f04-03, f04-04, f04-02, f04-01, f03-05, f04-06, f02-01, f01-07, f04-07, starter"
+  "2026-10-25T10:41:31Z g04 phase SELECTED: final: f04-05, f04-03, f04-04, f04-02, f04-01, f03-05, f04-06, f02-01, f01-07, f04-07, starter",
+  "2026-10-25T10:41:39Z g04 survivors ['f04-05', 'f04-03'], hall of fame ['f00-03', 'f01-07', 'f02-01', 'f03-05', 'f04-05']",
+  "2026-10-25T10:41:39Z g05 phase PLANNED: 8 slots"
  ],
  "paused": null,
- "phase": "SELECTED",
+ "phase": "PLANNED",
  "sessions_launched": 36,
  "version": 1
 }
