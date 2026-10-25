@@ -5030,9 +5030,11 @@
   },
   "f10-04": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evo-task-f10-04-t81xq3",
+   "commit": "1679784925910a2127a2ba81d0a146a24102173a",
    "deadline_minutes": 120,
+   "done_at": 1792960475,
+   "effort_level": "high",
    "evidence": [
     {
      "gems_opponent": 1025,
@@ -5080,6 +5082,7 @@
    "generation": 10,
    "id": "f10-04",
    "kind": "child",
+   "model": null,
    "nudged": [],
    "operator": "tweak",
    "parents": [
@@ -5099,7 +5102,7 @@
    ],
    "slot": 4,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "bb74a8e3297cd5969b696a93fc7fe9dcc3624de095e89741d2884ad9ee6559d6"
   },
   "f10-05": {
@@ -29711,7 +29714,6 @@
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-25T12:26:12Z g05 f05-03: admitted (fe02fe35d6a6)",
   "2026-10-25T12:26:16Z g05 f05-04: admitted (7cdbd62cfedf)",
   "2026-10-25T12:26:21Z g05 f05-05: admitted (a02a16de909c)",
   "2026-10-25T12:26:25Z g05 f05-06: admitted (d6095b0abe52)",
@@ -29910,7 +29912,8 @@
   "2026-10-25T20:08:40Z g10 f10-04: launched session_01P7VPtbDFmEhxK8JLnPwsJM",
   "2026-10-25T20:08:56Z g10 f10-05: launched session_01K6doinSko6bQ1SUNnVws9B",
   "2026-10-25T20:09:13Z g10 f10-06: launched session_01LmMqsaFHTJ2NLNxo3c5qo7",
-  "2026-10-25T20:09:29Z g10 f10-07: launched session_01U78Sckd7oZxrGhFo2MUAxX"
+  "2026-10-25T20:09:29Z g10 f10-07: launched session_01U78Sckd7oZxrGhFo2MUAxX",
+  "2026-10-25T20:34:35Z g10 f10-04: done on origin/claude/evo-task-f10-04-t81xq3 at 1679784925"
  ],
  "paused": null,
  "phase": "RUNNING",
