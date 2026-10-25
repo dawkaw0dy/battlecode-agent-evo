@@ -658,6 +658,7 @@ constexpr float kCaptureTurns = 6.0f;  // five capture phases and the step onto 
 constexpr float kTripTurns = 8.0f;     // recall and the heal on spawn, before walking back
 constexpr int kRallyRounds = 35;       // longest wait for raiders outside a boss's reach
 constexpr float kGatherTurns = 10.0f;  // expected wait for raiders not yet on their way
+constexpr int kBossRaidMin = 3;        // smallest raid on a monolith or golem
 }  // namespace
 
 void Bot::build_threats() {
@@ -1012,7 +1013,10 @@ int Bot::choose(int& wait_out) {
     const auto s = read_sighting();
     const float gold_w = (me.champion_name() == cambc::champion_type::vesper_vale ? 0.5f : 0.35f)
         * std::max(0.4f, 1.0f - now / 1500.0f);
-    const int alive = 1 + static_cast<int>(view().allies.size());
+    // Raid sizes count every living ally (their positions are known), not just the ones in view.
+    int alive = 1;
+    for (const auto& a : others_)
+        try { if (a.is_alive() && !a.is_recalling()) ++alive; } catch (const std::exception&) {}
     int best = -1;
     Plan best_plan;
     wait_out = 0;
@@ -1102,7 +1106,9 @@ int Bot::choose(int& wait_out) {
             }
             // Raid: n champions of our strength gather outside the fighters' reach, then engage together.
             if (alive >= 2 && (g.boss || plan.score <= 0)) {
-                for (int n = std::max(2, claimers + 1); n <= alive; ++n) {
+                // Bosses take long clears: small raids get worn down and contested.
+                const int n0 = g.boss ? std::max(std::min(alive, kBossRaidMin), claimers + 1) : std::max(2, claimers + 1);
+                for (int n = n0; n <= alive; ++n) {
                     if (cap * n < 3 * peak) continue;
                     float turns = 0;
                     const float trips = trips_for(cc, n, turns);
