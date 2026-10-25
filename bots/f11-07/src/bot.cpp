@@ -33,6 +33,9 @@ constexpr int kLockDetour = 12;
 constexpr float kJoinBonus = 1.3f, kRaidWait = 15.0f;
 constexpr int kRaidHold = 30;
 constexpr bool kLocks = true;
+constexpr int kCaptureTimeout = 12;
+constexpr int kStallTurns = 6;
+constexpr std::uint64_t kDynamicReserve = 35000;
 constexpr int kSimTurns = 10;
 constexpr bool kUseSim = true;
 constexpr float kFightMargin = 20.0f, kHuntMargin = 120.0f;
@@ -501,6 +504,7 @@ enum Family { kMonster = 0, kPower = 1, kDurability = 2, kTreasure = 3, kJungle 
 void shop() {
     auto& me = cambc::self();
     unsigned gold = me.gold_count();
+    if (me.is_alive() && !me.can_move() && !me.can_attack() && !me.can_cast()) return; // stunned
     // An altar lock (10 gold) rides along for every altar we pass.
     if (kLocks && gold >= 10 && me.can_buy(cambc::consumable_type::altar_lock)) {
         me.buy(cambc::consumable_type::altar_lock);
@@ -605,6 +609,8 @@ bool step_dynamic(bitboard goals) {
     auto& me = cambc::self();
     trace("sd");
     if (g_moved || !me.can_move()) return false;
+    // A turn that runs out of fuel resumes next round on stale state: never start a search late.
+    if (cambc::fuel_remaining() < kDynamicReserve) return false;
     if (goals.is_set(g_pos)) return false;
     // Remembered live camps block too: a camp out of sight is still standing there.
     bitboard blocked = g_block_board | g_camp_board | cambc::vision::champion_tiles() | cambc::vision::camp_tiles()
@@ -614,13 +620,13 @@ bool step_dynamic(bitboard goals) {
             if (m.hp <= 0 && !g_occ.get(m.pos)) blocked.set(m.pos, false);
     blocked.set(g_pos, false);
     goals &= ~blocked;
-    if (goals.is_empty()) return false;
+    if (goals.is_empty()) { trace("nogoal"); return false; }
     bitboard start;
     start.set(g_pos);
     distance_field field;
     bitboard visited;
     field.compute_to(blocked, goals, start, visited);
-    if (!visited.is_set(g_pos)) return false;
+    if (!visited.is_set(g_pos)) { trace("unreached"); return false; }
     const int cur = field.get(g_pos);
     const float here = exposure_at(g_pos);
     vec2 best = g_pos;
@@ -1039,6 +1045,8 @@ void post_raid(int gi) {
 }
 bool g_target_raid = false; // our target needs a second champion
 int g_hold_turns = 0;
+int g_capture_turns = 0;
+int g_stall = 0;
 
 float score_with(int gi, int dist, int n, float extra);
 
@@ -1110,12 +1118,17 @@ void choose_target() {
     bool best_raid = false;
     const int raid = raid_group();
     const bool can_post = raid < 0 || raid_owner() == g_index;
+    const float gem_w = g_round < 500 ? 4.0f : g_round < 1300 ? 5.0f : 8.0f;
     for (std::size_t i = 0; i < g_groups.size(); ++i) {
-        const int dist = group_dist(g_groups[i], g_pos);
+        const auto& g = g_groups[i];
+        const int dist = group_dist(g, g_pos);
         if (dist >= 100000) continue;
+        // Cheap upper bound first: the full score only lowers value and adds time.
+        const float bound = (g.gems * gem_w + g.gold * gold_mult()) * kJoinBonus / (dist + 6.0f);
+        if (bound <= best_s && static_cast<int>(i) != g_target) continue;
         float s = group_score(static_cast<int>(i), dist);
         bool is_raid = false;
-        if (can_post && raid != static_cast<int>(i)) {
+        if (can_post && raid != static_cast<int>(i) && bound * 0.5f > std::max(best_s, s)) {
             const float r = raid_score(static_cast<int>(i), dist);
             if (r > s) { s = r; is_raid = true; }
         }
@@ -1125,6 +1138,8 @@ void choose_target() {
     if (g_target >= 0 && cur_s > 0 && best_s < cur_s * 1.3f) return;
     g_target_raid = best_raid;
     g_hold_turns = 0;
+    g_capture_turns = 0;
+    g_stall = 0;
     if (kDebug && best_raid) std::cout << "RAID r" << g_round << " me" << g_index << " g" << best << " s" << best_s << '\n';
     if (kDebug && best >= 0 && raid_group() == best && raid_owner() != g_index) std::cout << "JOIN r" << g_round << " me" << g_index << " g" << best << '\n';
     if (best != g_target) {
@@ -1256,8 +1271,16 @@ void work_target() {
     auto& g = g_groups[g_target];
     const int dist = group_dist(g, g_pos);
     if (g.state == 2 || (g.state == 1 && alive_count(g) == 0)) {
-        // Capture: stand on a spawn tile until the reward lands.
-        if (g.spawn.is_set(g_pos)) return;
+        // Capture: stand on a spawn tile until the reward lands. An enemy elsewhere on a long
+        // region contests it forever: give up after a while.
+        if (g.spawn.is_set(g_pos)) {
+            if (++g_capture_turns > kCaptureTimeout) {
+                g.bad_until = g_round + 40;
+                g_capture_turns = 0;
+                g_target = -1;
+            }
+            return;
+        }
         if (dist > 6) { travel(g); return; }
         step_dynamic(g.spawn);
         return;
@@ -1304,8 +1327,22 @@ void work_target() {
     }
     // Hit what is in reach, otherwise approach.
     nuke_camps(g);
-    if (attack_camps(g)) { shield_if_hit(); return; }
-    if (dist > g_range + 6) { travel(g); return; }
+    if (attack_camps(g)) { shield_if_hit(); g_stall = 0; return; }
+    // Neither moving nor hitting anything for a while (camps we remember but cannot find):
+    // try another group.
+    if (g_stall > kStallTurns) {
+        g.bad_until = g_round + 30;
+        for (auto& m : g.m)
+            if (!cambc::vision::in_vision(m.pos)) m.hp = 0;
+        g_stall = 0;
+        g_target = -1;
+        return;
+    }
+    if (dist > g_range + 6) {
+        travel(g);
+        g_stall = g_moved ? 0 : g_stall + 1;
+        return;
+    }
     bitboard goal;
     bool any = false;
     for (const auto& m : g.m)
@@ -1322,6 +1359,7 @@ void work_target() {
             if (m.hp > 0) goal.draw_chebyshev(m.pos, static_cast<float>(g_approach));
     }
     if (!step_dynamic(goal) && !g_moved) travel(g);
+    g_stall = g_moved ? 0 : g_stall + 1;
     if (!g_ranged) attack_camps(g);
     shield_if_hit();
 }
@@ -1435,6 +1473,9 @@ void go_home() {
 // Never beside an ally (placing a lock cancels tribute channels at that altar).
 void place_lock() {
     if (!kLocks) return;
+    // Stunned champions cannot use items (the turn starts with every allowance otherwise).
+    auto& self = cambc::self();
+    if (!self.can_move() && !self.can_attack() && !self.can_cast()) return;
     for (std::size_t i = 0; i < g_altars.size(); ++i) {
         const vec2 a = g_altars[i];
         if (cheb(a, g_pos) > 2) continue;
@@ -1516,7 +1557,23 @@ bool capturing() {
 
 } // namespace
 
+void play_turn_inner();
+
 void Bot::play_turn() {
+    if (!kDebug) {
+        play_turn_inner();
+        return;
+    }
+    try {
+        play_turn_inner();
+    } catch (...) {
+        std::cout << "ERRTRACE r" << g_round << " me" << g_index << " pos " << g_pos.x << "," << g_pos.y << " | " << g_trace << '\n';
+        g_trace.clear();
+        throw;
+    }
+}
+
+void play_turn_inner() {
     auto& me = cambc::self();
     static bool inited = false;
     if (!inited) {
