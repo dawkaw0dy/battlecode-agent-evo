@@ -1714,9 +1714,11 @@
   },
   "f03-06": {
    "archetype": "map-reader",
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evo-task-f03-06-2fgtld",
+   "commit": "5984f49e6f14c789bc1bc2ddb24dc0ce4eff9ce9",
    "deadline_minutes": 120,
+   "done_at": 1792916428,
+   "effort_level": "high",
    "evidence": [],
    "failed_ideas": [
     "f01-07: Fuel: host calls cost ~30\u201340 fuel, but every bitboard temporary (&, |, ~, shift) ~600 and a grow(r) ~4k\u00b7r;",
@@ -1739,6 +1741,7 @@
    "generation": 3,
    "id": "f03-06",
    "kind": "immigrant",
+   "model": null,
    "nudged": [
     "session_01KdzCukGtLV56bpMtToMfD7"
    ],
@@ -1761,7 +1764,7 @@
    ],
    "slot": 6,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "b93281052b94f1409f9648c75d637604773967c2c7308f0302b026922ce627c9"
   },
   "f03-07": {
@@ -8492,10 +8495,12 @@
   "2026-10-25T08:18:54Z g03 f03-03: done on origin/claude/evo-task-f03-03-ss7iip at e5b3734779",
   "2026-10-25T08:18:57Z g03 f03-04: done on origin/claude/evolution-f03-04-adhpua at 98f72a054a",
   "2026-10-25T08:19:01Z g03 f03-05: done on origin/claude/f03-05-evolution-ya7i1u at 75d5a52ae9",
-  "2026-10-25T08:19:07Z g03 f03-07: done on origin/claude/evolution-f03-07-k57ufb at de026503f6"
+  "2026-10-25T08:19:07Z g03 f03-07: done on origin/claude/evolution-f03-07-k57ufb at de026503f6",
+  "2026-10-25T08:20:28Z g03 f03-06: done on origin/claude/evo-task-f03-06-2fgtld at 5984f49e6f",
+  "2026-10-25T08:20:28Z g03 phase ADMITTED"
  ],
  "paused": null,
- "phase": "RUNNING",
+ "phase": "ADMITTED",
  "sessions_launched": 29,
  "version": 1
 }
