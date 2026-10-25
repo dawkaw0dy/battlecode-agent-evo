@@ -1,0 +1,27 @@
+{
+ "agent": "f06-02",
+ "task_sha256": "8930952be53ddaeb55c3cf0181f1a5a6797533a9bdeaa025cb2562ecc681988f",
+ "base_commit": "8ea5f84a9c9994dcece9da33a3c0ebc245df2144",
+ "session_id": "cse_01PYDxjGJKi4UgxjMvvBBsoc",
+ "bot_dir": "bots/f06-02",
+ "self_eval": {
+  "vs": "f04-05",
+  "games": 58,
+  "wins": 30
+ },
+ "games_played": 839,
+ "summary": "Parent f05-02 plus a boss race bonus: boss raid score x(1+0.15(n-1)) plans bigger monolith/golem raids; boss maps vs f04-05+f03-05 41/72 vs parent 36/72",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "8da1437926729df349b76cd9c211931c90673786ec5e4c6c97fa449d9ba532c4",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 18.34,
+  "remote": "true",
+  "session_id": "cse_01PYDxjGJKi4UgxjMvvBBsoc",
+  "effort_level": "high",
+  "model": null
+ }
+}
