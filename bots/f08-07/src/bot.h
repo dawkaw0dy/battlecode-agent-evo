@@ -35,6 +35,7 @@ struct Seen {
     float hp = 0, max_hp = 1, str = 0, focus = 0;
     int range = 1, gems = 0;
     bool melee = true, channel = false, tribute = false;
+    float burst = 0;  // extra damage of its first hit (ready spells and attack resets)
     cambc::champion_type type{};
     float dps() const { return (str * 1.15f + focus * 0.2f) * (channel ? 0.3f : 1.0f); }
 };
@@ -100,6 +101,8 @@ class Bot {
     int hunt_until_ = -1;
     int ward_try_ = 0;
     int detour_until_ = -1;
+    int prev_round_ = -10, champ_hit_round_ = -100;
+    float prev_hp_ = 0, prev_camp_in_ = 0;
     int wait_g_ = -1, wait_turns_ = 0;
     int mode_ = 0, sub_ = 0;
     int acc_[16]{};

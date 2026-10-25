@@ -76,9 +76,15 @@ std::vector<cambc::item_type> build_for(champion_type t) {
 std::vector<cambc::item_type> g_build;
 int g_bought = 0;
 
-float gold_weight(int round) { return round < 1000 ? 0.2f : (round < 1600 ? 0.1f : 0.03f); }
+float gold_weight(int round, bool) { return round < 1000 ? 0.2f : (round < 1600 ? 0.1f : 0.03f); }
 
-constexpr int kClaimBytes = 5;  // bytes 0-4: each champion's target group + 1; bytes 5-7: last sighting
+constexpr int kClaimBytes = 5;
+constexpr bool kRetreatOnHit = false;  // leave a fight only when champions are hitting us
+constexpr float kEngageBias = -60.0f;  // simulated value margin to take a fight
+constexpr float kShareTurns = 20.0f;   // clears shorter than this (alone) are left to whoever claimed them
+constexpr bool kSharePenalty = false;  // ... measured worse
+constexpr int kRallyTurns = 40;        // longest wait for the allies a strong group needs
+constexpr bool kRallyAll = false;      // strong groups wait for every claimer (measured worse)  // bytes 0-4: each champion's target group + 1; bytes 5-7: last sighting
 
 }  // namespace
 
@@ -219,6 +225,10 @@ void Bot::observe() {
     gems_ = static_cast<int>(me.gem_count());
     gold_ = static_cast<int>(me.gold_count());
     moved_ = attacked_ = cast_ = move_fail_ = false;
+    // Damage since our last turn that the camps we stood under do not explain came from champions.
+    if (prev_round_ == round_ - 1 && prev_hp_ - hp_ > prev_camp_in_ * 1.2f + 15.0f) champ_hit_round_ = round_;
+    prev_round_ = round_;
+    prev_hp_ = hp_;
 
     bool reset = false;
     float spell = 0;
@@ -263,6 +273,15 @@ void Bot::observe() {
                         s.gems = static_cast<int>(c.gem_count());
                         s.tribute = c.is_submitting_gems();
                         s.channel = s.tribute || c.is_recalling();
+                    }
+                    if (cheb(p, pos_) <= 8) {
+                        for (const auto& ab : c.abilities()) {
+                            try {
+                                if (ab.cooldown() > 0) continue;
+                                if (ab.is_attack_reset()) s.burst += s.str;
+                                else if (ab.is_damage() || ab.is_aoe_damage() || ab.is_cc()) s.burst += ab.damage_amount();
+                            } catch (const std::exception&) {}
+                        }
                     }
                     (side == 0 ? friends_ : foes_).push_back(s);
                 } catch (const std::exception&) {}
@@ -334,6 +353,7 @@ void Bot::observe() {
         }
     }
 
+    prev_camp_in_ = camp_in_;
     if (!foes_.empty()) write_sighting();
     // Last sighting: x, y (7 bits each), round & 127, rich (≥ 10 gems), several enemies.
     const std::uint32_t v = claims_[5] | (claims_[6] << 8) | (claims_[7] << 16);
@@ -480,6 +500,7 @@ bool Bot::dash_towards(const Field& f) {
                 if (v < best) { best = v; to = t; }
             }
         if (to == pos_) return false;
+        if (cambc::vision::has_champion(to) || cambc::vision::has_camp(to)) return false;
         try {
             if (ab.use(to)) {
                 cast_ = true;
@@ -517,6 +538,7 @@ bool Bot::dash_towards_tile(vec2 target) {
                 if (v < best && v >= 1) { best = v; to = t; }
             }
         if (to == pos_) return false;
+        if (cambc::vision::has_champion(to) || cambc::vision::has_camp(to)) return false;
         try {
             if (ab.use(to)) {
                 cast_ = true;
@@ -780,7 +802,7 @@ namespace {
 
 // One fighter in the focus-fire simulation.
 struct FU {
-    float hp = 0, dps = 0, value = 0;
+    float hp = 0, dps = 0, value = 0, burst = 0;
     int start = 0;  // first turn it can deal damage
 };
 
@@ -812,8 +834,8 @@ float simulate(std::vector<FU> a, std::vector<FU> b, int turns) {
     };
     for (int t = 0; t < turns; ++t) {
         float da = 0, db = 0;
-        for (const auto& u : a) if (u.hp > 0 && t >= u.start) da += u.dps;
-        for (const auto& u : b) if (u.hp > 0 && t >= u.start) db += u.dps;
+        for (const auto& u : a) if (u.hp > 0 && t >= u.start) da += u.dps + (t == u.start ? u.burst : 0.0f);
+        for (const auto& u : b) if (u.hp > 0 && t >= u.start) db += u.dps + (t == u.start ? u.burst : 0.0f);
         hit(b, da);
         hit(a, db);
     }
@@ -841,14 +863,29 @@ bool Bot::fight() {
     int my_d = 99;
     for (const auto& f : foes_) my_d = std::min(my_d, cheb(f.pos, pos_));
     self_u.start = start_turn(my_d, me.attack_range(), melee_);
+    {
+        auto abil = me.abilities();
+        for (const auto& a : ab_) {
+            const auto& ab = abil[static_cast<size_t>(a.slot)];
+            try {
+                if (!ab.is_ready()) continue;
+                if (a.kind == ability_kind::attack_reset) self_u.burst += me.strength();
+                else if (a.kind == ability_kind::damage || a.kind == ability_kind::aoe_damage || a.kind == ability_kind::cc)
+                    self_u.burst += ab.damage_amount();
+            } catch (const std::exception&) {}
+        }
+    }
     ours.push_back(self_u);
     for (const auto& f : friends_) {
-        if (cheb(f.pos, pos_) > 6) continue;
+        if (f.hp < f.max_hp * 0.25f) continue;  // badly hurt allies are leaving
         int d = 99;
         for (const auto& e : foes_) d = std::min(d, cheb(f.pos, e.pos));
+        // Near us or near the enemies, so that our own step does not change who counts.
+        if (cheb(f.pos, pos_) > 7 && d > 8) continue;
         FU u;
         u.hp = f.hp;
         u.dps = f.dps();
+        u.burst = f.burst;
         u.value = 350.0f;
         u.start = start_turn(d, f.range, f.melee);
         ours.push_back(u);
@@ -864,6 +901,7 @@ bool Bot::fight() {
         FU u;
         u.hp = f.hp;
         u.dps = f.dps();
+        u.burst = f.channel ? 0.0f : f.burst;
         u.value = 350.0f + f.gems * 2.0f;
         u.start = f.channel ? 2 : start_turn(d, f.range, f.melee);
         theirs.push_back(u);
@@ -892,7 +930,7 @@ bool Bot::fight() {
         else if (!f.melee && dm <= f.range + 1) v_flee -= f.dps() * 1.2f * 0.4f;
     }
     if (hp_ + v_flee / 0.4f <= 0) v_flee -= self_u.value;
-    const bool engage = v_fight > v_flee + 40.0f;
+    const bool engage = v_fight > v_flee + kEngageBias;
     // A badly hurt champion under focus leaves the fight unless it finishes someone now.
     const bool doomed = threat_me * 2.0f >= hp_ && !(target && cheb(target->pos, pos_) <= me.attack_range()
                                                      && target->hp <= base_dps_ * 1.2f);
@@ -917,8 +955,10 @@ bool Bot::fight() {
         }
         return true;
     }
-    if (threat_me > 0 || dmin <= reach_max + 1) {
-        // Ranged with a shot and little to fear: shoot rather than run.
+    // Not worth a fight: leave only when they are really hurting us (or we are low); otherwise keep farming.
+    const bool hit_by_champs = round_ - champ_hit_round_ <= 1;
+    const bool low = hp_ < max_hp_ * 0.4f;
+    if (doomed || (low && threat_me > 0) || (hit_by_champs && v_fight < -60.0f) || (!kRetreatOnHit && (threat_me > 0 || dmin <= reach_max + 1))) {
         if (!doomed && !melee_ && target && cheb(target->pos, pos_) <= me.attack_range() && threat_me * 3.0f < hp_
             && attack_foe(target)) return true;
         if (melee_ && target && cheb(target->pos, pos_) <= 1) attack_foe(target);
@@ -933,15 +973,16 @@ bool Bot::fight() {
     return false;
 }
 
-// Go after a lone gem carrier an ally reported close by.
+// Converge on a lone enemy an ally reported close by (from further away when it carries gems).
 bool Bot::hunt() {
-    if (sight_age_ > 3 || !sight_rich_ || sight_many_) return false;
-    if (hp_ < max_hp_ * 0.6f || gems_ >= 20) return false;
+    if (sight_age_ > 3 || sight_many_) return false;
+    if (hp_ < max_hp_ * 0.6f || gems_ >= 30) return false;
     const int d = cheb(sight_pos_, pos_);
-    if (d > 10 || d <= 1) return false;
+    const int reach = sight_rich_ ? 12 : 7;
+    if (d > reach || d <= 2) return false;
     if (bit(cambc::map::spawn_region(team::enemy), sight_pos_)) return false;
     if (last_hit_round_ >= round_ - 2) return false;  // busy with camps
-    return approach(sight_pos_, 1, false);
+    return approach(sight_pos_, 2, false);
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -1060,7 +1101,7 @@ float Bot::clear_trips(int g, float dps, float tank, float others_hp, float heal
 float Bot::score(int g) const {
     const GroupK& G = g_[g];
     if (G.blocked_until > round_ || G.tiles.empty()) return -1;
-    const float value = G.gems + gold_weight(round_) * G.gold;
+    const float value = G.gems + gold_weight(round_, type_ == champion_type::vesper_vale) * G.gold;
     if (value <= 0) return -1;
     int wait = 0;
     if (G.st == GroupK::respawning) {
@@ -1097,6 +1138,12 @@ float Bot::score(int g) const {
     const float time = static_cast<float>(std::max(d, wait)) + kill + 5 + extra + bankd + 3 + 8.0f * extra_mates;
     // Our share of the value is our share of the damage.
     float s = value * (base_dps_ / std::max(10.0f, dps)) / time;
+    // A short clear somebody already has is theirs.
+    int claimers = 0;
+    for (size_t i = 0; i < mates_.size(); ++i)
+        if (mate_alive_[i] && mates_[i].slot < kClaimBytes && claims_[mates_[i].slot] == g + 1) ++claimers;
+    if (kSharePenalty && claimers > 0 && extra_mates == 0 && trips < 0.5f && kill * (claimers + 1) < kShareTurns)
+        for (int c = 0; c < claimers; ++c) s *= 0.3f;
     if (g == target_) s *= 1.2f;
     if (sight_age_ <= 15 && sight_many_ && cheb(sight_pos_, G.center) <= 8) s *= 0.6f;
     return s;
@@ -1200,7 +1247,9 @@ void Bot::work(int g) {
         float tclear = 0;
         const float trips = clear_trips(g, dps, tank, others_hp, heal, tclear);
         if (wait_g_ != g) { wait_g_ = g; wait_turns_ = 0; }
-        if (trips > 1.2f && coming && wait_turns_ < 30 && nearest <= G.reach + 4) {
+        // Wait while we are too weak for it and help is coming.
+        const bool strong = kRallyAll ? (G.total_str >= 120 || trips > 1.2f) : trips > 1.2f;
+        if (strong && coming && wait_turns_ < (kRallyAll ? kRallyTurns : 30) && nearest <= G.reach + 4) {
             ++wait_turns_;
             sub_ = 12;
             if (nearest <= G.reach + 1) retreat_step();
@@ -1274,7 +1323,8 @@ void Bot::ward() {
         if (me.ward_cooldown() > 0) return;
     } catch (const std::exception&) { return; }
     if (me.is_recalling() || me.is_submitting_gems()) return;
-    const auto cands = me.ward_placement_tiles().positions();
+    std::vector<vec2> cands;
+    try { cands = me.ward_placement_tiles().positions(); } catch (const std::exception&) { return; }
     const auto& bushes = cambc::map::bushes();
     vec2 best = pos_;
     float bs = 0.5f;
@@ -1336,6 +1386,10 @@ void Bot::play_turn() {
         }
     });
     if (bit(spawn_, pos_) || type_ == champion_type::tavi) shop();
+    // Stunned: nothing else is allowed this turn.
+    try {
+        if (me.buffs().has_stun()) return;
+    } catch (const std::exception&) {}
     support_spells();
     if (fight()) { mode_ = 4; ++acc_[3]; ward(); return; }
     if (low_health()) { mode_ = 5; ++acc_[4]; return; }
