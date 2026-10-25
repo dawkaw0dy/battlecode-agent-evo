@@ -18090,13 +18090,19 @@
    "pushed_commit": "fba3c4d018be90bad4d36f4fc103d27dae82c396",
    "results_commit": "893d7b16661a560ae198f672c0212fcd910d8605",
    "retries": 0,
+   "spotcheck": {
+    "games": 18,
+    "job": "r06-A-spot",
+    "pushed_at": 1792937274,
+    "pushed_commit": "5af70021f15a58f119f84fd78d6477a53d86b7c1",
+    "status": "pending"
+   },
    "stage": "A",
    "status": "arrived"
   }
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-24T19:33:00Z g02 phase RUNNING",
   "2026-10-24T19:33:37Z g02 f02-01: launched session_01NtrBKtUusbaUXQvL8fLYPy",
   "2026-10-24T19:33:54Z g02 f02-02: launched session_01YKp1nZ54113g9Dxx8rnJ6F",
   "2026-10-24T19:34:13Z g02 f02-03: launched session_01SKqAdwQhhAfbSnvF9igfYB",
@@ -18295,7 +18301,8 @@
   "2026-10-25T14:04:01Z g06 f06-07: admitted (699937fb536f)",
   "2026-10-25T14:04:09Z g06 phase EVAL_A_PENDING",
   "2026-10-25T14:04:20Z g06 r06-A: pushed fba3c4d018 with 28 shards",
-  "2026-10-25T14:07:43Z g06 phase EVAL_A_DONE: results for r06-A"
+  "2026-10-25T14:07:43Z g06 phase EVAL_A_DONE: results for r06-A",
+  "2026-10-25T14:07:54Z g06 r06-A-spot: pushed 5af70021f1 (18 sampled games, 13 shards)"
  ],
  "paused": null,
  "phase": "EVAL_A_DONE",
