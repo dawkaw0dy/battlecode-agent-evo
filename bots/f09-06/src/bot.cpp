@@ -8,6 +8,8 @@
 #include <cmath>
 #include <variant>
 #include <iostream>
+#include <array>
+#include <span>
 
 using cambc::item_type;
 
@@ -27,8 +29,14 @@ std::vector<Stage> plan_for(cambc::champion_type t) {
     return p;
 }
 
-std::uint8_t sm_get(int i) { return static_cast<std::uint8_t>(cambc::shared_memory[static_cast<std::size_t>(i)]); }
-void sm_set(int i, std::uint8_t v) { cambc::shared_memory[static_cast<std::size_t>(i)] = v; }
+// Shared memory is read once per turn into a local copy; writes go to both.
+std::array<std::uint8_t, 8> g_sm{};
+void sm_load() { cambc::shared_memory.read(0, std::span<std::uint8_t>{g_sm.data(), g_sm.size()}); }
+std::uint8_t sm_get(int i) { return g_sm[static_cast<std::size_t>(i)]; }
+void sm_set(int i, std::uint8_t v) {
+    g_sm[static_cast<std::size_t>(i)] = v;
+    cambc::shared_memory[static_cast<std::size_t>(i)] = v;
+}
 
 bool has_lock() {
     try {
@@ -946,14 +954,18 @@ void Bot::handle_farm() {
         // Only a fresh sighting overrides the team's choice.
         if (G.seen == W.round && G.state == GroupState::respawning && G.respawn_at - W.round > 12) valid = false;
     }
+    bool chose = false;
     if (!valid) {
         gi = choose_group();
+        chose = true;
         if (gi < 0) return;
         sm_set(pack, static_cast<std::uint8_t>(gi));
     }
     target = gi;
     if (!work_group(gi)) {
         g_bad_until[static_cast<std::size_t>(gi)] = std::max(g_bad_until[static_cast<std::size_t>(gi)], W.round + 1);
+        // One choice per turn: it is the most expensive thing we do.
+        if (chose || fuel_left() < 50000) { sm_set(pack, 0xFF); return; }
         const int next = choose_group();
         if (next < 0) return;
         sm_set(pack, static_cast<std::uint8_t>(next));
@@ -970,6 +982,7 @@ void Bot::play_turn() {
         init();
         if (W.round <= 2) { for (int k = 0; k < 5; ++k) sm_set(k, 0xFF); sm_set(7, 0); }
     }
+    sm_load();
     casted = walked = attacked = false;
     act = "idle";
     g_prof_n = 0;
