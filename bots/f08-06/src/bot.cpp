@@ -549,7 +549,11 @@ bool Bot::bank(bool force) {
 void Bot::farm() {
     auto& me = cambc::self();
     const vec2 pos = me.position();
-    const int t = choose_target();
+    // Re-choose every few rounds, or at once when the current target stops being worth it.
+    const int round = static_cast<int>(cambc::round_number());
+    bool rechoose = target < 0 || round % 3 == slot % 3;
+    if (target >= 0 && groups[target].ready_round > round + 10) rechoose = true;
+    const int t = rechoose ? choose_target() : target;
     if (t != target) idle_hits = 0;
     target = t;
     claim(t);
@@ -560,11 +564,11 @@ void Bot::farm() {
     }
     auto& grp = groups[t];
     if (field_group != t) {
+        if (cambc::fuel_remaining() < 45000) return; // the search waits for a fresh turn
         if (detour_of == &target_field) detour_until = 0;
         // Other groups' camps block the way; route around them.
         cambc::bitboard visited;
         auto walls = terrain | all_spawns;
-        const int round = static_cast<int>(cambc::round_number());
         for (const auto& other : groups)
             if (other.reward || other.ready_round > round) walls &= ~other.spawns;
         walls &= ~grp.spawns;
