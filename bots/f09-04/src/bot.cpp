@@ -16,7 +16,7 @@ constexpr bool kDebugMap = false;
 constexpr bool kStats = false;  // activity counters and positions in stdout
 constexpr bool kTrace = false;
 constexpr bool kTraceChoose = false;
-constexpr bool kDeathTrace = false;  // DIAG
+constexpr bool kDeathTrace = false;  // death trace: the last 8 turns before each death in stdout
 struct DTurn { int round = -1, hp = 0, gems = 0, mode = 0, dmin = 99, home = 0, nfoe = 0, nally = 0; float fv = 0; const char* act = ""; };
 std::array<DTurn, 8> g_dt{};
 int g_dti = 0;

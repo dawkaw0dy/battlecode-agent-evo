@@ -1,0 +1,27 @@
+{
+ "agent": "f09-04",
+ "task_sha256": "588bc5e0f0d27e8213febc39fa17f4551ec4bdfc33ba8a5f151c60ce487f8d20",
+ "base_commit": "57bfe926a5dfcae6cdd40ceff05586ac362fc6ac",
+ "session_id": "cse_017yoiWAVAhUx4a8vqQvuPoi",
+ "bot_dir": "bots/f09-04",
+ "self_eval": {
+  "vs": "f08-05",
+  "games": 80,
+  "wins": 52
+ },
+ "games_played": 836,
+ "summary": "Defense rewrite (defense.cpp): vision-aware threat (bushes/walls are cover), retreats to unseen camp-free bushes, safe recall, tribute/recall channel guard, hidden-attacker evade, boss-tile hold; vs parent 52/80, vs f08-04 48/80 (parent 41/80) with 22% fewer deaths",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "a362858fee6f774350e2901c8b43d49242278b8435cd847a8ad87dc4772be67d",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 17.28,
+  "remote": "true",
+  "session_id": "cse_017yoiWAVAhUx4a8vqQvuPoi",
+  "effort_level": "high",
+  "model": null
+ }
+}
