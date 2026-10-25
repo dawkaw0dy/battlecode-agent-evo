@@ -21,7 +21,14 @@ is approaching, hurt or outnumbered; hold on our spawn (full heal each turn) whi
 - Shared memory: bytes 0–2 latest enemy sighting (x, y, count|fighting<<2, round&31), bytes 3–7 target claim per slot.
 
 ## Changes this generation
-- New bot (immigrant, split-farm archetype).
+- New bot (immigrant, split-farm archetype), built from scratch on the starter's main loop.
+- Final version, benchmark.py, 40 maps × 2 sides vs f02-01: 44/80 (mean margin −25), 0 faults, 0 caught
+  exceptions (an earlier version: 24/80, −309). Dev set (00ambush 00collision 00lanes 00swirl 01boss-battle 01hooks
+  01starfish 01big-world, both sides, bench2): vs f00-03 8/16, f01-07 5/16, f02-01 5/16, f03-05 4/16, f04-05 2/16;
+  vs starter 8/8 (mean 1175 rounds to win). Full 80 vs f04-05 (before locks/Tavi): 10/80.
+- What moved results most: not blocking respawns by waiting on spawn tiles; threat-based flight instead of fleeing
+  every visible enemy; no recall with enemies in view; holding on our spawn; banking gems sooner; contested groups
+  only in company; raids for gem-concentrated groups (01elk-arena); Tavi before Varg; carrying altar locks.
 
 ## Tried and failed (keep entries from the parent's notes; add yours)
 - (f03-05 notes kept by the task:) host calls ~30–40 fuel, bitboard temporaries ~600; turns over 100k resume next
@@ -34,6 +41,9 @@ is approaching, hurt or outnumbered; hold on our spawn (full heal each turn) whi
   wasted; only real flights count now.
 - Shop threshold 450 and stricter post-flight recall (hp < 40%): worse (2/16 vs 4/16).
 - Raids for every gem-rich group (≥40 gems): pulled champions off their regions, worse on ambush/big-world.
+- Fight threshold 1.1 instead of 1.25: no change; never fighting alone unless the foe is channelling/low: no change
+  (more deaths, fewer kills); answering fight calls from 14 tiles: no change. All 16-game samples: ±3 wins is noise.
+- Waiting short of hot contested targets for an ally: no visible effect on 01hooks (kept, harmless elsewhere).
 
 ## Known weaknesses
 - Rush maps (00gemfight, 01hooks, 00packs): lineage bots camp our spawn exit early; we score almost nothing.
