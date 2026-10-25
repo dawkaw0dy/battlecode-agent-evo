@@ -75,6 +75,12 @@ int g_shards = 0;
 const char* g_mode = "";
 char g_last[160] = "";
 bool g_was_alive = true;
+std::vector<std::pair<const char*, int>> g_hist;
+void count_mode(const char* m) {
+    for (auto& [k, v] : g_hist)
+        if (k == m) { ++v; return; }
+    g_hist.emplace_back(m, 1);
+}
 int g_foe_seen = -100;            // last round this champion saw an enemy
 int g_pack = 0;                   // champions farm in packs: {0,2}, {1,3}, {4} by draft slot
 constexpr std::array<int, 5> kPackByte{0, 1, 5, 6, 7};
@@ -472,9 +478,19 @@ int pick_group(int team_n, const std::array<int, 5>& taken) {
     auto& me = cambc::self();
     const float team_dps = (me.strength() + 0.25f * me.focus()) * static_cast<float>(std::max(1, team_n));
     const float team_hp = me.max_health() * static_cast<float>(std::max(1, team_n));
+    // Walking distance from here, computed once per choice.
+    cambc::distance_field f;
+    bitboard visited, root;
+    root.clear();
+    root.set(g_pos);
+    f.compute(cambc::map::walls() | cambc::map::holes() | cambc::map::altars() | cambc::map::spawn_region(team::enemy),
+        root, visited);
     for (size_t i = 0; i < g_groups.size(); ++i) {
         const auto& g = g_groups[i];
-        const int d = dist(g_pos, g.center);
+        int d = 65535;
+        for (auto p : g.tiles.positions())
+            if (visited.is_set(p)) d = std::min<int>(d, f.get(p));
+        if (d == 65535) continue;
         if (std::find(taken.begin(), taken.end(), static_cast<int>(i)) != taken.end()) continue;
         if (g.ready && g.ready > g_round + d) continue;
         const float turns = g.hp / team_dps;
@@ -519,14 +535,20 @@ void turn_body_impl() {
     g_move_failed = false;
     g_attacked = false;
 
+    if (g_round == 1000 || g_round == 1999) {
+        std::cout << "dbg hist r" << g_round << " c" << static_cast<int>(me.champion_name());
+        for (auto& [k, v] : g_hist) std::cout << " " << k << "=" << v;
+        std::cout << "\n";
+    }
     if (!me.is_alive()) {
+        count_mode("dead");
         if (g_was_alive) std::cout << "dbg died r" << g_round << " last: " << g_last << "\n";
         g_was_alive = false;
         shop();
         return;
     }
     g_was_alive = true;
-    if (me.is_submitting_gems() || me.is_teleporting()) return;
+    if (me.is_submitting_gems() || me.is_teleporting()) { count_mode("tribute"); return; }
     g_pos = me.position();
     const vec2 start = g_pos;
     const float hp = me.health(), max_hp = me.max_health();
@@ -544,6 +566,7 @@ void turn_body_impl() {
     const bool melee = my_range <= 1;
 
     if (me.is_recalling()) {
+        count_mode("recalling");
         // Keep recalling unless a foe is about to interrupt it anyway and we could fight back.
         return;
     }
@@ -573,7 +596,7 @@ void turn_body_impl() {
     } catch (const cambc::error&) {}
 
     // Heal up on spawn before leaving.
-    if (at_spawn && hp < max_hp * 0.92f && foes.empty()) return;
+    if (at_spawn && hp < max_hp * 0.92f && foes.empty()) { count_mode("heal"); return; }
 
     // ---- combat -----------------------------------------------------------------------------------
     int nearest_foe = 99;
@@ -582,6 +605,7 @@ void turn_body_impl() {
         ~Trace() {
             int awake_n = 0;
             try { awake_n = cambc::vision::awake_camp_tiles().count(); } catch (...) {}
+            count_mode(g_mode);
             std::snprintf(g_last, sizeof g_last, "r%d %s hp%d foes%d nf%d al%d awake%d pos%d,%d", g_round, g_mode,
                 hp, nf_count, nf, al, awake_n, g_pos.x, g_pos.y);
         }
