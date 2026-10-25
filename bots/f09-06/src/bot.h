@@ -33,6 +33,7 @@ private:
     int approach_r = 3;             // shrinks when a ranged target is out of sight
     int approach_target = -1;
     int stuck_turns = 0;
+    int rally_turns = 0;
     int last_enemy_round = -1000;
     struct Seen { Unit u; int round; };
     std::vector<Seen> seen_enemies;  // last sighting per enemy champion
@@ -57,6 +58,7 @@ private:
     bool handle_bank();
     void handle_farm();
     int choose_group();
+    int helpers_on(int gi) const;  // teammates whose target is this group
     bool work_group(int gi);
     bool can_tribute_safely(int gems) const;
 

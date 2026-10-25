@@ -39,14 +39,15 @@ bool has_lock() {
 
 float unit_dps(const Unit& u) { return u.str + 0.25f * u.focus; }
 
-constexpr float kForeignValue = 0.3f;      // groups on the enemy side
-constexpr float kOtherSectorValue = 0.6f;  // groups in another pack's sector
+constexpr float kForeignValue = 0.5f;      // groups on the enemy side
+constexpr float kOtherSectorValue = 0.85f; // groups in another champion's sector
 constexpr float kCampDamageTaken = 1.0f;
 constexpr float kEngageRatio = 1.5f;       // fight when our hp*dps beats theirs by this much
 constexpr float kFleeRatio = 0.85f;        // run when below this and they can reach us
 constexpr int kDeepChase = 7;              // never chase targets this close to their spawn
 constexpr int kChaseTurns = 4;             // approach turns without a hit before giving up
-constexpr int kChaseReach = 2;             // close in only on targets this far beyond our range  // share of camp damage we expect to take (jungle emblem, stuns)
+constexpr int kChaseReach = 2;
+constexpr int kRallyTurns = 12;            // wait this long for helpers at a strong group             // close in only on targets this far beyond our range  // share of camp damage we expect to take (jungle emblem, stuns)
 
 Field g_from_altars;  // static distance to the nearest altar approach tile
 std::vector<int> g_bad_until;
@@ -57,10 +58,10 @@ std::uint64_t g_choose_fuel = 0;
 // Which pack each draft slot farms with.
 int pack_of(int slot, int n) {
     static const int kPacks[6][5] = {
-        {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0},
-        {0, 0, 0, 0, 0},           // 3 champions
-        {0, 0, 0, 0, 0},           // 4
-        {0, 0, 0, 0, 0},           // 5
+        {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 1, 0, 0, 0},
+        {0, 1, 2, 0, 0},           // 3 champions
+        {0, 1, 2, 3, 0},           // 4
+        {0, 1, 2, 3, 4},           // 5
     };
     if (n < 1 || n > 5 || slot < 0 || slot > 4) return 0;
     return kPacks[n][slot];
@@ -593,24 +594,25 @@ bool Bot::handle_bank() {
 
 // ---------------------------------------------------------------- farming
 
+int Bot::helpers_on(int gi) const {
+    int n = 0;
+    for (int k = 0; k < team_n && k < 5; ++k)
+        if (k != pack && sm_get(k) == gi) ++n;
+    return n;
+}
+
 int Bot::choose_group() {
     const std::uint64_t f0 = cambc::fuel_remaining();
     struct Done { std::uint64_t f0; ~Done() { g_choose_fuel += f0 - cambc::fuel_remaining(); } } done{f0};
     auto& me = cambc::self();
     const vec2 pos = me.position();
-    const float pack_dps = std::max(10.0f, my_dps() * static_cast<float>(pack_n) * 0.85f);
-    const float pack_hp = me.max_health() * static_cast<float>(pack_n);
+    const float dps1 = std::max(10.0f, my_dps());
+    const float hp1 = me.max_health();
     const float gold_w = W.round < 600 ? 0.15f : (W.round < 1200 ? 0.08f : 0.03f);
-    int taken[5] = {-1, -1, -1, -1, -1};
-    for (int k = 0; k < packs; ++k) if (k != pack) taken[k] = sm_get(k);
     int best = -1;
     float best_s = -1;
     for (const auto& G : W.groups) {
-        if (G.m.empty() || g_bad_until[G.id] > W.round) continue;
-        bool other = false;
-        for (int k = 0; k < 5; ++k) if (G.id == taken[k]) other = true;
-        if (other) continue;
-        if (G.island) continue;
+        if (G.m.empty() || g_bad_until[G.id] > W.round || G.island) continue;
         // Terrain distance from the group's own field, else a guess.
         const Field* f = W.group_field(G.id, false);
         const int d = f ? f->at(pos) : cheb(G.center, pos) * 4 / 3 + 2;
@@ -624,10 +626,13 @@ int Bot::choose_group() {
         } else if (G.state == GroupState::reward) {
             hpv = 0; str = 0;
         }
-        const float T = hpv / pack_dps;
-        // Camps do not heal: a group too strong for one trip takes several, each a recall and a walk back.
-        const float trips = std::max(0.0f, std::ceil(str * T * kCampDamageTaken / (0.7f * pack_hp)) - 1.0f);
-        float value = static_cast<float>(G.gems) + gold_w * static_cast<float>(G.gold);
+        // Everyone already on it shares the work, the hits and the reward.
+        const float n = static_cast<float>(helpers_on(G.id) + 1);
+        const float T = hpv / (dps1 * n * 0.9f);
+        const float share_dmg = str * T / n * kCampDamageTaken;
+        // Camps do not heal: a share too big for one trip takes several, each a recall and a walk back.
+        const float trips = std::max(0.0f, std::ceil(share_dmg / (0.7f * hp1)) - 1.0f);
+        float value = (static_cast<float>(G.gems) + gold_w * static_cast<float>(G.gold)) / n;
         if (G.sector != pack) value *= G.sector < 0 && G.ours > G.theirs + 6 ? kForeignValue : kOtherSectorValue;
         const float time = static_cast<float>(std::max(d, wait)) + T + trips * (static_cast<float>(std::min(G.ours, 150)) + 8.0f) + 6.0f;
         const float s = value / time;
@@ -665,7 +670,19 @@ bool Bot::work_group(int gi) {
         if (cheb(c.pos, pos) <= me.attack_range() && (!in_range || c.hp < in_range->hp)) in_range = &c;
     }
     if (in_range) tgt = in_range;
+    if (tgt && !tgt->awake && G.str() > 0) {
+        // Wait for the helpers before waking a group too strong for us alone.
+        int present = 1;
+        for (const auto& a : W.allies) if (cheb(a.pos, G.center) <= G.radius + 6) ++present;
+        const int assigned = helpers_on(gi) + 1;
+        const float solo_dmg = G.str() * G.hp() / (std::max(10.0f, my_dps()) * static_cast<float>(present));
+        if (assigned > present && solo_dmg / static_cast<float>(present) > me.health() * 0.8f && rally_turns < kRallyTurns) {
+            ++rally_turns;
+            return true;
+        }
+    }
     if (tgt) {
+        rally_turns = 0;
         const CampSeen c = *tgt;
         if (approach_target != gi) { approach_target = gi; approach_r = me.attack_range(); }
         cast_on_camp(c);
