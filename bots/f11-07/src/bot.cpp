@@ -281,7 +281,8 @@ void init_world() {
             g_tile_member[p.y * W + p.x] = static_cast<std::int16_t>(k);
         }
     }
-    const bitboard static_walls = g_block_board | g_camp_board;
+    // Static routes pass through camp tiles; live camps are walked around by the dynamic router.
+    const bitboard& static_walls = g_block_board;
     // Static fields towards spawn and altars.
     {
         bitboard visited;
@@ -295,8 +296,7 @@ void init_world() {
                 if (in_bounds(p) && !g_block.get(p)) roots.set(p);
             }
         bitboard visited;
-        g_altar_field.compute(static_walls & ~roots, roots, visited);
-        if (!visited.is_set(me.position())) g_altar_field.compute(g_block_board, roots, visited);
+        g_altar_field.compute(static_walls, roots, visited);
     }
     const vec2 home = cambc::map::spawn_region(team::ally).positions()[0];
     g_field_order.resize(g_groups.size());
@@ -309,10 +309,7 @@ void init_world() {
 void compute_group_field(Group& g) {
     g.field = std::make_unique<distance_field>();
     bitboard visited;
-    g.field->compute((g_block_board | g_camp_board) & ~g.spawn, g.spawn, visited);
-    // A group walled in by other camps: route through them (we clear the way on arrival).
-    if (!visited.is_set(cambc::map::spawn_region(team::ally).positions()[0]))
-        g.field->compute(g_block_board & ~g.spawn, g.spawn, visited);
+    g.field->compute(g_block_board & ~g.spawn, g.spawn, visited);
     g.has_field = true;
 }
 
@@ -327,9 +324,7 @@ void compute_altar_field(std::size_t i) {
     }
     auto f = std::make_unique<distance_field>();
     bitboard visited;
-    f->compute((g_block_board | g_camp_board) & ~roots, roots, visited);
-    if (!visited.is_set(cambc::map::spawn_region(team::ally).positions()[0]))
-        f->compute(g_block_board & ~roots, roots, visited);
+    f->compute(g_block_board, roots, visited);
     g_altar_fields[i] = std::move(f);
 }
 
@@ -565,21 +560,31 @@ bool too_exposed(vec2 n, float here) {
 }
 
 // Greedy descent of a static field, stepping only onto free tiles with a smaller distance.
+int g_dyn_until = -1; // a static route was blocked by a camp or unit: route dynamically until then
+
 bool step_static(const distance_field& f) {
     auto& me = cambc::self();
     trace("ss");
-    if (g_moved || !me.can_move()) return false;
+    if (g_moved || !me.can_move() || g_round < g_dyn_until) return false;
     const int cur = field_value(f, g_pos);
     const float here = exposure_at(g_pos);
     vec2 best = g_pos;
     int best_v = cur;
+    bool blocked_best = false;
+    int open_best = cur;
     for (auto d : kDirs) {
         const vec2 n = g_pos + d;
-        if (blocked_now(n) || too_exposed(n, here)) continue;
+        if (!in_bounds(n) || g_block.get(n)) continue;
         const int v = field_value(f, n);
+        if (v < open_best) open_best = v;
+        if (g_occ.get(n) || too_exposed(n, here)) continue;
         if (v < best_v) { best_v = v; best = n; }
     }
-    if (best == g_pos) return false;
+    blocked_best = open_best < best_v;
+    if (best == g_pos || (blocked_best && best_v >= cur)) {
+        if (blocked_best) g_dyn_until = g_round + 12;
+        return false;
+    }
     g_moved = true;
     if (kDebug) g_trace += "->" + std::to_string(best.x) + "," + std::to_string(best.y) + " ";
     if (!me.move_absolute(best)) { trace("FAIL"); return false; }
@@ -593,8 +598,12 @@ bool step_dynamic(bitboard goals) {
     trace("sd");
     if (g_moved || !me.can_move()) return false;
     if (goals.is_set(g_pos)) return false;
-    bitboard blocked = g_block_board | cambc::vision::champion_tiles() | cambc::vision::camp_tiles()
+    // Remembered live camps block too: a camp out of sight is still standing there.
+    bitboard blocked = g_block_board | g_camp_board | cambc::vision::champion_tiles() | cambc::vision::camp_tiles()
         | cambc::vision::teleport_tiles();
+    for (const auto& g : g_groups)
+        for (const auto& m : g.m)
+            if (m.hp <= 0 && !g_occ.get(m.pos)) blocked.set(m.pos, false);
     blocked.set(g_pos, false);
     goals &= ~blocked;
     if (goals.is_empty()) return false;
@@ -616,6 +625,8 @@ bool step_dynamic(bitboard goals) {
     }
     if (best == g_pos) return false;
     g_moved = true;
+    // Static routes cross live camps; once we route around them, keep doing so for a while.
+    g_dyn_until = std::max(g_dyn_until, g_round + 8);
     if (!me.move_absolute(best)) return false;
     g_pos = best;
     return true;
@@ -911,7 +922,8 @@ bool flee() {
         for (const auto& e : g_enemies) margin = std::min(margin, cheb(p, e.pos) - e.range);
         int ally = 10;
         for (const auto& a : g_allies) ally = std::min(ally, cheb(p, a.pos));
-        return std::min(margin, 4) * 10.0f - ally * 3.0f - field_value(g_spawn_field, p) * 0.5f;
+        return std::min(margin, 4) * 10.0f - ally * 3.0f - field_value(g_spawn_field, p) * 0.5f
+            + (g_spawn.get(p) ? 60.0f : 0.0f);
     };
     float best_s = score(g_pos);
     vec2 best = g_pos;
@@ -1337,7 +1349,7 @@ bool want_bank() {
     const int d = field_value(g_altar_field, g_pos);
     const unsigned ours = cambc::global_submitted_gems(team::ally);
     if (ours + g_gems >= cambc::constants::winning_gems) return true;
-    if (g_round + d + 20 >= static_cast<int>(cambc::constants::max_rounds)) return true;
+    if (d < 100000 && g_round + d + 20 >= static_cast<int>(cambc::constants::max_rounds)) return true;
     if (g_gems >= 40) return true;
     if (g_gems >= 15 && g_cautious) return true;
     if (d <= 4) return true;
@@ -1359,10 +1371,48 @@ bool want_home() {
 // Walk when spawn is close or someone unseen is shooting at us, otherwise recall.
 void go_home() {
     if (field_value(g_spawn_field, g_pos) <= 6 || g_round - g_ambush_round < 5 || g_round - g_last_enemy_round < 3) {
-        step_static(g_spawn_field);
+        if (!step_static(g_spawn_field) && !g_moved) step_dynamic(cambc::map::spawn_region(team::ally));
         return;
     }
     cambc::self().recall();
+}
+
+// Enemies outside our spawn: we heal fully every turn end on it and they cannot step in, so hold it
+// and shoot from it instead of walking out one at a time.
+bool spawn_defense(float sim_value) {
+    if (!g_spawn.get(g_pos)) return false;
+    int best = -1;
+    for (std::size_t i = 0; i < g_enemies.size(); ++i) {
+        const int d = cheb(g_enemies[i].pos, g_pos);
+        if (d > 6) continue;
+        if (best < 0 || g_enemies[i].hp < g_enemies[best].hp) best = static_cast<int>(i);
+    }
+    if (best < 0 || sim_value > kHuntMargin * 2) return false;
+    auto& me = cambc::self();
+    for (const auto& e : g_enemies)
+        if (cheb(e.pos, g_pos) <= g_range) {
+            nuke_champion_at(e.pos);
+            if (attack_champion_at(e.pos)) return true;
+        }
+    if (!g_moved && me.can_move()) {
+        for (auto d : kDirs) {
+            const vec2 n = g_pos + d;
+            if (!in_bounds(n) || !g_spawn.get(n) || g_occ.get(n)) continue;
+            bool reach = false;
+            for (const auto& e : g_enemies)
+                if (cheb(e.pos, n) <= g_range) reach = true;
+            if (!reach) continue;
+            g_moved = true;
+            if (me.move_absolute(n)) {
+                g_pos = n;
+                if (!g_ranged)
+                    for (const auto& e : g_enemies)
+                        if (cheb(e.pos, g_pos) <= g_range && attack_champion_at(e.pos)) break;
+            }
+            return true;
+        }
+    }
+    return true;
 }
 
 // Shared bytes 0..2: tile and round of the latest fight an ally called help for.
@@ -1502,10 +1552,16 @@ void Bot::play_turn() {
             const float ratio = f.ours / f.theirs;
             if (kUseSim) {
                 const auto sim = simulate();
+                if (spawn_defense(sim.value)) {
+                    trace("hold");
+                    g_cur_act = aFight;
+                    done = true;
+                }
                 const float my_worth = 160.0f + g_gems * 3.0f;
                 const bool good = sim.value > kFightMargin + g_gems * 0.5f && (!sim.i_die || sim.value > my_worth * 1.5f);
                 if (kDebug) g_trace += "sim=" + std::to_string(static_cast<int>(sim.value)) + (sim.i_die ? "D " : " ");
-                if (f.engaged || f.threatened) {
+                if (done) {
+                } else if (f.engaged || f.threatened) {
                     if (good && g_round >= g_no_chase_until) {
                         trace("fight");
                         done = do_fight();
@@ -1568,6 +1624,8 @@ void Bot::play_turn() {
             done = leave_camps();
         }
         if (!done && !capturing()) {
+            if (kDebug && want_bank())
+                g_trace += "WB d" + std::to_string(field_value(g_altar_field, g_pos)) + " best" + std::to_string(g_altar_fields.size() > 0 && g_altar_fields[0] ? altar_dist(0, g_pos) : -1) + " ";
             if (want_bank()) {
                 g_cur_act = aBank;
                 trace("bank");
@@ -1590,7 +1648,8 @@ void Bot::play_turn() {
                 if (g_attacked) g_cur_act = aAttack;
             } else {
                 g_cur_act = aIdle;
-                if (!g_spawn.get(g_pos)) step_static(g_spawn_field);
+                if (!g_spawn.get(g_pos) && !step_static(g_spawn_field) && !g_moved)
+                    step_dynamic(cambc::map::spawn_region(team::ally));
             }
             trace("work");
         }
