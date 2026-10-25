@@ -37,6 +37,7 @@ constexpr int pflags = 513;   // MapPlan::flags
 constexpr int pdetour = 514;  // MapPlan::lock_detour
 constexpr int pclass = 515;   // MapPlan::cls
 constexpr int ppicks = 516;   // 5 bytes: champion_draft of each slot (255 = none)
+constexpr int prunner = 521;  // MapPlan::runner_slot
 }
 
 // Map-level switches every champion follows.
@@ -46,6 +47,7 @@ struct MapPlan {
     std::uint8_t flags = 0;
     int lock_detour = 8;               // Chebyshev detour to drop a lock on an altar we pass
     std::uint8_t cls = normal;
+    int runner_slot = -1;              // who runs the locks (with the runner flag)
     std::vector<cambc::champion_draft> picks;  // slot order
     bool has(std::uint8_t f) const { return (flags & f) != 0; }
 };

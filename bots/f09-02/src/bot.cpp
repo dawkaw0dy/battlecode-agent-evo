@@ -1478,7 +1478,7 @@ void Bot::turn() {
     // The last pick runs locks to altars nobody passes (the enemy's own banks), between fights.
     // The map plan decides whether locks are worth walking for (few altars) or not (the enemy walks on).
     const auto& plan = map_plan();
-    const bool runner = kLockRunner && plan.has(MapPlan::runner) && slot_ == size_ - 1 && size_ >= 3 && now < 1600
+    const bool runner = kLockRunner && plan.has(MapPlan::runner) && slot_ == plan.runner_slot && size_ >= 3 && now < 1600
         && me.gem_count() == 0 && hp > max_hp * 0.6f;
     if (lock_altars(true, runner ? 60 : plan.lock_detour)) return;
     if (runner && !has_lock() && !at_spawn && incoming_ == 0 && me.gold_count() >= 10 && lock_needed()) {

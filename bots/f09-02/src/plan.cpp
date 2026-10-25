@@ -6,6 +6,7 @@
 constexpr int kRunnerAltars = 2;     // most altar tiles for the lock runner and lock detours
 constexpr int kLockDetour = 8;       // detour for a lock on those maps
 constexpr bool kRoleHomes = true;    // forward home regions to the sturdiest picks
+constexpr bool kBackRunner = true;   // the frontline holder never runs locks
 constexpr int kSmallArea = 1300;     // map classes by area
 constexpr int kLargeArea = 3000;
 
@@ -116,6 +117,20 @@ MapPlan make_plan(const std::vector<GroupInfo>& groups, int slots) {
         p.lock_detour = 0;
     }
     p.picks = default_picks(slots);
+    // Running locks leaves the runner's home region unfarmed: the holder of the most forward region (the
+    // sturdiest pick) never runs; the next sturdiest runs instead (only with 3 picks, where that is the last).
+    p.runner_slot = static_cast<int>(p.picks.size()) - 1;
+    if (kBackRunner && p.runner_slot > 0) {
+        auto st = [&](int i) { return sturdiness(p.picks[static_cast<size_t>(i)]); };
+        bool front = true;
+        for (int i = 0; i < p.runner_slot; ++i) front = front && st(i) < st(p.runner_slot);
+        if (front) {
+            int best = -1;
+            for (int i = 0; i < p.runner_slot; ++i)
+                if (best < 0 || st(i) > st(best)) best = i;
+            p.runner_slot = best;
+        }
+    }
     return p;
 }
 
@@ -129,6 +144,7 @@ void write_plan(std::span<std::byte> mem, const MapPlan& p) {
     mem[dm::pflags] = static_cast<std::byte>(p.flags);
     mem[dm::pdetour] = static_cast<std::byte>(std::clamp(p.lock_detour, 0, 255));
     mem[dm::pclass] = static_cast<std::byte>(p.cls);
+    mem[dm::prunner] = static_cast<std::byte>(std::clamp(p.runner_slot, 0, 255));
     for (int i = 0; i < 5; ++i)
         mem[static_cast<size_t>(dm::ppicks + i)] = i < static_cast<int>(p.picks.size())
             ? static_cast<std::byte>(static_cast<int>(p.picks[static_cast<size_t>(i)])) : std::byte{255};
@@ -143,6 +159,7 @@ const MapPlan& map_plan() {
             g_plan.flags = static_cast<std::uint8_t>(mem[dm::pflags]);
             g_plan.lock_detour = static_cast<int>(mem[dm::pdetour]);
             g_plan.cls = static_cast<std::uint8_t>(mem[dm::pclass]);
+            g_plan.runner_slot = static_cast<int>(mem[dm::prunner]);
             g_plan.picks.clear();
             for (int i = 0; i < 5; ++i) {
                 const int v = static_cast<int>(mem[static_cast<size_t>(dm::ppicks + i)]);
