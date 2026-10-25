@@ -378,14 +378,6 @@ void Bot::compute_altars() {
 }
 
 void Bot::fill_fields(std::uint64_t reserve) {
-    if (home_.empty()) {
-        if (!fuel(reserve + 60000)) return;
-        ensure_home();
-    }
-    if (!altar_ready_) {
-        if (!fuel(reserve + 60000)) return;
-        compute_altars();
-    }
     for (int i : fill_order_) {
         if (!gfield_[i].empty()) continue;
         if (!fuel(reserve)) return;
@@ -1514,10 +1506,7 @@ bool Bot::tribute() {
     auto& me = cambc::self();
     const int gems = static_cast<int>(me.gem_count());
     if (gems <= 0) return false;
-    if (!altar_ready_) {
-        if (!fuel(90000)) return false;
-        compute_altars();
-    }
+    if (!altar_ready_) compute_altars();
     const auto locks = cambc::vision::altar_lock_tiles(team::enemy);
     for (auto a : cambc::map::altars().positions()) {
         if (cheb(a, pos_) > cambc::constants::submit_gems_range || locks.is_set(a)) continue;
@@ -1655,6 +1644,10 @@ void Bot::turn() {
                 std::cout << row << '\n';
             }
         }
+    } else if (home_.empty()) {
+        ensure_home();      // deferred from the first turn (draft table): one field per turn
+    } else if (!altar_ready_) {
+        compute_altars();
     }
     moved_ = attacked_ = cast_ = move_failed_ = false;
     invalidate();
