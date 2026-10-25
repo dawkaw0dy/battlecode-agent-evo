@@ -1,0 +1,17 @@
+{"agent": "f10-07", "task_sha256": "e5bcf1404cf60621397a572f7ce396fb78ca0da77481ed29a16128992dc4d23b", "base_commit": "4aaa39a9751e20d6b742ae4c5943352e35e134ff",
+ "session_id": "cse_01U78Sckd7oZxrGhFo2MUAxX", "bot_dir": "bots/f10-07",
+ "self_eval": {"vs": "f09-01", "games": 40, "wins": 4}, "games_played": 625,
+ "summary": "Immigrant camp-sweep bot: solo farming by value per turn with cached group fields, distance-scaled banking with lock breaking, focus-fire fight model for engage/retreat",
+ "env_fingerprint": {
+ "cli": "cambc 3.0.5",
+ "manifest_sha256": "115cd88fd4114caf0cb6833b9f885905db7678fd9dc70e4949b4f7e7f4141a60",
+ "nproc": 4,
+ "python": "3.13.17",
+ "node": "v22.22.0",
+ "smoke_finished": true,
+ "smoke_seconds": 14.73,
+ "remote": "true",
+ "session_id": "cse_01U78Sckd7oZxrGhFo2MUAxX",
+ "effort_level": "high",
+ "model": null
+}}

@@ -24,7 +24,7 @@ constexpr int kSightByte = 5;      // bytes 5..7: x, y, round & 255 of the lates
 constexpr int kSightRounds = 20;
 constexpr float kEngage = 60.0f;   // fight value needed to engage
 constexpr double kCohesion = 0.25; // score bonus per ally target within 10 tiles
-constexpr int kWaryRounds = 15;
+constexpr int kWaryRounds = 15;    // after a sighting, heal sooner
 constexpr float kBankPerTile = 1.5f; // carried gems per tile of altar distance that justify a trip
 constexpr int kBankMin = 8;
 constexpr int kBankCap = 50;
@@ -34,12 +34,12 @@ constexpr bool kAvoidAwake = false;
 constexpr int kSquads = 5;          // 5 = everyone farms alone; fewer = squads follow a leader
 constexpr int kHoldMax = 25;       // rounds a squad member waits for the others at a big group
 constexpr double kTheirSide = 0.6;
-constexpr double kContested = 1.0;    // after a sighting, heal sooner
+constexpr double kContested = 1.0;
 constexpr float kWaryHeal = 0.5f;
 constexpr bool kHelp = false;       // answer allies' sightings
 constexpr int kHelpRange = 12;
 constexpr bool kDumpMap = false;
-constexpr bool kDeathTrace = true;
+constexpr bool kDeathTrace = false;
 constexpr int kActReport = 590;
 constexpr int kTraceFrom = 100000, kTraceTo = 0;
 
