@@ -148,6 +148,8 @@ class Bot {
     float bag_need(int gems) const;
     void sense_ambush();
     bool evade();
+    bool ward_bushes(int min_n);
+    void scout();
     float prev_hp_ = -1;                // health at the start of our last turn ...
     int prev_round_ = -10;              // ... and its round
     int ambush_until_ = -100;           // hit by someone we cannot see: evade until then

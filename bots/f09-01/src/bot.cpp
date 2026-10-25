@@ -1324,6 +1324,7 @@ void Bot::turn() {
     fp("block");
     if (!live()) return;
     sense_ambush();
+    scout();
     g_mode = 2;
     try {
         if (evade()) return;

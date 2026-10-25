@@ -48,7 +48,11 @@ constexpr bool kStayStrike = false;    // boxed in: hit back
 constexpr float kBagNeed = 3.0f;       // fight value needed to engage, per carried gem
 constexpr bool kEvade = true;          // hit by an unseen enemy: walk away from the bushes it hides in
 constexpr int kAmbushRounds = 4;
-constexpr bool kWardReveal = true;     // ... and ward the bush it shoots from       // ... for this long after the last such hit
+constexpr bool kWardReveal = true;     // ... and ward the bush it shoots from
+constexpr bool kScout = true;          // ward unseen bushes beside us while enemies are about
+constexpr int kScoutRounds = 40;       // ... "about": seen by us, or reported near us, this recently
+constexpr int kScoutMin = 3;           // ... a bush of at least this many unseen tiles around the ward
+constexpr int kScoutKeep = 5;          // ... unless our ward is already this close       // ... for this long after the last such hit
 constexpr int kFleeAltarGems = 10;     // fleeing with this many gems: run for the nearest altar when nearer than home
 constexpr bool kChaseRecall = false;   // recall timing from hit_turn() (else: everyone at least kRecallDist away)
 constexpr int kRecallDist = 7;
@@ -242,6 +246,54 @@ void Bot::sense_ambush() {
                              << " hp " << hp << " at " << pos_.x << ',' << pos_.y << " foes " << v.foes.count() << " allies " << v.allies.size() << '\n';
 }
 
+// Our ward on the unseen bush tile within reach that shows the most unseen bush around it (at least
+// min_n tiles). True when placed (or a hidden occupant was revealed trying).
+bool Bot::ward_bushes(int min_n) {
+    auto& me = cambc::self();
+    if (!fuel(20000) || !live()) return false;
+    int cd = 1;
+    try { cd = me.ward_cooldown(); } catch (const cambc::error&) {}
+    if (cd > 0) return false;
+    if (!bush_.p) bush_.bind(cambc::map::bushes());
+    const auto& v = view();
+    vec2 best{-1, -1};
+    int best_n = min_n - 1;
+    try {
+        const auto tiles = me.ward_placement_tiles();
+        if (!tiles.is_empty())
+            for (auto t : tiles.positions()) {
+                if (!bush_.at(t) || v.lvis.at(t) || cheb(t, pos_) > 2) continue;
+                int n = 0;
+                for (int dy = -2; dy <= 2; ++dy)
+                    for (int dx = -2; dx <= 2; ++dx) {
+                        const vec2 b{t.x + dx, t.y + dy};
+                        if (bush_.at(b) && !v.lvis.at(b)) ++n;
+                    }
+                if (n > best_n) { best_n = n; best = t; }
+            }
+    } catch (const cambc::error& e) { warn("ward tiles", e); return false; }
+    if (best.x < 0) return false;
+    try { me.place_ward(best); } catch (const cambc::error& e) { warn("ward", e); return false; }
+    invalidate();
+    return true;
+}
+
+// Bushes beside us hide enemies that see us: keep our ward in them while enemies are about.
+void Bot::scout() {
+    if (!kScout || !live()) return;
+    const int now = round_now();
+    if (now - last_enemy_seen_ > kScoutRounds) {
+        const auto s = read_sighting();
+        if (!s.ok || s.age > kScoutRounds || cheb(s.where, pos_) > 16) return;
+    }
+    if (spawn_local_.at(pos_)) return;
+    try {
+        for (auto w : cambc::self().ward_positions())
+            if (cheb(w, pos_) <= kScoutKeep) return;  // ours already covers this ground
+    } catch (const cambc::error&) { return; }
+    ward_bushes(kScoutMin);
+}
+
 // Under fire from an unseen enemy: no recall (it would be broken), but steps away from the bushes it may
 // hide in, towards home; while healthy, carry on. True when the turn is spent.
 bool Bot::evade() {
@@ -255,35 +307,11 @@ bool Bot::evade() {
     if (!bush_.p) bush_.bind(cambc::map::bushes());
     // Our ward in the bush shows the shooter to the fight model (a hidden occupant is revealed even when
     // the placement fails).
-    if (kWardReveal && fuel(20000) && live()) {
-        int cd = 1;
-        try { cd = me.ward_cooldown(); } catch (const cambc::error&) {}
-        if (cd <= 0) {
-            vec2 best{-1, -1};
-            int best_n = 0;
-            try {
-                const auto tiles = me.ward_placement_tiles();
-                if (!tiles.is_empty())
-                    for (auto t : tiles.positions()) {
-                        if (!bush_.at(t) || v.lvis.at(t) || cheb(t, pos_) > 2) continue;
-                        int n = 0;
-                        for (int dy = -2; dy <= 2; ++dy)
-                            for (int dx = -2; dx <= 2; ++dx) {
-                                const vec2 b{t.x + dx, t.y + dy};
-                                if (bush_.at(b) && !v.lvis.at(b)) ++n;
-                            }
-                        if (n > best_n) { best_n = n; best = t; }
-                    }
-            } catch (const cambc::error& e) { warn("ward tiles", e); }
-            if (best_n > 0) {
-                try { me.place_ward(best); } catch (const cambc::error& e) { warn("ward", e); }
-                invalidate();
-                const auto& v2 = view();
-                if (!v2.foes.is_empty())
-                    for (auto p : v2.foes.positions())
-                        if (cheb(p, pos_) <= 9) return false;  // found: the fight model takes over
-            }
-        }
+    if (kWardReveal && ward_bushes(1)) {
+        const auto& v2 = view();
+        if (!v2.foes.is_empty())
+            for (auto p : v2.foes.positions())
+                if (cheb(p, pos_) <= 9) return false;  // found: the fight model takes over
     }
     const auto& vv = view();
     const float hp = me.health();
