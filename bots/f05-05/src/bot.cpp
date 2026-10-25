@@ -52,6 +52,7 @@ void fp(const char* tag) {
     if (g_f0 > f && g_f0 - f > 3000) { g_fp_log += ' '; g_fp_log += tag; g_fp_log += '='; g_fp_log += std::to_string((g_f0 - f) / 1000); }
     g_f0 = f;
 }
+constexpr int kReplanRounds = 4;  // rounds between target choices (fuel permitting; 2 was worse)
 constexpr bool kFoeMemory = false;  // remember enemies for 3 rounds
 constexpr bool kHysteresis = false;
 constexpr int kChaseTurns = 5;  // approach turns without a hit before giving up a chase  // solo clear time above which allies may join a group
@@ -989,7 +990,7 @@ void Bot::turn() {
     // A due re-plan waits a turn (twice at most) while the fuel left would not cover it and the rest of
     // the turn: a turn that runs out loses the next round, a target one turn older costs little.
     const bool must = target_ < 0 || k_[target_].state == Known::respawning;
-    const bool due = must || now - chosen_at_ >= 4;
+    const bool due = must || now - chosen_at_ >= kReplanRounds;
     if (due && !must && choose_defer_ < 2 && !fuel(choose_cost_ + 35000)) ++choose_defer_;
     else if (due) {
         choose_defer_ = 0;
