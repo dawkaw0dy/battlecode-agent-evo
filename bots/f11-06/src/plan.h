@@ -8,7 +8,9 @@ struct Plan {
     std::uint8_t mode = kModeFarm;
     int bank = 40;          // carry this many gems before a dedicated bank trip
     int raid = -1;          // boss group to raid together (-1 = none)
-    int raid_pow = 0;       // mean strength per champion needed before the raid
+    int raid_pow = 0;       // strength a champion needs before joining the raid
+    int raid2 = -1, raid2_pow = 0;
+    int raid_round = 2000;  // raids start by this round whatever the strength
     std::uint8_t flags = 0;
     std::array<std::uint8_t, 5> squad{0, 1, 2, 3, 4};   // squad id per pick slot
     std::vector<std::uint8_t> cls;  // GroupClass per group

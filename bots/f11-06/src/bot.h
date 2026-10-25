@@ -69,6 +69,7 @@ private:
     bool handle_enemies();
     float fight_value(bool* i_die) const;
     bool flee();
+    bool hold_spawn();
     bool engage();
     float danger_at(vec2 t, bool dash_reach) const;
     float camp_danger_at(vec2 t) const;
@@ -81,6 +82,8 @@ private:
     bool execute_target(int g);
     bool attack_camps_in_range(int g);
     void idle();
+    int raid_target() const;
+    bool raid_step(int g);
 
     // helpers
     bool step_towards(bitboard goals, bool allow_dash);
@@ -150,6 +153,9 @@ private:
     std::array<int, 16> mem_round_{};
     int flee_until_ = -1;
     bool disengage_ = false;
+    int rally_wait_ = 0;
+    vec2 avoid_pos_{-100, -100};
+    int avoid_until_ = -1;
     bool was_recalling_ = false, just_recalled_ = false;
     int last_hit_round_ = -100;
     int leader_slot_ = 0, leader_target_ = -1, squad_n_ = 1;

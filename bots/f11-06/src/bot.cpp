@@ -142,8 +142,13 @@ void Bot::play_turn() {
         }
         if (kTrace) ++acts_[kActDead];
         at_spawn_ = false;
-        gold_ = static_cast<int>(me.gold_count());
-        shop();
+        try {
+            gold_ = static_cast<int>(me.gold_count());
+            shop();
+        } catch (const std::exception& e) {
+            ++warns_;
+            std::printf("warn: dead shop %s\n", e.what());
+        }
         banking_ = 0;
         target_ = -1;
         return;
@@ -160,8 +165,22 @@ void Bot::play_turn() {
         finish_turn();
         return;
     }
-    shop();
-    cast_support();
+    {
+        // Stunned: nothing can act this turn (actions would throw "cannot act").
+        const auto st = me.state();
+        if (!st.contains(cambc::champion_state::can_move) && !st.contains(cambc::champion_state::can_attack)
+            && !st.contains(cambc::champion_state::can_cast)) {
+            finish_turn();
+            return;
+        }
+    }
+    try {
+        shop();
+        cast_support();
+    } catch (const std::exception& e) {
+        ++warns_;
+        std::printf("warn: shop %s\n", e.what());
+    }
     // Spawn heals at the end of a turn spent on it: wait there until healed.
     if (at_spawn_ && just_recalled_ && hp_ < 0.97f * maxhp_ && enemies_.empty()) {
         act_ = kActHeal;
@@ -180,13 +199,22 @@ void Bot::play_turn() {
     if (kFleePeriod && !done && round_ < flee_until_) {
         // Just escaped a stronger force: keep going home (heal there) instead of walking back into it.
         act_ = kActFlee;
-        if (!at_spawn_) step_towards(cambc::map::spawn_region(team::ally), true);
+        try {
+            if (!at_spawn_) step_towards(cambc::map::spawn_region(team::ally), true);
+        } catch (...) {
+            ++warns_;
+        }
         done = true;
     }
     if (!done && should_recall()) {
         act_ = kActRecall;
-        me.recall();
-        done = true;
+        try {
+            me.recall();
+            done = true;
+        } catch (const std::exception& e) {
+            ++warns_;
+            std::printf("warn: recall %s\n", e.what());
+        }
     }
     if (!done) {
         try {
@@ -405,14 +433,6 @@ void Bot::finish_turn() {
             static const char* names[] = {"dead", "chan", "heal", "fight", "flee", "bank", "hit", "walk", "capt", "idle", "wait", "recall"};
             for (int i = 0; i < kActs; ++i) std::printf(" %s=%d", names[i], acts_[static_cast<size_t>(i)]);
             std::printf("\n");
-        }
-    }
-    if (!enemies_.empty()) {
-        try {
-            cambc::shared_memory[sm::alert] = static_cast<std::uint8_t>(enemies_.front().pos.x);
-            cambc::shared_memory[sm::alert + 1] = static_cast<std::uint8_t>(enemies_.front().pos.y);
-            cambc::shared_memory[sm::alert_round] = static_cast<std::uint8_t>(round_ & 255);
-        } catch (...) {
         }
     }
 }
@@ -703,6 +723,8 @@ bool Bot::should_recall() {
     for (const auto& e : enemies_)
         if (cheb(e.pos, pos_) <= 8) return false;
     if (hp_ < 0.3f * maxhp_) return true;
+    // Enemies about: do not roam half dead.
+    if (round_ - last_enemy_round_ < 30 && hp_ < 0.5f * maxhp_) return true;
     if (!tavi_ && gold_ >= 240 && hp_ < 0.7f * maxhp_ && home_dist(pos_) > 12) return true;
     return false;
 }
@@ -897,6 +919,7 @@ void Bot::choose_target(bool force) {
         if (cls == kGEnemy) value *= 0.6f;
         else if (cls == kGContested) value *= 0.85f;
         if (round_ - K.enemy_round < 30) value *= 0.5f;
+        if (round_ < avoid_until_ && cheb(G.center, avoid_pos_) <= 8) value *= 0.2f;
         const float time = static_cast<float>(travel + wait) + clear + 5.0f + static_cast<float>(extra) * trip_cost;
         const float score = value / (time + kTimeConst);
         if (g == target_) cur_score = score;
@@ -1028,7 +1051,8 @@ bool Bot::execute_target(int g) {
     if (any_alive) {
         // Fight until our health runs low (unless the group is about to die), then leave its reach,
         // recall and come back: camps never heal, so every trip makes progress.
-        if (damaged_ && hp_ - 3.0f * dmg_taken_ < 0.22f * maxhp_) {
+        const float exit_turns = static_cast<float>(std::max(3, G.range - range_ + 2));
+        if (damaged_ && hp_ - exit_turns * dmg_taken_ < 0.2f * maxhp_) {
             float left = 0, team_dps = my_camp_dps();
             for (auto t : G.tiles)
                 if (camp_tiles_.is_set(t)) {
@@ -1106,6 +1130,91 @@ bool Bot::execute_target(int g) {
     return true;
 }
 
+// One turn of the raid on group g. False when the raid gives nothing to do (farm instead).
+bool Bot::raid_step(int g) {
+    const auto& G = map_info().groups[static_cast<size_t>(g)];
+    if (target_ != g) {
+        target_ = g;
+        stall_ = 0;
+        shrink_ = false;
+    }
+    int flag = 0, stamp = 0;
+    try {
+        flag = cambc::shared_memory[sm::raid];
+        stamp = cambc::shared_memory[sm::raid_round];
+    } catch (...) {
+    }
+    const bool engaged = flag == g + 1 && ((round_ - stamp) & 255) <= 30;
+    auto mark_engaged = [&]() {
+        try {
+            cambc::shared_memory[sm::raid] = static_cast<std::uint8_t>(g + 1);
+            cambc::shared_memory[sm::raid_round] = static_cast<std::uint8_t>(round_ & 255);
+        } catch (...) {
+        }
+    };
+    // Heal (and shop) before a trip.
+    if (!at_spawn_ && hp_ < 0.6f * maxhp_ && !damaged_ && round_ - last_hit_round_ > 3) {
+        bool enemy_near = false;
+        for (const auto& e : enemies_)
+            if (cheb(e.pos, pos_) <= 9) enemy_near = true;
+        if (!enemy_near) {
+            act_ = kActRecall;
+            cambc::self().recall();
+            return true;
+        }
+    }
+    bool boss_alive = false;
+    for (auto t : G.tiles)
+        if (camp_tiles_.is_set(t)) boss_alive = true;
+    if (engaged || round_ - last_hit_round_ <= 3 || !boss_alive) {
+        const bool ok = execute_target(g);
+        if (round_ == last_hit_round_) mark_engaged();
+        return ok;
+    }
+    // Gather on the ring just outside its reach until enough raiders are here.
+    act_ = kActWait;
+    bitboard inner, ring;
+    for (auto t : G.tiles) {
+        mark_square(ring, t, G.range + 3);
+        mark_square(inner, t, G.range + 1);
+    }
+    ring &= ~inner;
+    ring &= ~static_walls();
+    if (!ring.is_set(pos_)) {
+        step_towards(ring, true);
+        return true;
+    }
+    int near = 0;
+    for (const auto& a : allies_)
+        if (cheb(a.pos, pos_) <= 6) ++near;
+    int alive = 0;
+    const auto claims = read_claims();
+    for (int s = 0; s < static_cast<int>(plan_.picks.size()) && s < sm::kSlots; ++s)
+        if (claims[static_cast<size_t>(s)] != -2) ++alive;
+    const int need = std::max(1, std::min(G.mono ? 4 : 2, alive - 1));
+    if (near >= need || ++rally_wait_ > 40) {
+        rally_wait_ = 0;
+        mark_engaged();
+        return execute_target(g);
+    }
+    return true;
+}
+
+int Bot::raid_target() const {
+    const int n = static_cast<int>(gk_.size());
+    const int groups[2] = {plan_.raid, plan_.raid2};
+    const int pows[2] = {plan_.raid_pow, plan_.raid2_pow};
+    for (int i = 0; i < 2; ++i) {
+        const int g = groups[i];
+        if (g < 0 || g >= n) continue;
+        if (str_ < static_cast<float>(pows[i]) && round_ < plan_.raid_round + 200 * i) continue;
+        const auto& K = gk_[static_cast<size_t>(g)];
+        if (K.ready - round_ > 25) continue;
+        return g;
+    }
+    return -1;
+}
+
 void Bot::idle() {
     // Nothing worth doing: wait at home (heals, shops).
     if (at_spawn_) return;
@@ -1140,6 +1249,9 @@ void Bot::farm() {
                 execute_target(target_);
                 return;
             }
+    // Boss raid from the plan: raiders gather just outside the boss's reach and engage together.
+    const int raid = raid_target();
+    if (raid >= 0 && raid_step(raid)) return;
     if (leader_slot_ != slot_ && leader_target_ >= 0 && leader_target_ < static_cast<int>(gk_.size())) {
         if (target_ != leader_target_) {
             target_ = leader_target_;
@@ -1148,7 +1260,8 @@ void Bot::farm() {
         }
         if (execute_target(target_)) return;
     }
-    const bool invalid = target_ < 0 || gk_[static_cast<size_t>(target_)].ready > round_ + 40;
+    bool invalid = target_ < 0 || gk_[static_cast<size_t>(target_)].ready > round_ + 40;
+    if (!invalid && round_ < avoid_until_ && cheb(m.groups[static_cast<size_t>(target_)].center, avoid_pos_) <= 8) invalid = true;
     const bool engaged = round_ - last_hit_round_ <= 3;
     if (invalid || (!engaged && round_ - last_eval_ >= kEvalEvery)) {
         choose_target(invalid);

@@ -10,6 +10,12 @@ namespace vision = cambc::vision;
 
 namespace {
 
+#ifndef EVO_ENGAGE
+#define EVO_ENGAGE -60
+#endif
+constexpr float kEngageBias = EVO_ENGAGE;   // fight value needed to engage
+constexpr int kAvoidRounds = 20;          // rounds a fled-from area stays avoided
+
 bool has_reset(champion_type t) {
     switch (t) {
         case champion_type::vesper_vale: case champion_type::vendetta: case champion_type::ryth:
@@ -157,7 +163,13 @@ bool Bot::handle_enemies() {
         for (const auto& e : enemies_) std::printf(" e(%d,%d)%.0f/%d", e.pos.x, e.pos.y, e.hp, static_cast<int>(e.type));
         std::printf("\n");
     }
-    if (v > 60.0f && !i_die) {
+    // A kill within reach this turn is always taken.
+    if (!attacked_ && cambc::self().can_attack()) {
+        const float hit = str_ * (kit_.reset >= 0 ? 2.0f : 1.0f) + my_burst_;
+        for (const auto& e : enemies_)
+            if (cheb(e.pos, pos_) <= range_ && e.hp <= 0.9f * hit) return engage();
+    }
+    if (v > kEngageBias && !i_die) {
         // Favourable: hit whoever we can reach this turn; never chase (equal speeds, it only drags us away).
         const int strike = ranged_ ? range_ : 2 + (kit_.dash >= 0 ? 2 : 0);
         for (const auto& e : enemies_) {
@@ -169,7 +181,11 @@ bool Bot::handle_enemies() {
 
     // Not worth fighting: leave if anything can reach us soon, or a stronger force is close.
     const bool threatened = danger_at(pos_, true) > 0 || (v < -100.0f && nearest <= 7);
+    if (at_spawn_ && v < 0 && nearest <= 8) return hold_spawn();
     if (!threatened) return false;
+    // Remember where the danger is: the next targets avoid it for a while.
+    avoid_pos_ = threats_.front().pos;
+    avoid_until_ = round_ + kAvoidRounds;
     return flee();
 }
 
@@ -319,5 +335,57 @@ bool Bot::flee() {
     }
     walk_to(best);
     if (!ranged_) hit_back();
+    return true;
+}
+
+// Enemies wait outside our spawn: stay inside it (they cannot enter) on the tile farthest from them,
+// hit back what comes into range, and leave only once the fight is even or they are gone.
+bool Bot::hold_spawn() {
+    auto& me = cambc::self();
+    act_ = kActFlee;
+    const auto& spawn = cambc::map::spawn_region(team::ally);
+    const auto blocked = blocked_now();
+    auto cost = [&](vec2 t) { return danger_at(t, true) * 10.0f - static_cast<float>(cheb(t, threats_.front().pos)); };
+    vec2 best = pos_;
+    float best_c = cost(pos_);
+    if (me.can_move() && !moved_ && !move_failed_)
+        for (int dy = -1; dy <= 1; ++dy)
+            for (int dx = -1; dx <= 1; ++dx) {
+                const vec2 t{pos_.x + dx, pos_.y + dy};
+                if ((dx == 0 && dy == 0) || !in_bounds(t) || !spawn.is_set(t) || blocked.is_set(t)) continue;
+                const float c = cost(t);
+                if (c < best_c) {
+                    best_c = c;
+                    best = t;
+                }
+            }
+    if (ranged_ || best == pos_) {
+        // Ranged: shooting beats shuffling; melee shuffles then hits.
+        const EnemyView* t = nullptr;
+        for (const auto& e : enemies_)
+            if (cheb(e.pos, pos_) <= range_ && (!t || e.hp < t->hp)) t = &e;
+        if (t && !attacked_ && me.can_attack()) {
+            try {
+                me.attack(vision::champion_at(t->pos));
+                attacked_ = true;
+                return true;
+            } catch (...) {
+                ++warns_;
+            }
+        }
+    }
+    if (best != pos_) walk_to(best);
+    if (!ranged_ && !attacked_ && me.can_attack()) {
+        for (const auto& e : enemies_)
+            if (cheb(e.pos, pos_) <= range_) {
+                try {
+                    me.attack(vision::champion_at(e.pos));
+                    attacked_ = true;
+                } catch (...) {
+                    ++warns_;
+                }
+                break;
+            }
+    }
     return true;
 }

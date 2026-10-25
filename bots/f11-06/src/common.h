@@ -16,7 +16,7 @@ constexpr int kFar = 9999;
 #define EVO_TRACE 0
 #endif
 constexpr bool kTrace = EVO_TRACE;
-constexpr int kTraceSlot = 0, kTraceFrom = 1, kTraceTo = 260;
+constexpr int kTraceSlot = 0, kTraceFrom = 150, kTraceTo = 400;
 constexpr std::uint16_t kUnreached = 65535;
 
 inline int cheb(vec2 a, vec2 b) {
@@ -64,6 +64,9 @@ constexpr int mode = 8;      // plan mode
 constexpr int bank = 9;      // gem bank threshold
 constexpr int raid = 10;     // boss raid group index + 1 (0 = none)
 constexpr int raid_pow = 11; // strength (per champion, /4) required before raiding
+constexpr int raid2 = 13;     // second boss group + 1 (monolith when the first is a golem)
+constexpr int raid2_pow = 14;
+constexpr int raid_round = 15;  // rounds/8 after which raids start regardless of strength
 constexpr int flags = 12;    // misc plan flags
 constexpr int squads = 20;   // 5 bytes: squad id per pick slot
 constexpr int ngroups = 16;  // number of groups recorded
@@ -79,8 +82,8 @@ enum GroupClass : std::uint8_t { kGHome = 0, kGContested = 1, kGEnemy = 2, kGBos
 // Shared memory layout (8 bytes).
 namespace sm {
 constexpr int claims = 0;       // bytes 0..4: claimed group + 1 per body slot (0 = none)
-constexpr int alert = 5;        // bytes 5..6: last enemy sighting (x, y)
-constexpr int alert_round = 7;  // byte 7: round of that sighting (mod 256)
+constexpr int raid = 5;         // byte 5: boss group + 1 the raid is engaged on (0 = none)
+constexpr int raid_round = 6;   // byte 6: last round (mod 256) a raider hit the boss
 constexpr int kSlots = 5;
 constexpr std::uint8_t kDead = 0xFE;
 }  // namespace sm
