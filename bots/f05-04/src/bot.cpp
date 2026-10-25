@@ -39,6 +39,7 @@ constexpr bool kLockAll = true;     // lock every altar we pass: our locks block
 constexpr int kLockDetour = 8;      // walk this far (Chebyshev) out of our way to lock an altar
 constexpr bool kAltarRaid = true;   // the whole team raids a boss beside the only altar (camps.cpp)
 constexpr float kDoomTurns = 2.5f;  // run when the enemies in reach would kill us within this many turns
+constexpr float kHurtNearEnemy = 0.35f;  // recall below this health share when enemies were seen lately
 
 namespace {
 // Debug: turns spent per activity, printed every 200 rounds.
@@ -1113,9 +1114,15 @@ void Bot::turn() {
     if (!at_spawn) spawn_wait_ = 0;
     else if (hp < max_hp * 0.95f && spawn_wait_ < 2) { ++spawn_wait_; return; }
 
-    // Badly hurt: leave camp range, then recall.
+    // Badly hurt: leave camp range, then recall. Sooner with enemies about: they finish off the wounded.
     g_mode = 5;
-    if (!at_spawn && (hp < max_hp * 0.2f || (incoming_ > 0 && hp < incoming_ * taken_ * (exit_steps_ + 2) + 40))) {
+    float hurt = 0.2f;
+    if (kHurtNearEnemy > 0.2f) {
+        const auto s = read_sighting();
+        if (static_cast<int>(cambc::round_number()) - last_enemy_seen_ <= 15 || (s.ok && s.age <= 12 && cheb(s.where, pos_) <= 12))
+            hurt = kHurtNearEnemy;
+    }
+    if (!at_spawn && (hp < max_hp * hurt || (incoming_ > 0 && hp < incoming_ * taken_ * (exit_steps_ + 2) + 40))) {
         if (escape_camps()) return;
         if (incoming_ == 0 && recall_or_walk(4)) return;
     }
