@@ -1,0 +1,27 @@
+{
+ "agent": "f07-02",
+ "task_sha256": "58d49c96eb91530ad78d561a3b7d19d292819c4e53fff8ee13aaaccf41bb130f",
+ "base_commit": "194af326312330e09464a6236152a14ef0782c66",
+ "session_id": "cse_01WgifHnZemGi5K73vLD1DoN",
+ "bot_dir": "bots/f07-02",
+ "self_eval": {
+  "vs": "f05-02",
+  "games": 40,
+  "wins": 28
+ },
+ "games_played": 897,
+ "summary": "Draft-time map plan in draft memory; lock runner and lock detours only on maps with <=2 altars (3+ altar maps: 159/240 vs parent 125/240 over 6 opponents)",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "331e00405e703e1ed11507ef735572c37471ba802364d72d1aff92349dd5efba",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 19.16,
+  "remote": "true",
+  "session_id": "cse_01WgifHnZemGi5K73vLD1DoN",
+  "effort_level": "high",
+  "model": null
+ }
+}

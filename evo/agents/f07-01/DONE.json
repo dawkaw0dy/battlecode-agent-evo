@@ -1,0 +1,27 @@
+{
+ "agent": "f07-01",
+ "task_sha256": "85f43696e6d684c3d46a37217b5311d334a254d11c62917f39597b8af19e365b",
+ "base_commit": "194af326312330e09464a6236152a14ef0782c66",
+ "session_id": "cse_01Am8wsL4eNygm5nksekFMX8",
+ "bot_dir": "bots/f07-01",
+ "self_eval": {
+  "vs": "f05-02",
+  "games": 48,
+  "wins": 30
+ },
+ "games_played": 893,
+ "summary": "Camp subsystem rewritten in camps.cpp (n-champion plans, two-step lookahead, danger memory, capture timeout); parity with parent overall (113/192 vs 112/192), 0 faults/bot errors",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "331e00405e703e1ed11507ef735572c37471ba802364d72d1aff92349dd5efba",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 19.75,
+  "remote": "true",
+  "session_id": "cse_01Am8wsL4eNygm5nksekFMX8",
+  "effort_level": "high",
+  "model": null
+ }
+}

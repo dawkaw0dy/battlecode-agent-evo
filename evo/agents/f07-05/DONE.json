@@ -1,0 +1,27 @@
+{
+ "agent": "f07-05",
+ "task_sha256": "2959384b3347ac004492d30adf98b7f97b10ad01d7b94f85f9ad3827edfdf2c9",
+ "base_commit": "194af326312330e09464a6236152a14ef0782c66",
+ "session_id": "cse_018WgTPhNFLmQd2YVxQPQVj6",
+ "bot_dir": "bots/f07-05",
+ "self_eval": {
+  "vs": "f06-05",
+  "games": 80,
+  "wins": 52
+ },
+ "games_played": 866,
+ "summary": "Fuel subsystem rewritten: costed, resumable initialisation (no first-turn fuel exhaustion, 385 -> ~20 capped turns per 80 games), exact etas, raw-key camp bookkeeping; spare fuel spent on danger-aware step ties and holding the dash near enemies (vs f06-05 52/80 vs parent 35/80).",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "331e00405e703e1ed11507ef735572c37471ba802364d72d1aff92349dd5efba",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 16.54,
+  "remote": "true",
+  "session_id": "cse_018WgTPhNFLmQd2YVxQPQVj6",
+  "effort_level": "high",
+  "model": null
+ }
+}
