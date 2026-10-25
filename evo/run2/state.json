@@ -3337,9 +3337,11 @@
   },
   "f07-01": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evo-task-f07-01-8gev2d",
+   "commit": "426ea7cf30b726a9a23cd8da53a9c574f2e6d217",
    "deadline_minutes": 120,
+   "done_at": 1792941040,
+   "effort_level": "high",
    "evidence": [
     {
      "gems_opponent": 1421,
@@ -3387,6 +3389,7 @@
    "generation": 7,
    "id": "f07-01",
    "kind": "child",
+   "model": null,
    "nudged": [],
    "operator": "subsystem",
    "parents": [
@@ -3406,7 +3409,7 @@
    ],
    "slot": 1,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "85f43696e6d684c3d46a37217b5311d334a254d11c62917f39597b8af19e365b"
   },
   "f07-02": {
@@ -20249,7 +20252,6 @@
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-24T21:26:22Z g02 r02-A: verified, 672 rows, spot-check 14 OK",
   "2026-10-24T21:26:30Z g02 phase EVAL_B_PENDING: stage A ranked: f02-02, f02-01, f02-03, f02-05, f02-07, f02-04, f01-07, f00-03, f02-06, starter",
   "2026-10-24T21:26:45Z g02 r02-B: pushed 70389b2b28 with 36 shards",
   "2026-10-24T21:30:11Z g02 phase EVAL_B_DONE: results for r02-B",
@@ -20448,7 +20450,8 @@
   "2026-10-25T14:24:25Z g07 f07-07: launched session_01QbJFHuHzN7s7aAr6StK8mQ",
   "2026-10-25T14:45:01Z g07 f07-03: done on origin/claude/evo-task-f07-03-b8ukcf at d8e17c3d55",
   "2026-10-25T14:47:31Z g07 f07-06: done on origin/claude/evolution-agent-f07-06-yaw0rq at ceef044ce9",
-  "2026-10-25T15:06:39Z g07 f07-04: done on origin/claude/evo-f07-04-qylpwh at d02c18e02b"
+  "2026-10-25T15:06:39Z g07 f07-04: done on origin/claude/evo-f07-04-qylpwh at d02c18e02b",
+  "2026-10-25T15:10:40Z g07 f07-01: done on origin/claude/evo-task-f07-01-8gev2d at 426ea7cf30"
  ],
  "paused": null,
  "phase": "RUNNING",
