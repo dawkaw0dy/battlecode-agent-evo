@@ -110,7 +110,7 @@ std::vector<int> g_field_order; // groups by distance from our spawn, for lazy f
 std::size_t g_field_next = 0;
 int g_index = 0; // our slot in shared memory
 // Squads farm together: the first living member of a squad picks the target for all of them.
-constexpr int kSquads = 5; // 5: everyone farms alone (shared bytes 0..4 hold targets)
+constexpr int kSquads = 5; // one champion per squad: everyone leads its own farming
 std::vector<cambc::champion> g_ally_handles;
 int g_squad = 0, g_squad_alive = 1;
 bool g_leader = true;
@@ -149,6 +149,9 @@ struct Unit {
     float dps;
 };
 std::vector<Unit> g_enemies, g_allies;
+bool g_cautious = false;   // enemies about: retreat earlier, bank sooner
+int g_ambush_round = -1000;
+float g_prev_hp = 0, g_prev_incoming = 0;
 float g_camp_taken = 1.0f; // camp damage multiplier from our emblems (jungle, durability)
 // Camp damage per turn aimed at our tile: awake camps with us in range.
 float g_incoming = 0;
@@ -872,7 +875,7 @@ float group_score(int gi, int dist) {
         for (const auto& m : g.m)
             if (m.hp > 0 || g.state == 3) str += m.str;
         const float dmg = clear_damage(g, dps) * g_camp_taken / n;
-        const float first = std::max(0.0f, g_hp - g_max_hp * 0.3f);
+        const float first = std::max(0.0f, g_hp - g_max_hp * (g_cautious ? 0.5f : 0.3f));
         if (dmg > first) {
             const float per_trip = g_max_hp * 0.65f;
             if (str * g_camp_taken * kMinTripTurns > per_trip) return -1;
@@ -1077,7 +1080,7 @@ void work_target() {
         float left = 0;
         for (const auto& m : g.m) left += m.hp;
         const float turns_left = left / std::max(1.0f, my_dps());
-        if (g_hp < g_incoming * std::min(turns_left + 2.0f, 6.0f)) {
+        if (g_hp < g_incoming * std::min(turns_left + 2.0f, 6.0f) || (g_cautious && g_hp < g_max_hp * 0.45f && turns_left > 2)) {
             trace("leave");
             if (leave_camps()) return;
         }
@@ -1152,7 +1155,7 @@ bool want_bank() {
     if (ours + g_gems >= cambc::constants::winning_gems) return true;
     if (g_round + d + 20 >= static_cast<int>(cambc::constants::max_rounds)) return true;
     if (g_gems >= 40) return true;
-    if (g_gems >= 20 && g_round - g_last_enemy_round < 30) return true;
+    if (g_gems >= 15 && g_cautious) return true;
     if (d <= 4) return true;
     if (g_gems >= 12 && d <= 10) return true;
     return false;
@@ -1161,7 +1164,7 @@ bool want_bank() {
 bool want_home() {
     if (g_spawn.get(g_pos) || !cambc::self().can_move()) return false;
     if (!g_enemies.empty() || g_incoming > 0) return false;
-    if (g_hp < g_max_hp * 0.5f) return true;
+    if (g_hp < g_max_hp * (g_cautious ? 0.6f : 0.5f)) return true;
     if (g_type == cambc::champion_type::tavi) return false; // shops in the field
     if (g_gems == 0 && g_gold >= 90) return true;
     if (g_gold >= 240) return true;
@@ -1169,26 +1172,26 @@ bool want_home() {
     return false;
 }
 
-// Walk when spawn is close, otherwise recall.
+// Walk when spawn is close or someone unseen is shooting at us, otherwise recall.
 void go_home() {
-    if (field_value(g_spawn_field, g_pos) <= 6) {
+    if (field_value(g_spawn_field, g_pos) <= 6 || g_round - g_ambush_round < 5 || g_round - g_last_enemy_round < 3) {
         step_static(g_spawn_field);
         return;
     }
     cambc::self().recall();
 }
 
-// Shared bytes 5..7: tile and round of the latest fight an ally called help for.
+// Shared bytes 0..2: tile and round of the latest fight an ally called help for.
 void call_help() {
-    cambc::shared_memory[5] = static_cast<std::uint8_t>(g_pos.x);
-    cambc::shared_memory[6] = static_cast<std::uint8_t>(g_pos.y);
-    cambc::shared_memory[7] = static_cast<std::uint8_t>(g_round & 255);
+    cambc::shared_memory[0] = static_cast<std::uint8_t>(g_pos.x);
+    cambc::shared_memory[1] = static_cast<std::uint8_t>(g_pos.y);
+    cambc::shared_memory[2] = static_cast<std::uint8_t>(g_round & 255);
 }
 
 bool answer_help() {
-    const int age = (g_round - static_cast<int>(g_shared[7])) & 255;
-    if (age > 3 || (g_shared[5] == 0 && g_shared[6] == 0)) return false;
-    const vec2 call{static_cast<int>(g_shared[5]), static_cast<int>(g_shared[6])};
+    const int age = (g_round - static_cast<int>(g_shared[2])) & 255;
+    if (age > 3 || (g_shared[0] == 0 && g_shared[1] == 0)) return false;
+    const vec2 call{static_cast<int>(g_shared[0]), static_cast<int>(g_shared[1])};
     if (!in_bounds(call) || cheb(call, g_pos) > 14 || cheb(call, g_pos) <= 2) return false;
     if (g_hp < g_max_hp * 0.5f || g_gems >= 30) return false;
     bitboard goal;
@@ -1272,6 +1275,15 @@ void Bot::play_turn() {
     scan_units();
     load_occupancy();
     scan_awake();
+    {
+        const int age = (g_round - static_cast<int>(g_shared[5])) & 255;
+        const vec2 seen{static_cast<int>(g_shared[3]), static_cast<int>(g_shared[4])};
+        g_cautious = g_round - g_last_enemy_round < 30 || (age < 30 && cheb(seen, g_pos) <= 20 && g_round > 5);
+        if (g_hp < g_prev_hp - 1 && g_enemies.empty() && g_incoming == 0 && g_prev_incoming == 0 && !g_spawn.get(g_pos))
+            g_ambush_round = g_round;
+        g_prev_hp = g_hp;
+        g_prev_incoming = g_incoming;
+    }
     trace("scan");
     update_groups();
     update_altar_locks();
@@ -1358,7 +1370,12 @@ void Bot::play_turn() {
     if (kDebug) last_line = "r" + std::to_string(g_round) + " hp" + std::to_string(static_cast<int>(g_hp)) + " gems" + std::to_string(g_gems) + " tgt" + std::to_string(g_target) + " " + g_trace;
     g_trace.clear();
     // The squad leader publishes the squad target.
-    if (g_leader) cambc::shared_memory[static_cast<std::size_t>(g_squad)] = static_cast<std::uint8_t>(g_target + 1);
+    if (!g_enemies.empty()) {
+        // Shared bytes 3..5: the latest enemy sighting.
+        cambc::shared_memory[3] = static_cast<std::uint8_t>(g_enemies[0].pos.x);
+        cambc::shared_memory[4] = static_cast<std::uint8_t>(g_enemies[0].pos.y);
+        cambc::shared_memory[5] = static_cast<std::uint8_t>(g_round & 255);
+    }
     if (!g_regions && g_round >= 2 && cambc::fuel_remaining() > 50000) compute_regions();
     lazy_fields(55000);
 }
