@@ -38,6 +38,7 @@ private:
     struct Seen { Unit u; int round; };
     std::vector<Seen> seen_enemies;  // last sighting per enemy champion
     int chase_turns = 0, chase_block_until = -1;
+    int flee_until = -1;            // keep out of remembered enemies' reach until then
     bool banking = false;
     bool healing = false;
     const char* act = "";         // what this turn was spent on (debug)
@@ -61,6 +62,7 @@ private:
     int choose_group();
     int helpers_on(int gi) const;  // teammates whose target is this group
     bool work_group(int gi);
+    bool make_room();
     bool can_tribute_safely(int gems) const;
 
     float my_dps() const;

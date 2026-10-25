@@ -50,7 +50,13 @@ constexpr int kChaseReach = 2;
 constexpr int kRallyTurns = 12;
 constexpr bool kUseDanger = false;
 constexpr float kGateValue = 400.0f;
-constexpr int kExtraHelpers = 2;           // teammates a strong group may call in
+constexpr int kExtraHelpers = 2;
+constexpr int kEscapeMargin = 2;
+constexpr float kRoomHp = 0.55f;
+constexpr float kTankShare = 0.8f;
+constexpr float kGateTankShare = 0.4f;
+constexpr int kFleeMemory = 8;             // after running, keep out of their reach this long
+constexpr int kRecallSafe = 10;            // no recall with an enemy seen this close in the last 3 rounds     // the same for a group that blocks every altar         // max health needed: this share of a group's hits until out of range           // make room for a teammate below this share of health           // extra turns of camp hits budgeted when leaving           // teammates a strong group may call in
 constexpr float kCallCost = 10.0f;         // turns lost waiting for called helpers        // bonus for a group that blocks every altar         // keep farming/banking steps out of enemy reach (measured worse)            // wait this long for helpers at a strong group             // close in only on targets this far beyond our range  // share of camp damage we expect to take (jungle emblem, stuns)
 
 Field g_from_altars;  // static distance to the nearest altar approach tile
@@ -456,6 +462,7 @@ bool Bot::handle_fight() {
 
     if (ratio < kFleeRatio && threatened) {
         act = "flee";
+        flee_until = W.round + kFleeMemory;
         // Hit something first when that costs nothing (melee may still walk), then run.
         if (!ranged && tgt && cheb(tgt->pos, pos) <= 1) attack_unit_at(tgt->pos);
         for (const auto& e : W.enemies)
@@ -491,38 +498,73 @@ bool Bot::handle_fight() {
 bool Bot::handle_health() {
     auto& me = cambc::self();
     const vec2 pos = me.position();
-    const float r = me.health() / std::max(1.0f, me.max_health());
+    const float hp = me.health();
+    const float r = hp / std::max(1.0f, me.max_health());
     const bool at_spawn = bit(W.our_spawn, pos);
     if (at_spawn) {
         if (r < 0.9f && (healing || r < 0.6f)) { healing = true; act = "heal"; return true; }
         healing = false;
         return false;
     }
+    // Awake camps hit the nearest champion: count those we are nearest to, and how long leaving takes.
+    float incoming = 0;
+    int escape = 0;
     bool camp_hits = false;
     std::vector<vec2> threats;
     std::vector<int> reach;
-    for (const auto& c : W.camps)
-        if (c.awake && c.str > 0 && cheb(c.pos, pos) <= c.range + 1) {
-            if (cheb(c.pos, pos) <= c.range) camp_hits = true;
-            threats.push_back(c.pos);
-            reach.push_back(c.range);
-        }
+    for (const auto& c : W.camps) {
+        if (!c.awake || c.str <= 0) continue;
+        const int d = cheb(c.pos, pos);
+        if (d > c.range + 1) continue;
+        threats.push_back(c.pos);
+        reach.push_back(c.range);
+        if (d > c.range) continue;
+        camp_hits = true;
+        bool nearest = true;
+        for (const auto& a : W.allies) if (cheb(a.pos, c.pos) < d) { nearest = false; break; }
+        if (!nearest) continue;
+        incoming += c.str;
+        escape = std::max(escape, c.range - d + 1);
+    }
     bool enemy_near = false;
     for (const auto& e : W.enemies)
-        if (cheb(e.pos, pos) <= e.range + 4) { enemy_near = true; threats.push_back(e.pos); reach.push_back(e.range + 1); }
+        if (cheb(e.pos, pos) <= e.range + 4) {
+            enemy_near = true;
+            threats.push_back(e.pos);
+            reach.push_back(e.range + 1);
+            if (cheb(e.pos, pos) <= e.range + 1) incoming += unit_dps(e);
+        }
 
+    // Leave while we still can: the hits until we are out of reach must not kill us.
+    const bool must_leave = camp_hits && incoming * static_cast<float>(escape + kEscapeMargin) >= hp;
+    debug_block({
+        if (r < 0.5f) std::cout << "  H r" << W.round << " c" << static_cast<int>(me.champion_name()) << " hp " << static_cast<int>(hp) << " inc " << incoming
+                                << " esc " << escape << " hits " << camp_hits << " leave " << must_leave << " camps " << W.camps.size() << "\n";
+    });
     float low = 0.3f;
     if (enemy_near) low = 0.4f;
-    if (r >= low) return false;
-    // A camp about to die is worth finishing.
-    if (camp_hits && !enemy_near) {
+    if (r >= low && !must_leave) return false;
+    // A camp about to die is worth finishing when it cannot kill us first.
+    if (camp_hits && !enemy_near && !must_leave) {
         for (const auto& c : W.camps)
             if (cheb(c.pos, pos) <= me.attack_range() && c.hp <= me.strength() * 2 && r > 0.15f) return false;
     }
     if (camp_hits || enemy_near) {
         act = camp_hits ? "low-camp-flee" : "low-enemy-flee";
-        if (enemy_near) dash_towards(threats.back(), true);
-        if (N.flee(threats, reach)) walked = true;
+        if (enemy_near) flee_until = W.round + kFleeMemory;
+        if (!dash_towards(threats.back(), true))
+            if (N.flee(threats, reach)) walked = true;
+        return true;
+    }
+    if (r >= low) return false;
+    // A recall is a 5-turn channel that any hit cancels: never start it with an enemy close by.
+    std::vector<vec2> near_foes;
+    std::vector<int> near_reach;
+    for (const auto& rs : seen_enemies)
+        if (W.round - rs.round <= 3 && cheb(rs.u.pos, pos) <= kRecallSafe) { near_foes.push_back(rs.u.pos); near_reach.push_back(rs.u.range + 2); }
+    if (!near_foes.empty()) {
+        act = "run-home";
+        if (N.flee(near_foes, near_reach)) walked = true;
         return true;
     }
     act = "recall";
@@ -637,6 +679,8 @@ int Bot::choose_group() {
     float best_s = -1;
     for (const auto& G : W.groups) {
         if (G.m.empty() || g_bad_until[G.id] > W.round || G.island) continue;
+        // The nearest champion takes every hit: it must be able to walk out of range alive.
+        if (hp1 < G.full_str * static_cast<float>(G.max_range + 2) * (G.gate ? kGateTankShare : kTankShare)) continue;
         // Terrain distance from the group's own field, else a guess.
         const Field* f = W.group_field(G.id, false);
         const int d = f ? f->at(pos) : cheb(G.center, pos) * 4 / 3 + 2;
@@ -672,6 +716,39 @@ int Bot::choose_group() {
         if (s > best_s) { best_s = s; best = G.id; }
     }
     return best;
+}
+
+// A hurt teammate pinned by camps needs the tile behind it: step away from the camps if we block it.
+bool Bot::make_room() {
+    auto& me = cambc::self();
+    const vec2 pos = me.position();
+    if (me.health() < me.max_health() * 0.5f) return false;
+    const Unit* stuck = nullptr;
+    for (const auto& a : W.allies) {
+        if (cheb(a.pos, pos) > 1 || a.hp >= a.max_hp * kRoomHp) continue;
+        // Only when it stands between us and the camps hitting it.
+        for (const auto& c : W.camps)
+            if (c.awake && c.str > 0 && cheb(c.pos, a.pos) <= c.range && cheb(c.pos, a.pos) < cheb(c.pos, pos)) { stuck = &a; break; }
+        if (stuck) break;
+    }
+    if (!stuck) return false;
+    auto camp_dist = [&](vec2 q) {
+        int best = 99;
+        for (const auto& c : W.camps) if (c.awake && c.str > 0) best = std::min(best, cheb(c.pos, q));
+        return best;
+    };
+    vec2 best = pos;
+    int best_v = camp_dist(pos) * 2 + (cheb(pos, stuck->pos) >= 2 ? 3 : 0);
+    for (auto d : kDirs) {
+        const vec2 q = pos + d;
+        if (!N.free(q)) continue;
+        const int v = camp_dist(q) * 2 + (cheb(q, stuck->pos) >= 2 ? 3 : 0);
+        if (v > best_v) { best_v = v; best = q; }
+    }
+    if (best == pos || !N.move_to(best)) return false;
+    walked = true;
+    act = "make-room";
+    return true;
 }
 
 bool Bot::work_group(int gi) {
@@ -717,6 +794,10 @@ bool Bot::work_group(int gi) {
             act = "rally";
             return true;
         }
+    }
+    if (tgt && make_room()) {
+        if (!ranged && cheb(tgt->pos, me.position()) <= me.attack_range()) attack_unit_at(tgt->pos);
+        return true;
     }
     if (tgt) {
         rally_turns = 0;
@@ -842,6 +923,14 @@ void Bot::play_turn() {
     cast_support();
 
     const char* mode = "farm";
+    if (W.round < flee_until) {
+        // We ran from them lately: do not walk back into their reach while farming or banking.
+        std::vector<vec2> at;
+        std::vector<int> reach;
+        for (const auto& rs : seen_enemies)
+            if (W.round - rs.round <= kFleeMemory) { at.push_back(rs.u.pos); reach.push_back(rs.u.range + 2); }
+        N.set_danger(at, reach);
+    }
     if (handle_fight()) mode = "fight";
     else if (handle_health()) mode = "health";
     else if (handle_bank()) mode = "bank";

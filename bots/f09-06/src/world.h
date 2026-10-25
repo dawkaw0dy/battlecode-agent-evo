@@ -26,6 +26,8 @@ struct Group {
     int theirs = 0;               // static distance from the enemy spawn
     bool boss = false;            // contains a golem or monolith
     int radius = 0;               // Chebyshev radius of the spawn tiles around the centre
+    int max_range = 0;            // longest camp attack range in the group
+    float full_str = 0;           // strength of the whole group when alive
     bool island = false;          // no spawn tile can be walked to from our spawn
     int sector = -1;              // pack that owns this group (-1: anyone)
     bool gate = false;            // stands on the only way to tribute

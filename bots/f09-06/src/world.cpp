@@ -54,6 +54,8 @@ void World::init() {
         for (const auto& c : g.camps()) {
             const auto s = camp_spec(c.kind());
             Member m{c.spawn_position(), c.kind(), s.hp, s.hp, s.str, s.range};
+            G.max_range = std::max(G.max_range, s.range);
+            G.full_str += s.str;
             G.m.push_back(m);
             G.tiles.push_back(m.pos);
             G.spawn.set(m.pos);
