@@ -17,6 +17,8 @@ using cambc::team;
 constexpr bool kDebug = false;
 constexpr float kMaxTrips = 6;
 constexpr float kStick = 1.5f;
+constexpr int kFleePad = 3;
+constexpr int kSightAge = 5, kSightRadius = 10; // 8-round units, tiles
 constexpr float kCrowded = 0.6f;
 constexpr float kOtherSector = 0.45f, kShared = 0.7f;
 constexpr float kGoldEarly = 0.5f, kGoldLate = 0.2f;
@@ -72,7 +74,7 @@ void Bot::init() {
     team_size = have_plan ? std::max(1, byte(plan::kTeam)) : 5;
     const int type = static_cast<int>(me.champion_name());
     slot = (have_plan && type < 12) ? byte(plan::kSlots + type) : 255;
-    if (slot >= 8) slot = type % 8;
+    if (slot >= 5) slot = type % 5;
 
     terrain = cambc::map::walls() | cambc::map::holes() | cambc::map::altars() | cambc::map::spawn_region(team::enemy);
     owner.assign(static_cast<std::size_t>(width * height), 0);
@@ -120,7 +122,7 @@ void Bot::init() {
 }
 
 void Bot::claim(int group) {
-    if (slot < 0 || slot >= 8) return;
+    if (slot < 0 || slot >= 5) return;
     cambc::shared_memory[slot] = static_cast<std::uint8_t>(group + 1);
 }
 
@@ -191,6 +193,11 @@ int Bot::choose_target() {
 
     std::array<std::uint8_t, 8> claims{};
     cambc::shared_memory.read(0, std::span{claims});
+    // Latest enemy sighting from any ally (bytes 5-7): avoid groups near it for a while.
+    const int stamp = claims[7] >> 3, seen_n = claims[7] & 7;
+    const int age = (((round >> 3) & 31) - stamp) & 31;
+    const bool sighting = seen_n > 0 && age <= kSightAge;
+    const vec2 seen_at{claims[5], claims[6]};
 
     const int my_home = spawn_field.get(pos);
     const float gold_w = round < 600 ? kGoldEarly : kGoldLate;
@@ -206,7 +213,7 @@ int Bot::choose_target() {
         const int eta = std::max(std::max(0, cheb(pos, grp.center) - grp.radius) * 5 / 4, by_spawn * 11 / 10) + 2;
         if (grp.ready_round > round + eta + 8) continue;
         int others = 0;
-        for (int s = 0; s < 8; ++s)
+        for (int s = 0; s < 5; ++s)
             if (s != slot && claims[s] == gi + 1) ++others;
         const int party = 1 + others;
         const float hp = grp.reward ? 0.f : std::max(1.f, grp.hp_left);
@@ -231,6 +238,7 @@ int Bot::choose_target() {
         // Enough allies are already on it: look elsewhere.
         const int needed = (grp.dps == 0 || grp.hp_left < 1500) ? 1 : grp.hp_left < 4000 ? 2 : 3;
         if (others >= needed) score *= kCrowded;
+        if (sighting && cheb(grp.center, seen_at) <= kSightRadius) score *= seen_n >= 2 ? 0.35f : 0.65f;
         if (static_cast<int>(gi) == target) score *= kStick;
         if (grp.owner != 255) score *= grp.owner == slot ? 1.f : kOtherSector;
         else score *= kShared;
@@ -398,6 +406,14 @@ bool Bot::fight() {
         enemies.push_back({p, c.health(), c.strength() + 0.3f * c.focus(), c.attack_range(), c.gem_count()});
     }
     if (enemies.empty()) return false;
+    {
+        int sx = 0, sy = 0;
+        for (const auto& e : enemies) { sx += e.p.x; sy += e.p.y; }
+        const int n = static_cast<int>(enemies.size());
+        const std::uint8_t note[3] = {static_cast<std::uint8_t>(sx / n), static_cast<std::uint8_t>(sy / n),
+            static_cast<std::uint8_t>((((cambc::round_number() >> 3) & 31) << 3) | std::min(n, 7))};
+        cambc::shared_memory.write(5, std::span{note});
+    }
 
     float our_hp = 0, our_dps = 0;
     for (auto p : cambc::vision::champion_tiles(team::ally).positions()) {
@@ -445,7 +461,7 @@ bool Bot::fight() {
     bool close = false;
     for (const auto& e : enemies) {
         threats.push_back(e.p);
-        if (cheb(e.p, pos) <= e.range + 2) close = true;
+        if (cheb(e.p, pos) <= e.range + kFleePad) close = true;
     }
     if (!close) { ++dbg_ignore; return false; }
     ++dbg_flee;
