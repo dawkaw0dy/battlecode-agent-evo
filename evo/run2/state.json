@@ -2920,9 +2920,11 @@
   },
   "f06-02": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evolution-f06-02-qrgrps",
+   "commit": "1876747fdae31b57cb50aff514b1cb1ea011c5b8",
    "deadline_minutes": 120,
+   "done_at": 1792934241,
+   "effort_level": "high",
    "evidence": [
     {
      "gems_opponent": 1268,
@@ -2970,6 +2972,7 @@
    "generation": 6,
    "id": "f06-02",
    "kind": "child",
+   "model": null,
    "nudged": [],
    "operator": "tweak",
    "parents": [
@@ -2989,7 +2992,7 @@
    ],
    "slot": 2,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "8930952be53ddaeb55c3cf0181f1a5a6797533a9bdeaa025cb2562ecc681988f"
   },
   "f06-03": {
@@ -17316,7 +17319,6 @@
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-24T18:40:13Z g01 r01-A: verified, 1120 rows, spot-check 23 OK",
   "2026-10-24T18:40:25Z g01 phase EVAL_B_PENDING: stage A ranked: f01-03, f01-01, f01-07, f01-02, f01-04, f00-03, f01-06, f01-05, starter",
   "2026-10-24T18:40:47Z g01 r01-B: pushed 34fedf16e5 with 28 shards",
   "2026-10-24T18:43:08Z g01 phase EVAL_B_DONE: results for r01-B",
@@ -17515,7 +17517,8 @@
   "2026-10-25T12:51:18Z g06 f06-07: launched session_018LWWLeLvxipigD5zAXQ3tA",
   "2026-10-25T13:09:25Z g06 f06-04: done on origin/claude/evo-f06-04-wqv2c3 at a24591d6c0",
   "2026-10-25T13:14:44Z g06 f06-07: done on origin/claude/evolution-agent-f06-07-rquued at dc319f31cf",
-  "2026-10-25T13:16:03Z g06 f06-05: done on origin/claude/evo-task-f06-05-ykoxvg at 9014f4f62b"
+  "2026-10-25T13:16:03Z g06 f06-05: done on origin/claude/evo-task-f06-05-ykoxvg at 9014f4f62b",
+  "2026-10-25T13:17:21Z g06 f06-02: done on origin/claude/evolution-f06-02-qrgrps at 1876747fda"
  ],
  "paused": null,
  "phase": "RUNNING",
