@@ -4885,9 +4885,11 @@
   },
   "f10-02": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evo-task-f10-02-e9dyi8",
+   "commit": "07f72653701f9304edc85102648d50d59864da54",
    "deadline_minutes": 120,
+   "done_at": 1792961451,
+   "effort_level": "high",
    "evidence": [
     {
      "gems_opponent": 1294,
@@ -4935,6 +4937,7 @@
    "generation": 10,
    "id": "f10-02",
    "kind": "child",
+   "model": null,
    "nudged": [],
    "operator": "subsystem",
    "parents": [
@@ -4954,7 +4957,7 @@
    ],
    "slot": 2,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "44639de916d20d945027c229a0e833ea8139b1bebad0e58cc5c33416827dec6a"
   },
   "f10-03": {
@@ -5110,9 +5113,11 @@
   },
   "f10-05": {
    "archetype": null,
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evolution-agent-f10-05-0srmfi",
+   "commit": "5b8f61ed8acf24c6e969dde958105a43f9e5ba8f",
    "deadline_minutes": 120,
+   "done_at": 1792961456,
+   "effort_level": "high",
    "evidence": [
     {
      "gems_opponent": 1025,
@@ -5160,6 +5165,7 @@
    "generation": 10,
    "id": "f10-05",
    "kind": "child",
+   "model": null,
    "nudged": [],
    "operator": "subsystem",
    "parents": [
@@ -5179,7 +5185,7 @@
    ],
    "slot": 5,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "b359ac5714eec2cbea0b8cfe671a5e55188e1485e9133b388625aba20effd47b"
   },
   "f10-06": {
@@ -29720,8 +29726,6 @@
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-25T12:26:25Z g05 f05-06: admitted (d6095b0abe52)",
-  "2026-10-25T12:26:29Z g05 f05-07: admitted (b370eceec339)",
   "2026-10-25T12:26:37Z g05 phase EVAL_A_PENDING",
   "2026-10-25T12:26:47Z g05 r05-A: pushed 2f5ffa42b8 with 28 shards",
   "2026-10-25T12:30:04Z g05 phase EVAL_A_DONE: results for r05-A",
@@ -29919,7 +29923,9 @@
   "2026-10-25T20:09:29Z g10 f10-07: launched session_01U78Sckd7oZxrGhFo2MUAxX",
   "2026-10-25T20:34:35Z g10 f10-04: done on origin/claude/evo-task-f10-04-t81xq3 at 1679784925",
   "2026-10-25T20:44:30Z g10 f10-01: done on origin/claude/evolution-agent-f10-01-o37iwu at fc79e1d80c",
-  "2026-10-25T20:49:38Z g10 f10-06: done on origin/claude/evolution-f10-06-dj1l1u at ac15014ffd"
+  "2026-10-25T20:49:38Z g10 f10-06: done on origin/claude/evolution-f10-06-dj1l1u at ac15014ffd",
+  "2026-10-25T20:50:51Z g10 f10-02: done on origin/claude/evo-task-f10-02-e9dyi8 at 07f7265370",
+  "2026-10-25T20:50:56Z g10 f10-05: done on origin/claude/evolution-agent-f10-05-0srmfi at 5b8f61ed8a"
  ],
  "paused": null,
  "phase": "RUNNING",
