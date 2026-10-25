@@ -39,7 +39,11 @@ constexpr int kAltarDanger = EVO_ALTAR_DANGER;
 #ifndef EVO_LOCKS
 #define EVO_LOCKS 1
 #endif
-constexpr bool kLocks = EVO_LOCKS;   // carry an altar lock and place it on altars we pass
+constexpr bool kLocks = EVO_LOCKS;
+#ifndef EVO_BUDDY
+#define EVO_BUDDY 0.0f
+#endif
+constexpr float kBuddy = EVO_BUDDY;   // value bonus for groups near an ally's target   // carry an altar lock and place it on altars we pass
 #ifndef EVO_OTHER_SECTOR
 #define EVO_OTHER_SECTOR 0.5f
 #endif
@@ -220,7 +224,13 @@ void Bot::play_turn() {
     bool done = false;
     fuel_mark_[3] = cambc::fuel_remaining();
     try {
-        done = handle_enemies();
+        done = deny_tribute();
+    } catch (const std::exception& e) {
+        ++warns_;
+        std::printf("warn: deny %s\n", e.what());
+    }
+    try {
+        if (!done) done = handle_enemies();
     } catch (const std::exception& e) {
         ++warns_;
         std::printf("warn: enemies %s\n", e.what());
@@ -327,7 +337,8 @@ void Bot::snapshot() {
                 e.dasher = dash_capable(e.type);
                 champion_power(e.type, e.str, c.focus(), &e.dps, &e.burst);
                 const auto st = c.state();
-                e.channel = st.contains(cambc::champion_state::submitting_gems) || st.contains(cambc::champion_state::recalling);
+                e.tribute = st.contains(cambc::champion_state::submitting_gems);
+                e.channel = e.tribute || st.contains(cambc::champion_state::recalling);
                 try {
                     e.gems = static_cast<int>(c.gem_count());
                 } catch (...) {
@@ -481,6 +492,36 @@ void Bot::place_lock() {
         }
         return;
     }
+}
+
+// An enemy tributing at an altar near us: a lock placed on it cancels the channel.
+bool Bot::deny_tribute() {
+    if (!kLocks || enemies_.empty()) return false;
+    auto& me = cambc::self();
+    if (me.consumables()[cambc::consumable_type::altar_lock].count() == 0) return false;
+    const auto& alt = map_info().altars;
+    for (const auto& e : enemies_) {
+        if (!e.tribute) continue;
+        for (size_t i = 0; i < alt.size(); ++i) {
+            if (cheb(e.pos, alt[i]) > 1 || cheb(alt[i], pos_) > 6) continue;
+            try {
+                if (vision::has_altar_lock(alt[i])) continue;
+            } catch (...) {
+                continue;
+            }
+            act_ = kActFight;
+            if (cheb(alt[i], pos_) <= 2) {
+                place_lock();
+                return true;
+            }
+            bitboard goals;
+            mark_square(goals, alt[i], 2);
+            step_towards(goals, true);
+            if (cheb(alt[i], pos_) <= 2) place_lock();
+            return true;
+        }
+    }
+    return false;
 }
 
 void Bot::finish_turn() {
@@ -1074,6 +1115,17 @@ void Bot::choose_target(bool force) {
         else if (cls == kGContested) value *= 0.85f;
         if (round_ - K.enemy_round < 30) value *= 0.5f;
         if (round_ < avoid_until_ && cheb(G.center, avoid_pos_) <= 8) value *= 0.2f;
+        if (kBuddy > 0.0f) {
+            // Stay within reach of an ally: fights near a friend go better than alone.
+            for (int s2 = 0; s2 < sm::kSlots; ++s2) {
+                const int cg = claims[static_cast<size_t>(s2)];
+                if (s2 == slot_ || cg < 0 || cg == g || cg >= n) continue;
+                if (cheb(m.groups[static_cast<size_t>(cg)].center, G.center) <= 10) {
+                    value *= 1.0f + kBuddy;
+                    break;
+                }
+            }
+        }
         {
             const int own = static_cast<size_t>(g) < plan_.owner.size() ? plan_.owner[static_cast<size_t>(g)] : -1;
             if (own >= 0) value *= own == slot_ ? 1.0f : kOtherSector;

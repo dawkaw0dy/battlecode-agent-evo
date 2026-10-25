@@ -12,6 +12,7 @@ struct EnemyView {
     int range = 1;
     int gems = 0;
     bool channel = false;   // tributing or recalling: cannot fight back this turn
+    bool tribute = false;   // tributing gems at an altar
     cambc::champion_type type{};
 };
 
@@ -65,6 +66,7 @@ private:
     void shop();
     void finish_turn();
     void place_lock();
+    bool deny_tribute();
 
     // decisions
     bool handle_enemies();
