@@ -778,7 +778,7 @@ void turn_body_impl() {
         if (gems >= kBankGems || nearest_altar <= kNearAltar || g_round > 1850 || bank_first) {
             g_mode = nearest_altar <= 1 ? "bankwait" : "bank";
             for (auto a : g_altars)
-                if (dist(g_pos, a) <= cambc::constants::submit_gems_range && nearest_foe > 5) {
+                if (dist(g_pos, a) <= cambc::constants::submit_gems_range && (nearest_foe > 5 || gems <= 10)) {
                     if (cambc::vision::altar_lock_tiles(team::enemy).is_set(a)) count_mode("lockhit");
                     safe("submit", [&] { me.submit_gems(a); return true; });
                     return;
