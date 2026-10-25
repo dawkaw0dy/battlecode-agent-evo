@@ -25,15 +25,21 @@ lock always threw), and f03-05's lock layer (carry a lock, cancel enemy tributes
 - Fuel subsystem rewritten (vision snapshot, map analysis/initialise, observe, camp-block board, group fields, eta,
   route search, dash, home/altar fields). Profile (01boss-battle, 1000 rounds, per champion): observe 15k → 3–5k
   per turn (the parent's view() threw ~3 exceptions per refresh reading allies out of sight), route search 10k → ~5k.
-  Whole team: mean 44k → 27k (boss-battle), 40k → 29k (01big-world, 0 capped turns vs 113 for f03-05).
+  Whole team: mean 44k → 27k (01boss-battle), 40k → 29k (01big-world: 0 capped turns, f03-05 113), 25k on
+  01yellow-brick-road over 2000 rounds (0 capped, p99 69k; f03-05 112 capped). clear_cost() as bit masks (a 20-camp
+  group cost ~20k per evaluation, now ~5k); camp tiles' raw words precomputed for observe and the camp-block board;
+  initialisation 300k → ~225k on 80-camp maps (reserved vectors, single-pass threat masks).
 - Fixed a parent crash path: turn() read k_[plug_] right after setting plug_ = -1 (boss beside the only altar);
   undefined behaviour the parent survived by luck, a memory fault (and restart loop) with the new layout.
 - Lock breaking + f03-05 lock layer. Worst maps vs f03-05 (01boss-battle, 00stampede, 00collision, both sides):
-  parent 1/6 (−774), fuel rewrite alone 2/6 (−228), + lock breaking 5/6 (+410).
-- Results (benchmark.py, both sides): vs f03-05 54/80 (+165, before the lock layer); vs f02-01 67/80 (+546; parent
-  58/80, +206); vs parent f03-04 38/80 (−22, before the lock layer) and 12/20 on the 10-map dev set (with it);
-  dev set (00ambush 00collision 00contest 00gemfight 00lanes 00swirl 01boss-battle 01hooks 01starfish
-  01yellow-brick-road): vs f00-03 18/20, f01-07 15/20, f02-01 13/20 (parent 12/20), f03-05 14/20, starter 20/20.
+  parent 1/6 (−774), fuel rewrite alone 2/6 (−228), + lock breaking 5/6 (+410), final 5/6 (+565).
+- Full runs (benchmark.py, 40 maps × 2 sides, 0 faults, 0 caught exceptions in every run):
+  vs f03-05 54/80 (+165) with lock breaking only, 59/80 (+300) with the lock layer;
+  vs f02-01 67/80 (+546; parent 58/80, +206); vs parent f03-04 38/80 (−22) before the lock layer, 52/80 (+262) after.
+- 10-map sets × 2 sides: dev set (00ambush 00collision 00contest 00gemfight 00lanes 00swirl 01boss-battle 01hooks
+  01starfish 01yellow-brick-road): vs f00-03 18/20, f01-07 15/20, f02-01 13/20 (parent 12/20), f03-05 14/20,
+  starter 20/20; second set (00corners 00eight 00elkring 00lost-world 00packs 00road-of-riches 00rows 01corridors
+  01gold-rush 01the-farm): vs f01-07 20/20, f00-03 18/20.
 
 ## Tried and failed (keep entries from the parent's notes; add yours)
 - Fuel: host calls cost ~30–40 fuel, but every bitboard temporary (&, |, ~, shift) ~600 and a grow(r) ~4k·r;
@@ -67,7 +73,10 @@ lock always threw), and f03-05's lock layer (carry a lock, cancel enemy tributes
 ## Known weaknesses
 - Snowball maps (00swirl, 01hooks, 01starfish, 01yellow-brick-road, 00gemfight) are still decided by the first
   fights; 40–60 deaths in lost games. Fights are per champion, no shared engage call.
-- Initialisation still costs ~350k fuel on 100×100 maps (camp_groups() and analyse_map's allocations, two BFS):
-  rounds 0–1 are lost there (one round on small maps).
+- Initialisation still costs ~225k on 80-camp maps and ~300k on 100×100 maps (camp_groups() ~36k, analyse_map's
+  allocations and two BFS, per-group boards): the first turn spills into round 1, so champions act from round 2
+  (the parent from round 4–5). Passing the analysis through draft memory would save another ~100k.
+- Host reads are not slower than reads in place for a single tile (~30 fuel each; a bounds-checked raw read costs
+  as much): raw reads pay off only where they replace exports, copies, allocations or exceptions.
 - Ally positions outside our own vision are unknown (vision is not shared; position() throws).
 - No wards or teleport crystals.
