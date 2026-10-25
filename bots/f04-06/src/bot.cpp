@@ -35,6 +35,7 @@ constexpr int kShadowRounds = -1;        // walk home rather than recall this so
 constexpr int kEnemySideSlack = 99;      // skip camps this much closer to the enemy spawn than ours
 constexpr int kTraceFrom = -1, kTraceTo = -1;
 constexpr int kBankFirstRange = 9;       // with gems and an altar this close, bank before recalling
+constexpr int kHistRound = 300;
 constexpr bool kHunt = false;            // answer pack sightings
 constexpr int kHuntAge = 6;              // rounds a sighting stays valid
 
@@ -545,7 +546,7 @@ void turn_body_impl() {
     g_move_failed = false;
     g_attacked = false;
 
-    if (g_round == 1000 || g_round == 1999) {
+    if (g_round == kHistRound || g_round == 1000 || g_round == 1999) {
         std::cout << "dbg hist r" << g_round << " c" << static_cast<int>(me.champion_name());
         for (auto& [k, v] : g_hist) std::cout << " " << k << "=" << v;
         std::cout << "\n";
@@ -775,7 +776,8 @@ void turn_body_impl() {
     if (gems > 0) {
         int nearest_altar = 99;
         for (auto a : g_altars) nearest_altar = std::min(nearest_altar, dist(g_pos, a));
-        if (gems >= kBankGems || nearest_altar <= kNearAltar || g_round > 1850 || bank_first) {
+        // Once committed to an altar keep going: a crow-flies trigger flickered on walled maps.
+        if (gems >= kBankGems || nearest_altar <= kNearAltar || g_round > 1850 || bank_first || g_bank_altar >= 0) {
             g_mode = nearest_altar <= 1 ? "bankwait" : "bank";
             for (auto a : g_altars)
                 if (dist(g_pos, a) <= cambc::constants::submit_gems_range && (nearest_foe > 5 || gems <= 10)) {
@@ -784,13 +786,24 @@ void turn_body_impl() {
                     return;
                 }
             // Commit to one altar: re-choosing as units block its tiles made champions oscillate.
+            // Chosen by walking distance: the nearest altar as the crow flies can be walled off.
             if (g_bank_altar < 0 || g_bank_altar >= static_cast<int>(g_altars.size())) {
+                cambc::distance_field f;
+                bitboard visited, root;
+                root.clear();
+                root.set(g_pos);
+                f.compute(g_static, root, visited);
                 int bd = 1 << 30;
-                for (size_t k = 0; k < g_altars.size(); ++k) {
-                    const int d = dist(g_pos, g_altars[k]);
-                    if (d < bd) { bd = d; g_bank_altar = static_cast<int>(k); }
-                }
+                for (size_t k = 0; k < g_altars.size(); ++k)
+                    for (int dy = -1; dy <= 1; ++dy)
+                        for (int dx = -1; dx <= 1; ++dx) {
+                            const vec2 q{g_altars[k].x + dx, g_altars[k].y + dy};
+                            if (!cambc::map::is_in_bounds(q) || !visited.is_set(q)) continue;
+                            const int d = f.get(q);
+                            if (d < bd) { bd = d; g_bank_altar = static_cast<int>(k); }
+                        }
             }
+            if (g_bank_altar < 0) return;
             const vec2 altar = g_altars[static_cast<size_t>(g_bank_altar)];
             const vec2 before = g_pos;
             const bool ok = step_to(ring(altar, cambc::constants::submit_gems_range)) || step_to(ring(altar, 2));
