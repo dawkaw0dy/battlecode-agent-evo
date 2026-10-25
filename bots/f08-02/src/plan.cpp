@@ -55,7 +55,6 @@ std::vector<GroupInfo> analyse_map(const std::vector<cambc::map::camp_group>& gr
             d.str += s.str;
             d.range = std::max(d.range, s.range);
             if (c.kind() == cambc::camp_type::monolith || c.kind() == cambc::camp_type::golem) d.boss = true;
-            if (c.kind() == cambc::camp_type::monolith) d.monolith = true;
         }
         if (!d.tiles.empty()) {
             const long n = static_cast<long>(d.tiles.size());

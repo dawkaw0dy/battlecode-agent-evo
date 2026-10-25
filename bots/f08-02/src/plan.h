@@ -10,7 +10,6 @@ struct GroupInfo {
     float hp = 0, str = 0;            // total monster health and strength (clusters excluded from str)
     int range = 0;                    // largest monster attack range
     bool boss = false;                // monolith or golem inside
-    bool monolith = false;            // ... a monolith
     int d_ally = kFar, d_enemy = kFar;  // walking distance from each spawn
 };
 

@@ -288,8 +288,6 @@ constexpr bool kPackContest = false;   // contest maps: the whole team raids the
 constexpr float kPackShare = 1.0f;     // value per champion of a pack raid (1: the enemy's loss counts too)
 constexpr int kPackGems = 10;          // contested groups worth fewer gems are farmed as usual
 constexpr int kPlugRaiders = 3;       // raiders gathered before a boss on the only altar is attacked (1: alone)
-constexpr int kRaidMost = 1;          // raid size planned with allies out of sight (1: visible allies only)
-constexpr bool kSoloGolem = false;     // a golem group may be worn down alone like any other (monoliths: raids only)
 constexpr bool kBossPlan = false;      // boss maps: bosses are raided by the whole living team
 constexpr float kBossFocus = 1.5f;     // score factor for a boss raid on a boss map
 constexpr float kBossTrips = 1.0f;     // ... which waits until it takes at most this many trips home each
@@ -620,7 +618,7 @@ int Bot::choose(int& wait_out) {
     // Living allies anywhere (vision aside): the pack counts on all of them.
     int team = 1;
     const bool boss_map = kBossPlan && (plan_.flags & MapPlan::boss);
-    if ((kPackContest && (plan_.flags & MapPlan::contest)) || boss_map || kRaidMost > 1)
+    if ((kPackContest && (plan_.flags & MapPlan::contest)) || boss_map)
         for (const auto& a : others_) {
             std::int32_t up = 0;
             if (cambc::detail::sdk_champion_is_alive(static_cast<std::uint32_t>(static_cast<cambc::handle_champion_t>(a)), &up) == 0 && up) ++team;
@@ -696,7 +694,7 @@ int Bot::choose(int& wait_out) {
             const auto& cc = clear_cost(i);
             const float peak = cc.peak * taken_;
             // Alone: worn down over several trips when one health bar is not enough.
-            if ((!g.boss || (kSoloGolem && !g.monolith)) && cap >= 5 * peak) {
+            if (!g.boss && cap >= 5 * peak) {
                 float turns = 0;
                 const float trips = trips_for(cc, 1, turns);
                 if (trips <= 4) {
@@ -730,8 +728,7 @@ int Bot::choose(int& wait_out) {
             // Raid: n champions of our strength gather outside the fighters' reach, then engage together.
             // On a boss map the whole living team raids the bosses, with a bonus for committing to them.
             const bool all_in = boss_map && g.boss && team >= 2;
-            // Allies out of sight count too for packs, up to kRaidMost raiders (they are told by the claim).
-            const int most = all_in ? team : g.boss ? alive : std::max(alive, std::min(team, kRaidMost));
+            const int most = all_in ? team : alive;
             if (all_in) f *= kBossFocus;
             if (most >= 2 && (g.boss || plan.score <= 0)) {
                 for (int n = all_in ? team : std::max(2, claimers + 1); n <= most; ++n) {

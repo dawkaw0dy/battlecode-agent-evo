@@ -1,0 +1,27 @@
+{
+ "agent": "f08-02",
+ "task_sha256": "02a3fd11c1ea4cb6a02c3210dcbbb730db8ef8cbadd5ee502277d75a050e4b50",
+ "base_commit": "c8567f3516cab8e9bde28c10ff667310c5e0452e",
+ "session_id": "cse_01DpMuQT4yTjnW9FuD8GmTdw",
+ "bot_dir": "bots/f08-02",
+ "self_eval": {
+  "vs": "f06-05",
+  "games": 48,
+  "wins": 28
+ },
+ "games_played": 880,
+ "summary": "f07-02 plus one camp rule: champions gather 3 raiders outside a boss that walls in the only altar instead of attacking it alone (01boss-battle); all other maps replay the parent exactly",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "1a54a56bf1dc3f2480fe19e1b049da9db01d95df8ae8eea12ef882de23d6e83c",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 20.19,
+  "remote": "true",
+  "session_id": "cse_01DpMuQT4yTjnW9FuD8GmTdw",
+  "effort_level": "high",
+  "model": null
+ }
+}
