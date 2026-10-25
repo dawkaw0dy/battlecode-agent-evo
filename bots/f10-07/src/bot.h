@@ -54,6 +54,8 @@ class Bot {
     int last_enemy_round_ = -1000;
     bool healing_ = false;
     float fight_value_ = 0;
+    int act_ = 0;
+    int leader_ = -1, squad_alive_ = 1, hold_ = 0;
     float last_hp_ = 0;
     int hidden_hit_round_ = -1000;
     bool jungle_ = false;
@@ -96,7 +98,8 @@ class Bot {
     bool bank_here();
     void farm();
     void choose_target();
-    double score_group(int gi, int dist, int helpers);
+    double score_group(int gi, int dist, int helpers, int squad);
+    void update_squad();
     void fight_group(int gi);
     void capture_group(int gi);
     std::vector<CampView> visible_camps(int gi);

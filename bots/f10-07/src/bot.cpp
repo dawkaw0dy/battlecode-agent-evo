@@ -30,12 +30,17 @@ constexpr int kBankMin = 8;
 constexpr int kBankCap = 50;
 constexpr int kThreatPad = 2;      // retreat once a foe is this far outside its reach
 constexpr bool kCornered = false;
-constexpr bool kAvoidAwake = false;    // after a sighting, heal sooner
+constexpr bool kAvoidAwake = false;
+constexpr int kSquads = 5;          // 5 = everyone farms alone; fewer = squads follow a leader
+constexpr int kHoldMax = 25;       // rounds a squad member waits for the others at a big group
+constexpr double kTheirSide = 0.6;
+constexpr double kContested = 1.0;    // after a sighting, heal sooner
 constexpr float kWaryHeal = 0.5f;
 constexpr bool kHelp = false;       // answer allies' sightings
 constexpr int kHelpRange = 12;
 constexpr bool kDumpMap = false;
 constexpr bool kDeathTrace = true;
+constexpr int kActReport = 590;
 constexpr int kTraceFrom = 100000, kTraceTo = 0;
 
 struct Facts {
@@ -309,6 +314,24 @@ float Bot::incoming_camp_damage() {
     return inc;
 }
 
+void Bot::update_squad() {
+    leader_ = slot_;
+    squad_alive_ = 1;
+    if (kSquads >= 5 || slot_ < 0) return;
+    const auto allies = cambc::champions(team::ally);
+    int leader = -1, alive = 0;
+    for (int i = 0; i < static_cast<int>(allies.size()) && i < kClaimBytes; ++i) {
+        if (i % kSquads != slot_ % kSquads) continue;
+        bool up = false;
+        try { up = allies[i].is_alive(); } catch (...) {}
+        if (!up) continue;
+        ++alive;
+        if (leader < 0) leader = i;
+    }
+    leader_ = leader < 0 ? slot_ : leader;
+    squad_alive_ = std::max(1, alive);
+}
+
 void Bot::write_claim(int gi) {
     if (slot_ < 0 || slot_ >= kClaimBytes) return;
     std::uint8_t v = gi < 0 || gi > 250 ? 0 : static_cast<std::uint8_t>(gi + 1);
@@ -344,7 +367,7 @@ float sim_damage(const Group& G, float dps, bool full) {
 }
 }  // namespace
 
-double Bot::score_group(int gi, int dist, int helpers) {
+double Bot::score_group(int gi, int dist, int helpers, int squad) {
     const auto& G = world().groups[gi];
     if (dist >= kFar) return -1;
     const double wgold = round_ < 600 ? 0.2 : round_ < 1200 ? 0.1 : 0.03;
@@ -368,13 +391,24 @@ double Bot::score_group(int gi, int dist, int helpers) {
     // Join a claimed group only while its claimers cannot clear it in one trip.
     if (helpers > 0 && trips_for(helpers) == 1) return value / (dist + wait + hp_left / my_dps() + 6.0) * 0.15;
     const int solo = trips_for(1);
-    const int n = helpers + 1;
+    const int n = helpers + squad;
     const int trips = n == 1 ? solo : trips_for(n);
     const double clear = hp_left / (my_dps() * n);
+    if (squad > 1 && helpers == 0) {
+        // A squad shares one reward: rate the group by squad throughput.
+        const double t = dist + wait + clear + 6.0 + (trips - 1) * (2.0 * G.d_home + 12.0);
+        double s = value / t / squad;
+        if (G.d_enemy + 4 < G.d_home) s *= kTheirSide;
+        else if (G.d_enemy < G.d_home + 4) s *= kContested;
+        if (trips > 3) s *= 0.5;
+        return s;
+    }
     const double extra = (trips - 1) * (2.0 * G.d_home + 12.0);
     const double t = dist + wait + clear + 6.0 + extra;
     double s = value / n / t;
-    if (G.d_enemy + 4 < G.d_home) s *= 0.6;
+    // Their side: likely farmed (and guarded) by them.
+    if (G.d_enemy + 4 < G.d_home) s *= kTheirSide;
+    else if (G.d_enemy < G.d_home + 4) s *= kContested;
     if (trips > 3) s *= 0.5;
     return s;
 }
@@ -383,6 +417,20 @@ void Bot::choose_target() {
     const auto& groups = world().groups;
     std::array<std::uint8_t, kClaimBytes> buf{};
     cambc::shared_memory.read(0, std::span<std::uint8_t, kClaimBytes>{buf});
+    // Squad followers take their leader's target.
+    if (kSquads < 5 && leader_ >= 0 && leader_ != slot_ && leader_ < kClaimBytes && buf[leader_] > 0
+        && buf[leader_] - 1 < static_cast<int>(groups.size())) {
+        const int t = buf[leader_] - 1;
+        if (t != target_) {
+            target_ = t;
+            reach_ = range_;
+            stall_ = 0;
+            hold_ = 0;
+        }
+        target_round_ = round_;
+        write_claim(target_);
+        return;
+    }
     int best = -1;
     double bs = 0;
     vec2 seen{};
@@ -395,20 +443,25 @@ void Bot::choose_target() {
         else continue;  // fields are filled nearest-to-home first
         int helpers = 0;
         for (int i = 0; i < kClaimBytes; ++i)
-            if (i != slot_ && buf[i] == gi + 1) ++helpers;
-        double s = score_group(gi, dist, helpers);
+            if (i != slot_ && buf[i] == gi + 1 && (kSquads >= 5 || i % kSquads != slot_ % kSquads)) ++helpers;
+        double s = score_group(gi, dist, helpers, kSquads < 5 ? std::max(1, squad_alive_) : 1);
         if (gi == target_) s *= 1.25;
         if (danger && cheb(G.center, seen) <= 7) s *= 0.3;
         // Loose packs: farm near allies so fights are rarely one against several.
-        for (int i = 0; i < kClaimBytes; ++i)
+        for (int i = 0; i < kClaimBytes && kSquads >= 5; ++i)
             if (i != slot_ && buf[i] > 0 && buf[i] - 1 < static_cast<int>(groups.size())
                 && cheb(groups[buf[i] - 1].center, G.center) <= 10) s *= 1.0 + kCohesion;
+        debug_block({
+            if (slot_ == 0 && round_ >= 100 && round_ <= 130 && s > 0)
+                std::printf("  r%d g%d st%d ready%d d%d help%d gems%d hp%.0f s%.4f%s\n", round_, gi, (int)G.state, G.ready - round_, dist, helpers, G.gems, G.hp_left(), s, gi == target_ ? " *" : "");
+        });
         if (s > bs) { bs = s; best = gi; }
     }
     if (best != target_) {
         target_ = best;
         reach_ = range_;
         stall_ = 0;
+        hold_ = 0;
     }
     target_score_ = bs;
     target_round_ = round_;
@@ -540,15 +593,46 @@ bool Bot::attack_camp(const std::vector<CampView>& camps) {
 void Bot::fight_group(int gi) {
     const auto& G = world().groups[gi];
     auto camps = visible_camps(gi);
+    // Big groups wait for the squad: one champion alone only feeds the camp.
+    if (kSquads < 5 && squad_alive_ > 1 && hold_ < kHoldMax
+        && sim_damage(G, my_dps(), false) > 0.75f * max_hp_) {
+        int present = 1;
+        for (const auto& f : friends_)
+            if (cheb(f.pos, G.center) <= G.span + 8) ++present;
+        bool awake = false;
+        for (const auto& c : camps)
+            if (cambc::vision::awake_camp_tiles().is_set(c.pos)) { awake = true; break; }
+        if (present < squad_alive_ && !awake) {
+            int reach = 0;
+            for (const auto& m : G.m) reach = std::max(reach, m.range);
+            ++hold_;
+            act_ = 11;
+            int dmin = 99;
+            for (const auto& m : G.m)
+                if (m.hp > 0) dmin = std::min(dmin, cheb(m.pos, pos_));
+            if (dmin <= reach + 1) {
+                cambc::bitboard danger;
+                for (const auto& m : G.m) danger.draw_chebyshev(m.pos, static_cast<float>(reach + 1));
+                step_away(danger);
+            } else if (dmin > reach + 4) {
+                cambc::bitboard goals;
+                goals.draw_chebyshev(G.center, static_cast<float>(G.span + reach + 3));
+                travel(goals, gi * 32 + 28, true);
+            }
+            return;
+        }
+    }
     bool in_range = false;
     for (const auto& c : camps)
         if (cheb(c.pos, pos_) <= range_) in_range = true;
 
     camp_spells(camps, in_range);
     if (in_range) {
+        act_ = 12;
         attack_camp(camps);
         return;
     }
+    act_ = 13;
     // Approach the nearest living member.
     vec2 app{-1, -1};
     int bd = 1 << 20;
@@ -988,12 +1072,14 @@ void Bot::farm() {
         }
     }
     if (T.state == kReward) {
+        act_ = 10;
         capture_group(target_);
         return;
     }
     if (T.state == kRespawning) {
         // Spend the wait at an altar when the round trip fits.
-        if (gems_ > 0 && T.ready - round_ > 2 * altar_distance() + 2 && bank()) return;
+        if (gems_ > 0 && T.ready - round_ > 2 * altar_distance() + 2 && bank()) { act_ = 3; return; }
+        act_ = 11;
         bool on_tile = false;
         for (const auto& m : T.m)
             if (m.pos == pos_) on_tile = true;
@@ -1008,6 +1094,7 @@ void Bot::farm() {
     fight_group(target_);
 }
 
+static int g_act[5][16];
 static std::string g_hist[8];
 static int g_hist_n = 0;
 static bool g_was_alive = true;
@@ -1061,6 +1148,7 @@ void Bot::play_turn() {
     }
     debug_block({ g_was_alive = true; });
     pos_ = me.position();
+    update_squad();
     update_groups(round_, pos_);
     if (me.is_submitting_gems() || me.is_teleporting()) return;
     hp_ = me.health();
@@ -1082,14 +1170,29 @@ void Bot::play_turn() {
     const auto f0 = cambc::fuel_remaining();
     int mode = 0;
     fight_value_ = 0;
+    act_ = 0;
     if (handle_enemies()) mode = 1;
     else if (handle_heal()) mode = 2;
     else if (answer_sighting()) mode = 4;
     else if (should_bank() && bank()) mode = 3;
     else farm();
+    debug_block({
+        const int a = mode == 2 && world().spawn_ally.is_set(pos_) ? 14 : act_ ? act_ : mode;
+        g_act[slot_ < 0 ? 0 : slot_ % 5][a % 16]++;
+        if (round_ == kActReport) {
+            std::printf("ACT %s:", cambc::to_string(type_).c_str());
+            const char* names[16] = {"farm?", "foe", "heal", "bank", "help", "", "", "", "", "", "capture", "wait", "hit", "travel", "spawn", ""};
+            for (int i = 0; i < 16; ++i)
+                if (g_act[slot_ % 5][i]) std::printf(" %s=%d", names[i], g_act[slot_ % 5][i]);
+            std::printf("\n");
+        }
+    });
     fill_group_fields(60000);
     debug_block({
         if (round_ == 3 && slot_ == 0 && kDumpMap) {
+            for (const auto& G : world().groups) {
+                std::printf("group c(%d,%d) gems%d gold%d hp%.0f str%.0f resp%d dh%d de%d n%d\n", G.center.x, G.center.y, G.gems, G.gold, G.hp_max, G.str_total, G.respawn, G.d_home, G.d_enemy, (int)G.m.size());
+            }
             dump_area({world().w / 2, world().h / 2}, std::max(world().w, world().h) / 2, pos_);
             for (auto a : world().altars) std::printf("altar (%d,%d) home %d\n", a.x, a.y, world().home.get(a + vec2{1, 0}));
         }
