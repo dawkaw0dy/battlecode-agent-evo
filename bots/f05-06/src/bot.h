@@ -59,6 +59,7 @@ private:
     int slot_ = -1;
     int home_altar_ = -1;
     int n_slots_ = 0;
+    int total_gems_ = 0;
     bool ranged_ = false;
     int range_ = 1;
     int kind_ = 0;

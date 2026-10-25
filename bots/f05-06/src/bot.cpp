@@ -124,6 +124,7 @@ void Bot::initialize() {
         }
     }
 
+    for (const auto& g : groups_) total_gems_ += g.gems;
     // Walking distances from both spawns.
     {
         cambc::distance_field fus, fthem;
@@ -925,7 +926,7 @@ int Bot::choose_target() {
     const bool rep = read_report(rp, rc, rage);
     const auto taken = claims();
     const float wgold = round_ < 400 ? 0.4f : round_ < 1000 ? 0.25f : round_ < 1600 ? 0.1f : 0.02f;
-    struct Cand { int gi, eta, wait; float value, factor, bound; bool shared; };
+    struct Cand { int gi, eta, wait; float value, factor, bound; bool shared; float team; };
     std::vector<Cand> cands;
     cands.reserve(groups_.size());
     for (size_t gi = 0; gi < groups_.size(); ++gi) {
@@ -960,15 +961,22 @@ int Bot::choose_target() {
             if (c == static_cast<int>(gi % 255) + 1) shared = true;
         // Big groups are worth sharing: camps hit only the nearest champion.
         const bool big = !g.dirty && g.status == 0 && g.plan_dmg > maxhp * 0.6f;
+        // Raid: a gem-rich group too strong for one champion; planned as a team job.
+        bool has_boss = false;
+        for (const auto& cc : g.camps) has_boss |= cc.kind == static_cast<int>(cambc::camp_type::monolith);
+        // Only where the map's gems are concentrated in a few groups.
+        const bool raid = g.gems >= 40 && !has_boss && n_slots_ >= 3 && g.gems * 10 >= total_gems_ * 3;
         // Contested groups (middle / enemy side): go in company, or not at all.
         const bool contested = g.owner == dm::kShared || g.owner == dm::kEnemySide;
-        if (contested) factor *= shared ? 1.6f : 0.6f;
+        if (raid) factor *= shared ? 1.3f : 1.0f;
+        else if (contested) factor *= shared ? 1.6f : 0.6f;
         else if (shared && !big) factor *= 0.3f;
         if (g.status == 1) factor *= (round_ - g.my_hit < 40) ? 1.3f : 0.4f;
         if (round_ <= flee_until_ + 20 && cheb(flee_from_, g.center) <= 10) factor *= 0.2f;
         if (round_ <= avoid_until_ && cheb(avoid_pos_, g.center) <= 5) factor *= 0.5f;
         if (rep && rc >= 2 && cheb(rp, g.center) <= 9) factor *= 0.3f;
-        cands.push_back({static_cast<int>(gi), eta, wait, value, factor, value * factor / (eta + wait + 13.0f), shared && (big || contested)});
+        const float team = raid ? std::min(3.0f, static_cast<float>(n_slots_)) : ((shared && (big || contested)) ? 2.0f : 1.0f);
+        cands.push_back({static_cast<int>(gi), eta, wait, value, factor, value * factor / team / (eta + wait + 13.0f) * (raid ? 1.5f : 1.0f), team > 1, team});
     }
     std::sort(cands.begin(), cands.end(), [](const Cand& a, const Cand& b) { return a.bound > b.bound; });
     int best = -1;
@@ -988,7 +996,7 @@ int Bot::choose_target() {
             if (g.plan_time <= 0 && g.status == 0) continue;
             const float budget = maxhp * 0.8f;
             float dmg = g.plan_dmg;
-            if (c.shared) clear *= 0.5f, dmg *= 0.5f;  // reward split, but half the work
+            if (c.shared) clear /= c.team, dmg /= c.team;  // reward split, but shared work
             const int trips = static_cast<int>(std::ceil((dmg + 1) / budget));
             if (trips > 3) continue;
             trip = (trips - 1) * (12.0f + g.dspawn);
@@ -996,7 +1004,7 @@ int Bot::choose_target() {
                 trip += 10.0f + std::min<int>(g.dspawn, 60);  // heal first
         }
         const float time = c.eta + c.wait + clear + 5 + trip + 8;
-        const float sc = c.value * c.factor * (c.shared ? 0.5f : 1.0f) / time;
+        const float sc = c.value * c.factor / c.team / time;
         if (sc > bests) bests = sc, best = c.gi;
     }
     return best;
@@ -1197,7 +1205,7 @@ void Bot::play_turn() {
                     }
                 }
                 std::cout.flush();
-                if (b->round_ == 400) {
+                if (b->round_ == 300) {
                     std::cout << "ACT k" << b->kind_;
                     for (int v : b->act_) std::cout << ' ' << v;
                     std::cout << " REC";
@@ -1207,7 +1215,7 @@ void Bot::play_turn() {
                     std::cout << "\n";
                 }
                 static int last_mode = -1, last_tg = -2;
-                const bool change = b->round_ >= 40 && b->round_ < 82 && b->kind_ == 2;
+                const bool change = b->round_ % 25 == 0;
                 if (b->kind_ == 7) last_mode = b->mode_, last_tg = b->target_;
                 if (b->kind_ == 2) last_mode = b->mode_, last_tg = b->target_;
                 if (change || f0 - cambc::fuel_remaining() > 90000) {
