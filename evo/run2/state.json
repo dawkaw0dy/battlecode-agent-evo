@@ -884,7 +884,7 @@
    ],
    "slot": 1,
    "src_sha256": "4c7ef7070e1438412f0d8535ba02f3cc7bc4e2249323fc504e66018e4f78727f",
-   "status": "admitted",
+   "status": "rated",
    "task_sha256": "c5ff07c414d97638d314a458a5fa0064e902487fd01a91dd930d8a38055b80a7"
   },
   "f02-02": {
@@ -1389,7 +1389,7 @@
    ],
    "slot": 1,
    "src_sha256": "9707009f36d390b0bbb3b0d494a0bc1fbe0314549d5229ef9323430f00580ab6",
-   "status": "admitted",
+   "status": "rated",
    "task_sha256": "80023abb225efc332b55543b1d9578210adf5c3219cf4eab309b0dedd658bb7e"
   },
   "f03-02": {
@@ -1469,7 +1469,7 @@
    ],
    "slot": 2,
    "src_sha256": "68a074163008006111e2ab886d2076368b2b61c4468a82e2657d2a94a55007e6",
-   "status": "admitted",
+   "status": "rated",
    "task_sha256": "0ae20e0b430b3a5dcad0bb4341af1da48e1bbc8f987145e2b7bce780524311f7"
   },
   "f03-03": {
@@ -1549,7 +1549,7 @@
    ],
    "slot": 3,
    "src_sha256": "319bc22fbf8055b088831d9e1fe80327a662db9c076a02c48da3dcf39057a5c3",
-   "status": "admitted",
+   "status": "rated",
    "task_sha256": "4e0f9bcd6a01fbdcc781801dae89d024459bdb6dcfc5db2c9ad0d0853f58c2c1"
   },
   "f03-04": {
@@ -1629,7 +1629,7 @@
    ],
    "slot": 4,
    "src_sha256": "6e3a94424e3718d7abc0168c5491abf6f3e048aaee193d789befa6e84336d91f",
-   "status": "admitted",
+   "status": "rated",
    "task_sha256": "ebd0929c221b9c7118a74e9c76c6f87e718b92dda52e91ec88b809b933e693c3"
   },
   "f03-05": {
@@ -1764,7 +1764,7 @@
    ],
    "slot": 6,
    "src_sha256": "41232bd34b90e43f4cadbefbd304a8c982ca64474af09c829c4fbc98355fd362",
-   "status": "admitted",
+   "status": "rated",
    "task_sha256": "b93281052b94f1409f9648c75d637604773967c2c7308f0302b026922ce627c9"
   },
   "f03-07": {
@@ -1819,11 +1819,417 @@
    ],
    "slot": 7,
    "src_sha256": "e83d7b3286e3cf636260421a76a89871178ba311068dcd9b8cdda1f70f42ef7e",
-   "status": "admitted",
+   "status": "rated",
    "task_sha256": "e8484361de65305c646fce31306113d1485cfc989fab76a85b78d700d1c4f5a3"
+  },
+  "f04-01": {
+   "archetype": null,
+   "branch": null,
+   "commit": null,
+   "deadline_minutes": 120,
+   "evidence": [
+    {
+     "gems_opponent": 1035,
+     "gems_parent": 18,
+     "map": "00gemfight",
+     "opponent": "f03-04",
+     "rounds": 1203,
+     "side": "B"
+    },
+    {
+     "gems_opponent": 1012,
+     "gems_parent": 0,
+     "map": "01hooks",
+     "opponent": "f03-04",
+     "rounds": 1791,
+     "side": "A"
+    },
+    {
+     "gems_opponent": 1024,
+     "gems_parent": 15,
+     "map": "h-1b5b",
+     "opponent": "f03-01",
+     "rounds": 1415,
+     "side": "B"
+    }
+   ],
+   "failed_ideas": [
+    "f02-01: Fuel: host calls cost ~30\u201340 fuel, but every bitboard temporary (&, |, ~, shift) ~600 and a grow(r) ~4k\u00b7r;",
+    "f02-01: local loops ~50 per element. Function-local statics add a guard check per call. Turns above 100k fuel resume",
+    "f02-01: next round with the champion possibly dead: position() then reads (-1,-1) and field reads throw engine error 5.",
+    "f02-01: A route-tracing loop with host field reads cost ~70k fuel; use an exported local copy (unreached = 65535).",
+    "f02-01: Enemy memory (3 rounds) + fight/flee hysteresis: 23\u201324/80 vs 34/80 without. Vision flicker is not the problem.",
+    "f02-01: Unseen (\"unknown\") camp groups blocking the route reset the plug logic every turn: champions stood still.",
+    "f02-01: Ranged champions stalled on range-3 tiles without line of sight: shrink the approach radius when nothing is hit.",
+    "f02-01: Boss raids gated at 2.5 tank-turns: everyone walked into monoliths and never hit them; 8 turns works.",
+    "f02-01: Raid and current-target bonuses on a respawning boss kept all five champions waiting 150 rounds.",
+    "f02-01: Pre-emptive Varg shield (before the first camp hit): shielding +60%, results 30 vs 31/52, margin down. Kept the",
+    "f02-01: \"under fire\" rule; the shield takes the cast a splash reset would use.",
+    "f02-01: Chase dash when only two tiles short (dash + hit on a runner): 54 vs 56/80 vs f00-03. Reverted.",
+    "f02-01: Melee nuke whenever the target is \u22653 away: 43 vs 42/60, inside noise; not adopted (only after a missed chase step).",
+    "f02-01: can_attack() stays false after Vendetta's kill although the engine has the attack available: a reset then throws",
+    "f02-01: error 26 (\"An available attack cannot be reset\"). Hitting directly works."
+   ],
+   "focus": "fuel",
+   "generation": 4,
+   "id": "f04-01",
+   "kind": "child",
+   "nudged": [],
+   "operator": "subsystem",
+   "parents": [
+    "f03-05"
+   ],
+   "reason": null,
+   "rng_key": "21376769:4:1",
+   "sessions": [],
+   "slot": 1,
+   "src_sha256": null,
+   "status": "planned",
+   "task_sha256": null
+  },
+  "f04-02": {
+   "archetype": null,
+   "branch": null,
+   "commit": null,
+   "deadline_minutes": 120,
+   "evidence": [
+    {
+     "gems_opponent": 1035,
+     "gems_parent": 18,
+     "map": "00gemfight",
+     "opponent": "f03-04",
+     "rounds": 1203,
+     "side": "B"
+    },
+    {
+     "gems_opponent": 1012,
+     "gems_parent": 0,
+     "map": "01hooks",
+     "opponent": "f03-04",
+     "rounds": 1791,
+     "side": "A"
+    },
+    {
+     "gems_opponent": 1024,
+     "gems_parent": 15,
+     "map": "h-1b5b",
+     "opponent": "f03-01",
+     "rounds": 1415,
+     "side": "B"
+    }
+   ],
+   "failed_ideas": [
+    "f02-01: Fuel: host calls cost ~30\u201340 fuel, but every bitboard temporary (&, |, ~, shift) ~600 and a grow(r) ~4k\u00b7r;",
+    "f02-01: local loops ~50 per element. Function-local statics add a guard check per call. Turns above 100k fuel resume",
+    "f02-01: next round with the champion possibly dead: position() then reads (-1,-1) and field reads throw engine error 5.",
+    "f02-01: A route-tracing loop with host field reads cost ~70k fuel; use an exported local copy (unreached = 65535).",
+    "f02-01: Enemy memory (3 rounds) + fight/flee hysteresis: 23\u201324/80 vs 34/80 without. Vision flicker is not the problem.",
+    "f02-01: Unseen (\"unknown\") camp groups blocking the route reset the plug logic every turn: champions stood still.",
+    "f02-01: Ranged champions stalled on range-3 tiles without line of sight: shrink the approach radius when nothing is hit.",
+    "f02-01: Boss raids gated at 2.5 tank-turns: everyone walked into monoliths and never hit them; 8 turns works.",
+    "f02-01: Raid and current-target bonuses on a respawning boss kept all five champions waiting 150 rounds.",
+    "f02-01: Pre-emptive Varg shield (before the first camp hit): shielding +60%, results 30 vs 31/52, margin down. Kept the",
+    "f02-01: \"under fire\" rule; the shield takes the cast a splash reset would use.",
+    "f02-01: Chase dash when only two tiles short (dash + hit on a runner): 54 vs 56/80 vs f00-03. Reverted.",
+    "f02-01: Melee nuke whenever the target is \u22653 away: 43 vs 42/60, inside noise; not adopted (only after a missed chase step).",
+    "f02-01: can_attack() stays false after Vendetta's kill although the engine has the attack available: a reset then throws",
+    "f02-01: error 26 (\"An available attack cannot be reset\"). Hitting directly works."
+   ],
+   "focus": "opening",
+   "generation": 4,
+   "id": "f04-02",
+   "kind": "child",
+   "nudged": [],
+   "operator": "crossover",
+   "parents": [
+    "f03-05",
+    "f03-04"
+   ],
+   "reason": null,
+   "rng_key": "21376769:4:2",
+   "sessions": [],
+   "slot": 2,
+   "src_sha256": null,
+   "status": "planned",
+   "task_sha256": null
+  },
+  "f04-03": {
+   "archetype": null,
+   "branch": null,
+   "commit": null,
+   "deadline_minutes": 120,
+   "evidence": [
+    {
+     "gems_opponent": 1035,
+     "gems_parent": 18,
+     "map": "00gemfight",
+     "opponent": "f03-04",
+     "rounds": 1203,
+     "side": "B"
+    },
+    {
+     "gems_opponent": 1012,
+     "gems_parent": 0,
+     "map": "01hooks",
+     "opponent": "f03-04",
+     "rounds": 1791,
+     "side": "A"
+    },
+    {
+     "gems_opponent": 1024,
+     "gems_parent": 15,
+     "map": "h-1b5b",
+     "opponent": "f03-01",
+     "rounds": 1415,
+     "side": "B"
+    }
+   ],
+   "failed_ideas": [
+    "f02-01: Fuel: host calls cost ~30\u201340 fuel, but every bitboard temporary (&, |, ~, shift) ~600 and a grow(r) ~4k\u00b7r;",
+    "f02-01: local loops ~50 per element. Function-local statics add a guard check per call. Turns above 100k fuel resume",
+    "f02-01: next round with the champion possibly dead: position() then reads (-1,-1) and field reads throw engine error 5.",
+    "f02-01: A route-tracing loop with host field reads cost ~70k fuel; use an exported local copy (unreached = 65535).",
+    "f02-01: Enemy memory (3 rounds) + fight/flee hysteresis: 23\u201324/80 vs 34/80 without. Vision flicker is not the problem.",
+    "f02-01: Unseen (\"unknown\") camp groups blocking the route reset the plug logic every turn: champions stood still.",
+    "f02-01: Ranged champions stalled on range-3 tiles without line of sight: shrink the approach radius when nothing is hit.",
+    "f02-01: Boss raids gated at 2.5 tank-turns: everyone walked into monoliths and never hit them; 8 turns works.",
+    "f02-01: Raid and current-target bonuses on a respawning boss kept all five champions waiting 150 rounds.",
+    "f02-01: Pre-emptive Varg shield (before the first camp hit): shielding +60%, results 30 vs 31/52, margin down. Kept the",
+    "f02-01: \"under fire\" rule; the shield takes the cast a splash reset would use.",
+    "f02-01: Chase dash when only two tiles short (dash + hit on a runner): 54 vs 56/80 vs f00-03. Reverted.",
+    "f02-01: Melee nuke whenever the target is \u22653 away: 43 vs 42/60, inside noise; not adopted (only after a missed chase step).",
+    "f02-01: can_attack() stays false after Vendetta's kill although the engine has the attack available: a reset then throws",
+    "f02-01: error 26 (\"An available attack cannot be reset\"). Hitting directly works."
+   ],
+   "focus": "camps",
+   "generation": 4,
+   "id": "f04-03",
+   "kind": "child",
+   "nudged": [],
+   "operator": "subsystem",
+   "parents": [
+    "f03-05"
+   ],
+   "reason": null,
+   "rng_key": "21376769:4:3",
+   "sessions": [],
+   "slot": 3,
+   "src_sha256": null,
+   "status": "planned",
+   "task_sha256": null
+  },
+  "f04-04": {
+   "archetype": null,
+   "branch": null,
+   "commit": null,
+   "deadline_minutes": 120,
+   "evidence": [
+    {
+     "gems_opponent": 1135,
+     "gems_parent": 0,
+     "map": "01boss-battle",
+     "opponent": "f03-05",
+     "rounds": 1491,
+     "side": "A"
+    },
+    {
+     "gems_opponent": 1120,
+     "gems_parent": 0,
+     "map": "00stampede",
+     "opponent": "f03-05",
+     "rounds": 1937,
+     "side": "A"
+    },
+    {
+     "gems_opponent": 1038,
+     "gems_parent": 11,
+     "map": "00collision",
+     "opponent": "f03-05",
+     "rounds": 1554,
+     "side": "A"
+    }
+   ],
+   "failed_ideas": [
+    "f02-01: Fuel: host calls cost ~30\u201340 fuel, but every bitboard temporary (&, |, ~, shift) ~600 and a grow(r) ~4k\u00b7r;",
+    "f02-01: local loops ~50 per element. Function-local statics add a guard check per call. Turns above 100k fuel resume",
+    "f02-01: next round with the champion possibly dead: position() then reads (-1,-1) and field reads throw engine error 5.",
+    "f02-01: A route-tracing loop with host field reads cost ~70k fuel; use an exported local copy (unreached = 65535).",
+    "f02-01: Enemy memory (3 rounds) + fight/flee hysteresis: 23\u201324/80 vs 34/80 without. Vision flicker is not the problem.",
+    "f02-01: Unseen (\"unknown\") camp groups blocking the route reset the plug logic every turn: champions stood still.",
+    "f02-01: Ranged champions stalled on range-3 tiles without line of sight: shrink the approach radius when nothing is hit.",
+    "f02-01: Boss raids gated at 2.5 tank-turns: everyone walked into monoliths and never hit them; 8 turns works.",
+    "f02-01: Raid and current-target bonuses on a respawning boss kept all five champions waiting 150 rounds.",
+    "f02-01: Pre-emptive Varg shield (before the first camp hit): shielding +60%, results 30 vs 31/52, margin down. Kept the",
+    "f02-01: \"under fire\" rule; the shield takes the cast a splash reset would use.",
+    "f02-01: Chase dash when only two tiles short (dash + hit on a runner): 54 vs 56/80 vs f00-03. Reverted.",
+    "f02-01: Melee nuke whenever the target is \u22653 away: 43 vs 42/60, inside noise; not adopted (only after a missed chase step).",
+    "f02-01: can_attack() stays false after Vendetta's kill although the engine has the attack available: a reset then throws",
+    "f02-01: error 26 (\"An available attack cannot be reset\"). Hitting directly works."
+   ],
+   "focus": "camps",
+   "generation": 4,
+   "id": "f04-04",
+   "kind": "child",
+   "nudged": [],
+   "operator": "tweak",
+   "parents": [
+    "f03-04"
+   ],
+   "reason": null,
+   "rng_key": "21376769:4:4",
+   "sessions": [],
+   "slot": 4,
+   "src_sha256": null,
+   "status": "planned",
+   "task_sha256": null
+  },
+  "f04-05": {
+   "archetype": null,
+   "branch": null,
+   "commit": null,
+   "deadline_minutes": 120,
+   "evidence": [
+    {
+     "gems_opponent": 1135,
+     "gems_parent": 0,
+     "map": "01boss-battle",
+     "opponent": "f03-05",
+     "rounds": 1491,
+     "side": "A"
+    },
+    {
+     "gems_opponent": 1120,
+     "gems_parent": 0,
+     "map": "00stampede",
+     "opponent": "f03-05",
+     "rounds": 1937,
+     "side": "A"
+    },
+    {
+     "gems_opponent": 1038,
+     "gems_parent": 11,
+     "map": "00collision",
+     "opponent": "f03-05",
+     "rounds": 1554,
+     "side": "A"
+    }
+   ],
+   "failed_ideas": [
+    "f02-01: Fuel: host calls cost ~30\u201340 fuel, but every bitboard temporary (&, |, ~, shift) ~600 and a grow(r) ~4k\u00b7r;",
+    "f02-01: local loops ~50 per element. Function-local statics add a guard check per call. Turns above 100k fuel resume",
+    "f02-01: next round with the champion possibly dead: position() then reads (-1,-1) and field reads throw engine error 5.",
+    "f02-01: A route-tracing loop with host field reads cost ~70k fuel; use an exported local copy (unreached = 65535).",
+    "f02-01: Enemy memory (3 rounds) + fight/flee hysteresis: 23\u201324/80 vs 34/80 without. Vision flicker is not the problem.",
+    "f02-01: Unseen (\"unknown\") camp groups blocking the route reset the plug logic every turn: champions stood still.",
+    "f02-01: Ranged champions stalled on range-3 tiles without line of sight: shrink the approach radius when nothing is hit.",
+    "f02-01: Boss raids gated at 2.5 tank-turns: everyone walked into monoliths and never hit them; 8 turns works.",
+    "f02-01: Raid and current-target bonuses on a respawning boss kept all five champions waiting 150 rounds.",
+    "f02-01: Pre-emptive Varg shield (before the first camp hit): shielding +60%, results 30 vs 31/52, margin down. Kept the",
+    "f02-01: \"under fire\" rule; the shield takes the cast a splash reset would use.",
+    "f02-01: Chase dash when only two tiles short (dash + hit on a runner): 54 vs 56/80 vs f00-03. Reverted.",
+    "f02-01: Melee nuke whenever the target is \u22653 away: 43 vs 42/60, inside noise; not adopted (only after a missed chase step).",
+    "f02-01: can_attack() stays false after Vendetta's kill although the engine has the attack available: a reset then throws",
+    "f02-01: error 26 (\"An available attack cannot be reset\"). Hitting directly works."
+   ],
+   "focus": "fuel",
+   "generation": 4,
+   "id": "f04-05",
+   "kind": "child",
+   "nudged": [],
+   "operator": "subsystem",
+   "parents": [
+    "f03-04"
+   ],
+   "reason": null,
+   "rng_key": "21376769:4:5",
+   "sessions": [],
+   "slot": 5,
+   "src_sha256": null,
+   "status": "planned",
+   "task_sha256": null
+  },
+  "f04-06": {
+   "archetype": "early-aggression",
+   "branch": null,
+   "commit": null,
+   "deadline_minutes": 120,
+   "evidence": [],
+   "failed_ideas": [
+    "f02-01: Fuel: host calls cost ~30\u201340 fuel, but every bitboard temporary (&, |, ~, shift) ~600 and a grow(r) ~4k\u00b7r;",
+    "f02-01: local loops ~50 per element. Function-local statics add a guard check per call. Turns above 100k fuel resume",
+    "f02-01: next round with the champion possibly dead: position() then reads (-1,-1) and field reads throw engine error 5.",
+    "f02-01: A route-tracing loop with host field reads cost ~70k fuel; use an exported local copy (unreached = 65535).",
+    "f02-01: Enemy memory (3 rounds) + fight/flee hysteresis: 23\u201324/80 vs 34/80 without. Vision flicker is not the problem.",
+    "f02-01: Unseen (\"unknown\") camp groups blocking the route reset the plug logic every turn: champions stood still.",
+    "f02-01: Ranged champions stalled on range-3 tiles without line of sight: shrink the approach radius when nothing is hit.",
+    "f02-01: Boss raids gated at 2.5 tank-turns: everyone walked into monoliths and never hit them; 8 turns works.",
+    "f02-01: Raid and current-target bonuses on a respawning boss kept all five champions waiting 150 rounds.",
+    "f02-01: Pre-emptive Varg shield (before the first camp hit): shielding +60%, results 30 vs 31/52, margin down. Kept the",
+    "f02-01: \"under fire\" rule; the shield takes the cast a splash reset would use.",
+    "f02-01: Chase dash when only two tiles short (dash + hit on a runner): 54 vs 56/80 vs f00-03. Reverted.",
+    "f02-01: Melee nuke whenever the target is \u22653 away: 43 vs 42/60, inside noise; not adopted (only after a missed chase step).",
+    "f02-01: can_attack() stays false after Vendetta's kill although the engine has the attack available: a reset then throws",
+    "f02-01: error 26 (\"An available attack cannot be reset\"). Hitting directly works."
+   ],
+   "focus": null,
+   "generation": 4,
+   "id": "f04-06",
+   "kind": "immigrant",
+   "nudged": [],
+   "operator": null,
+   "parents": [
+    "starter"
+   ],
+   "reason": null,
+   "rng_key": "21376769:4:6",
+   "sessions": [],
+   "slot": 6,
+   "src_sha256": null,
+   "status": "planned",
+   "task_sha256": null
+  },
+  "f04-07": {
+   "archetype": "vision-ambush",
+   "branch": null,
+   "commit": null,
+   "deadline_minutes": 120,
+   "evidence": [],
+   "failed_ideas": [
+    "f02-01: Fuel: host calls cost ~30\u201340 fuel, but every bitboard temporary (&, |, ~, shift) ~600 and a grow(r) ~4k\u00b7r;",
+    "f02-01: local loops ~50 per element. Function-local statics add a guard check per call. Turns above 100k fuel resume",
+    "f02-01: next round with the champion possibly dead: position() then reads (-1,-1) and field reads throw engine error 5.",
+    "f02-01: A route-tracing loop with host field reads cost ~70k fuel; use an exported local copy (unreached = 65535).",
+    "f02-01: Enemy memory (3 rounds) + fight/flee hysteresis: 23\u201324/80 vs 34/80 without. Vision flicker is not the problem.",
+    "f02-01: Unseen (\"unknown\") camp groups blocking the route reset the plug logic every turn: champions stood still.",
+    "f02-01: Ranged champions stalled on range-3 tiles without line of sight: shrink the approach radius when nothing is hit.",
+    "f02-01: Boss raids gated at 2.5 tank-turns: everyone walked into monoliths and never hit them; 8 turns works.",
+    "f02-01: Raid and current-target bonuses on a respawning boss kept all five champions waiting 150 rounds.",
+    "f02-01: Pre-emptive Varg shield (before the first camp hit): shielding +60%, results 30 vs 31/52, margin down. Kept the",
+    "f02-01: \"under fire\" rule; the shield takes the cast a splash reset would use.",
+    "f02-01: Chase dash when only two tiles short (dash + hit on a runner): 54 vs 56/80 vs f00-03. Reverted.",
+    "f02-01: Melee nuke whenever the target is \u22653 away: 43 vs 42/60, inside noise; not adopted (only after a missed chase step).",
+    "f02-01: can_attack() stays false after Vendetta's kill although the engine has the attack available: a reset then throws",
+    "f02-01: error 26 (\"An available attack cannot be reset\"). Hitting directly works."
+   ],
+   "focus": null,
+   "generation": 4,
+   "id": "f04-07",
+   "kind": "immigrant",
+   "nudged": [],
+   "operator": null,
+   "parents": [
+    "starter"
+   ],
+   "reason": null,
+   "rng_key": "21376769:4:7",
+   "sessions": [],
+   "slot": 7,
+   "src_sha256": null,
+   "status": "planned",
+   "task_sha256": null
   }
  },
- "generation": 3,
+ "generation": 4,
  "generations": {
   "0": {
    "approval": null,
@@ -10406,6 +10812,8 @@
      "strength": -5.241854952529771
     }
    },
+   "selection_done": true,
+   "similar_skipped": [],
    "slots": [
     "f02-01",
     "f03-01",
@@ -10416,18 +10824,45 @@
     "f03-06",
     "f03-07"
    ],
+   "survivors": [
+    "f03-05",
+    "f03-04"
+   ],
    "top": [
     "f03-05",
     "f03-04",
     "f03-03",
     "f03-01"
    ]
+  },
+  "4": {
+   "approval": null,
+   "elites": [
+    "f03-05"
+   ],
+   "env_failed": 0,
+   "jobs": {
+    "A": [],
+    "B": [],
+    "C": []
+   },
+   "slots": [
+    "f03-05",
+    "f04-01",
+    "f04-02",
+    "f04-03",
+    "f04-04",
+    "f04-05",
+    "f04-06",
+    "f04-07"
+   ]
   }
  },
  "hall_of_fame": [
   "f00-03",
   "f01-07",
-  "f02-01"
+  "f02-01",
+  "f03-05"
  ],
  "halted": null,
  "jobs": {
@@ -10851,10 +11286,12 @@
   "2026-10-25T08:33:25Z g03 phase EVAL_B_DONE: results for r03-B",
   "2026-10-25T08:33:40Z g03 r03-B-spot: pushed cf43d426a7 (40 sampled games, 25 shards)",
   "2026-10-25T08:36:05Z g03 r03-B: verified, 1952 rows, spot-check 40 OK",
-  "2026-10-25T08:36:17Z g03 phase SELECTED: final: f03-05, f03-04, f03-03, f03-01, f02-01, f03-02, f01-07, f03-06, f00-03, f03-07, starter"
+  "2026-10-25T08:36:17Z g03 phase SELECTED: final: f03-05, f03-04, f03-03, f03-01, f02-01, f03-02, f01-07, f03-06, f00-03, f03-07, starter",
+  "2026-10-25T08:36:27Z g03 survivors ['f03-05', 'f03-04'], hall of fame ['f00-03', 'f01-07', 'f02-01', 'f03-05']",
+  "2026-10-25T08:36:27Z g04 phase PLANNED: 8 slots"
  ],
  "paused": null,
- "phase": "SELECTED",
+ "phase": "PLANNED",
  "sessions_launched": 29,
  "version": 1
 }
