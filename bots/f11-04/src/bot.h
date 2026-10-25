@@ -104,6 +104,7 @@ class Bot {
     std::vector<int> route_;
     size_t route_i_ = 0;
     bool opening_ = true;
+    std::vector<std::int8_t> route_owner_;  // per group: slot whose opening route holds it, -1 none
     int opening_target(int now);
 
     // Per turn.

@@ -152,11 +152,16 @@ void Bot::initialise() {
     } else {
         home_slot_ = assign_homes(g_, std::max(1, size_));
     }
+    route_owner_.assign(ng, -1);
     if (static_cast<char>(mem[dm::route_magic]) == 'R' && slot_ >= 0 && slot_ < 5) {
-        const int len = std::min(static_cast<int>(mem[dm::route_len + slot_]), dm::kRouteMax);
-        for (int k = 0; k < len; ++k) {
-            const int gi = static_cast<int>(mem[dm::route + slot_ * dm::kRouteMax + k]);
-            if (gi < static_cast<int>(ng)) route_.push_back(gi);
+        for (int s = 0; s < 5; ++s) {
+            const int len = std::min(static_cast<int>(mem[dm::route_len + s]), dm::kRouteMax);
+            for (int k = 0; k < len; ++k) {
+                const int gi = static_cast<int>(mem[dm::route + s * dm::kRouteMax + k]);
+                if (gi >= static_cast<int>(ng)) continue;
+                route_owner_[static_cast<size_t>(gi)] = static_cast<std::int8_t>(s);
+                if (s == slot_) route_.push_back(gi);
+            }
         }
     }
     for (const auto& ab : me.abilities())

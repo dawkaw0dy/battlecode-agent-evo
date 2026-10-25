@@ -184,7 +184,10 @@ std::vector<std::vector<std::uint8_t>> plan_routes(const std::vector<GroupInfo>&
     constexpr float kCapture = 6.0f;     // five capture phases and the step onto the region
     constexpr float kTrip = 8.0f;        // recall and the heal on spawn
     constexpr float kGoldW = 0.35f;
-    constexpr size_t kMaxCand = 80;
+    constexpr std::uint64_t kFieldReserve = 300000;  // fuel kept for the routing below
+    constexpr std::uint64_t kLoopReserve = 40000;    // ... and for writing the plan
+    constexpr size_t kMaxCand = 48;
+    constexpr float kMaxTrips = 3.0f;    // heal trips one solo clear may take
     std::vector<std::vector<std::uint8_t>> routes(static_cast<size_t>(std::max(0, slots)));
     if (slots <= 0) return routes;
     const auto picks = pick_order(slots);
@@ -207,7 +210,7 @@ std::vector<std::vector<std::uint8_t>> plan_routes(const std::vector<GroupInfo>&
         cambc::distance_field f;
         cambc::bitboard seen, roots;
         for (size_t a = 0; a < nc; ++a) {
-            if (cambc::fuel_remaining() < 350000) break;
+            if (cambc::fuel_remaining() < kFieldReserve) break;
             roots.clear();
             for (auto t : groups[cand[a]].tiles) roots.set(t);
             f.compute(walk_walls(), roots, seen);
@@ -234,6 +237,7 @@ std::vector<std::vector<std::uint8_t>> plan_routes(const std::vector<GroupInfo>&
     std::vector<Walker> w(static_cast<size_t>(slots));
     std::vector<char> used(nc, 0);
     for (int guard = 0; guard < 400; ++guard) {
+        if (cambc::fuel_remaining() < kLoopReserve) break;
         int s = -1;
         for (int k = 0; k < slots; ++k)
             if (!w[k].done && (s < 0 || w[k].t < w[s].t)) s = k;
@@ -248,24 +252,29 @@ std::vector<std::vector<std::uint8_t>> plan_routes(const std::vector<GroupInfo>&
             const auto& g = groups[cand[j]];
             const float dps = st.dps * (st.splash && g.tiles.size() > 1 ? 1.4f : 1.0f);
             const float dmg = (st.range > 1 ? cost3[j] : cost1[j]) / dps;
-            if (dmg > st.hp * 0.75f) continue;  // a raid, not a solo clear
+            const float bar = st.hp * 0.75f;  // camp damage one walk out absorbs
             float extra = 0, travel;
-            float after = me.dmg + dmg;
-            if (after > st.hp * 0.7f) {
+            float left = bar - me.dmg;
+            if (left < std::min(dmg, bar) * 0.5f) {
                 // Heal on the way: recall (or walk when it is close), then walk out again.
                 extra = (me.cur < 0 ? 0.0f : std::min<float>(static_cast<float>(groups[cand[me.cur]].d_ally), kTrip)) + 2.0f;
                 travel = static_cast<float>(g.d_ally);
-                after = dmg;
+                left = bar;
             } else {
                 travel = static_cast<float>(me.cur < 0 ? g.d_ally : d(static_cast<size_t>(me.cur), j));
             }
             if (travel >= kFar) continue;
+            // Clears longer than one health bar: trips home in the middle (camps do not heal).
+            const float trips = dmg <= left ? 0.0f : std::ceil((dmg - left) / bar);
+            if (trips > kMaxTrips) continue;  // a raid, not a solo clear
+            const float after = trips > 0 ? dmg - left - (trips - 1) * bar : me.dmg + dmg;
+            extra += trips * (std::min<float>(static_cast<float>(g.d_ally), kTrip) + 2.0f + static_cast<float>(g.d_ally));
             travel = std::max(0.0f, travel - static_cast<float>(st.range));
             const float clear = g.hp / dps;
             const float total = extra + travel + clear + kCapture;
             float f = 1.0f;
             // The enemy reaches it first: it may be gone (or contested) when we arrive.
-            if (me.t + extra + travel > static_cast<float>(g.d_enemy) + 6.0f) f = 0.6f;
+            if (me.t + travel > static_cast<float>(g.d_enemy) + 6.0f) f = 0.6f;
             const float rate = (g.gems + kGoldW * g.gold) * f / total;
             if (rate > best_rate) { best_rate = rate; best = static_cast<int>(j); best_total = total; best_dmg = after; }
         }

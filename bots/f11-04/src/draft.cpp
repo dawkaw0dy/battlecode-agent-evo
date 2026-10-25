@@ -11,6 +11,24 @@ void play_draft() {
     const int size = static_cast<int>(cambc::draft::team_size());
     const auto picks = pick_order(size);
     static bool written = false;
+    // Pick before planning: a draft turn that runs out of fuel would leave the pick to chance.
+    auto pick_next = [&]() {
+        const auto chosen = cambc::draft::current_draft(team::ally);
+        for (auto p : picks)
+            if (std::find(chosen.begin(), chosen.end(), p) == chosen.end()) {
+                cambc::draft::pick(p);
+                return;
+            }
+        for (int i = 0; i <= static_cast<int>(cambc::champion_draft::heart_of_ruin); ++i) {
+            const auto p = static_cast<cambc::champion_draft>(i);
+            if (p == cambc::champion_draft::cassi_and_issac) continue;
+            if (std::find(chosen.begin(), chosen.end(), p) == chosen.end()) {
+                cambc::draft::pick(p);
+                return;
+            }
+        }
+    };
+    pick_next();
     if (!written) {
         written = true;
         const auto groups = analyse_map();
@@ -29,19 +47,5 @@ void play_draft() {
             for (size_t k = 0; k < len; ++k) mem[dm::route + s * dm::kRouteMax + k] = static_cast<std::byte>(routes[s][k]);
         }
         cambc::draft_memory = std::span<const std::byte>{mem.data(), mem.size()};
-    }
-    const auto chosen = cambc::draft::current_draft(team::ally);
-    for (auto p : picks)
-        if (std::find(chosen.begin(), chosen.end(), p) == chosen.end()) {
-            cambc::draft::pick(p);
-            return;
-        }
-    for (int i = 0; i <= static_cast<int>(cambc::champion_draft::heart_of_ruin); ++i) {
-        const auto p = static_cast<cambc::champion_draft>(i);
-        if (p == cambc::champion_draft::cassi_and_issac) continue;
-        if (std::find(chosen.begin(), chosen.end(), p) == chosen.end()) {
-            cambc::draft::pick(p);
-            return;
-        }
     }
 }

@@ -48,7 +48,13 @@ constexpr int kHuntPad = 2;         // engaged, but nobody within our range + th
 constexpr float kHelpHp = 0.6f;     // answer an ally's sighting above this health fraction
 constexpr bool kLocks = true;       // carry an altar lock: drop it on enemy tributes and on altars we pass
 constexpr bool kLockRunner = false;  // the last pick carries locks to far altars (f11-04: off, it cost Varg ~100 opening turns)
-constexpr int kLockDetour = 8;      // walk this far (Chebyshev) out of our way to lock an altar
+constexpr int kLockDetour = 8;
+// Opening (f11-04): the draft's routes guide the chooser rather than dictate the target.
+constexpr bool kForceRoute = false;   // true: walk the route as planned, the chooser takes over after it
+constexpr float kRouteNext = 1.6f;    // score factor of the next group on our own route
+constexpr float kRouteMine = 1.2f;    // ... of later groups on it
+constexpr float kRouteOther = 0.7f;   // ... of groups planned for an ally, while the opening lasts
+constexpr float kOpenRaid = 0.5f;     // raid scores while our opening route lasts      // walk this far (Chebyshev) out of our way to lock an altar
 
 namespace {
 // Debug: turns spent per activity, printed every 200 rounds.
@@ -575,6 +581,11 @@ int Bot::choose(int& wait_out) {
         const bool waiting = k.state == Known::respawning && wait > 0;
         if (i == target_ && !waiting) f *= 1.25f;
         if (s.ok && s.age <= 24 && cheb(s.where, g.center) <= 7) f *= 0.5f;
+        if (opening_ && route_owner_.size() == g_.size()) {
+            if (route_i_ < route_.size() && route_[route_i_] == i) f *= kRouteNext;
+            else if (route_owner_[static_cast<size_t>(i)] == slot_) f *= kRouteMine;
+            else if (route_owner_[static_cast<size_t>(i)] >= 0) f *= kRouteOther;
+        }
         int claimers = 0;
         for (int o = 0; o < 5; ++o)
             if (o != slot_ && claims[static_cast<size_t>(o)] == i + 1) ++claimers;
@@ -636,7 +647,8 @@ int Bot::choose(int& wait_out) {
                     const float gather = n > claimers + 1 ? kGatherTurns : 0.0f;
                     // Join a raid that is forming rather than start a second one.
                     const float join = waiting ? 1.0f : 1.0f + 0.5f * claimers;
-                    const float sc = value / n * f * join / (base_t + bank / n + gather + turns + trips * trip);
+                    const float sc = value / n * f * join / (base_t + bank / n + gather + turns + trips * trip)
+                        * (opening_ ? kOpenRaid : 1.0f);
                     if (sc > plan.score) { plan.score = sc; plan.n = n; plan.rally = true; }
                 }
             }
@@ -1370,7 +1382,7 @@ void Bot::turn() {
 
     const int now = static_cast<int>(cambc::round_number());
     const int planned = opening_ ? opening_target(now) : -1;
-    if (planned >= 0) {
+    if (planned >= 0 && kForceRoute) {
         if (planned != target_) { stuck_g_ = planned; stuck_since_ = now; best_eta_ = kFar; write_claim(planned); }
         target_ = planned;
         target_wait_ = 0;
