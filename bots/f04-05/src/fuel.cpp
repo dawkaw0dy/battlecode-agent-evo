@@ -37,12 +37,14 @@ Bits g_walls_local, g_hard_local;
 }  // namespace
 
 void andnot_into(const cambc::bitboard& a, const cambc::bitboard& b, cambc::bitboard& out) {
-    auto& t = scratch().tmp;
-    out.clear();
-    out |= a;
+    auto& t = scratch().tmp;  // a & b, taken before out (which may be a or b) is written
     t.clear();
     t |= a;
     t &= b;
+    if (&out != &a) {
+        out.clear();
+        out |= a;
+    }
     out ^= t;
 }
 
@@ -166,7 +168,9 @@ void Bot::initialise() {
     // Tiles from which an altar can take a tribute, written straight into the board.
     altar_spots_.clear();
     const int ar = cambc::constants::submit_gems_range;
-    for (auto a : cambc::map::altars().positions())
+    altars_ = cambc::map::altars().positions();
+    enemy_lock_.assign(altars_.size(), -1);
+    for (auto a : altars_)
         for (int dy = -ar; dy <= ar; ++dy)
             for (int dx = -ar; dx <= ar; ++dx) {
                 const vec2 t{a.x + dx, a.y + dy};

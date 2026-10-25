@@ -44,5 +44,5 @@ const Bits& walls_local();  // terrain we cannot walk on, enemy spawn included
 const Bits& hard_local();   // what a dash cannot cross
 bool free_tile(vec2 p);     // walkable and not occupied as far as we can see (our own tile counts as free)
 
-// out = a & ~b without temporaries.
+// out = a & ~b without temporaries; out may be a or b.
 void andnot_into(const cambc::bitboard& a, const cambc::bitboard& b, cambc::bitboard& out);

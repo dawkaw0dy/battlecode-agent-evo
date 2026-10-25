@@ -42,6 +42,8 @@ class Bot {
     Dist home_, altar_;
     int home_altar_ = kFar;             // walk from our spawn to the nearest altar
     cambc::bitboard altar_spots_;
+    std::vector<vec2> altars_;          // altar tiles, read once
+    std::vector<int> enemy_lock_;       // per altar: round we last saw an enemy lock on it, -1 if seen free since
 
     // Memory.
     std::vector<Known> k_;

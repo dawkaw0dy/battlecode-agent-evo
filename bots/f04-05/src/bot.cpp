@@ -1383,32 +1383,52 @@ bool Bot::enemies() {
 
 // ---------------------------------------------------------------- gems
 
+// An enemy altar lock blocks our tributes until five hits break it, and attack() refuses locks: a tribute at
+// the locked altar is what hits it. Locks are remembered per altar while out of sight.
 bool Bot::tribute() {
     auto& me = cambc::self();
     const int gems = static_cast<int>(me.gem_count());
     if (gems <= 0) return false;
+    const int now = static_cast<int>(cambc::round_number());
     const auto locks = cambc::vision::altar_lock_tiles(team::enemy);
-    for (auto a : cambc::map::altars().positions()) {
-        if (cheb(a, pos_) > cambc::constants::submit_gems_range || locks.is_set(a)) continue;
+    const auto& v = view();
+    for (size_t i = 0; i < altars_.size(); ++i)
+        if (v.lvis.at(altars_[i])) enemy_lock_[i] = bit(locks, altars_[i]) ? now : -1;
+    auto locked = [&](size_t i) { return enemy_lock_[i] >= 0 && now - enemy_lock_[i] < 200; };
+    const int range = cambc::constants::submit_gems_range;
+    for (size_t i = 0; i < altars_.size(); ++i) {
+        const vec2 a = altars_[i];
+        if (cheb(a, pos_) > range || bit(locks, a)) continue;
         const float turns = std::ceil(gems / 10.0f) + 1;
         if (me.health() > incoming_ * taken_ * turns + 40) {
             if (live()) try { me.submit_gems(a); } catch (const cambc::error& e) { warn("submit", e); }
             return true;
         }
     }
-    if (!locks.is_empty() && me.can_attack() && live())
-        for (auto a : locks.positions())
-            if (cheb(a, pos_) <= std::min(cambc::constants::submit_gems_range, me.attack_range())) {
-                try {
-                    me.attack(cambc::vision::altar_lock_at(a));
-                    attacked_ = true;
-                    return true;
-                } catch (const cambc::error& e) { warn("lock", e); }
-                break;
-            }
+    for (size_t i = 0; i < altars_.size(); ++i) {
+        const vec2 a = altars_[i];
+        if (cheb(a, pos_) > range || !bit(locks, a)) continue;
+        if (!me.can_attack() || !live()) return true;  // wait here for the next hit
+        try {
+            me.submit_gems(a);
+            attacked_ = true;
+        } catch (const cambc::error& e) { warn("break lock", e); return false; }
+        // A reset gives a second hit (only right after our own attack: error 26 otherwise).
+        if (!cast_ && !me.can_attack() && me.can_cast() && fuel(8000) && live())
+            for (const auto& ab : me.abilities())
+                if (ab.is_attack_reset() && ab.is_ready()) {
+                    try {
+                        ab.use();
+                        cast_ = true;
+                        if (me.can_attack()) me.submit_gems(a);
+                    } catch (const cambc::error& e) { warn("break lock reset", e); }
+                    break;
+                }
+        invalidate();
+        return true;
+    }
     const int d = altar_.at(pos_);
     if (d >= kFar) return false;
-    const int now = static_cast<int>(cambc::round_number());
     const int left = static_cast<int>(cambc::constants::max_rounds) - now;
     const auto s = read_sighting();
     const bool danger = (s.ok && s.age <= 30 && cheb(s.where, pos_) <= 16) || now - last_enemy_seen_ <= 20;
@@ -1424,16 +1444,41 @@ bool Bot::tribute() {
         try { me.recall(); } catch (const cambc::error& e) { warn("bank recall", e); }
         return true;
     }
-    auto goal = altar_spots_;
-    for (auto a : locks.positions()) {
+    auto spots_of = [&](vec2 a) {
         auto one = empty_board();
         one.set(a);
-        goal &= ~grow(one, cambc::constants::submit_gems_range);
+        auto g = grow(one, range);
+        andnot_into(g, walk_walls(), g);
+        return g;
+    };
+    auto goal = altar_spots_;
+    int near = -1, near_d = 1 << 20;
+    for (size_t i = 0; i < altars_.size(); ++i) {
+        if (!locked(i)) continue;
+        const int dd = cheb(altars_[i], pos_);
+        // A lock close by: break it rather than walk away and back as it drops out of sight.
+        if (dd <= 4) {
+            auto hit = spots_of(altars_[i]);
+            andnot_into(hit, camp_block_, hit);
+            if (!hit.is_empty()) return go(hit, false);
+        }
+        if (dd < near_d) { near_d = dd; near = static_cast<int>(i); }
+        andnot_into(goal, spots_of(altars_[i]), goal);
     }
-    if ((goal & ~camp_block_).is_empty()) {
+    auto open = goal;
+    andnot_into(goal, camp_block_, open);
+    if (open.is_empty() && near >= 0) {
+        // Every altar we can use is locked: break the nearest lock.
+        auto hit = spots_of(altars_[static_cast<size_t>(near)]);
+        andnot_into(hit, camp_block_, hit);
+        if (!hit.is_empty()) return go(hit, true);
+    }
+    if (open.is_empty()) {
         // Every spot is under a living camp (a boss beside the only altar): clear it first.
         if (now < altar_wait_until_) return false;
-        for (auto t : (goal & camp_block_).positions()) {
+        auto under = goal;
+        under &= camp_block_;
+        for (auto t : under.positions()) {
             const int gi = group_at_[static_cast<size_t>(tidx(t))];
             if (gi >= 0) {
                 if (plug_ != gi) { plug_ = gi; plug_since_ = now; }
@@ -1443,7 +1488,7 @@ bool Bot::tribute() {
         }
         return false;
     }
-    return go(goal & ~camp_block_, true);
+    return go(open, true);
 }
 
 // ---------------------------------------------------------------- turn
