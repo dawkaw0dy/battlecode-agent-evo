@@ -142,22 +142,32 @@ class Bot {
     bool break_lock(vec2 a);
     bool hold_tile();
     bool contest(vec2 p, int left, float hp, const std::vector<vec2>& free_foes);
-    // Defense subsystem (defense.cpp).
+    // Defense subsystem (defense.cpp): called from turn() and enemies().
     bool guard_channel();
     bool recover();
     float bag_need(int gems) const;
     void sense_ambush();
     bool evade();
-    bool ward_bushes(int min_n);
     void scout();
+    // ... its own state and helpers.
+    struct Foe { std::uint32_t id = 0; int seen = -100; Fighter f; };
+    std::vector<Foe> foes_;             // enemies we saw lately (visible ones refreshed every turn)
+    int foes_round_ = -1;
     float prev_hp_ = -1;                // health at the start of our last turn ...
     int prev_round_ = -10;              // ... and its round
-    int ambush_until_ = -100;           // hit by someone we cannot see: evade until then
-    float hidden_hit_ = 0;              // the last such hit
+    int ambush_until_ = -100;           // a recall would be broken before then (fuel.cpp walks home instead)
+    int hidden_until_ = -100;           // hit by someone we cannot see: until then
+    float hidden_hit_ = 0;              // ... the last such hit
+    int flee_round_ = -100;             // last round retreat() ran
     Bits bush_;
-    bool bank_under_fire(const std::vector<Fighter>& theirs);
+    void track_foes();
+    std::vector<Fighter> visible_foes(int radius) const;
+    int foe_eta(vec2 t) const;
+    bool recall_safe(int ticks) const;
+    bool stun_within(vec2 t, int turns, const std::vector<Fighter>& theirs) const;
     float channel_damage(vec2 t, int turns, const std::vector<Fighter>& theirs) const;
-    std::vector<Fighter> read_foes(int radius) const;
+    bool ward_bushes(int min_n);
+    bool bank_under_fire(const std::vector<Fighter>& theirs);
     int choose(int& wait);
     void farm(int group);
     bool hit_group(int group);

@@ -1,22 +1,33 @@
-// Defense: the score we have tributed and the gems we carry (rewritten in f09-01 behind the parent's calls:
-// retreat(), tribute(), deny()/contest(), plus guard_channel(), evade()/scout(), bag_need() from turn()).
+// Defense: our tributed score and the gems we carry (rewritten in f10-02 behind the same calls: retreat(),
+// tribute(), deny(), guard_channel(), sense_ambush()/scout()/evade(), bag_need(), recover()).
 //
-// - Ambushes: enemies standing in bushes see and hit us while we cannot see them (14% of the parent's deaths
-//   vs f08-05: it recalled in place, the next hit broke the recall, and it stood there until dead). Damage
-//   between our turns that no visible enemy and no camp in reach explains marks an ambush (sense_ambush()):
-//   our ward goes into the unseen bush within reach (a hidden occupant is revealed even when the placement
-//   fails) so the fight model sees the shooter; failing that, no recall while it lasts, and a hurt champion
-//   steps away from unseen bushes towards home (evade()). While enemies are about, our ward also goes into
-//   unseen bushes beside us before they shoot (scout()).
-// - Carried gems change hands on death (the parent lost ~130 a game that way): a carried bag raises the fight
-//   value needed to engage (bag_need()), a fleeing carrier runs for the nearest altar when it is nearer than
-//   home and banks under fire beside it when it outlives the channel (a tribute survives damage, not death
-//   or a stun), no tribute is started that we would die in, and a running one we would die in is cancelled.
-// - One enemy model (read_fighter()): for a tile, the first enemy turn on which each enemy can hit it if it
-//   chases (hit_turn()), and the damage it pours in from then on (channel_damage()).
-// - retreat() keeps the parent's tile score and recall rule (the margin score and chase-based recall timing
-//   below measured no better); a champion boxed in where it stands hits back instead of idling.
-// - tribute(): when and where the bag is banked; deny()/contest(): enemy tributes we see.
+// The rules this is built on:
+// - A recall takes 5 of our turn ends and any damage breaks it; a tribute takes ceil(gems / 10) and only a
+//   stun, a death or a new altar lock breaks it. Between two of our turns every enemy acts once, so a
+//   channel with r ticks left is exposed to r enemy turns.
+// - A melee enemy walks and hits in one turn (reach range + 1, + 2 with a ready dash); a ranged one walks or
+//   shoots (reach = range, + 2 with a ready dash), its damage spells mostly exclude walking (reach 4).
+//   So stepping out of a ranged enemy's range always stops its fire, while a same-speed melee chaser
+//   beside us hits every turn of the way home: running from it only gives away our own hits.
+// - Enemies cannot enter our spawn and it heals us fully every turn end; a death hands the bag to the killer.
+//
+// The parts:
+// - Foe memory (track_foes()): every enemy we saw in the last kMemory rounds, as the fight model reads it.
+//   A foe out of sight may have walked one tile a round towards us. foe_eta() is the first enemy turn on
+//   which any of them can hit a tile; a recall is started only when it is beyond the recall, and a running
+//   recall stops only when a visible foe arrives before it lands. ambush_until_ tells fuel.cpp to walk home
+//   instead of recalling while a recall would be broken.
+// - Hidden shooters (sense_ambush()/evade()/scout()): damage that neither a visible enemy nor a camp in reach
+//   explains comes from a bush: our ward goes into it so the fight model sees the shooter, no recall while
+//   it lasts, and a hurt champion walks away from unseen bushes. While enemies are about, our ward also
+//   goes into unseen bushes beside us first.
+// - Retreat: bank under fire beside an open altar when we outlive the channel, hold our spawn, recall when
+//   nobody can break it, swing at an adjacent enemy on the way (melee), shoot when nobody can hit us here
+//   (ranged), shoot back when an adjacent melee chaser hits us whatever we do (ranged), else the step (or
+//   dash) with the least fire on it towards home (towards the nearest altar with a bag that is nearer).
+// - Banking (tribute()): when (a full bag, a short walk, enemies about, the clock, the race), where (the nearest
+//   open altar by road; through an enemy lock only when close or every altar is locked) and whether to start
+//   (we outlive the channel and no stun reaches us in it). Enemy tributes we see: deny()/contest().
 #include <cambc.h>
 #include "bot.h"
 #include "fuel.h"
@@ -24,7 +35,6 @@
 #include <array>
 #include <cmath>
 #include <cstdlib>
-#include <iostream>
 #include <optional>
 #include <string>
 #include <variant>
@@ -32,40 +42,34 @@
 void dlog(const std::string& x);
 
 namespace {
-constexpr bool kTraceBank = false;
-constexpr bool kTraceDef = false;     // retreat actions into the death trace (bot.cpp)
-constexpr int kLockRange = 2;          // altar lock placement range
-constexpr int kRaceGap = 120;          // this close to 1000 tributed, every bag is banked promptly
-constexpr bool kContest = true;        // go for channelling enemies we can kill before the channel ends
-constexpr bool kFreeShots = true;      // retreating ranged: shoot when nobody can hit us here next turn
-constexpr float kMarginW = 1.5f;       // retreat: score per tile of distance beyond the chasers' reach (≤ 3)
-constexpr float kDeathTile = 1000.0f;  // retreat: a tile where the next enemy turn kills us
-constexpr int kRecallSafe = 5;         // recall when no enemy can hit us within this many of its turns
-constexpr int kRecallWalk = 6;         // ... and home is further than this walk
-constexpr bool kBankUnderFire = true;  // tribute mid-retreat beside an altar when we outlive the channel
-constexpr bool kGuardTribute = true;   // cancel a tribute we would die in
-constexpr bool kSafeStart = true;      // do not start a tribute we would die in
-constexpr float kRecoverHp = 0.45f;    // enemies about: go home below this health fraction
-constexpr int kRecoverRounds = 12;     // ... "about": seen by us this recently
-constexpr bool kRecover = false;       // recover() on
-constexpr bool kNewScore = false;      // retreat tile score with margins and death tiles (else the parent's)
-constexpr bool kStayStrike = true;     // boxed in: hit back
-constexpr float kBagNeed = 3.0f;       // fight value needed to engage, per carried gem
-constexpr bool kEvade = true;          // hit by an unseen enemy: walk away from the bushes it hides in
-constexpr int kAmbushRounds = 4;       // ... for this long after the last such hit
-constexpr bool kWardReveal = true;     // ... and ward the bush it shoots from
-constexpr bool kScout = true;          // ward unseen bushes beside us while enemies are about
-constexpr int kScoutRounds = 40;       // ... "about": seen by us, or reported near us, this recently
-constexpr int kScoutMin = 3;           // ... a bush of at least this many unseen tiles around the ward
-constexpr int kScoutKeep = 5;          // ... unless our ward is already this close
-constexpr int kFleeAltarGems = 10;     // fleeing with this many gems: run for the nearest altar when nearer than home
-constexpr bool kChaseRecall = false;   // recall timing from hit_turn() (else: everyone at least kRecallDist away)
-constexpr int kRecallDist = 7;         // retreat: recall once every enemy is at least this far
-constexpr int kCancelDist = 5;         // ... and a running recall stops when an enemy comes this close
+constexpr int kLockRange = 2;           // altar lock placement range
+constexpr int kRaceGap = 120;           // this close to 1000 tributed, every bag is banked promptly
+constexpr int kMemory = 3;              // rounds an enemy out of sight is still assumed to chase us
+constexpr int kRecallTicks = 5;         // our turn ends a recall takes (no Home emblem in our builds)
+constexpr int kRecallWalk = 6;          // retreat: home closer than this is walked
+constexpr bool kMemoryGate = true;      // remembered foes block recalls too (else visible ones only)
+constexpr bool kEtaRecall = false;      // recall gates from foe_eta() (else: every visible foe 7+ away, cancel at 5)
+constexpr int kRecallDist = 7;
+constexpr int kCancelDist = 5;
+constexpr bool kCaughtShoot = true;     // ranged, an adjacent melee chaser: shoot back instead of a futile step
+constexpr int kCaughtHome = 3;          // ... unless home is this close
+constexpr bool kStunSafeStart = true;   // no tribute of 2+ ticks while a stun can reach us in it
+constexpr bool kContest = true;         // go for channelling enemies we can kill before the channel ends
+constexpr float kBagNeed = 3.0f;        // fight value needed to engage, per carried gem
+constexpr int kFleeAltarGems = 10;      // fleeing with this many gems: run for the nearest altar when nearer than home
+constexpr int kAmbushRounds = 4;        // hidden shooter: evade this long after its last hit
+constexpr int kScoutRounds = 40;        // ward unseen bushes while enemies were seen this recently ...
+constexpr int kScoutMin = 3;            // ... a bush of at least this many unseen tiles around the ward
+constexpr int kScoutKeep = 5;           // ... unless our ward is already this close
+constexpr bool kRecover = false;        // recover(): hurt with enemies about, go home (measured no better in f09-01)
+constexpr float kRecoverHp = 0.45f;
+constexpr int kRecoverRounds = 12;
 
 int round_now() { return static_cast<int>(cambc::round_number()); }
 
-float ability_reach(const cambc::ability& ab) {
+int channel_ticks(int gems) { return std::max(1, (gems + 9) / 10); }
+
+float spell_range(const cambc::ability& ab) {
     float r = 4;
     try {
         const auto& info = ab.info();
@@ -83,50 +87,97 @@ bool use_lock(vec2 a) {
     return false;
 }
 
-int channel_ticks(int gems) { return std::max(1, (gems + 9) / 10); }
-
-// First enemy turn (1, 2, ...) on which e can damage a champion standing still at t, if it chases.
+// First enemy turn (1, 2, ...) on which e, chasing, can damage a champion standing at t.
 int hit_turn(const Fighter& e, vec2 t) {
     const int d = cheb(e.pos, t);
     const int dash = e.dasher ? 2 : 0;
     int n;
     if (!e.ranged) {
-        n = std::max(1, d - e.range - dash);
+        n = std::max(1, d - e.range - dash);                    // a step and a hit every turn
     } else {
-        const int steps = std::max(0, d - e.range - dash);
-        n = d <= e.range ? 1 : steps + 1;  // walking takes the turn; a dash and a shot may share one
+        n = d <= e.range + dash ? 1 : d - e.range - dash + 1;  // a walk takes the turn; a dash and a shot share one
     }
-    if (e.spell_reach > 0) {
-        const int steps = std::max(0, d - e.spell_reach);
-        n = std::min(n, steps == 0 ? 1 : steps + 1);  // spells mostly exclude walking
-    }
+    if (e.spell_reach > 0) n = std::min(n, d <= e.spell_reach ? 1 : d - e.spell_reach + 1);
     return n + (e.stunned ? 1 : 0);
 }
 
-// Tiles beyond e's reach at t next turn (negative: inside it).
-int reach_margin(const Fighter& e, vec2 t) {
-    const int reach = e.ranged ? std::max(e.range, e.spell_reach)
-                               : std::max(e.range + 1 + (e.dasher ? 2 : 0), e.spell_reach);
-    return cheb(e.pos, t) - reach;
+// e hits us next turn wherever we step (melee beside us, or a ready dash away).
+bool inescapable(const Fighter& e, vec2 t) {
+    if (e.stunned || e.ranged) return false;
+    return cheb(e.pos, t) <= e.range + (e.dasher ? 2 : 0);
 }
 }  // namespace
 
-// ---------------------------------------------------------------- the enemy model
+// ---------------------------------------------------------------- foe memory
 
-std::vector<Fighter> Bot::read_foes(int radius) const {
-    std::vector<Fighter> out;
+void Bot::track_foes() {
+    const int now = round_now();
+    if (foes_round_ == now) return;
+    foes_round_ = now;
+    std::erase_if(foes_, [&](const Foe& f) { return now - f.seen > kMemory; });
     const auto& v = view();
-    if (v.foes.is_empty()) return out;
-    const auto& enemy_spawn = cambc::map::spawn_region(team::enemy);
-    for (auto p : v.foes.positions()) {
-        if (cheb(p, pos_) > radius || enemy_spawn.is_set(p)) continue;
-        try {
-            Fighter f;
-            if (read_fighter(cambc::vision::champion_at(p), p, f)) out.push_back(f);
-        } catch (const std::exception&) {}
-        if (out.size() >= 8) break;
+    if (!v.foes.is_empty()) {
+        const auto& enemy_spawn = cambc::map::spawn_region(team::enemy);
+        for (auto p : v.foes.positions()) {
+            if (cheb(p, pos_) > 12 || enemy_spawn.is_set(p) || !fuel(15000)) continue;
+            try {
+                const auto c = cambc::vision::champion_at(p);
+                Fighter f;
+                if (!read_fighter(c, p, f)) continue;
+                const auto id = static_cast<std::uint32_t>(static_cast<cambc::handle_champion_t>(c));
+                Foe* slot = nullptr;
+                for (auto& x : foes_)
+                    if (x.id == id) slot = &x;
+                if (!slot) {
+                    if (foes_.size() >= 10) continue;
+                    foes_.push_back(Foe{});
+                    slot = &foes_.back();
+                }
+                slot->id = id;
+                slot->seen = now;
+                slot->f = f;
+            } catch (const std::exception&) {}
+        }
     }
+    // fuel.cpp walks home instead of recalling while a recall would be broken.
+    if (kEtaRecall && !recall_safe(kRecallTicks)) ambush_until_ = std::max(ambush_until_, now + 1);
+}
+
+std::vector<Fighter> Bot::visible_foes(int radius) const {
+    std::vector<Fighter> out;
+    const int now = round_now();
+    for (const auto& x : foes_)
+        if (x.seen == now && cheb(x.f.pos, pos_) <= radius) out.push_back(x.f);
     return out;
+}
+
+// First enemy turn on which a foe we know of can hit t (99: none). A foe out of sight for k rounds may have
+// come k tiles closer.
+int Bot::foe_eta(vec2 t) const {
+    const int now = round_now();
+    int best = 99;
+    for (const auto& x : foes_) {
+        const int age = now - x.seen;
+        if (age > 0 && !kMemoryGate) continue;
+        best = std::min(best, std::max(1, hit_turn(x.f, t) - age));
+    }
+    return best;
+}
+
+bool Bot::recall_safe(int ticks) const {
+    if (round_now() < hidden_until_) return false;
+    if (!kEtaRecall) {
+        for (const auto& x : foes_)
+            if (x.seen == round_now() && cheb(x.f.pos, pos_) < kRecallDist) return false;
+        return true;
+    }
+    return foe_eta(pos_) > ticks;
+}
+
+bool Bot::stun_within(vec2 t, int turns, const std::vector<Fighter>& theirs) const {
+    for (const auto& e : theirs)
+        if (e.stun && hit_turn(e, t) <= turns) return true;
+    return false;
 }
 
 // Damage we take standing at t for the next `turns` enemy turns (they chase; camp fire included).
@@ -142,49 +193,45 @@ float Bot::channel_damage(vec2 t, int turns, const std::vector<Fighter>& theirs)
 
 // ---------------------------------------------------------------- our channels
 
-// Recall or tribute in progress (turn start): cancel it when an enemy will break it or kill us in it.
-// True when the channel goes on.
+// Recall or tribute in progress (turn start): stop it when it will not land. True when it goes on.
 bool Bot::guard_channel() {
     auto& me = cambc::self();
-    const bool recalling = me.is_recalling();
+    track_foes();
     int left = 1;
     try { left = std::max(1, static_cast<int>(me.remaining_channel_time())); } catch (const cambc::error&) {}
-    const auto theirs = read_foes(10);
+    const auto theirs = visible_foes(12);
     if (theirs.empty()) return true;
-    if (recalling) {
-        // Damage cancels a recall anyway: stop now and move while there is time.
+    if (me.is_recalling()) {
+        // The first hit breaks it: stop now and walk while that hit is still to come.
         bool broken = false;
         for (const auto& e : theirs)
-            if (kChaseRecall ? hit_turn(e, pos_) <= left : cheb(e.pos, pos_) <= kCancelDist) broken = true;
+            if (kEtaRecall ? hit_turn(e, pos_) <= left : cheb(e.pos, pos_) <= kCancelDist) broken = true;
         if (!broken) return true;
         try { me.cancel_recall(); } catch (const cambc::error& e) { warn("cancel recall", e); return true; }
         invalidate();
         return false;
     }
     // A tribute survives damage, not a death: give it up only when we die before it lands.
-    if (!kGuardTribute) return true;
     if (channel_damage(pos_, left, theirs) < me.health()) return true;
     try { me.cancel_submit_gems(); } catch (const cambc::error& e) { warn("cancel tribute", e); return true; }
     invalidate();
     return false;
 }
 
-// Retreating with gems beside an open altar: bank them when we outlive the channel (a stun would break it).
+// Retreating with gems beside an open altar: bank them when we outlive the channel and no stun breaks it.
 bool Bot::bank_under_fire(const std::vector<Fighter>& theirs) {
-    if (!kBankUnderFire || !eg_ready_ || moved_ || !live()) return false;
+    if (!eg_ready_ || moved_ || !live()) return false;
     auto& me = cambc::self();
     const int gems = static_cast<int>(me.gem_count());
     if (gems <= 0) return false;
     const int range = cambc::constants::submit_gems_range;
     const auto locks = cambc::vision::altar_lock_tiles(team::enemy);
+    const int k = channel_ticks(gems);
     for (const auto& A : alt_) {
         if (cheb(A.at, pos_) > range || bit(locks, A.at)) continue;
-        const int k = channel_ticks(gems);
-        for (const auto& e : theirs)
-            if (e.stun && hit_turn(e, pos_) <= k) return false;
+        if (stun_within(pos_, k, theirs)) return false;
         if (channel_damage(pos_, k, theirs) >= me.health() * 0.9f) return false;
         try { me.submit_gems(A.at); } catch (const cambc::error& e) { warn("submit under fire", e); return false; }
-        if (kTraceDef) dlog("  bank under fire");
         invalidate();
         return true;
     }
@@ -194,8 +241,7 @@ bool Bot::bank_under_fire(const std::vector<Fighter>& theirs) {
 // Hurt while enemies are about: go home now rather than farm into them.
 bool Bot::recover() {
     auto& me = cambc::self();
-    const int now = round_now();
-    if (!kRecover || now - last_enemy_seen_ > kRecoverRounds) return false;
+    if (!kRecover || round_now() - last_enemy_seen_ > kRecoverRounds) return false;
     if (me.health() >= me.max_health() * kRecoverHp || incoming_ > 0) return false;
     return recall_or_walk(4);
 }
@@ -203,11 +249,12 @@ bool Bot::recover() {
 // A fight we would take empty-handed is not worth a bag: the killer banks it.
 float Bot::bag_need(int gems) const { return kBagNeed * static_cast<float>(gems); }
 
-// ---------------------------------------------------------------- ambushes
+// ---------------------------------------------------------------- hidden shooters
 
-// Damage between our turns that neither a visible enemy nor camp fire explains: an enemy in a bush (it
-// sees out, we do not see in). A recall started there is broken by the next hit, turn after turn.
+// First defense call of a normal turn: refresh the foe memory, then look for damage between our turns that
+// neither a visible enemy nor camp fire explains (an enemy in a bush sees out, we do not see in).
 void Bot::sense_ambush() {
+    track_foes();
     auto& me = cambc::self();
     const int now = round_now();
     const float hp = me.health();
@@ -215,7 +262,7 @@ void Bot::sense_ambush() {
     const float drop = prev_hp_ - hp;
     prev_hp_ = hp;
     prev_round_ = now;
-    if (!kEvade || !fresh || drop <= 1) return;
+    if (!fresh || drop <= 1) return;
     const auto& v = view();
     if (!v.foes.is_empty())
         for (auto p : v.foes.positions())
@@ -235,24 +282,13 @@ void Bot::sense_ambush() {
         }
     const float unexplained = drop - std::max(incoming_ * taken_, camps) - 10.0f;
     if (unexplained <= 0) return;
-    ambush_until_ = now + kAmbushRounds;
+    hidden_until_ = now + kAmbushRounds;
     hidden_hit_ = unexplained;
-    int nb = 0, nbv = 0, nvis = 0;
-    if (kTraceDef) {
-        if (!bush_.p) bush_.bind(cambc::map::bushes());
-        for (int dy = -4; dy <= 4; ++dy)
-            for (int dx = -4; dx <= 4; ++dx) {
-                const vec2 b{pos_.x + dx, pos_.y + dy};
-                if (v.lvis.at(b)) ++nvis;
-                if (bush_.at(b)) { if (v.lvis.at(b)) ++nbv; else ++nb; }
-            }
-    }
-    if (kTraceDef) std::cout << "AMB bush_unseen " << nb << " bush_seen " << nbv << " vis " << nvis << " stun " << me.buffs().has_stun() << " r" << now << ' ' << cambc::to_string(me.champion_name()) << " drop " << drop << " inc " << incoming_
-                             << " hp " << hp << " at " << pos_.x << ',' << pos_.y << " foes " << v.foes.count() << " allies " << v.allies.size() << '\n';
+    ambush_until_ = std::max(ambush_until_, hidden_until_);
 }
 
-// Our ward on the unseen bush tile within reach that shows the most unseen bush around it (at least
-// min_n tiles). True when placed (or a hidden occupant was revealed trying).
+// Our ward on the unseen bush tile within reach that shows the most unseen bush around it (at least min_n
+// tiles). True when placed (a hidden occupant is revealed even when the placement fails).
 bool Bot::ward_bushes(int min_n) {
     auto& me = cambc::self();
     if (!fuel(20000) || !live()) return false;
@@ -285,7 +321,7 @@ bool Bot::ward_bushes(int min_n) {
 
 // Bushes beside us hide enemies that see us: keep our ward in them while enemies are about.
 void Bot::scout() {
-    if (!kScout || !live()) return;
+    if (!live()) return;
     const int now = round_now();
     if (now - last_enemy_seen_ > kScoutRounds) {
         const auto s = read_sighting();
@@ -294,41 +330,38 @@ void Bot::scout() {
     if (spawn_local_.at(pos_)) return;
     try {
         for (auto w : cambc::self().ward_positions())
-            if (cheb(w, pos_) <= kScoutKeep) return;  // ours already covers this ground
+            if (cheb(w, pos_) <= kScoutKeep) return;
     } catch (const cambc::error&) { return; }
     ward_bushes(kScoutMin);
 }
 
-// Under fire from an unseen enemy: no recall (it would be broken), but steps away from the bushes it may
-// hide in, towards home; while healthy, carry on. True when the turn is spent.
+// Under fire from an unseen enemy: reveal it with the ward (the fight model takes over), else, when hurt,
+// step away from the bushes it may hide in, towards home. True when the turn is spent.
 bool Bot::evade() {
-    if (!kEvade || round_now() >= ambush_until_) return false;
+    if (round_now() >= hidden_until_) return false;
     auto& me = cambc::self();
-    const auto& v = view();
-    if (!v.foes.is_empty())
-        for (auto p : v.foes.positions())
-            if (cheb(p, pos_) <= 9 && !cambc::map::spawn_region(team::enemy).is_set(p)) return false;
-    if (spawn_local_.at(pos_)) return false;
+    const auto& enemy_spawn = cambc::map::spawn_region(team::enemy);
+    auto visible_near = [&]() {
+        const auto& v = view();
+        if (!v.foes.is_empty())
+            for (auto p : v.foes.positions())
+                if (cheb(p, pos_) <= 9 && !enemy_spawn.is_set(p)) return true;
+        return false;
+    };
+    if (visible_near() || spawn_local_.at(pos_)) return false;
     if (!bush_.p) bush_.bind(cambc::map::bushes());
-    // Our ward in the bush shows the shooter to the fight model (a hidden occupant is revealed even when
-    // the placement fails).
-    if (kWardReveal && ward_bushes(1)) {
-        const auto& v2 = view();
-        if (!v2.foes.is_empty())
-            for (auto p : v2.foes.positions())
-                if (cheb(p, pos_) <= 9) return false;  // found: the fight model takes over
-    }
-    const auto& vv = view();
+    if (ward_bushes(1) && visible_near()) return false;
     const float hp = me.health();
     if (hp > me.max_health() * 0.5f && hp > 6.0f * hidden_hit_) return false;
     if (moved_ || move_failed_ || !me.can_move() || !live()) return false;
-    // Unseen bush tiles within 4 (basic range 3, spells 4) of t: where the shooter may stand.
+    const auto& v = view();
+    // Unseen bush tiles within 4 of t (basic range 3, spells 4): where the shooter may stand.
     auto cover = [&](vec2 t) {
         int n = 0;
         for (int dy = -4; dy <= 4; ++dy)
             for (int dx = -4; dx <= 4; ++dx) {
                 const vec2 b{t.x + dx, t.y + dy};
-                if (bush_.at(b) && !vv.lvis.at(b)) ++n;
+                if (bush_.at(b) && !v.lvis.at(b)) ++n;
             }
         return n;
     };
@@ -336,7 +369,7 @@ bool Bot::evade() {
         if (spawn_local_.at(t)) return -100.0f;
         const int hd = home_.at(t);
         return 2.0f * static_cast<float>(cover(t)) + static_cast<float>(hd >= kFar ? 200 : hd)
-            + (camp_block_.is_set(t) ? 500.0f : 0.0f);
+            + (bit(camp_block_, t) ? 500.0f : 0.0f);
     };
     vec2 best = pos_;
     float best_s = score(pos_) + 0.5f;
@@ -361,28 +394,24 @@ bool Bot::evade() {
 
 // ---------------------------------------------------------------- retreat
 
-// Run from the enemies. True when the turn is spent.
+// Run from the enemies (we do not take this fight). True when the turn is spent.
 bool Bot::retreat(std::vector<Fighter>& theirs, int dmin) {
     (void)dmin;
     auto& me = cambc::self();
+    track_foes();
+    flee_round_ = round_now();
     if (bank_under_fire(theirs)) return true;
-    const bool on_spawn = spawn_local_.at(pos_);
-    if (on_spawn) {
+    if (spawn_local_.at(pos_)) {
         // The spawn heals us every turn and they cannot step on it: hold it and shoot from there.
         if (++spawn_hold_ > 20) return false;
         strike(theirs);
         return true;
     }
     spawn_hold_ = 0;
-    // Nobody can break a recall before it lands: take it (damage would cancel it).
-    {
-        int first = 99;
-        for (const auto& e : theirs) first = std::min(first, kChaseRecall ? hit_turn(e, pos_) : cheb(e.pos, pos_));
-        if (first >= (kChaseRecall ? kRecallSafe : kRecallDist) && round_now() >= ambush_until_ && !moved_ && incoming_ == 0 && live() && home_.at(pos_) > kRecallWalk) {
-            try { me.recall(); } catch (const cambc::error& e) { warn("flee recall", e); }
-            if (kTraceDef) dlog("  recall");
-            return true;
-        }
+    // Nobody can break a recall before it lands: take it.
+    if (!moved_ && incoming_ == 0 && live() && home_.at(pos_) > kRecallWalk && recall_safe(kRecallTicks)) {
+        try { me.recall(); } catch (const cambc::error& e) { warn("flee recall", e); }
+        return true;
     }
     // Melee: a free swing at an adjacent enemy before stepping away.
     if (me.attack_range() <= 1 && me.can_attack() && live())
@@ -397,13 +426,11 @@ bool Bot::retreat(std::vector<Fighter>& theirs, int dmin) {
                 break;
             }
     // Ranged: a free shot when nobody can hit us here next turn.
-    if (kFreeShots && me.attack_range() > 1 && me.can_attack() && !moved_ && incoming_ == 0 && live()
-        && threat_at(pos_, theirs) == 0 && strike(theirs)) {
-        if (kTraceDef) dlog("  freeshot");
+    const bool ranged = me.attack_range() > 1;
+    if (ranged && me.can_attack() && !moved_ && incoming_ == 0 && live() && threat_at(pos_, theirs) == 0
+        && strike(theirs))
         return true;
-    }
-    if (moved_ || move_failed_ || !me.can_move() || !live()) { if (kTraceDef) dlog(std::string("  nomove m") + std::to_string(moved_) + " f" + std::to_string(move_failed_) + " c" + std::to_string(cast_) + " a" + std::to_string(attacked_)); return true; }
-    const float hp = me.health();
+    if (moved_ || move_failed_ || !me.can_move() || !live()) return true;
     // Awake camps keep hitting whoever is nearest within their reach: stay out of it too.
     std::array<std::pair<vec2, CampSpec>, 24> hot;
     size_t n_hot = 0;
@@ -416,7 +443,7 @@ bool Bot::retreat(std::vector<Fighter>& theirs, int dmin) {
             const auto cs = camp_spec(g_[gi].kinds[static_cast<size_t>(ci)]);
             if (cs.str > 0) hot[n_hot++] = {p, cs};
         }
-    // With a bag, the nearest altar banks it under fire (bank_under_fire()) where home only keeps it.
+    // With a bag, the nearest altar banks it under fire where home only keeps it.
     const int gems = static_cast<int>(me.gem_count());
     const bool to_altar = gems >= kFleeAltarGems && eg_ready_ && altar_.at(pos_) < home_.at(pos_);
     auto dest = [&](vec2 t) { return to_altar ? altar_.at(t) : home_.at(t); };
@@ -424,34 +451,15 @@ bool Bot::retreat(std::vector<Fighter>& theirs, int dmin) {
         float danger = threat_at(t, theirs);
         for (size_t i = 0; i < n_hot; ++i)
             if (cheb(t, hot[i].first) <= hot[i].second.range) danger += hot[i].second.str * taken_;
-        const bool sp = spawn_local_.at(t);
-        if (!kNewScore) {
-            float s = 4.0f * danger * (sp ? 0.1f : 1.0f);
-            const int hd = dest(t);
-            s += static_cast<float>(hd >= kFar ? 200 : hd);
-            if (camp_block_.is_set(t)) s += 500;
-            return s;
-        }
-        float s = 4.0f * danger * (sp ? 0.1f : 1.0f);
-        if (!sp && danger >= hp) s += kDeathTile;
-        const int hd = sp && !to_altar ? 0 : dest(t);
+        float s = 4.0f * danger * (spawn_local_.at(t) ? 0.1f : 1.0f);
+        const int hd = dest(t);
         s += static_cast<float>(hd >= kFar ? 200 : hd);
-        int margin = 3;
-        for (const auto& e : theirs)
-            if (!e.stunned) margin = std::min(margin, reach_margin(e, t));
-        s -= kMarginW * static_cast<float>(std::max(-2, margin));
-        if (camp_block_.is_set(t)) s += 500;
-        if (t == pos_) s += 0.25f;  // ties: keep moving
+        if (bit(camp_block_, t)) s += 500;
         return s;
     };
     const float here = score(pos_);
-    // Dash out when it beats every step.
+    // Dash out when it beats standing here by two tiles' worth.
     if (dasher_ && !cast_ && me.can_cast() && fuel(15000) && threat_at(pos_, theirs) > 0) {
-        float best_step = here;
-        for (auto d : kDirs) {
-            const vec2 t{pos_.x + d.x, pos_.y + d.y};
-            if (free_tile(t) && !camp_block_.is_set(t)) best_step = std::min(best_step, score(t));
-        }
         for (const auto& ab : me.abilities()) {
             if (!ab.is_dash() || !ab.is_ready()) continue;
             std::array<std::pair<float, vec2>, 16> cand;
@@ -460,7 +468,7 @@ bool Bot::retreat(std::vector<Fighter>& theirs, int dmin) {
                 for (int dy = -2; dy <= 2; ++dy) {
                     if (std::max(std::abs(dx), std::abs(dy)) != 2) continue;
                     const vec2 t{pos_.x + dx, pos_.y + dy};
-                    if (!free_tile(t) || camp_block_.is_set(t)) continue;
+                    if (!free_tile(t) || bit(camp_block_, t)) continue;
                     bool path = false;
                     for (auto s : kDirs) {
                         const vec2 m{pos_.x + s.x, pos_.y + s.y};
@@ -472,7 +480,7 @@ bool Bot::retreat(std::vector<Fighter>& theirs, int dmin) {
                     if (path) cand[n++] = {score(t), t};
                 }
             std::sort(cand.begin(), cand.begin() + n, [](auto x, auto y) { return x.first < y.first; });
-            for (size_t i = 0; i < n && i < 3 && cand[i].first < (kNewScore ? best_step : here) - 2; ++i) {
+            for (size_t i = 0; i < n && i < 3 && cand[i].first < here - 2; ++i) {
                 if (!live()) return true;
                 try {
                     const bool ok = ab.use(cand[i].second);
@@ -487,18 +495,24 @@ bool Bot::retreat(std::vector<Fighter>& theirs, int dmin) {
         }
     }
     if (move_failed_ || !me.can_move() || !live()) return true;
+    // Ranged and caught by a melee chaser that hits us whatever step we take: our shots are all we have.
+    if (kCaughtShoot && ranged && !cast_ && me.can_attack() && !moved_ && home_.at(pos_) > kCaughtHome) {
+        bool caught = false;
+        for (const auto& e : theirs)
+            if (inescapable(e, pos_)) caught = true;
+        if (caught && strike(theirs)) return true;
+    }
     vec2 best = pos_;
     float best_s = score(pos_);
     for (auto d : kDirs) {
         const vec2 t{pos_.x + d.x, pos_.y + d.y};
-        if (!free_tile(t) || camp_block_.is_set(t)) continue;
+        if (!free_tile(t) || bit(camp_block_, t)) continue;
         const float s = score(t);
         if (s < best_s) { best_s = s; best = t; }
     }
-    if (kTraceDef) dlog("  step " + std::to_string(best.x) + ',' + std::to_string(best.y) + " s" + std::to_string(static_cast<int>(best_s)) + " here" + std::to_string(static_cast<int>(here)) + " atk" + std::to_string(attacked_));
     if (best == pos_) {
         // Boxed in: we take the hits here anyway, so hit back.
-        if (kStayStrike && me.can_attack() && live()) strike(theirs);
+        if (me.can_attack() && live()) strike(theirs);
         return true;
     }
     moved_ = true;
@@ -512,8 +526,8 @@ bool Bot::retreat(std::vector<Fighter>& theirs, int dmin) {
 
 // ---------------------------------------------------------------- banking
 
-// Hit the enemy lock on altar a (in range): a tribute attempt there is the hit, and an attack reset
-// right after it gives a second one (only right after our own attack: error 26 otherwise).
+// Hit the enemy lock on altar a (in range): a tribute attempt there is the hit, and an attack reset right
+// after it gives a second one (only right after our own attack: error 26 otherwise).
 bool Bot::break_lock(vec2 a) {
     auto& me = cambc::self();
     if (!me.can_attack() || !live()) return true;  // wait here for the next hit
@@ -536,8 +550,8 @@ bool Bot::break_lock(vec2 a) {
 }
 
 // The only altar takes tributes only from a boss's spawn tiles (01boss-battle): while one of us stands on
-// such a tile the boss cannot respawn, so the altar stays open to us, and the enemy can bank there only by
-// killing us first. Stand there with an empty bag, and step off when an ally with gems waits beside us.
+// such a tile the boss cannot respawn, so the altar stays open to us and the enemy banks there only by
+// killing us first. Stand there with an empty bag; step off when an ally with gems waits beside us.
 bool Bot::hold_tile() {
     if (hold_i_ < 0 || moved_ || !bit(alt_[static_cast<size_t>(hold_i_)].goal, pos_)) return false;
     auto& me = cambc::self();
@@ -566,9 +580,6 @@ bool Bot::hold_tile() {
     return true;
 }
 
-// When to walk to an altar (a full bag, a short walk, enemies about, the clock, the race), where (the
-// nearest open altar by road; through an enemy lock only when it is close or every altar is locked), and
-// when to start the channel (we outlive it: a death in it hands the whole bag to the killer).
 bool Bot::tribute() {
     auto& me = cambc::self();
     const int gems = static_cast<int>(me.gem_count());
@@ -576,19 +587,21 @@ bool Bot::tribute() {
     if (!eg_ready_) return false;
     eg_observe();
     if (gems <= 0) return hold_tile();
+    track_foes();
     const int now = round_now();
     const int range = cambc::constants::submit_gems_range;
     const auto locks = cambc::vision::altar_lock_tiles(team::enemy);
     const int channel = channel_ticks(gems);
-    // Beside an altar: bank when we outlive the channel; a lock in the way is hit.
+    const auto theirs = visible_foes(10);
+    // Beside an altar: bank when we outlive the channel and no stun breaks it; a lock in the way is hit.
     int at_locked = -1;
     for (size_t i = 0; i < alt_.size(); ++i) {
         const vec2 a = alt_[i].at;
         if (cheb(a, pos_) > range) continue;
         if (bit(locks, a)) { at_locked = static_cast<int>(i); continue; }
-        float dmg = incoming_ * taken_ * static_cast<float>(channel + 1);
-        if (kSafeStart) dmg = std::max(dmg, channel_damage(pos_, channel, read_foes(10)));
-        if (me.health() > dmg + 40) {
+        const float dmg = std::max(incoming_ * taken_ * static_cast<float>(channel + 1), channel_damage(pos_, channel, theirs));
+        const bool stunned_out = kStunSafeStart && channel >= 2 && stun_within(pos_, channel, theirs);
+        if (me.health() > dmg + 40 && !stunned_out) {
             if (live()) try { me.submit_gems(a); } catch (const cambc::error& e) { warn("submit", e); }
             return true;
         }
@@ -602,9 +615,9 @@ bool Bot::tribute() {
     // The race's last stretch: our bags together may finish it (we only know our own), and a bag still
     // carried when the enemy gets there counts for nothing.
     const int ours = static_cast<int>(cambc::global_submitted_gems(team::ally));
-    const int theirs = static_cast<int>(cambc::global_submitted_gems(team::enemy));
+    const int opp = static_cast<int>(cambc::global_submitted_gems(team::enemy));
     const int win = static_cast<int>(cambc::constants::winning_gems);
-    const bool race = ours >= win - kRaceGap || (theirs >= win - kRaceGap && ours >= win - 2 * kRaceGap);
+    const bool race = ours >= win - kRaceGap || (opp >= win - kRaceGap && ours >= win - 2 * kRaceGap);
     const bool go_now = gems >= 45 || d <= 3 || (gems >= 20 && d <= 10) || (danger && gems >= 10)
         || target_ < 0 || target_wait_ > d || left < d + channel + 20
         || (race && (gems >= 8 || d <= 8)) || ours + gems >= win;
@@ -612,16 +625,16 @@ bool Bot::tribute() {
     const bool stranded = d >= kFar;
     if (stranded && !(gems >= 45 || (race && gems >= 8) || ours + gems >= win || left < home_altar_ + channel + 30)) return false;
     if (!go_now) return false;
-    // Far by road: the spawn is a recall away and close to an altar.
     if (stranded && (incoming_ > 0 || moved_)) return false;
-    if (d > home_altar_ + 10 && incoming_ == 0 && now >= ambush_until_ && !moved_ && live()) {
+    // Far by road: the spawn is a recall away and close to an altar.
+    if (d > home_altar_ + 10 && incoming_ == 0 && !moved_ && live() && recall_safe(kRecallTicks)) {
         try { me.recall(); } catch (const cambc::error& e) { warn("bank recall", e); }
         return true;
     }
 
     // Where: the nearest open altar by road (the route search picks it from all of them). An enemy lock
-    // costs five hits: break one close by rather than walk away and back, or the nearest when every
-    // open altar is locked.
+    // costs five hits: break one close by rather than walk away and back, or the nearest when every open
+    // altar is locked.
     auto& goal = bank_goal_;
     int n_open = 0, n_cand = 0, near_locked = -1, any_locked = -1, nl_d = 1 << 20, al_d = 1 << 20;
     goal.clear();
@@ -677,17 +690,13 @@ bool Bot::tribute() {
         }
         if (all_taken && ally) return true;
     }
-    if (kTraceBank && (now % 10 == 0 || !went))
-        std::cout << "bank r" << now << " slot" << slot_ << " gems " << gems << " d " << d << " open " << n_open
-                  << " went " << went << '\n';
     return went;
 }
 
 // ---------------------------------------------------------------- enemy tributes
 
 // An enemy tributing near us cannot move, hit or cast until its channel ends: when we kill it first its bag
-// is ours (and its team loses the trip). Otherwise a lock on its altar cancels the channel (walking into
-// lock range when we arrive in time).
+// is ours. Otherwise a lock on its altar cancels the channel (walking into lock range when we arrive in time).
 bool Bot::deny() {
     eg_init();
     eg_observe();
@@ -735,18 +744,16 @@ bool Bot::deny() {
         if (use_lock(A.at)) invalidate();
         return false;  // the rest of the turn is free: fight on
     }
-    // Close enough to arrive before the channel ends?
-    if (best - kLockRange > aim_left + 1) return false;
+    if (best - kLockRange > aim_left + 1) return false;  // too late to arrive
     if (me.health() < me.max_health() * 0.35f) return false;
     if (A.lock_goal.is_empty() || !go(A.lock_goal, true)) return false;
-    // Arrived this step: drop it now.
     if (cheb(A.at, me.position()) <= kLockRange && live() && use_lock(A.at)) invalidate();
     return true;
 }
 
-// Go for a channelling enemy at p when we (with the allies beside it) kill it before the channel ends and
-// no free enemy is close enough to make it a real fight (the fight model decides those). Damage only: a
-// stun would cancel the channel and free it. True when the turn went into it.
+// Go for a channelling enemy at p when we (with the allies beside it) kill it before the channel ends and no
+// free enemy is close enough to make it a real fight (the fight model decides those). Damage only: a stun
+// would cancel the channel and free it. True when the turn went into it.
 bool Bot::contest(vec2 p, int left, float hp, const std::vector<vec2>& free_foes) {
     auto& me = cambc::self();
     for (auto f : free_foes)
@@ -766,7 +773,7 @@ bool Bot::contest(vec2 p, int left, float hp, const std::vector<vec2>& free_foes
     int helpers = 0;
     for (auto a : view().allies)
         if (cheb(a, p) <= 3) ++helpers;
-    const float per_turn = str * (1 + helpers);
+    const float per_turn = str * static_cast<float>(1 + helpers);
     const int reach = std::max(0, melee ? d - 2 : d - range);
     const float first = (reset ? str : 0.0f) + spell;
     const int kill = static_cast<int>(std::ceil(std::max(0.0f, hp - first) / std::max(1.0f, per_turn)));
@@ -784,7 +791,7 @@ bool Bot::contest(vec2 p, int left, float hp, const std::vector<vec2>& free_foes
     if (!cast_ && !moved_ && me.can_cast() && live())
         for (const auto& ab : me.abilities()) {
             if (cast_ || !ab.is_ready() || !ab.is_damage() || ab.is_cc() || !ab.can_target_enemies()) continue;
-            if (d > static_cast<int>(ability_reach(ab))) continue;
+            if (d > static_cast<int>(spell_range(ab))) continue;
             auto c = handle();
             if (!c) break;
             try {
