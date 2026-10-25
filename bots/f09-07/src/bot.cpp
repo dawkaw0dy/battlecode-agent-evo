@@ -721,40 +721,50 @@ bool Bot::tribute(bool force) {
             return cambc::vision::altar_lock_at(a).is_enemy();
         } catch (const std::exception&) { return false; }
     };
-    for (auto a : altars) {
-        if (cheb(a, pos) <= cambc::constants::submit_gems_range && !enemy_locked(a)) {
+    // Next to an altar: tribute; an enemy lock is broken first (basic hits, or the tribute itself).
+    for (std::size_t ai = 0; ai < altars.size(); ++ai) {
+        const auto a = altars[ai];
+        if (altar_ban[ai] > round) continue;
+        const int d = cheb(a, pos);
+        if (enemy_locked(a)) {
+            if (d <= me.attack_range() && me.can_attack()) {
+                try {
+                    const auto lock = cambc::vision::altar_lock_at(a);
+                    me.attack(lock);
+                    if (use_reset_and_hit() && me.can_attack()) me.attack(cambc::vision::altar_lock_at(a));
+                    return true;
+                } catch (const std::exception&) {}
+            }
+            if (d <= cambc::constants::submit_gems_range) {
+                try { me.submit_gems(a); return true; } catch (const cambc::error&) {}
+            }
+            continue;
+        }
+        if (d <= cambc::constants::submit_gems_range) {
             try { me.submit_gems(a); return true; } catch (const cambc::error&) {}
         }
     }
-    auto goals = empty_board();
-    bool any = false;
     // No progress towards any altar for a while: ban the nearest one for a long time.
     if (round - trib_round > 3) { trib_best = nearest; trib_since = round; }
     trib_round = round;
     if (nearest < trib_best) { trib_best = nearest; trib_since = round; }
-    if (round - trib_since > 12) {
+    if (round - trib_since > 14) {
         for (std::size_t ai = 0; ai < altars.size(); ++ai)
             if (altar_ban[ai] <= round && cheb(altars[ai], pos) == nearest) altar_ban[ai] = round + 150;
         trib_since = round;
         trib_best = 999;
     }
-    // The host search picks the nearest reachable altar from the union of approach tiles.
-    const bool home_ok = false;
+    // The host search picks the nearest reachable altar from the union of approach tiles;
+    // a locked altar counts (breaking a lock costs a few hits).
+    auto goals = empty_board();
+    bool any = false;
     for (std::size_t ai = 0; ai < altars.size(); ++ai) {
-        const auto a = altars[ai];
-        if (home_ok && !(a.x == home_altar.x && a.y == home_altar.y)) continue;
-        if (enemy_locked(a) || altar_ban[ai] > round) continue;
-        add_box(goals, a, cambc::constants::submit_gems_range, width, height);
+        if (altar_ban[ai] > round) continue;
+        add_box(goals, altars[ai], cambc::constants::submit_gems_range, width, height);
         any = true;
     }
     if (!any) {
-        // Every altar we know of is locked: tributing at one hits the lock.
-        for (auto a : altars) {
-            if (cheb(a, pos) <= cambc::constants::submit_gems_range) {
-                try { me.submit_gems(a); return true; } catch (const cambc::error&) {}
-            }
-            add_box(goals, a, cambc::constants::submit_gems_range, width, height);
-        }
+        for (auto a : altars) add_box(goals, a, cambc::constants::submit_gems_range, width, height);
     }
     return route_to(goals);
 }
