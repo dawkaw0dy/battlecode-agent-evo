@@ -28,7 +28,7 @@ extern std::uint64_t g_ch_tstart, g_ch_t0, g_ch_t1, g_ch_t2;
 struct PhaseAcc { const char* tag; std::uint64_t sum; std::uint32_t n; };
 std::array<PhaseAcc, 40> g_phase{};
 // Measurement builds only: the phases of every turn above 85k fuel or cut short.
-constexpr bool kHeavy = false;
+constexpr bool kHeavy = false;  // (camps.cpp kMeter fills its choose/sim figures)
 std::array<std::pair<const char*, std::uint32_t>, 48> g_turn_log{};
 size_t g_turn_n = 0;
 void fp(const char* tag) {

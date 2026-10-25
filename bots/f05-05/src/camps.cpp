@@ -39,7 +39,11 @@ float territory(int rel, int n) {
 }
 }  // namespace
 
+// Measurement builds only (printed by bot.cpp's kHeavy / kPhase reports): fuel of simulations, safest-goal
+// searches and choose() sections.
+constexpr bool kMeter = false;
 std::uint64_t g_sim_fuel = 0, g_sim_n = 0, g_cc_fuel = 0, g_cc_n = 0, g_ag_fuel = 0, g_ag_work = 0, g_ag_n = 0;
+inline std::uint64_t meter_now() { return kMeter ? cambc::fuel_remaining() : 0; }
 void Bot::build_threats() {
     threat_.assign(g_.size(), {});
     exit_.assign(g_.size(), 1);
@@ -106,8 +110,8 @@ const Bot::ClearCost& Bot::clear_cost(int group) {
 // n champions of our strength clear the group, starting with pool_now health between them (full health
 // after each trip home). Each fights down to the reserve that walks it out of reach.
 struct SimMeter {
-    std::uint64_t f0 = cambc::fuel_remaining();
-    ~SimMeter() { g_sim_fuel += f0 - cambc::fuel_remaining(); ++g_sim_n; }
+    std::uint64_t f0 = meter_now();
+    ~SimMeter() { g_sim_fuel += f0 - meter_now(); ++g_sim_n; }
 };
 Bot::Sim Bot::simulate(int group, int n, float pool_now) {
     SimMeter meter;
@@ -229,8 +233,8 @@ const cambc::bitboard& Bot::approach_goal(int group, int r) {
         goal_group_ = -1;
         return goal_;
     }
-    const std::uint64_t ag_f0 = cambc::fuel_remaining();
-    struct AgMeter { std::uint64_t f0; long work; ~AgMeter() { g_ag_fuel += f0 - cambc::fuel_remaining(); g_ag_work += work; ++g_ag_n; } } ag_meter{ag_f0, work};
+    const std::uint64_t ag_f0 = meter_now();
+    struct AgMeter { std::uint64_t f0; long work; ~AgMeter() { g_ag_fuel += f0 - meter_now(); g_ag_work += work; ++g_ag_n; } } ag_meter{ag_f0, work};
     const int bx = x0 - r, by = y0 - r;
     // reach: within r of a living camp; danger: strength of the fighters reaching the tile.
     std::vector<std::uint8_t> reach(static_cast<size_t>(bw * bh), 0);
@@ -425,7 +429,7 @@ struct Plan { float score = 0; int n = 1; };
 
 std::uint64_t g_ch_sim0 = 0, g_ch_n0 = 0, g_ch_tstart = 0, g_ch_t0 = 0, g_ch_t1 = 0, g_ch_t2 = 0; int g_ch_groups = 0, g_ch_pruned = 0, g_ch_cc = 0;
 int Bot::choose(int& wait_out) {
-    g_ch_tstart = cambc::fuel_remaining();
+    g_ch_tstart = meter_now();
     g_ch_sim0 = g_sim_fuel; g_ch_n0 = g_sim_n; g_ch_groups = 0; g_ch_pruned = 0; g_ch_cc = static_cast<int>(g_cc_n);
     auto& me = cambc::self();
     const int now = static_cast<int>(cambc::round_number());
@@ -455,7 +459,7 @@ int Bot::choose(int& wait_out) {
     const float bud_hp = paired ? 0.9f * max_hp : 0.0f;
     const int unit = paired ? 2 : 1;
     const int n_groups = static_cast<int>(g_.size());
-    g_ch_t0 = cambc::fuel_remaining();
+    g_ch_t0 = meter_now();
     // The current target first, then the others by a cheap optimistic rate (travel, wait, banking and the
     // clear shared by everyone alive): a good early best lets the exact bounds below skip most of the
     // simulations, which are most of this function's fuel.
@@ -476,7 +480,7 @@ int Bot::choose(int& wait_out) {
         }
         std::sort(order_.begin(), order_.end(), [](const auto& a, const auto& b) { return a.key > b.key; });
     }
-    g_ch_t1 = cambc::fuel_remaining();
+    g_ch_t1 = meter_now();
     for (int j = -1; j < static_cast<int>(order_.size()); ++j) {
         const int i = j < 0 ? target_ : order_[static_cast<size_t>(j)].group;
         if (i < 0) continue;
@@ -592,7 +596,7 @@ int Bot::choose(int& wait_out) {
         if (plan.score > best_plan.score) { best_plan = plan; best = i; wait_out = wait; }
     }
     raid_n_ = best_plan.n;
-    g_ch_t2 = cambc::fuel_remaining();
+    g_ch_t2 = meter_now();
     return best;
 }
 

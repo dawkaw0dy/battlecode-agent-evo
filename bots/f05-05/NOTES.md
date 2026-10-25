@@ -15,7 +15,7 @@ go / step_on / walk_static / fill_fields / eta / Bits / Dist / grow / live / fue
 - approach_goal (safest tiles): needs 25000 + 35·work (measured 15–30 fuel per unit of work; was 60000 + 40·work).
 - choose(): due every 4 rounds; deferred while fuel < moving-average choose cost + 35000, at most 2 turns.
 - simulate() memo: 12 entries per group, exact inputs (team, pool, dps, max hp, damage taken, clear-cost version).
-- Measurement switches (all off): kFuelProfile (main.cpp), kPhase / kHeavy (bot.cpp).
+- Measurement switches (all off): kFuelProfile (main.cpp), kPhase / kHeavy (bot.cpp), kMeter (camps.cpp).
 
 ## Changes this generation
 Measured fuel (fuel_remaining deltas; release build, flags on only for measurement):
@@ -33,7 +33,9 @@ Results (bench2.py, 40 maps × both sides; parent figures from the evaluation ca
 - v1 (zero-copy reads, in-place boards, no-throw reads): vs f03-05 46/80 (parent 40), vs f04-05 42/80 (33).
 - v2 (+ choose bounds/order/memo/deferral, approach_goal gate, incremental block): vs f03-05 45/80, vs f04-05
   43/80, vs f02-01 64/80 (parent 65). 0 faults and 0 `bot error:` in all games.
-- 01boss-battle B vs f03-05 (worst loss last generation, 0–2110): won 1049–50 in v1.
+- v2 also: vs f00-03 69/80, vs starter 20/20 (10 maps), head-to-head vs the parent 41/80 (margin −1).
+- Final (v2 + measurement meters compiled out): 8/16 vs f03-05 on 8 maps where v2 had 7/16.
+- 01boss-battle B vs f03-05 (worst loss last generation, 0–2110): won 1049–50 in v1, 238–320 in v2.
 
 ## Tried and failed (keep entries from the parent's notes; add yours)
 - Fuel: host calls cost ~30–40 fuel, but every bitboard temporary (&, |, ~, shift) ~600 and a grow(r) ~4k·r;
@@ -64,6 +66,8 @@ Results (bench2.py, 40 maps × both sides; parent figures from the evaluation ca
 - A phase profiler that scans a tag table on every call adds ~10–20k a turn and doubles the cut turns it
   measures; log per-turn deltas into a fixed array and print only heavy turns (kHeavy).
 - Host bitboard set() / is_set() cost about as much as a whole-board operation; raw writes need the layout check.
+- Re-planning every 2 rounds instead of 4 (choose() is cheap enough now): vs f03-05 39/80, vs f04-05 36/80
+  (75/160 against 88/160 at 4 rounds). Kept 4 (kReplanRounds).
 - The second round of fuel cuts (v2: choose ~3x cheaper, cuts on boss-battle 100 → 15 a game) did not add wins
   over v1 (88/160 both): once turns stop being cut, fuel is no longer what decides games.
 
