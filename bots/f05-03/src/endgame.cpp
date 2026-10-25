@@ -27,6 +27,7 @@ constexpr int kLockRange = 2;          // altar lock placement range
 constexpr int kEnemyLockMemory = 200;  // an enemy lock seen this long ago may still stand
 constexpr int kOurLockMemory = 150;    // ... and ours
 constexpr int kFoeNear = 4;            // an enemy this close to an altar "uses" it
+constexpr int kRaceGap = 120;          // this close to 1000 tributed, every bag is banked promptly
 constexpr bool kContest = true;        // go for channelling enemies we can kill before the channel ends
 
 int round_now() { return static_cast<int>(cambc::round_number()); }
@@ -221,16 +222,25 @@ bool Bot::tribute() {
 
     // When to walk to an altar: a full bag, a short walk, enemies about, nothing else to do, the clock.
     const int d = altar_.at(pos_);  // nearest tribute tile we can walk to, locks aside
-    if (d >= kFar) return false;
     const int left = static_cast<int>(cambc::constants::max_rounds) - now;
     const auto s = read_sighting();
     const bool danger = (s.ok && s.age <= 30 && cheb(s.where, pos_) <= 16) || now - last_enemy_seen_ <= 20;
     const int channel = static_cast<int>(std::ceil(gems / 10.0f));
+    // The race's last stretch: our bags together may finish it (we only know our own), and a bag still
+    // carried when the enemy gets there counts for nothing.
+    const int ours = static_cast<int>(cambc::global_submitted_gems(team::ally));
+    const int theirs = static_cast<int>(cambc::global_submitted_gems(team::enemy));
+    const int win = static_cast<int>(cambc::constants::winning_gems);
+    const bool race = ours >= win - kRaceGap || (theirs >= win - kRaceGap && ours >= win - 2 * kRaceGap);
     const bool go_now = gems >= 45 || d <= 3 || (gems >= 20 && d <= 10) || (danger && gems >= 10)
         || target_ < 0 || target_wait_ > d || left < d + channel + 20
-        || cambc::global_submitted_gems(team::ally) + static_cast<unsigned>(gems) >= cambc::constants::winning_gems;
+        || (race && (gems >= 8 || d <= 8)) || ours + gems >= win;
+    // No walk from here to any altar (a dash crossed holes): only the recall brings the bag back.
+    const bool stranded = d >= kFar;
+    if (stranded && !(gems >= 45 || (race && gems >= 8) || ours + gems >= win || left < home_altar_ + channel + 30)) return false;
     if (!go_now) return false;
     // Far by road: the spawn is a recall away and close to an altar.
+    if (stranded && (incoming_ > 0 || moved_)) return false;
     if (d > home_altar_ + 10 && incoming_ == 0 && !moved_ && live()) {
         try { me.recall(); } catch (const cambc::error& e) { warn("bank recall", e); }
         return true;
