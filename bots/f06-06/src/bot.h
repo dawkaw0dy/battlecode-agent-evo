@@ -12,6 +12,8 @@ struct Group {
     std::vector<vec2> camp_tile;      // spawn tile of each camp
     std::vector<cambc::camp_type> kinds;
     std::vector<float> hp;            // remembered health of each camp (camps never heal)
+    std::vector<float> max_hp, camp_str;
+    float full_hp = 0;
     cambc::bitboard board;            // spawn tiles
     vec2 center{};
     int gems = 0, gold = 0, respawn = 0;
@@ -65,22 +67,31 @@ class Bot {
     std::vector<std::pair<vec2, int>> camps_;  // visible living camps: tile, group
     std::vector<Awake> awake_;          // awake camps in view
     float incoming_ = 0;                // strength of awake camps that reach us
+    float dps_ = 50, taken_ = 1;        // our damage per turn, camp damage multiplier on us
+    bool sight_ok_ = false;             // a recent enemy sighting from any of us
+    vec2 sight_{};
+    std::vector<std::uint8_t> living_;  // per group: a living camp in view
 
     // Memory.
     int target_ = -1, target_since_ = -100;
-    int plug_ = -1;
+    int plug_ = -1, plug_round_ = -100;
     const char* mode_ = "";
+    std::array<std::uint64_t, 7> prof_{};
 
     void initialise();
+    void turn();
     void update_blocks();
     void observe();
     void shop();
     void write_status(int value);
     int read_status(int slot) const;
     void report_enemy();
+    void read_sighting();
+    void measure();
     bool enemy_near(vec2 p, int r) const;
 
     bool step(const cambc::bitboard& roots);
+    bool try_recall();
     void ensure_me_field();
     int find_plug() const;
 
