@@ -11226,7 +11226,6 @@
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-24T11:08:37Z g00 phase RUNNING",
   "2026-10-24T11:09:05Z g00 f00-00: launched session_018eCFz8qxksWFM1NFYphzjz",
   "2026-10-24T11:09:20Z g00 f00-01: launched session_01X7GNKk3dxUxVcVBoNxDdiS",
   "2026-10-24T11:09:39Z g00 f00-02: launched session_01T9a4DEaRx34LkbgiQJuigb",
@@ -11425,10 +11424,11 @@
   "2026-10-25T10:21:52Z g04 f04-04: admitted (54743f36053d)",
   "2026-10-25T10:21:56Z g04 f04-05: admitted (c28582254ff7)",
   "2026-10-25T10:22:00Z g04 f04-06: admitted (6ead6ddbdb3d)",
-  "2026-10-25T10:22:04Z g04 f04-07: admitted (8b1f348f210d)"
+  "2026-10-25T10:22:04Z g04 f04-07: admitted (8b1f348f210d)",
+  "2026-10-25T10:22:11Z g04 phase EVAL_A_PENDING"
  ],
  "paused": null,
- "phase": "ADMITTED",
+ "phase": "EVAL_A_PENDING",
  "sessions_launched": 36,
  "version": 1
 }
