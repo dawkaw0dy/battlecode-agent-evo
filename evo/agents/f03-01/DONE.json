@@ -1,0 +1,27 @@
+{
+ "agent": "f03-01",
+ "task_sha256": "80023abb225efc332b55543b1d9578210adf5c3219cf4eab309b0dedd658bb7e",
+ "base_commit": "b439ae5b176d76127fe12d28044d2dc898794f0c",
+ "session_id": "cse_01FGqvJS1zArpMRQToBkMguW",
+ "bot_dir": "bots/f03-01",
+ "self_eval": {
+  "vs": "f00-03",
+  "games": 80,
+  "wins": 55
+ },
+ "games_played": 900,
+ "summary": "Combat tweaks that chase less (no chase near enemy spawn, chase above 50% hp, hunt at 2.5:1, stand in healthy 1v1); full-map wins equal to parent, higher gem margin, 0 faults",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "c1c41cadabeb6984130d228ebd97fd8f99a611679eee5d7d3367a26fda5dc837",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 17.3,
+  "remote": "true",
+  "session_id": "cse_01FGqvJS1zArpMRQToBkMguW",
+  "effort_level": "high",
+  "model": null
+ }
+}

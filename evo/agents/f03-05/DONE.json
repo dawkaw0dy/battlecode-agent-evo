@@ -1,0 +1,27 @@
+{
+ "agent": "f03-05",
+ "task_sha256": "1b3f7f33dc0b5e6fa4abd7c43af8070de4f9137926884431c546e010879aa77d",
+ "base_commit": "b439ae5b176d76127fe12d28044d2dc898794f0c",
+ "session_id": "cse_015r4sVf8gYwNVq7dif5kzRc",
+ "bot_dir": "bots/f03-05",
+ "self_eval": {
+  "vs": "f02-02",
+  "games": 40,
+  "wins": 31
+ },
+ "games_played": 900,
+ "summary": "Defense-first: altar locks on every altar we pass (+ lock runner) block enemy tributes, deny/hunt channelling enemies, survivable tribute timing, f02-01 spell module; vs f02-01 66/80, f00-03 70/80, f01-07 69/80, parent 31/40",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "c1c41cadabeb6984130d228ebd97fd8f99a611679eee5d7d3367a26fda5dc837",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 22.36,
+  "remote": "true",
+  "session_id": "cse_015r4sVf8gYwNVq7dif5kzRc",
+  "effort_level": "high",
+  "model": null
+ }
+}

@@ -1,0 +1,27 @@
+{
+ "agent": "f03-07",
+ "task_sha256": "e8484361de65305c646fce31306113d1485cfc989fab76a85b78d700d1c4f5a3",
+ "base_commit": "b439ae5b176d76127fe12d28044d2dc898794f0c",
+ "session_id": "cse_01MjZHm1Rje8pqAEJzafDNA1",
+ "bot_dir": "bots/f03-07",
+ "self_eval": {
+  "vs": "f02-01",
+  "games": 20,
+  "wins": 8
+ },
+ "games_played": 870,
+ "summary": "Safe banker: sector-split camp farming with quick tributes, healing between targets and fleeing unless clearly stronger; 8/20 vs f02-01, 9/20 vs f01-07, 20/20 vs starter.",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "c1c41cadabeb6984130d228ebd97fd8f99a611679eee5d7d3367a26fda5dc837",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 16.18,
+  "remote": "true",
+  "session_id": "cse_01MjZHm1Rje8pqAEJzafDNA1",
+  "effort_level": "high",
+  "model": null
+ }
+}
