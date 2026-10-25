@@ -38,6 +38,7 @@ constexpr int kLockRange = 2;       // altar lock placement range
 constexpr bool kLockAll = true;     // lock every altar we pass: our locks block only enemy tributes
 constexpr int kLockDetour = 8;      // walk this far (Chebyshev) out of our way to lock an altar
 constexpr bool kAltarRaid = true;   // the whole team raids a boss beside the only altar (camps.cpp)
+constexpr float kDoomTurns = 2.5f;  // run when the enemies in reach would kill us within this many turns
 
 namespace {
 // Debug: turns spent per activity, printed every 200 rounds.
@@ -718,6 +719,14 @@ bool Bot::enemies() {
     if (kTrace && now < 300)
         std::cout << "fight r" << now << ' ' << cambc::to_string(me.champion_name()) << " hp " << me.health()
                   << " n " << list.size() << " dmin " << dmin << " ratio " << ratio << " need " << need << '\n';
+
+    // Personal danger: the enemies that can hit us next turn would kill us within a few turns,
+    // whatever the team odds say (a kill hands them 100 gold and our gems).
+    float reach_power = 0;
+    for (const auto& e : list)
+        if (!e.chan && cheb(e.pos, pos_) <= std::max(e.range, 1) + 2) reach_power += e.recall ? 0.5f * e.power : e.power;
+    const bool doomed = kDoomTurns > 0 && reach_power > 0 && me.health() < kDoomTurns * reach_power;
+    if (doomed) ratio = std::min(ratio, need * 0.99f);
 
     if (ratio < need && !home && kPressureTribute && gems > 0 && tribute_under_fire()) return true;
     if (ratio < need && !home) {
