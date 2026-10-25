@@ -7,6 +7,7 @@ inline constexpr int kMagic0 = 0;        // 'S'
 inline constexpr int kMagic1 = 1;        // 'F'
 inline constexpr int kSlots = 2;         // number of planned champions
 inline constexpr int kGroups = 3;        // number of groups described (capped)
+inline constexpr int kFlags = 10;        // bit 0: dash map (holes cut off most camps)
 inline constexpr int kTypes = 4;         // champion_type per slot (5 bytes)
 inline constexpr int kAltars = 16;       // home altar x, y per slot (10 bytes)
 inline constexpr int kOwners = 32;       // one owner byte per camp group

@@ -15,9 +15,14 @@ using cambc::team;
 namespace {
 
 // Strongest solo farmers first: sustain, strong basic attacks, cheap resets.
-constexpr std::array<cambc::champion_draft, 5> kPicks{
+constexpr std::array<cambc::champion_draft, 5> kWalkPicks{
     cambc::champion_draft::vendetta, cambc::champion_draft::vesper_vale, cambc::champion_draft::marcella,
     cambc::champion_draft::tavi, cambc::champion_draft::varg};
+// Maps where holes cut off most camps: champions that dash over one-tile holes.
+constexpr std::array<cambc::champion_draft, 5> kDashPicks{
+    cambc::champion_draft::vendetta, cambc::champion_draft::vesper_vale, cambc::champion_draft::ren,
+    cambc::champion_draft::heart_of_ruin, cambc::champion_draft::marcella};
+std::array<cambc::champion_draft, 5> kPicks = kWalkPicks;
 
 cambc::champion_type type_of(cambc::champion_draft pick) {
     switch (pick) {
@@ -26,6 +31,8 @@ cambc::champion_type type_of(cambc::champion_draft pick) {
     case cambc::champion_draft::varg: return cambc::champion_type::varg;
     case cambc::champion_draft::tavi: return cambc::champion_type::tavi;
     case cambc::champion_draft::vesper_vale: return cambc::champion_type::vesper_vale;
+    case cambc::champion_draft::ren: return cambc::champion_type::ren;
+    case cambc::champion_draft::heart_of_ruin: return cambc::champion_type::heart_of_ruin;
     default: return cambc::champion_type::varg;
     }
 }
@@ -40,7 +47,6 @@ void make_plan() {
     memory[plan::kMagic0] = std::byte{'S'};
     memory[plan::kMagic1] = std::byte{'F'};
     memory[plan::kSlots] = std::byte(slots);
-    for (int s = 0; s < 5; ++s) memory[plan::kTypes + s] = std::byte(static_cast<int>(type_of(kPicks[s])));
 
     const auto groups = cambc::map::camp_groups();
     const int n = std::min<int>(static_cast<int>(groups.size()), plan::kMaxGroups);
@@ -49,9 +55,32 @@ void make_plan() {
     auto walls = cambc::map::walls() | cambc::map::holes() | cambc::map::altars();
     const auto& ours = cambc::map::spawn_region(team::ally);
     const auto& theirs = cambc::map::spawn_region(team::enemy);
-    cambc::distance_field from_us, from_them;
-    cambc::bitboard seen_us, seen_them;
+    cambc::distance_field from_us, from_them, jump_us;
+    cambc::bitboard seen_us, seen_them, seen_jump;
     from_us.compute(walls, ours, seen_us);
+    const auto jump_walls = cambc::map::walls() | cambc::map::altars();
+    jump_us.compute(jump_walls, ours, seen_jump);
+    double walk_value = 0, jump_value = 0;
+    for (int i = 0; i < n; ++i) {
+        bool w = false, j = false;
+        for (const auto& c : groups[i].camps()) {
+            if (seen_us.is_set(c.spawn_position())) w = true;
+            if (seen_jump.is_set(c.spawn_position())) j = true;
+        }
+        const double v = groups[i].gem_value() + 0.3 * groups[i].gold_value();
+        if (w) walk_value += v;
+        if (j) jump_value += v;
+    }
+    const bool dash_map = jump_value > 0 && walk_value < 0.6 * jump_value;
+    if (dash_map) {
+        kPicks = kDashPicks;
+        // Plan regions with holes crossable.
+        walls = jump_walls;
+        from_us = jump_us;
+        seen_us = seen_jump;
+    }
+    memory[plan::kFlags] = std::byte(dash_map ? 1 : 0);
+    for (int s = 0; s < 5; ++s) memory[plan::kTypes + s] = std::byte(static_cast<int>(type_of(kPicks[s])));
     from_them.compute(walls, theirs, seen_them);
 
     double sx = 0, sy = 0;

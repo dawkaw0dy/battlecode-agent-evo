@@ -94,6 +94,7 @@ void Bot::init() {
         for (int s = 0; s < 5; ++s)
             if (mem[plan::kTypes + s] == mine) slot = s;
         home_altar = {mem[plan::kAltars + 2 * slot], mem[plan::kAltars + 2 * slot + 1]};
+        dash_map = mem[plan::kFlags] & 1;
         if (!in_bounds(home_altar)) home_altar = {-1, -1};
     }
 
@@ -149,6 +150,7 @@ void Bot::init() {
                 if constexpr (requires { v.modifier; }) return v.modifier; else return 0.0f; }, *info);
             a.camps = ab.can_target_camps();
             a.enemies = ab.can_target_enemies();
+            if (a.kind == cambc::ability_kind::dash && dash_map) has_dash = true;
             abilities.push_back(a);
         } catch (const std::exception&) {}
     }
@@ -157,9 +159,19 @@ void Bot::init() {
 void Bot::init_fields() {
     auto bfs_walls = cambc::map::walls() | cambc::map::holes() | cambc::map::altars();
     home_field.compute(bfs_walls | cambc::map::spawn_region(team::enemy), cambc::map::spawn_region(team::ally), home_seen);
-    for (auto& g : groups)
-        for (auto t : g.tiles)
-            if (home_seen.is_set(t)) g.home_dist = std::min<int>(g.home_dist, home_field.get(t));
+    if (has_dash) {
+        cambc::distance_field jump;
+        cambc::bitboard jump_seen;
+        jump.compute(cambc::map::walls() | cambc::map::altars() | cambc::map::spawn_region(team::enemy),
+            cambc::map::spawn_region(team::ally), jump_seen);
+        for (auto& g : groups)
+            for (auto t : g.tiles)
+                if (jump_seen.is_set(t)) g.home_dist = std::min<int>(g.home_dist, jump.get(t));
+    } else {
+        for (auto& g : groups)
+            for (auto t : g.tiles)
+                if (home_seen.is_set(t)) g.home_dist = std::min<int>(g.home_dist, home_field.get(t));
+    }
 
 }
 
@@ -394,14 +406,55 @@ bool Bot::try_dash(const cambc::distance_field& field, const cambc::bitboard& se
     return false;
 }
 
+bool Bot::hole_jump(const cambc::distance_field& field, const cambc::bitboard& seen) {
+    // The best step is a hole: dash over it to a solid tile closer to the goal, or wait for the dash.
+    auto& me = cambc::self();
+    const auto& holes = cambc::map::holes();
+    const int here = field.get(pos);
+    bool hole_next = false;
+    for (int dy = -1; dy <= 1; ++dy)
+        for (int dx = -1; dx <= 1; ++dx) {
+            const vec2 q{pos.x + dx, pos.y + dy};
+            if ((dx || dy) && in_bounds(q) && seen.is_set(q) && field.get(q) < here) {
+                if (!holes.is_set(q) && free_tile(q)) return false;  // a normal step exists
+                if (holes.is_set(q)) hole_next = true;
+            }
+        }
+    if (!hole_next) return false;
+    vec2 best = pos;
+    int best_d = here;
+    for (int dy = -2; dy <= 2; ++dy)
+        for (int dx = -2; dx <= 2; ++dx) {
+            const vec2 q{pos.x + dx, pos.y + dy};
+            if (!in_bounds(q) || !seen.is_set(q) || !free_tile(q)) continue;
+            const int d = field.get(q);
+            if (d < best_d) { best_d = d; best = q; }
+        }
+    if (best.x == pos.x && best.y == pos.y) return true;  // nowhere to land: hold
+    for (const auto& a : abilities) {
+        if (a.kind != cambc::ability_kind::dash) continue;
+        try {
+            const auto abs = me.abilities();
+            if (abs[a.slot].cooldown() != 0 || !me.can_cast() || cast) return true;  // wait for it
+            if (cambc::vision::has_champion(best) || cambc::vision::has_camp(best)) return true;
+            cast = true;
+            if (abs[a.slot].use(best)) { pos = best; moved = true; }
+        } catch (const std::exception&) {}
+        return true;
+    }
+    return false;
+}
+
 bool Bot::route_to(const cambc::bitboard& goals_in) {
     auto& me = cambc::self();
     if (moved || move_failed || !me.can_move() || cast_exclusive) return false;
     if (cambc::fuel_remaining() < 30000 || cambc::round_number() != static_cast<std::uint32_t>(round)) return false;
-    auto walls = cambc::map::walls() | cambc::map::holes() | cambc::map::altars()
+    auto walls = cambc::map::walls() | cambc::map::altars()
         | cambc::map::spawn_region(team::enemy) | cambc::vision::champion_tiles() | cambc::vision::camp_tiles();
+    if (!has_dash) walls |= cambc::map::holes();
     walls.set(pos, false);
     auto goals = goals_in & ~walls;
+    if (has_dash) goals &= ~cambc::map::holes();
     if (goals.is_empty() || goals.is_set(pos)) return false;
     auto dest = empty_board();
     dest.set(pos);
@@ -409,6 +462,7 @@ bool Bot::route_to(const cambc::bitboard& goals_in) {
     cambc::bitboard visited;
     field.compute_to(walls, goals, dest, visited);
     if (!visited.is_set(pos)) return false;
+    if (has_dash && hole_jump(field, visited)) return true;
     if (try_dash(field, visited)) {
         if (goals.is_set(pos)) return true;
         // Fresh vision after the dash: refresh occupancy for the walk.
@@ -753,8 +807,8 @@ int Bot::choose_target() {
     travel_ok = false;
     if (cambc::fuel_remaining() > 65000) {
         try {
-            const auto walls = cambc::map::walls() | cambc::map::holes() | cambc::map::altars()
-                | cambc::map::spawn_region(team::enemy);
+            auto walls = cambc::map::walls() | cambc::map::altars() | cambc::map::spawn_region(team::enemy);
+            if (!has_dash) walls |= cambc::map::holes();
             auto root = empty_board();
             root.set(pos);
             cambc::distance_field field;

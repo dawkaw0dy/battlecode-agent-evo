@@ -123,6 +123,8 @@ private:
     bool route_to(const cambc::bitboard& goals);
     bool flee_home();
     bool escape_camps();
+    bool hole_jump(const cambc::distance_field& field, const cambc::bitboard& seen);
+    bool has_dash = false, dash_map = false;
     bool try_dash(const cambc::distance_field& field, const cambc::bitboard& seen);
     bool attack_camps(int group);
     bool attack_enemies();
