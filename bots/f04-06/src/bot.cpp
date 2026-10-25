@@ -34,12 +34,13 @@ constexpr int kKeepAway = 5;             // back off from stronger foes this clo
 constexpr int kWalkHome = 10;            // walk instead of recalling this close to spawn
 constexpr int kShadowRounds = -1;        // walk home rather than recall this soon after seeing a foe
 constexpr int kEnemySideSlack = 99;      // skip camps this much closer to the enemy spawn than ours
-constexpr int kTraceFrom = 60, kTraceTo = 80;
+constexpr int kTraceFrom = -1, kTraceTo = -1;
 constexpr bool kHunt = false;            // answer pack sightings
 constexpr int kHuntAge = 6;              // rounds a sighting stays valid
 
 struct Group {
     bitboard tiles;
+    bitboard near1, near3;  // tiles within 1 and 3 of the group's spawn tiles
     vec2 center;
     int gems = 0, gold = 0;
     float hp = 0, str = 0;
@@ -61,6 +62,7 @@ bitboard g_static;            // walls, holes, altars, enemy spawn
 bitboard g_ally_spawn;
 bitboard g_enemy_spawn_near;  // enemy spawn and two tiles around it: they heal there, we cannot follow
 std::vector<Group> g_groups;
+std::vector<cambc::map::camp_group> g_cg;
 std::vector<vec2> g_altars;
 std::vector<std::uint16_t> g_home;  // walking distance to our spawn, 65535 = unreached
 vec2 g_enemy_home{0, 0};
@@ -128,9 +130,16 @@ void init_map() {
     g_enemy_spawn_near.clear();
     for (auto p : cambc::map::spawn_region(team::enemy).positions()) g_enemy_spawn_near |= ring(p, 2);
     for (auto a : cambc::map::altars().positions()) g_altars.push_back(a);
-    for (const auto& grp : cambc::map::camp_groups()) {
+    g_cg = cambc::map::camp_groups();
+    for (const auto& grp : g_cg) {
         Group g;
         g.tiles = grp.spawn_tiles();
+        g.near1.clear();
+        g.near3.clear();
+        for (auto p : g.tiles.positions()) {
+            g.near1 |= ring(p, 1);
+            g.near3 |= ring(p, 3);
+        }
         g.gems = static_cast<int>(grp.gem_value());
         g.gold = static_cast<int>(grp.gold_value());
         int sx = 0, sy = 0, n = 0;
@@ -410,7 +419,7 @@ void shop() {
 // ---- knowledge -----------------------------------------------------------------------------------
 void update_groups() {
     const bitboard vis = cambc::vision::visible_tiles();
-    const auto groups = cambc::map::camp_groups();
+    const auto& groups = g_cg;
     for (size_t i = 0; i < groups.size() && i < g_groups.size(); ++i) {
         auto& g = g_groups[i];
         if ((g.tiles & vis).is_empty()) {
@@ -526,6 +535,7 @@ void turn_body_impl() {
 
     mem_load();
     update_groups();
+    if (g_round >= kTraceFrom && g_round <= kTraceTo) std::cout << "dbg T r" << g_round << " c" << static_cast<int>(me.champion_name()) << " @" << g_pos.x << "," << g_pos.y << " last " << g_last << "\n";
     if (g_round % 100 == 1) std::cout << "dbg st r" << g_round << " pos " << g_pos.x << "," << g_pos.y << " hp " << hp << " gems " << me.gem_count() << " gold " << me.gold_count() << " tgt " << int(g_mem[0]) - 1 << "\n";
     const auto foes = visible_foes(team::enemy);
     const auto allies = visible_foes(team::ally);
@@ -774,10 +784,6 @@ void turn_body_impl() {
         mem_store();
     }
 
-    if (g_round < 160 && g_pack == 0) {
-        const auto& gg = g_groups[static_cast<size_t>(std::max(0, target))];
-        std::cout << "dbg farm r" << g_round << " pos " << g_pos.x << "," << g_pos.y << " hp " << int(hp) << " tgt " << target << " c " << gg.center.x << "," << gg.center.y << " ready " << gg.ready << " rew " << gg.reward << " gems " << me.gem_count() << "\n";
-    }
     // Hit any awake camp in range first (they are hitting us), then target-group camps.
     const auto awake = cambc::vision::awake_camp_tiles();
     vec2 best_camp{-1, -1};
@@ -823,11 +829,13 @@ void turn_body_impl() {
         }
         g_mode = "approach";
         // Approach the group.
-        bitboard goals = alive_tiles.is_empty() ? g.tiles : alive_tiles;
-        bitboard approach;
-        approach.clear();
-        for (auto p : goals.positions()) approach |= ring(p, std::max(1, my_range));
-        if (!step_to(approach)) step_to(ring(g.center, 3));
+        if (!step_to(my_range >= 3 ? g.near3 : g.near1) && !step_to(ring(g.center, 3)) && !g_move_failed
+            && me.can_move()) {
+            // Unreachable from here (islands, blocked lanes): drop it for a while and pick again.
+            g.ready = g_round + 25;
+            g_mem[static_cast<size_t>(byte)] = 0;
+            mem_store();
+        }
         return;
     }
 
