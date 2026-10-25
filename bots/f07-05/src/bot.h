@@ -101,6 +101,7 @@ class Bot {
     bool step_on(const cambc::distance_field& f, const cambc::bitboard& seen, const cambc::bitboard& goals,
                  const cambc::bitboard& blocked, bool dash);
     bool try_dash(const cambc::distance_field& f, const cambc::bitboard& seen);
+    bool hold_dash(const cambc::bitboard& goals, vec2 pos) const;
     void go_home();
     bool recall_or_walk(int walk_limit);
 

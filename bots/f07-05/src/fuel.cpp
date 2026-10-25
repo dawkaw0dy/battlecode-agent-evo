@@ -74,6 +74,8 @@ void block_changed(size_t i, bool& dirty) {
 }
 
 constexpr bool kSafeSteps = true;                 // break ties between equally short steps by danger
+constexpr bool kHoldDash = true;                  // no travel dash while enemies are about
+constexpr int kHoldRounds = 8;
 constexpr std::uint64_t kFieldFuel = 40000;      // left over after a walking field (plus ~6 per reachable tile)
 std::uint64_t g_reachable = 10000;                // tiles we can walk to (set at initialisation)
 size_t g_unfilled = 0;                            // groups whose own walking field is not computed yet
@@ -751,6 +753,24 @@ bool Bot::go(const cambc::bitboard& goals_in, bool dash) {
     return step_on(s.w, s.wseen, s.goals, s.blocked, dash);
 }
 
+// Keep the dash for a fight (escape or chase, 8 turns of cooldown) rather than gain one tile of travel with it
+// while enemy champions are about: one in sight within 12, or seen lately. A chase (the goal surrounds a foe)
+// dashes as before.
+bool Bot::hold_dash(const cambc::bitboard& goals, vec2 pos) const {
+    if (!kHoldDash) return false;
+    bool near = static_cast<int>(cambc::round_number()) - last_enemy_seen_ <= kHoldRounds;
+    const auto& v = view();
+    if (v.foes.is_empty()) return near;
+    const auto& enemy_spawn = cambc::map::spawn_region(team::enemy);
+    for (auto p : v.foes.positions()) {
+        if (cheb(p, pos) > 12 || bit(enemy_spawn, p)) continue;
+        near = true;
+        for (auto d : kDirs)
+            if (bit(goals, vec2{p.x + d.x, p.y + d.y})) return false;
+    }
+    return near;
+}
+
 // Dash and/or walk one step down field f (reached tiles in seen) towards goals. A step onto a tile that an
 // unseen unit holds (a bush) fails without using the move and reveals the tile: try the next best tile once.
 bool Bot::step_on(const cambc::distance_field& f, const cambc::bitboard& seen, const cambc::bitboard& goals,
@@ -758,7 +778,7 @@ bool Bot::step_on(const cambc::distance_field& f, const cambc::bitboard& seen, c
     auto& me = cambc::self();
     const vec2 pos = me.position();
     if (!live() || !inside(pos)) return false;
-    if (dash && fdist(f, pos) >= 3 && try_dash(f, seen)) {
+    if (dash && fdist(f, pos) >= 3 && !hold_dash(goals, pos) && try_dash(f, seen)) {
         moved_ = true;
         if (move_failed_ || !me.can_move()) return true;
     }
