@@ -26,8 +26,13 @@ join after the turns they need to close in) decides: winning fights are taken an
 - Fixes that mattered: escape from camp fire (champions froze in elk range and died), leaving spawn before the heal
   tick (recall loop), hidden-damage retreat, camp-aware target distances + stuck detection, waiting inside a group's
   area is not "stuck", retrying a step when a hidden ally holds the tile (removed ~80 caught exceptions per 20 games).
-- Final (10-map set S10 vs f06-05): 7/20 (−232), kills 322 / deaths 253. vs f05-02 9/10, f04-05 10/10, f03-05 10/10,
-  f02-01 9/10, f00-03 10/12 (5–6 maps each). vs starter rounds-to-win 1036 mean (f06-05: 978) on 3 maps.
+- Later fixes: teleport-crystal island crossing (01islands, only when islands hold ≥ 30% of the map's value), waiting
+  at a respawning best target, big groups planned as raids (two helpers assumed: S10 8/20, −175, best measured),
+  claim penalty only for lower-index allies (all five herded onto one group and left it together every 8 rounds:
+  01big-world 45 → 574/505 gems, 00contest 0-400 → 1000-0 both sides; S10 itself 5/20, −311, within its noise).
+- vs f06-05: S10 5/20, other 24 maps 15/48 (before the claim fix). vs f05-02 9/10, f04-05 10/10, f03-05 10/10,
+  f02-01 9/10, f00-03 10/12 (5–6 maps each). vs starter 8/8, rounds-to-win 1036 mean (f06-05: 978) on 3 maps.
+- Game budget: 718 games played (counted conservatively).
 
 ## Tried and failed (keep entries from the parent's notes; add yours)
 - Whole-team pack with a leader broadcasting its position: allies in bushes are invisible, the leader dove alone,
@@ -39,9 +44,10 @@ join after the turns they need to close in) decides: winning fights are taken an
 - Leaving early when the simulation is losing and enemies are within 8: 2/12 vs 5/12.
 - Our simulated damage × 0.75 (fight less): 3/20 (−574) vs 5/20 (−398). First-turn burst in the simulation: worse.
 - Retreat steps weighted homewards (home 10 : threat 3): deaths 292 vs 253.
+- Engage threshold 300 (5/20, −314) and Varg instead of Ryth (4/20, −378) vs 7/20 (−232) at the time.
 
 ## Known weaknesses
-- 01islands: most camps sit on islands behind holes; no dash/teleport-crystal pathing (≈ 3× slower than f06-05).
-- 01boss-battle: the only altar is walled in except one tile held by a monolith; we never raid it, so we cannot bank.
-- Boss/golem raids in general (00contest, 00stampede gems come only from bosses or a 20-monster group).
+- 01boss-battle: the only altar is walled in except one tile held by a monolith; we bank only after it falls.
+- No dash pathing over one-tile holes; teleports only on island-heavy maps.
+- Farming races on big maps (00ambush, 00quadrants, 01shortcut) still lost to f06-05.
 - f06-05 snowballs some maps from the first fights (01the-farm B, 01gold-rush B: 1–3 kills vs 14–22 deaths).

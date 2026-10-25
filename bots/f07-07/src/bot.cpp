@@ -1136,9 +1136,12 @@ void Bot::choose_target() {
             else d = std::min<int>(home_field.get(pos), 8) + cheb(home_center, g.center) * 3 / 2 + 6;
         }
         const float left = g.hp_left >= 0 ? g.hp_left : g.max_hp;
-        int claimers = 0;
-        for (int a = 0; a < 5 && a < team_count; ++a)
-            if (a != my_index && mem[static_cast<std::size_t>(a)] == i) ++claimers;
+        int claimers = 0, senior = 0;
+        for (int a = 0; a < 5 && a < team_count; ++a) {
+            if (a == my_index || mem[static_cast<std::size_t>(a)] != i) continue;
+            ++claimers;
+            if (a < my_index) ++senior;
+        }
         // Big groups are worth sharing: allies add damage and split the monsters' attention.
         const bool big = left > 3000.0f;
         // Allies join big groups (claims draw them in): plan as if helpers are coming.
@@ -1164,9 +1167,14 @@ void Bot::choose_target() {
         if (g.guards_altar) value += 300.0f;
         float score = value / (static_cast<float>(d + wait) + clear + overhead + 6.0f);
         // Allies already on a small group: leave it to them.
-        if (!big && claimers > 0) score *= 0.3f;
+        // (lower index first, so that a crowd does not leave a group all at once and come back).
+        if (!big && senior > 0) score *= 0.3f;
         if (g.danger_until > r) score *= 0.6f;
         if (i == target) score *= 1.25f;
+        debug_block({
+            if (my_index == 0 && round >= 140 && round <= 170 && (i == 22 || i == 6))
+                std::printf("S r%u g%d d%d wait%d clear%.0f over%.0f val%.1f share%.1f score%.3f claim%d\n", round, i, d, wait, clear, overhead, value, share, score, claimers);
+        });
         if (score > best) best = score, best_i = i;
     }
     target = best_i;
@@ -1507,7 +1515,7 @@ void Bot::play_turn() {
         if (std::string_view(last_act) != "engage" && std::string_view(last_act) != "retreat") {
             std::snprintf(last_info, sizeof last_info, "hp%.0f pos(%d,%d) tgt%d cthr%.0f dmg%d en%zu gems%u bank%d", hp, pos.x, pos.y, target, camp_threat_at(pos), (int)damaged, enemies.size(), gems, (int)banking);
         }
-        if (my_index == 0 && round >= 595 && round <= 600)
+        if (my_index == 0 && round >= 150 && round <= 170)
             std::printf("v r%u pos(%d,%d) hp%.0f/%.0f tgt%d cthr%.0f thr%.0f mv%d at%d gems%u gold%u act=%s en%zu camps%zu bank%d bbu%d st%d\n", round, pos.x, pos.y, hp, max_hp, target,
                 camp_threat_at(pos), threat_at(pos), (int)moved, (int)attacked, gems, gold, last_act, enemies.size(), camps.size(), (int)banking, bank_blocked_until,
                 target >= 0 ? groups[static_cast<std::size_t>(target)].state : -1);
