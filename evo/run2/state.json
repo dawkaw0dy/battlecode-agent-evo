@@ -9099,6 +9099,13 @@
    "pushed_commit": "3fdd740496a74a5e18e4925f167dfd7565c72418",
    "results_commit": "09a6359c0847f3d91b766fb7572e20fee2d4fef1",
    "retries": 0,
+   "spotcheck": {
+    "games": 18,
+    "job": "r03-A-spot",
+    "pushed_at": 1792916683,
+    "pushed_commit": "124154c86a9372f281da539bd1544df25bc9a983",
+    "status": "pending"
+   },
    "stage": "A",
    "status": "arrived"
   }
@@ -9272,7 +9279,8 @@
   "2026-10-25T08:21:23Z g03 f03-07: admitted (e83d7b3286e3)",
   "2026-10-25T08:21:31Z g03 phase EVAL_A_PENDING",
   "2026-10-25T08:21:45Z g03 r03-A: pushed 3fdd740496 with 28 shards",
-  "2026-10-25T08:24:23Z g03 phase EVAL_A_DONE: results for r03-A"
+  "2026-10-25T08:24:23Z g03 phase EVAL_A_DONE: results for r03-A",
+  "2026-10-25T08:24:43Z g03 r03-A-spot: pushed 124154c86a (18 sampled games, 15 shards)"
  ],
  "paused": null,
  "phase": "EVAL_A_DONE",
