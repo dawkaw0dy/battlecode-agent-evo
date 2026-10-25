@@ -59,7 +59,7 @@ public:
 
 private:
     bool ready = false;
-    int slot = 0, slots = 1;
+    int slot = 0, slots = 1, regions = 1;
     cambc::vec2 home_altar{-1, -1};
     int width = 0, height = 0;
     std::vector<cambc::map::camp_group> raw;

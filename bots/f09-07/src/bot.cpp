@@ -96,6 +96,7 @@ void Bot::init() {
             if (mem[plan::kTypes + s] == mine) slot = s;
         home_altar = {mem[plan::kAltars + 2 * slot], mem[plan::kAltars + 2 * slot + 1]};
         dash_map = mem[plan::kFlags] & 1;
+        regions = std::clamp<int>(mem[plan::kRegions], 1, slots);
         if (!in_bounds(home_altar)) home_altar = {-1, -1};
     }
 
@@ -780,7 +781,7 @@ double Bot::group_score(int gi, double& trips_out, double floor) {
     else {
         const int s = own & 0x7F;
         const bool middle = own & plan::kMiddleBit;
-        if (s == slot) factor = middle ? 0.8 : 1.0;
+        if (s == slot % regions) factor = middle ? 0.8 : 1.0;
         else factor = middle ? 0.6 : 0.7;
     }
     if (gi == target) factor *= round - target_since > 8 ? 1.5 : 1.25;
@@ -874,7 +875,7 @@ int Bot::choose_target() {
         double s = group_score(gi, trips, best_score);
         if (s <= 0) return;
         for (int k = 0; k < 4; ++k)
-            if (k != slot && claims[k] == gi + 1) s *= 0.3;
+            if (k != slot && claims[k] == gi + 1) s *= k % regions == slot % regions && regions < slots ? 1.2 : 0.3;
         if (s > best_score) { best_score = s; best = gi; }
     };
     if (target >= 0) consider(target);
@@ -1065,7 +1066,7 @@ bool Bot::answer_report() {
     // Only invaders in our own region.
     bool mine = false;
     for (const auto& g : groups)
-        if ((g.owner & 0x7F) == slot && g.owner != plan::kEnemySide && g.owner != plan::kNoOwner && cheb(g.center, r) <= 6)
+        if ((g.owner & 0x7F) == slot % regions && g.owner != plan::kEnemySide && g.owner != plan::kNoOwner && cheb(g.center, r) <= 6)
             mine = true;
     if (!mine) return false;
     auto goal = empty_board();

@@ -128,26 +128,29 @@ void make_plan() {
             if (b - a > best_gap) { best_gap = b - a; start = (i + 1) % m; }
         }
     }
+    // Small maps: champions farm in pairs (half as many regions), lone farmers get picked off there.
+    const int regions = cambc::map::width() * cambc::map::height() <= 1300 && slots >= 4 ? (slots + 1) / 2 : slots;
+    memory[plan::kRegions] = std::byte(regions);
     double total = 0;
     for (const auto& e : mine) total += e.value;
     std::vector<int> sector(m, 0);
-    std::vector<double> hard(slots, 0), cxs(slots, 0), cys(slots, 0), cnts(slots, 0);
+    std::vector<double> hard(regions, 0), cxs(regions, 0), cys(regions, 0), cnts(regions, 0);
     double run = 0;
     for (int k = 0; k < m; ++k) {
         const auto& e = mine[(start + k) % m];
         const double mid = run + e.value / 2;
-        int s = total > 0 ? static_cast<int>(mid / total * slots) : 0;
-        s = std::clamp(s, 0, slots - 1);
+        int s = total > 0 ? static_cast<int>(mid / total * regions) : 0;
+        s = std::clamp(s, 0, regions - 1);
         sector[(start + k) % m] = s;
         run += e.value;
         hard[s] += e.hard; cxs[s] += e.cx; cys[s] += e.cy; cnts[s] += 1;
     }
     // Hardest sector to the strongest pick (picks are ordered strongest first).
-    std::vector<int> order(slots);
-    for (int s = 0; s < slots; ++s) order[s] = s;
+    std::vector<int> order(regions);
+    for (int s = 0; s < regions; ++s) order[s] = s;
     std::stable_sort(order.begin(), order.end(), [&](int a, int b) { return hard[a] > hard[b]; });
-    std::vector<int> slot_of(slots);
-    for (int r = 0; r < slots; ++r) slot_of[order[r]] = r;
+    std::vector<int> slot_of(regions);
+    for (int r = 0; r < regions; ++r) slot_of[order[r]] = r;
     for (int k = 0; k < m; ++k) {
         const int i = mine[k].idx;
         const auto flag = std::to_integer<std::uint8_t>(memory[plan::kOwners + i]);
@@ -157,7 +160,7 @@ void make_plan() {
     // Home altar: the reachable altar nearest to each sector's centre.
     const auto altars = cambc::map::altars().positions();
     for (int s = 0; s < slots; ++s) {
-        const int sec = order[s];
+        const int sec = order[s % regions];
         vec2 best{255, 255};
         double best_d = 1e18;
         const double cx = cnts[sec] ? cxs[sec] / cnts[sec] : sx, cy = cnts[sec] ? cys[sec] / cnts[sec] : sy;
