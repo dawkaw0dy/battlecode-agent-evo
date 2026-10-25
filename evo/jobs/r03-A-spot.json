@@ -1,0 +1,147 @@
+{
+ "env_manifest_sha256": "16f38370f9e03b42263aab52253053e6123fa9667adec78e1e8ed8551fb817de",
+ "generation": 3,
+ "job_id": "r03-A-spot",
+ "map_sha256": {
+  "00contest": "554240a5a793f8c1ac9c518cb6edbacab0129ec4dfd94b199331aaebd0bf418a",
+  "00expanse": "af4236f408f8450f7da871731f08ef80295f07fac86b541f6547639a78dc2205",
+  "00fragment": "46512bf4fe1fc57d1651b15d44c283cac69cfce1914a5000d19fab979f5b8bbb",
+  "00gem-fields": "80af89f07723d23d822ddc858616a0156ae60f9d41ffd8bd9105f924379677b5",
+  "00quadrants": "261fe6c133f076653bda84e88965dc35c5a59a70e7730082b4c6df9ca892df92",
+  "00road-of-riches": "8365e18788720a079a906c0430e809317236acecccf888b517a1de409689b049",
+  "00rows": "6a4203ae1bfe86ad0f6b083f390cfd8e2f5e45f7e4102f6a2f27205d5333e701",
+  "00split": "1db691b7def9cb585314c7c4139ef1b79df87fcdbfab9d86ef31666c4709a4c4",
+  "01boss-battle": "53086e249294aed6f427fe647d578303589a081e953c62a0ff8f20cade9993fa",
+  "01elk-arena": "72b8e03bc4378d5f988f9c1c07609848bfb42fd8a883cce01820d96212f21c0a",
+  "01gold-rush": "6e564fdf09fdf67a4182a909d6985737b488742e64f2c3e164204e78bc64c898",
+  "01islands": "d97cf04b738393812fb51024582e2a6cfba8a850b19ce031f2c1ad3d7b916acb",
+  "01starvation": "0b8e85603a85ca5778f92d2975c56da0e4b8df59264c42eef23108f8bbceec2a",
+  "01yellow-brick-road": "130453395278cdabb1ff80564357a99ca8394afaef006fdede8beb88924a8fa0"
+ },
+ "runner_version": "cambc==3.0.5",
+ "runs_on": "ubuntu-22.04",
+ "shards": [
+  {
+   "a": "f03-01",
+   "b": "f01-07",
+   "maps": [
+    "00gem-fields"
+   ]
+  },
+  {
+   "a": "f03-01",
+   "b": "starter",
+   "maps": [
+    "01islands"
+   ]
+  },
+  {
+   "a": "f03-02",
+   "b": "f00-03",
+   "maps": [
+    "01gold-rush"
+   ]
+  },
+  {
+   "a": "f03-02",
+   "b": "f01-07",
+   "maps": [
+    "01yellow-brick-road"
+   ]
+  },
+  {
+   "a": "f03-03",
+   "b": "f02-01",
+   "maps": [
+    "00rows"
+   ]
+  },
+  {
+   "a": "f03-03",
+   "b": "starter",
+   "maps": [
+    "00split"
+   ]
+  },
+  {
+   "a": "f03-04",
+   "b": "f00-03",
+   "maps": [
+    "00expanse"
+   ]
+  },
+  {
+   "a": "f03-04",
+   "b": "f01-07",
+   "maps": [
+    "00road-of-riches"
+   ]
+  },
+  {
+   "a": "f03-04",
+   "b": "starter",
+   "maps": [
+    "00contest",
+    "00road-of-riches"
+   ]
+  },
+  {
+   "a": "f03-05",
+   "b": "f02-01",
+   "maps": [
+    "00rows",
+    "01starvation"
+   ]
+  },
+  {
+   "a": "f03-05",
+   "b": "starter",
+   "maps": [
+    "01islands"
+   ]
+  },
+  {
+   "a": "f03-06",
+   "b": "f00-03",
+   "maps": [
+    "01boss-battle"
+   ]
+  },
+  {
+   "a": "f03-06",
+   "b": "f01-07",
+   "maps": [
+    "00quadrants"
+   ]
+  },
+  {
+   "a": "f03-06",
+   "b": "f02-01",
+   "maps": [
+    "00fragment"
+   ]
+  },
+  {
+   "a": "f03-07",
+   "b": "f00-03",
+   "maps": [
+    "01boss-battle",
+    "01elk-arena"
+   ]
+  }
+ ],
+ "src_sha256": {
+  "f00-03": "e82e392a93a87be2051fbcc9deac0f5041cca7518abbb32d291e19f6a23a5729",
+  "f01-07": "cd09b4530e45e1a31827447093b349c4c5d2b1fc1ba60d885780391e8ea954a3",
+  "f02-01": "4c7ef7070e1438412f0d8535ba02f3cc7bc4e2249323fc504e66018e4f78727f",
+  "f03-01": "9707009f36d390b0bbb3b0d494a0bc1fbe0314549d5229ef9323430f00580ab6",
+  "f03-02": "68a074163008006111e2ab886d2076368b2b61c4468a82e2657d2a94a55007e6",
+  "f03-03": "319bc22fbf8055b088831d9e1fe80327a662db9c076a02c48da3dcf39057a5c3",
+  "f03-04": "6e3a94424e3718d7abc0168c5491abf6f3e048aaee193d789befa6e84336d91f",
+  "f03-05": "98fd79ae338c3590096ff21eefa715cc1a22794c2ad03aa03d835bc96f9edc90",
+  "f03-06": "41232bd34b90e43f4cadbefbd304a8c982ca64474af09c829c4fbc98355fd362",
+  "f03-07": "e83d7b3286e3cf636260421a76a89871178ba311068dcd9b8cdda1f70f42ef7e",
+  "starter": "9023e6a089796897d6ed661f26054d1b81b298e048a09a5df75d3b9cb5d3c6a9"
+ },
+ "stage": "spot"
+}
