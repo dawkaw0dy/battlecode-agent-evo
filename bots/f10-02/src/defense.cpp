@@ -55,6 +55,7 @@ constexpr bool kLateCancel = true;      // ... cancel only when a visible foe hi
 constexpr int kCancelDist = 5;
 constexpr bool kCaughtShoot = true;     // ranged, an adjacent melee chaser: shoot back instead of a futile step
 constexpr int kCaughtHome = 3;          // ... unless home is this close
+constexpr bool kAltarWatch = true;      // no banking walk to an altar an enemy stands beside (unless we outlive it)
 constexpr bool kStunSafeStart = true;   // no tribute of 2+ ticks while a stun can reach us in it
 constexpr bool kContest = true;         // go for channelling enemies we can kill before the channel ends
 constexpr float kBagNeed = 3.0f;        // fight value needed to engage, per carried gem
@@ -666,6 +667,24 @@ bool Bot::tribute() {
     if (d > home_altar_ + 10 && incoming_ == 0 && !moved_ && live() && recall_safe(kRecallTicks)) {
         try { me.recall(); } catch (const cambc::error& e) { warn("bank recall", e); }
         return true;
+    }
+
+    // An enemy beside the altar we head for meets us there: the bag would walk into the fight and the
+    // channel would not be outlived. Keep it (farm on, flee from the fight model) until the altar is clear.
+    if (kAltarWatch && !theirs.empty() && left >= d + channel + 20 && ours + gems < win) {
+        int ai = -1, ad = 1 << 20;
+        for (size_t i = 0; i < alt_.size(); ++i) {
+            if (alt_[i].spots.empty() || enemy_locked(i)) continue;
+            const int dd = cheb(alt_[i].at, pos_);
+            if (dd < ad) { ad = dd; ai = static_cast<int>(i); }
+        }
+        if (ai >= 0) {
+            const vec2 a = alt_[static_cast<size_t>(ai)].at;
+            bool watched = false;
+            for (const auto& e : theirs)
+                if (!e.stunned && cheb(e.pos, a) <= static_cast<int>(e.threat_reach()) + 2) watched = true;
+            if (watched && channel_damage(a, channel + 1, theirs) >= me.health() * 0.8f) return false;
+        }
     }
 
     // Where: the nearest open altar by road (the route search picks it from all of them). An enemy lock
