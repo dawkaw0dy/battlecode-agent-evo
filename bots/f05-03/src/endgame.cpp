@@ -84,6 +84,20 @@ void Bot::eg_init() {
                 A.foe_d = std::min(A.foe_d, foe.at(t));
             }
     }
+    // The only altar we can reach takes tributes only from a boss's spawn tiles: hold one (hold_tile()).
+    hold_i_ = -1;
+    int reachable = 0;
+    for (size_t i = 0; i < alt_.size(); ++i) {
+        if (alt_[i].spots.empty()) continue;
+        ++reachable;
+        bool boss_tiles = true;
+        for (auto t : alt_[i].spots) {
+            const int gi = group_at_[static_cast<size_t>(tidx(t))];
+            if (gi < 0 || !g_[static_cast<size_t>(gi)].boss) boss_tiles = false;
+        }
+        if (boss_tiles) hold_i_ = static_cast<int>(i);
+    }
+    if (reachable != 1) hold_i_ = -1;
     if (dropped) {
         // Some tribute tiles cannot be walked to (sealed pockets): bank and plan with the others only.
         altar_spots_.clear();
@@ -155,13 +169,44 @@ bool Bot::break_lock(vec2 a) {
     return true;
 }
 
+// The only altar takes tributes only from a boss's spawn tiles (01boss-battle): while one of us stands on
+// such a tile the boss cannot respawn, so the altar stays open to us, and the enemy can bank there only by
+// killing us first. Stand there with an empty bag, and step off when an ally with gems waits beside us.
+bool Bot::hold_tile() {
+    if (hold_i_ < 0 || moved_ || !bit(alt_[static_cast<size_t>(hold_i_)].goal, pos_)) return false;
+    auto& me = cambc::self();
+    if (me.health() < me.max_health() * 0.4f || !me.can_move() || !live()) return false;
+    const auto& goal = alt_[static_cast<size_t>(hold_i_)].goal;
+    for (const auto& a : others_) {
+        cambc::detail::champion_info info{};
+        if (!peek(a, info)) continue;
+        const vec2 p{info.x, info.y};
+        if (!inside(p) || cheb(p, pos_) > 2) continue;
+        int g = 0;
+        try { g = static_cast<int>(a.gem_count()); } catch (const std::exception&) { continue; }
+        if (g <= 0) continue;
+        for (auto d : kDirs) {
+            const vec2 t{pos_.x + d.x, pos_.y + d.y};
+            if (!free_tile(t) || bit(goal, t) || bit(camp_block_, t) || bit(walk_walls(), t)) continue;
+            bool ok = false;
+            try { ok = me.move_absolute(t); } catch (const cambc::error& e) { warn("hold step", e); }
+            moved_ = true;
+            if (!ok) move_failed_ = true;
+            invalidate();
+            return true;
+        }
+        return false;
+    }
+    return true;
+}
+
 bool Bot::tribute() {
     auto& me = cambc::self();
     const int gems = static_cast<int>(me.gem_count());
-    if (gems <= 0) return false;
     eg_init();
     if (!eg_ready_) return false;
     eg_observe();
+    if (gems <= 0) return hold_tile();
     const int now = round_now();
     const int range = cambc::constants::submit_gems_range;
     const auto locks = cambc::vision::altar_lock_tiles(team::enemy);
@@ -243,6 +288,17 @@ bool Bot::tribute() {
     }
     andnot_into(goal, camp_block_, goal);
     const bool went = go(goal, true);
+    // Every tribute tile taken, by an ally among others (one tile, a long channel): wait beside it.
+    if (!went && d <= 3 && !moved_) {
+        const auto& v = view();
+        bool all_taken = true, ally = false;
+        for (auto t : goal.positions()) {
+            if (!v.lchamps.at(t)) { all_taken = false; break; }
+            for (auto a : v.allies)
+                if (a == t) ally = true;
+        }
+        if (all_taken && ally) return true;
+    }
     if (kTraceBank && (now % 10 == 0 || !went)) {
         std::cout << "bank r" << now << " slot" << slot_ << " gems " << gems << " pos " << pos_.x << ',' << pos_.y
                   << " d " << d << " open " << n_open << " cand " << n_cand << " locked " << any_locked << " went " << went

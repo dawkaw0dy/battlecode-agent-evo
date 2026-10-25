@@ -69,6 +69,7 @@ class Bot {
     bool eg_ready_ = false;
     int eg_round_ = -1;                 // last round eg_observe() ran
     bool foe_breaks_ = false;           // we saw one of our locks broken
+    int hold_i_ = -1;                   // the only altar, whose tribute tiles a boss respawns on
     cambc::bitboard eg_seen_, bank_goal_;
 
     // Memory.
@@ -138,6 +139,7 @@ class Bot {
     void eg_observe();
     bool enemy_locked(size_t i) const;
     bool break_lock(vec2 a);
+    bool hold_tile();
     bool contest(vec2 p, int left, float hp, const std::vector<vec2>& free_foes);
     int choose(int& wait);
     void farm(int group);
