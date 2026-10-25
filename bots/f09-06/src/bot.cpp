@@ -2,6 +2,7 @@
 #include "bot.h"
 #include "nav.h"
 #include "draft.h"
+#include "fight.h"
 #include <cambc.h>
 #include <algorithm>
 #include <cmath>
@@ -46,6 +47,10 @@ constexpr int kBankStick = 6;              // keep the chosen altar unless anoth
 constexpr float kForeignValue = 0.5f;      // groups on the enemy side
 constexpr float kOtherSectorValue = 0.85f; // groups in another champion's sector
 constexpr float kCampDamageTaken = 1.0f;   // share of camp damage we expect to take (jungle emblem, stuns)
+constexpr bool kUseSim = true;            // decide fights by the focus-fire simulation (else the hp*dps ratio)
+constexpr int kSimTurns = 8;               // simulation horizon
+constexpr float kEngageValue = 150.0f;     // simulated value needed to start a fight
+constexpr float kFleeValue = 100.0f;       // run when the simulation says we lose this much
 constexpr float kEngageRatio = 1.5f;       // fight when our hp*dps beats theirs by this much
 constexpr float kFleeRatio = 0.85f;        // run when below this and they can reach us
 constexpr int kDeepChase = 7;              // never chase targets this close to their spawn
@@ -442,6 +447,20 @@ bool Bot::handle_fight() {
     for (const auto& c : W.camps)
         if (c.awake && c.str > 0 && cheb(c.pos, pos) <= c.range) their_dps += c.str * 0.5f;
     const float ratio = (our_hp * our_dps) / std::max(1.0f, their_hp * their_dps);
+    // Turn-by-turn focus fire with approach delays: who dies, and what it is worth.
+    std::vector<SimUnit> sim_o, sim_t;
+    sim_o.push_back({pos, hp, dps, me.attack_range(), static_cast<int>(me.gem_count()), ranged, false});
+    for (const auto& a : W.allies)
+        if (cheb(a.pos, pos) <= 7) sim_o.push_back({a.pos, a.hp, unit_dps(a), a.range, a.gems, a.range > 1, a.channel});
+    for (const auto& rs : seen_enemies) {
+        if (W.round - rs.round > 2 || cheb(rs.u.pos, pos) > 10) continue;
+        const auto& e = rs.u;
+        sim_t.push_back({e.pos, e.hp, unit_dps(e), e.range, e.gems, e.range > 1, e.channel || e.stunned});
+    }
+    for (const auto& c : W.camps)
+        if (c.awake && c.str > 0 && cheb(c.pos, pos) <= c.range) sim_o[0].hp -= c.str * 2.0f;  // camps keep hitting us
+    if (sim_o[0].hp < 1) sim_o[0].hp = 1;
+    const SimResult sim = simulate(sim_o, sim_t, kSimTurns);
 
     // Best target among the visible: quick kills, carriers and channels.
     const Unit* tgt = nullptr;
@@ -463,13 +482,14 @@ bool Bot::handle_fight() {
     const bool may_chase = tgt && !deep && W.round >= chase_block_until
         && (tgt_d <= me.attack_range() + kChaseReach || tgt->channel || tgt->hp <= dps * 2.0f);
 
-    bool engage = ratio >= kEngageRatio || (tgt && tgt->channel && ratio >= 0.7f) || kill_now
+    const bool sim_win = sim.value >= kEngageValue && (!sim.we_die || sim.value >= 3.0f * kEngageValue);
+    bool engage = (kUseSim ? sim_win : ratio >= kEngageRatio) || (tgt && tgt->channel && (kUseSim ? sim.value >= 0 : ratio >= 0.7f)) || kill_now
         || (tgt && tgt->hp <= dps * 1.5f && hp > me.max_health() * 0.3f);
     if (!in_reach && !may_chase) engage = false;
     debug_block({
         std::cout << "  F r" << W.round << " c" << static_cast<int>(me.champion_name()) << " at " << pos.x << "," << pos.y << " hp " << static_cast<int>(hp)
                   << " ours " << static_cast<int>(our_hp) << "/" << static_cast<int>(our_dps) << " theirs " << static_cast<int>(their_hp) << "/"
-                  << static_cast<int>(their_dps) << " ratio " << ratio << " eng " << engage << " thr " << threatened << " n" << threats.size()
+                  << static_cast<int>(their_dps) << " ratio " << ratio << " sim " << sim.value << (sim.we_die ? " DIE" : "") << " eng " << engage << " thr " << threatened << " n" << threats.size()
                   << " deep " << deep << " chase " << chase_turns;
         if (tgt) std::cout << " tgt " << tgt->pos.x << "," << tgt->pos.y << " hp " << static_cast<int>(tgt->hp) << " d " << cheb(tgt->pos, pos);
         std::cout << "\n";
@@ -501,7 +521,8 @@ bool Bot::handle_fight() {
         return true;
     }
 
-    if (ratio < kFleeRatio && threatened) {
+    const bool losing = kUseSim ? sim.value <= -kFleeValue || (sim.we_die && sim.value < kEngageValue) : ratio < kFleeRatio;
+    if (losing && threatened) {
         act = "flee";
         flee_until = W.round + kFleeMemory;
         // Hit something first when that costs nothing (melee may still walk), then run.
@@ -533,7 +554,7 @@ bool Bot::handle_fight() {
     }
 
     // Not engaging: keep out of their reach while we farm or bank.
-    if (kUseDanger && ratio < kEngageRatio) {
+    if (kUseDanger && !sim_win) {
         std::vector<int> keep;
         for (std::size_t i = 0; i < reach.size(); ++i) keep.push_back(reach[i] + 1);
         N.set_danger(threats, keep);
