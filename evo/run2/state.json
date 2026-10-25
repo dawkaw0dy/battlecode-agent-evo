@@ -3775,9 +3775,11 @@
   },
   "f07-07": {
    "archetype": "early-aggression",
-   "branch": null,
-   "commit": null,
+   "branch": "origin/claude/evo-task-f07-07-edfa9k",
+   "commit": "8a779ca7e46c63c04afda455b671bde95a3e5b3d",
    "deadline_minutes": 120,
+   "done_at": 1792944356,
+   "effort_level": "high",
    "evidence": [],
    "failed_ideas": [
     "f06-01: Fuel: host calls cost ~30\u201340 fuel, but every bitboard temporary (&, |, ~, shift) ~600 and a grow(r) ~4k\u00b7r;",
@@ -3800,6 +3802,7 @@
    "generation": 7,
    "id": "f07-07",
    "kind": "immigrant",
+   "model": null,
    "nudged": [
     "session_01QbJFHuHzN7s7aAr6StK8mQ"
    ],
@@ -3822,7 +3825,7 @@
    ],
    "slot": 7,
    "src_sha256": null,
-   "status": "running",
+   "status": "done",
    "task_sha256": "5d5f6ac39ec1d381b6f589d401254547b3f1474a466412991142399f737f840e"
   }
  },
@@ -20261,8 +20264,6 @@
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-24T21:30:11Z g02 phase EVAL_B_DONE: results for r02-B",
-  "2026-10-24T21:30:23Z g02 r02-B-spot: pushed 4c4890649a (33 sampled games, 23 shards)",
   "2026-10-24T21:32:42Z g02 r02-B: verified, 1632 rows, spot-check 33 OK",
   "2026-10-24T21:32:53Z g02 phase EVAL_C_PENDING: stage C for f02-02 vs f02-03",
   "2026-10-24T21:33:06Z g02 r02-C: pushed f105a7d697 with 7 shards",
@@ -20460,10 +20461,12 @@
   "2026-10-25T15:06:39Z g07 f07-04: done on origin/claude/evo-f07-04-qylpwh at d02c18e02b",
   "2026-10-25T15:10:40Z g07 f07-01: done on origin/claude/evo-task-f07-01-8gev2d at 426ea7cf30",
   "2026-10-25T15:14:59Z g07 f07-02: done on origin/claude/evo-f07-02-9nocn1 at 406490475f",
-  "2026-10-25T15:15:04Z g07 f07-05: done on origin/claude/evolution-agent-f07-05-zpvlm2 at 19bcbc6290"
+  "2026-10-25T15:15:04Z g07 f07-05: done on origin/claude/evolution-agent-f07-05-zpvlm2 at 19bcbc6290",
+  "2026-10-25T16:05:56Z g07 f07-07: done on origin/claude/evo-task-f07-07-edfa9k at 8a779ca7e4",
+  "2026-10-25T16:05:56Z g07 phase ADMITTED"
  ],
  "paused": null,
- "phase": "RUNNING",
+ "phase": "ADMITTED",
  "sessions_launched": 57,
  "version": 1
 }
