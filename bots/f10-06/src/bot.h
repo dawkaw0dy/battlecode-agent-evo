@@ -98,7 +98,7 @@ class Bot {
     bool attack_group(int gi, bool any_awake);
     bool attack_foe();
     bool answer_call();
-    void reveal();
+    void reveal(int min_n);
     void spells(bool staying, int gi);
     bool use_reset(int gi);
     bool in_range_of_awake(vec2 p) const;

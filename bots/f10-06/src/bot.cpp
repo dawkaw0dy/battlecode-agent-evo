@@ -16,6 +16,7 @@ namespace {
 constexpr bool kDebug = false;
 constexpr int kFar = 65535;
 constexpr float kPack = 0.0f;
+constexpr bool kScout = true;      // ward unseen bushes beside us while enemies are about
 constexpr int kAvoidRounds = 15;   // skip groups where an enemy was seen this recently
 constexpr int kHelpRange = 0;      // answer an ally's fight within this many tiles
 constexpr int kThreatPad = 5;      // retreat from a fight we would lose once enemies are this far beyond their range
@@ -422,10 +423,13 @@ bool Bot::flee() {
 }
 
 // Hit by someone we cannot see: put the ward into the nearest unseen bush to reveal the shooter.
-void Bot::reveal() {
+void Bot::reveal(int min_n) {
     auto& me = cambc::self();
     try {
         if (me.ward_cooldown() > 0) return;
+        if (min_n > 0)
+            for (auto w : me.ward_positions())
+                if (cheb(w, pos_) <= 5) return;
         const auto tiles = me.ward_placement_tiles();
         const auto& bushes = cambc::map::bushes();
         vec2 best{-1, -1};
@@ -438,6 +442,7 @@ void Bot::reveal() {
                 const vec2 q = t + d;
                 if (bit(bushes, q) && !bit(vis_, q)) ++n;
             }
+            if (n < min_n) continue;
             const int v = cheb(t, pos_) * 4 - n;
             if (v < bd) { bd = v; best = t; }
         }
@@ -975,7 +980,7 @@ void Bot::turn() {
             if (cheb(f.pos, pos_) <= f.range + 1) seen_cause = true;
         if (!seen_cause) {
             ambush_until_ = now_ + 4;
-            reveal();
+            reveal(0);
         }
     }
     last_hp_ = hp_;
@@ -986,6 +991,7 @@ void Bot::turn() {
     try {
         if (me.buffs().has_stun()) return;
     } catch (const std::exception&) {}
+    if (kScout && now_ - last_enemy_ < 40 && !me.is_recalling() && !me.is_submitting_gems()) reveal(3);
 
     // Our damage per turn on camps.
     camp_dps_ = me.strength();
