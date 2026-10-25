@@ -569,7 +569,7 @@ void turn_body_impl() {
 
     mem_load();
     update_groups();
-    if (g_round % 100 == 1) std::cout << "dbg st r" << g_round << " pos " << g_pos.x << "," << g_pos.y << " hp " << hp << " gems " << me.gem_count() << " gold " << me.gold_count() << " tgt " << int(g_mem[0]) - 1 << "\n";
+    if (g_round % 100 == 1) std::cout << "dbg st r" << g_round << " pos " << g_pos.x << "," << g_pos.y << " hp " << static_cast<int>(hp) << " gems " << me.gem_count() << " gold " << me.gold_count() << " tgt " << int(g_mem[0]) - 1 << "\n";
     const auto foes = visible_foes(team::enemy);
     const auto allies = visible_foes(team::ally);
     const bool at_spawn = g_ally_spawn.is_set(g_pos);
