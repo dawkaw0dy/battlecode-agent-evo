@@ -8444,9 +8444,10 @@
   "2026-10-25T07:51:24Z g03 f03-05: dead (deadline)",
   "2026-10-25T07:51:26Z g03 f03-06: dead (deadline)",
   "2026-10-25T07:51:29Z g03 f03-07: dead (deadline)",
-  "2026-10-25T07:51:29Z g03 phase ADMITTED"
+  "2026-10-25T07:51:29Z g03 phase ADMITTED",
+  "2026-10-25T07:51:54Z g03 PAUSED: only 1 admitted bots (need 3); not evaluating"
  ],
- "paused": null,
+ "paused": "only 1 admitted bots (need 3); not evaluating",
  "phase": "ADMITTED",
  "sessions_launched": 29,
  "version": 1
