@@ -646,7 +646,15 @@ void Bot::farm(int group) {
     const auto& goal2 = approach_goal(group, r);
     const bool moved_before = moved_;
     if (walk_static(group, e - r)) return;
-    const bool ok = go(goal2, e > 3);
+    // The last camp: finish it from one of the group's spawn tiles, so the capture starts at once.
+    int living = 0;
+    for (float h : k.hp) living += h > 0 ? 1 : 0;
+    bool ok = false;
+    if (living == 1 && e <= r + 2) {
+        const auto spot = goal2 & gtiles_[group];
+        if (!spot.is_empty() && !spot.is_set(pos_)) ok = go(spot, false);
+    }
+    if (!moved_) ok = go(goal2, e > 3);
     // The safest spots cannot be reached: fall back to any spot in range for a while.
     if (!ok && !moved_before && !moved_ && !goal2.is_set(pos_) && !goal_plain_) plain_until_ = now + 12;
     if (hit_group(group)) reset_hit(group);
