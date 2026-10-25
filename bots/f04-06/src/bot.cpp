@@ -6,7 +6,6 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
-#include <cstdio>
 #include <iostream>
 #include <optional>
 #include <span>
@@ -74,7 +73,6 @@ bool g_attacked = false;
 float g_last_hp = 0;
 int g_shards = 0;
 const char* g_mode = "";
-char g_last[160] = "";
 bool g_was_alive = true;
 std::vector<std::pair<const char*, int>> g_hist;
 void count_mode(const char* m) {
@@ -544,7 +542,7 @@ void turn_body_impl() {
     }
     if (!me.is_alive()) {
         count_mode("dead");
-        if (g_was_alive) std::cout << "dbg died r" << g_round << " last: " << g_last << "\n";
+        if (g_was_alive) std::cout << "dbg died r" << g_round << " last: " << g_mode << "\n";
         g_was_alive = false;
         shop();
         return;
@@ -559,7 +557,6 @@ void turn_body_impl() {
 
     mem_load();
     update_groups();
-    if (g_round >= kTraceFrom && g_round <= kTraceTo) std::cout << "dbg T r" << g_round << " c" << static_cast<int>(me.champion_name()) << " @" << g_pos.x << "," << g_pos.y << " last " << g_last << "\n";
     if (g_round % 100 == 1) std::cout << "dbg st r" << g_round << " pos " << g_pos.x << "," << g_pos.y << " hp " << hp << " gems " << me.gem_count() << " gold " << me.gold_count() << " tgt " << int(g_mem[0]) - 1 << "\n";
     const auto foes = visible_foes(team::enemy);
     const auto allies = visible_foes(team::ally);
@@ -604,15 +601,8 @@ void turn_body_impl() {
     int nearest_foe = 99;
     for (const auto& f : foes) nearest_foe = std::min(nearest_foe, dist(g_pos, f.p));
     struct Trace {
-        ~Trace() {
-            int awake_n = 0;
-            try { awake_n = cambc::vision::awake_camp_tiles().count(); } catch (...) {}
-            count_mode(g_mode);
-            std::snprintf(g_last, sizeof g_last, "r%d %s hp%d foes%d nf%d al%d awake%d pos%d,%d", g_round, g_mode,
-                hp, nf_count, nf, al, awake_n, g_pos.x, g_pos.y);
-        }
-        int hp, nf_count, nf, al;
-    } trace{static_cast<int>(hp), static_cast<int>(foes.size()), nearest_foe, static_cast<int>(allies.size())};
+        ~Trace() { count_mode(g_mode); }
+    } trace;
     g_mode = "none";
 
     // Path distance to a tile within `r` of each foe; foes we cannot reach soon are not targets.
