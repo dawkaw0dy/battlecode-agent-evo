@@ -51,9 +51,9 @@ constexpr bool kLockRunner = false;  // the last pick carries locks to far altar
 constexpr int kLockDetour = 8;
 // Opening (f11-04): the draft's routes guide the chooser rather than dictate the target.
 constexpr bool kForceRoute = false;   // true: walk the route as planned, the chooser takes over after it
-constexpr float kRouteNext = 1.6f;    // score factor of the next group on our own route
+constexpr float kRouteNext = 2.2f;    // score factor of the next group on our own route
 constexpr float kRouteMine = 1.2f;    // ... of later groups on it
-constexpr float kRouteOther = 0.7f;   // ... of groups planned for an ally, while the opening lasts
+constexpr float kRouteOther = 0.5f;   // ... of groups planned for an ally, while the opening lasts
 constexpr float kOpenRaid = 0.5f;     // raid scores while our opening route lasts      // walk this far (Chebyshev) out of our way to lock an altar
 
 namespace {
