@@ -1,0 +1,232 @@
+{
+ "env_manifest_sha256": "a362858fee6f774350e2901c8b43d49242278b8435cd847a8ad87dc4772be67d",
+ "generation": 8,
+ "heldout_repo": "dawkaw0dy/battlecode-agent-evo-heldout",
+ "job_id": "r08-B-spot",
+ "map_sha256": {
+  "00ambush": "81ac8b6689f275d24e57d586f2451a160484c15144f86afd0c4450e02c39e579",
+  "00eight": "76b5ce0895130f5f423f3ac6a630c5cf8e1202d4150e6ad4e287c75d21794765",
+  "00expanse": "af4236f408f8450f7da871731f08ef80295f07fac86b541f6547639a78dc2205",
+  "00gemfight": "1dfe5669ebcdf39e7769b5abf933c707804ee4a216881f89178e75e3dbc27239",
+  "00interlock": "140e5bc3ac11c7f74dfc4ed99cc53739a34be8d3f71a7f4d0520dc4a3c197e19",
+  "00packs": "60ee7a86ee377a04a77d11008b78aaed9e2c1cfcfc4302055974195e078c675a",
+  "00reverse-spiral": "f57669ffc98b76a5c2e4eccba41690dc193efc29f067ee960605617b2cfb48e5",
+  "00road-of-riches": "8365e18788720a079a906c0430e809317236acecccf888b517a1de409689b049",
+  "00rows": "6a4203ae1bfe86ad0f6b083f390cfd8e2f5e45f7e4102f6a2f27205d5333e701",
+  "00stampede": "49807e4756ec1b2030ed2ca7ebdd8a07f1a6ed7f2d2bd751e6941f5c0c877cdc",
+  "01hooks": "23e58fe8f41ff66761ade251d3d10a9c3eead864f9ad74f12ad9e34f4bece378",
+  "01shortcut": "f77db387292e66a8aad7e912c179787db0c41b6632ee841a21593dfc279ecb3a",
+  "01yellow-brick-road": "130453395278cdabb1ff80564357a99ca8394afaef006fdede8beb88924a8fa0",
+  "h-1b59": "b283e684b10c7a8d7c5bd4d6cd4533db04fbb6588748ef53ce73f7504cf0ba55",
+  "h-1b5a": "369bde5de45171d62f7a4628a93a88bee18bf1b410fb41dfa2f5121b3a938678",
+  "h-1b5e": "069c2161c732cf3bb2cafe3a317a0c8a7fbf917afe02f931853015cdcc8fe9cf",
+  "h-1ce9": "85704f93950c1337beac4efbe03e7bebe4fcd9c4789cacbf998edae5941797a5",
+  "h-1cea": "0b16829d8987fefc580849704961b7f776e39a1ca621fb0051f6fcda8f692ede",
+  "h-1cec": "cd7bbee79257e81d33e3eda06ab17a960aa94e8d922a453b42739bc6dae8c261",
+  "h-1cee": "2d11b8799b0f5e8a5ad84efa95b71e982c6c47ce93d108877996d77e4f27d57c",
+  "h-1e7e": "a1f7ddbf8cd539ca85a063e7f7b4a4761277aee24b88ecf8b942a1fa24ee0e40"
+ },
+ "runner_version": "cambc==3.0.5",
+ "runs_on": "ubuntu-22.04",
+ "shards": [
+  {
+   "a": "f08-02",
+   "b": "f05-02",
+   "maps": [
+    "00gemfight"
+   ]
+  },
+  {
+   "a": "f08-02",
+   "b": "f07-02",
+   "maps": [
+    "00packs"
+   ]
+  },
+  {
+   "a": "f08-02",
+   "b": "f07-02",
+   "heldout": true,
+   "maps": [
+    "h-1cea"
+   ]
+  },
+  {
+   "a": "f08-02",
+   "b": "f08-03",
+   "maps": [
+    "00rows"
+   ]
+  },
+  {
+   "a": "f08-02",
+   "b": "f08-04",
+   "maps": [
+    "00interlock",
+    "01shortcut"
+   ]
+  },
+  {
+   "a": "f08-02",
+   "b": "starter",
+   "maps": [
+    "00gemfight"
+   ]
+  },
+  {
+   "a": "f08-03",
+   "b": "f05-02",
+   "heldout": true,
+   "maps": [
+    "h-1cea"
+   ]
+  },
+  {
+   "a": "f08-03",
+   "b": "f06-05",
+   "heldout": true,
+   "maps": [
+    "h-1ce9"
+   ]
+  },
+  {
+   "a": "f08-03",
+   "b": "f07-02",
+   "heldout": true,
+   "maps": [
+    "h-1e7e"
+   ]
+  },
+  {
+   "a": "f08-04",
+   "b": "f05-02",
+   "maps": [
+    "00rows",
+    "01hooks"
+   ]
+  },
+  {
+   "a": "f08-04",
+   "b": "f06-05",
+   "heldout": true,
+   "maps": [
+    "h-1b5e",
+    "h-1cec"
+   ]
+  },
+  {
+   "a": "f08-04",
+   "b": "f07-02",
+   "maps": [
+    "00gemfight",
+    "01hooks"
+   ]
+  },
+  {
+   "a": "f08-04",
+   "b": "f07-02",
+   "heldout": true,
+   "maps": [
+    "h-1b5a",
+    "h-1ce9"
+   ]
+  },
+  {
+   "a": "f08-04",
+   "b": "f08-03",
+   "maps": [
+    "00expanse",
+    "00road-of-riches"
+   ]
+  },
+  {
+   "a": "f08-04",
+   "b": "starter",
+   "heldout": true,
+   "maps": [
+    "h-1cee"
+   ]
+  },
+  {
+   "a": "f08-05",
+   "b": "f05-02",
+   "maps": [
+    "00interlock"
+   ]
+  },
+  {
+   "a": "f08-05",
+   "b": "f06-05",
+   "heldout": true,
+   "maps": [
+    "h-1b59",
+    "h-1cea",
+    "h-1cec"
+   ]
+  },
+  {
+   "a": "f08-05",
+   "b": "f07-02",
+   "maps": [
+    "00stampede"
+   ]
+  },
+  {
+   "a": "f08-05",
+   "b": "f08-02",
+   "maps": [
+    "00packs",
+    "00reverse-spiral"
+   ]
+  },
+  {
+   "a": "f08-05",
+   "b": "f08-03",
+   "maps": [
+    "00ambush"
+   ]
+  },
+  {
+   "a": "f08-05",
+   "b": "f08-03",
+   "heldout": true,
+   "maps": [
+    "h-1cea"
+   ]
+  },
+  {
+   "a": "f08-05",
+   "b": "f08-04",
+   "maps": [
+    "01hooks",
+    "01yellow-brick-road"
+   ]
+  },
+  {
+   "a": "f08-05",
+   "b": "starter",
+   "maps": [
+    "00eight"
+   ]
+  },
+  {
+   "a": "f08-05",
+   "b": "starter",
+   "heldout": true,
+   "maps": [
+    "h-1b5a"
+   ]
+  }
+ ],
+ "src_sha256": {
+  "f05-02": "08b3cf162662187e7e92595402a256bb20bb492b81926414b0c7d5b4dee640ba",
+  "f06-05": "b2fdb1ef111ba1cf9913e7bf7a61c46f65047afabf6a17d7d5f3a4128947ecb9",
+  "f07-02": "ccb9f3204d24c0444839560e9a817e36470082d7f187faf31d6eefde7b5c53e0",
+  "f08-02": "5d3ae5f1fe0f56727b83cb81a7af8e594ff33fa7cbbcf7c3fe5e1ba5aa0d9469",
+  "f08-03": "ccb9f3204d24c0444839560e9a817e36470082d7f187faf31d6eefde7b5c53e0",
+  "f08-04": "a7b076bbcfd73f4e88ad4fbfb3e907067ea39ccff1604cdfe74a65a7406321a6",
+  "f08-05": "f76f866b33383eb9d430fd99ea218fb9c1b099461e927a93cf85096cf105d89d",
+  "starter": "9023e6a089796897d6ed661f26054d1b81b298e048a09a5df75d3b9cb5d3c6a9"
+ },
+ "stage": "spot"
+}
