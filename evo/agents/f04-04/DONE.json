@@ -1,0 +1,27 @@
+{
+ "agent": "f04-04",
+ "task_sha256": "593b837dd1fd0258d9126262d4e5382d6a1c22d97f721911f4486c8925dfae92",
+ "base_commit": "1f5589e51c3a846cb8d8cf6565c8815c90f39c83",
+ "session_id": "cse_01AkmucjDbQzsy6kxG372xnd",
+ "bot_dir": "bots/f04-04",
+ "self_eval": {
+  "vs": "f03-05",
+  "games": 80,
+  "wins": 53
+ },
+ "games_played": 874,
+ "summary": "f03-04 + break enemy altar locks (ignore walled-off altars), raids sized from all living allies, boss raids >= 3 champions: 53/80 vs f03-05 (parent 37/80)",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "16f38370f9e03b42263aab52253053e6123fa9667adec78e1e8ed8551fb817de",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 19.0,
+  "remote": "true",
+  "session_id": "cse_01AkmucjDbQzsy6kxG372xnd",
+  "effort_level": "high",
+  "model": null
+ }
+}
