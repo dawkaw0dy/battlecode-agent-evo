@@ -1,0 +1,27 @@
+{
+ "agent": "f10-06",
+ "task_sha256": "a26c943e82382b52cdf91d19b1f046724cca6a42fbe5be44d6e1c8524caa3b63",
+ "base_commit": "4aaa39a9751e20d6b742ae4c5943352e35e134ff",
+ "session_id": "cse_01LmMqsaFHTJ2NLNxo3c5qo7",
+ "bot_dir": "bots/f10-06",
+ "self_eval": {
+  "vs": "f05-02",
+  "games": 16,
+  "wins": 7
+ },
+ "games_played": 841,
+ "summary": "Immigrant big-game hunter: solo chipping of ordinary groups, party-of-2 boss raids with shared boss health, ambush ward reveal, distance-scaled banking; 7/16 vs f05-02, 4/4 vs starter.",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "115cd88fd4114caf0cb6833b9f885905db7678fd9dc70e4949b4f7e7f4141a60",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 18.69,
+  "remote": "true",
+  "session_id": "cse_01LmMqsaFHTJ2NLNxo3c5qo7",
+  "effort_level": "high",
+  "model": null
+ }
+}

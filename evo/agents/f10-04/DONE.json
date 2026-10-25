@@ -1,0 +1,27 @@
+{
+ "agent": "f10-04",
+ "task_sha256": "bb74a8e3297cd5969b696a93fc7fe9dcc3624de095e89741d2884ad9ee6559d6",
+ "base_commit": "4aaa39a9751e20d6b742ae4c5943352e35e134ff",
+ "session_id": "cse_01P7VPtbDFmEhxK8JLnPwsJM",
+ "bot_dir": "bots/f10-04",
+ "self_eval": {
+  "vs": "f02-01",
+  "games": 10,
+  "wins": 10
+ },
+ "games_played": 895,
+ "summary": "Parent f09-02 plus defensive bag tweaks: bank a 20-gem bag at once (was 45) and refuse fatal fights when carrying 20+ gems (was 40); hurt-recall 0.3 tried and reverted.",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "115cd88fd4114caf0cb6833b9f885905db7678fd9dc70e4949b4f7e7f4141a60",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 20.48,
+  "remote": "true",
+  "session_id": "cse_01P7VPtbDFmEhxK8JLnPwsJM",
+  "effort_level": "high",
+  "model": null
+ }
+}

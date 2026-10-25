@@ -1,0 +1,27 @@
+{
+ "agent": "f10-02",
+ "task_sha256": "44639de916d20d945027c229a0e833ea8139b1bebad0e58cc5c33416827dec6a",
+ "base_commit": "4aaa39a9751e20d6b742ae4c5943352e35e134ff",
+ "session_id": "cse_01RN78YKJFC4MTmEVAmrmdni",
+ "bot_dir": "bots/f10-02",
+ "self_eval": {
+  "vs": "f09-01",
+  "games": 80,
+  "wins": 43
+ },
+ "games_played": 882,
+ "summary": "Defense subsystem rewritten (foe memory, rule-based channel timing, carriers flee to an altar only when the bank there is survivable, no banking walk into a guarded altar); within noise of the parent: vs f09-01 43/80, vs f08-04 50-60/80.",
+ "env_fingerprint": {
+  "cli": "cambc 3.0.5",
+  "manifest_sha256": "115cd88fd4114caf0cb6833b9f885905db7678fd9dc70e4949b4f7e7f4141a60",
+  "nproc": 4,
+  "python": "3.13.17",
+  "node": "v22.22.0",
+  "smoke_finished": true,
+  "smoke_seconds": 23.22,
+  "remote": "true",
+  "session_id": "cse_01RN78YKJFC4MTmEVAmrmdni",
+  "effort_level": "high",
+  "model": null
+ }
+}
