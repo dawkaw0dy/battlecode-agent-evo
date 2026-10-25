@@ -38,7 +38,6 @@ struct Altar {
     cambc::bitboard goal;        // ... as a board
     cambc::bitboard lock_goal;   // reachable tiles in lock range
     int home_d = kFar;           // walk from our spawn
-    int foe_d = kFar;            // walk from the enemy spawn
     int foe_seen = -1000;        // last round an enemy stood near it
     int lock_broken = -1000;     // last round we found our lock gone
 };

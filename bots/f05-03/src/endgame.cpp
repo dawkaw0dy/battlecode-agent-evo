@@ -54,13 +54,9 @@ bool use_lock(vec2 a) {
 // ---------------------------------------------------------------- altar model
 
 void Bot::eg_init() {
-    if (eg_ready_ || !fuel(70000) || !live()) return;
+    // Nothing to bank or lock in the first rounds, which the map analysis already fills with work.
+    if (eg_ready_ || round_now() < 6 || !fuel(85000) || !live()) return;
     const int ar = cambc::constants::submit_gems_range;
-    // Walking distances from the enemy spawn (our spawn is a wall to them).
-    const cambc::bitboard walls_e = cambc::map::walls() | cambc::map::holes() | cambc::map::altars()
-        | cambc::map::spawn_region(team::ally);
-    Dist foe;
-    foe.compute(walls_e, cambc::map::spawn_region(team::enemy), eg_seen_);
     alt_.clear();
     alt_.resize(altars_.size());
     bool dropped = false;
@@ -81,7 +77,6 @@ void Bot::eg_init() {
                 A.spots.push_back(t);
                 raw_set(A.goal.ptr(), t);
                 A.home_d = std::min(A.home_d, home_.at(t));
-                A.foe_d = std::min(A.foe_d, foe.at(t));
             }
     }
     // The only altar we can reach takes tributes only from a boss's spawn tiles: hold one (hold_tile()).
