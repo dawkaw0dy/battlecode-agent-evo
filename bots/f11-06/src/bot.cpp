@@ -48,6 +48,10 @@ constexpr float kBuddy = EVO_BUDDY;   // value bonus for groups near an ally's t
 #define EVO_RACE_ENEMY 800
 #endif
 constexpr int kRaceEnemy = EVO_RACE_ENEMY, kRaceOurs = 750, kRaceBag = 5;   // bank everything late in the race
+#ifndef EVO_ENEMY_SEEN
+#define EVO_ENEMY_SEEN 0.8f
+#endif
+constexpr float kEnemySeenFactor = EVO_ENEMY_SEEN;   // value of a group enemies were seen at lately
 #ifndef EVO_OTHER_SECTOR
 #define EVO_OTHER_SECTOR 0.5f
 #endif
@@ -1120,7 +1124,7 @@ void Bot::choose_target(bool force) {
         float value = static_cast<float>(group_value(g)) / static_cast<float>(team_n);
         if (cls == kGEnemy) value *= 0.6f;
         else if (cls == kGContested) value *= 0.85f;
-        if (round_ - K.enemy_round < 30) value *= 0.5f;
+        if (round_ - K.enemy_round < 30) value *= kEnemySeenFactor;
         if (round_ < avoid_until_ && cheb(G.center, avoid_pos_) <= 8) value *= 0.2f;
         if (kBuddy > 0.0f) {
             // Stay within reach of an ally: fights near a friend go better than alone.
