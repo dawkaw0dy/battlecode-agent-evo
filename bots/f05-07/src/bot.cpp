@@ -50,6 +50,7 @@ constexpr int kContested = 40;
 constexpr float kEnemySide = 0.7f;
 constexpr int kEnemyMemory = 30;
 constexpr int kStallTurns = 6;
+constexpr float kClaimed = 0.01f;   // claimed by an ally: only when nothing else is left
 constexpr int kEngageWait = 15;
 constexpr int kBigGems = 9999;         // non-boss groups worth a whole-team raid
 constexpr float kRaidRate = 1.0f;     // minimum team value per round for a raid
@@ -390,11 +391,10 @@ int Bot::choose_solo() {
         bool claimed = false;
         for (int s = 0; s < std::min(team_n_, kSlots); ++s)
             if (s != slot_ && mem_[s] == i + 1 && !(kPairs && s == slot_ + 1)) claimed = true;
-        if (claimed) continue;
         const int travel = dist(pos, G.center);
         const int wait = G.respawn_at > round_ ? G.respawn_at - round_ : 0;
         const int eff_wait = std::max(0, wait - travel);
-        if (eff_wait > 40) continue;
+        const bool long_wait = eff_wait > 40;  // only a fallback when nothing else is left
         float clear = 0, trip_cost = 0;
         if (!G.reward_ready) {
             const float hp = G.known_hp >= 0 ? G.known_hp : G.hp;
@@ -414,6 +414,8 @@ int Bot::choose_solo() {
         if (G.reward_ready) score *= 1.3f;
         if (G.enemy_side) score *= kEnemySide;
         if (round_ - enemy_seen_ < kEnemyMemory && dist(G.center, enemy_pos_) <= 7) score *= 0.3f;
+        if (long_wait) score *= 0.01f;
+        if (claimed) score *= kClaimed;  // help an ally rather than stand idle
         if (i == cur) cur_score = score;
         if (score > best_score) { best_score = score; best = i; }
     }
