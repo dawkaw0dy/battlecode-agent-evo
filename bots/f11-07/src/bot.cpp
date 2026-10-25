@@ -25,6 +25,7 @@ using cambc::vec2;
 namespace {
 
 constexpr bool kDebug = false;
+constexpr float kOtherLane = 0.6f, kEnemySide = 0.45f;
 constexpr std::uint16_t kUnreached = distance_field::unreachable;
 constexpr std::array<vec2, 8> kDirs{vec2{0, 1}, vec2{1, 1}, vec2{1, 0}, vec2{1, -1},
     vec2{0, -1}, vec2{-1, -1}, vec2{-1, 0}, vec2{-1, 1}};
@@ -48,6 +49,15 @@ struct Bits {
 };
 
 struct CampSpec { float hp, str; };
+int camp_range(cambc::camp_type t) {
+    switch (t) {
+    case cambc::camp_type::wolf: return 3;
+    case cambc::camp_type::elk: return 4;
+    case cambc::camp_type::golem: return 4;
+    case cambc::camp_type::monolith: return 5;
+    default: return 0;
+    }
+}
 CampSpec camp_spec(cambc::camp_type t) {
     switch (t) {
     case cambc::camp_type::wolf: return {1350, 20};
@@ -76,6 +86,7 @@ struct Group {
     int enemy_seen = -1000;
     int bad_until = -1;
     bool big = false; // golem or monolith inside
+    int home = -1;    // champion slot whose lane this group is in; -1 on the enemy side
     bitboard spawn;
     std::unique_ptr<distance_field> field;
     bool has_field = false;
@@ -91,9 +102,15 @@ std::vector<int> g_altar_enemy_lock; // last round an enemy lock was seen on eac
 distance_field g_spawn_field, g_altar_field;
 std::vector<Group> g_groups;
 std::vector<cambc::map::camp_group> g_engine_groups;
+std::vector<std::int16_t> g_tile_group, g_tile_member; // tile -> group / member spawned there
 std::vector<int> g_field_order; // groups by distance from our spawn, for lazy field computation
 std::size_t g_field_next = 0;
 int g_index = 0; // our slot in shared memory
+// Squads farm together: the first living member of a squad picks the target for all of them.
+constexpr int kSquads = 5; // 5: everyone farms alone (shared bytes 0..4 hold targets)
+std::vector<cambc::champion> g_ally_handles;
+int g_squad = 0, g_squad_alive = 1;
+bool g_leader = true;
 
 // Our kit.
 cambc::champion_type g_type;
@@ -129,6 +146,9 @@ struct Unit {
     float dps;
 };
 std::vector<Unit> g_enemies, g_allies;
+// Camp damage per turn aimed at our tile: awake camps with us in range.
+float g_incoming = 0;
+std::vector<vec2> g_awake;
 
 bool has_reset(cambc::champion_type t) {
     using T = cambc::champion_type;
@@ -172,11 +192,11 @@ void init_world() {
     g_altar_enemy_lock.assign(g_altars.size(), -1000);
 
     // Our slot: index among ally handles.
-    const auto allies = cambc::champions(team::ally);
-    for (std::size_t i = 0; i < allies.size(); ++i)
-        if (static_cast<cambc::handle_champion_t>(allies[i]) == static_cast<cambc::handle_champion_t>(me))
+    g_ally_handles = cambc::champions(team::ally);
+    for (std::size_t i = 0; i < g_ally_handles.size(); ++i)
+        if (static_cast<cambc::handle_champion_t>(g_ally_handles[i]) == static_cast<cambc::handle_champion_t>(me))
             g_index = static_cast<int>(i);
-    if (g_index > 7) g_index = 7;
+    g_squad = g_index % kSquads;
 
     // Kit from ability metadata.
     g_type = me.champion_name();
@@ -229,7 +249,16 @@ void init_world() {
         const long n = std::max<long>(1, static_cast<long>(g.m.size()));
         g.center = vec2{static_cast<int>(sx / n), static_cast<int>(sy / n)};
     }
-    for (const auto& g : g_groups) g_camp_board |= g.spawn;
+    g_tile_group.assign(static_cast<std::size_t>(W * H), -1);
+    g_tile_member.assign(static_cast<std::size_t>(W * H), -1);
+    for (std::size_t i = 0; i < g_groups.size(); ++i) {
+        g_camp_board |= g_groups[i].spawn;
+        for (std::size_t k = 0; k < g_groups[i].m.size(); ++k) {
+            const vec2 p = g_groups[i].m[k].pos;
+            g_tile_group[p.y * W + p.x] = static_cast<std::int16_t>(i);
+            g_tile_member[p.y * W + p.x] = static_cast<std::int16_t>(k);
+        }
+    }
     const bitboard static_walls = g_block_board | g_camp_board;
     // Static fields towards spawn and altars.
     {
@@ -269,6 +298,54 @@ void lazy_fields(std::uint64_t reserve) {
     while (g_field_next < g_field_order.size() && cambc::fuel_remaining() > reserve) {
         auto& g = g_groups[g_field_order[g_field_next++]];
         if (!g.has_field) compute_group_field(g);
+    }
+}
+
+bool g_regions = false;
+int g_team_size = 1;
+
+int field_value(const distance_field& f, vec2 p);
+
+// Lanes: groups on our side of the map, sorted by bearing from our spawn and cut into
+// value-balanced slices, one per champion. Farming stays local and spread out.
+void compute_regions() {
+    g_regions = true;
+    g_team_size = std::max<int>(1, static_cast<int>(g_ally_handles.size()));
+    bitboard enemy_walls = cambc::map::walls() | cambc::map::holes() | cambc::map::altars()
+        | cambc::map::spawn_region(team::ally) | g_camp_board;
+    distance_field enemy_field;
+    bitboard visited;
+    enemy_field.compute(enemy_walls, cambc::map::spawn_region(team::enemy), visited);
+    const auto spawn_tiles = cambc::map::spawn_region(team::ally).positions();
+    float cx = 0, cy = 0;
+    for (auto t : spawn_tiles) { cx += t.x; cy += t.y; }
+    cx /= spawn_tiles.size();
+    cy /= spawn_tiles.size();
+    struct Item { int g; float angle, value; };
+    std::vector<Item> items;
+    float total = 0;
+    for (std::size_t i = 0; i < g_groups.size(); ++i) {
+        auto& g = g_groups[i];
+        if (g.big) continue;
+        int da = 100000, de = 100000;
+        for (const auto& m : g.m)
+            for (auto d : kDirs) {
+                const vec2 p = m.pos + d;
+                if (!in_bounds(p)) continue;
+                da = std::min(da, field_value(g_spawn_field, p));
+                de = std::min(de, field_value(enemy_field, p));
+            }
+        if (da >= 100000 || da > de + 4) continue;
+        const float value = g.gems + 0.4f * g.gold;
+        items.push_back({static_cast<int>(i), std::atan2(g.center.y - cy, g.center.x - cx), value});
+        total += value;
+    }
+    std::sort(items.begin(), items.end(), [](const Item& a, const Item& b) { return a.angle < b.angle; });
+    float acc = 0;
+    for (const auto& it : items) {
+        const float mid = acc + it.value / 2;
+        g_groups[it.g].home = std::min(g_team_size - 1, static_cast<int>(mid / std::max(1.0f, total) * g_team_size));
+        acc += it.value;
     }
 }
 
@@ -398,17 +475,25 @@ void shop() {
 
 // ---------------------------------------------------------------- movement
 
+float exposure_at(vec2 p);
+// Hurt champions refuse steps that put them under more camp fire.
+bool too_exposed(vec2 n, float here) {
+    if (g_hp > g_max_hp * 0.6f) return false;
+    return exposure_at(n) > here;
+}
+
 // Greedy descent of a static field, stepping only onto free tiles with a smaller distance.
 bool step_static(const distance_field& f) {
     auto& me = cambc::self();
     trace("ss");
     if (g_moved || !me.can_move()) return false;
     const int cur = field_value(f, g_pos);
+    const float here = exposure_at(g_pos);
     vec2 best = g_pos;
     int best_v = cur;
     for (auto d : kDirs) {
         const vec2 n = g_pos + d;
-        if (blocked_now(n)) continue;
+        if (blocked_now(n) || too_exposed(n, here)) continue;
         const int v = field_value(f, n);
         if (v < best_v) { best_v = v; best = n; }
     }
@@ -438,11 +523,12 @@ bool step_dynamic(bitboard goals) {
     field.compute_to(blocked, goals, start, visited);
     if (!visited.is_set(g_pos)) return false;
     const int cur = field.get(g_pos);
+    const float here = exposure_at(g_pos);
     vec2 best = g_pos;
     int best_v = cur;
     for (auto d : kDirs) {
         const vec2 n = g_pos + d;
-        if (blocked_now(n) || !visited.is_set(n)) continue;
+        if (blocked_now(n) || !visited.is_set(n) || too_exposed(n, here)) continue;
         const int v = field.get(n);
         if (v < best_v) { best_v = v; best = n; }
     }
@@ -484,6 +570,7 @@ bool dash_along(const distance_field& f) {
     g_cast = true;
     if (!ab.use(best)) { g_moved = true; return false; }
     g_pos = me.position();
+    load_occupancy();
     return true;
 }
 
@@ -545,24 +632,39 @@ bool nuke_champion_at(vec2 p) {
 struct Fight {
     float ours = 0, theirs = 0;
     int nearest = 1000;
-    bool threatened = false;
+    bool engaged = false, threatened = false;
 };
 
+bool has_dash(cambc::champion_type t) {
+    using T = cambc::champion_type;
+    return t == T::vesper_vale || t == T::vendetta || t == T::ren || t == T::issac || t == T::heart_of_ruin;
+}
+
+float shield_hp(const Unit& u) {
+    if (u.type == cambc::champion_type::varg) return u.focus * 1.25f;
+    if (u.type == cambc::champion_type::heart_of_ruin) return u.focus * 0.75f;
+    return 0;
+}
+
+// Lanchester estimate: (sum of damage per turn) x (sum of health) on each side near us.
 Fight assess() {
     Fight f;
     float our_dps = my_dps(), our_hp = g_hp, their_dps = 0, their_hp = 0;
+    if (g_type == cambc::champion_type::varg) our_hp += g_focus * 1.25f;
     for (const auto& a : g_allies)
-        if (cheb(a.pos, g_pos) <= 6) { our_dps += a.dps; our_hp += a.hp; }
+        if (cheb(a.pos, g_pos) <= 5) { our_dps += a.dps; our_hp += a.hp + shield_hp(a); }
     for (const auto& e : g_enemies) {
         const int d = cheb(e.pos, g_pos);
-        if (d > 8) continue;
+        if (d > 7) continue;
         their_dps += e.dps;
-        their_hp += e.hp;
+        their_hp += e.hp + shield_hp(e);
         f.nearest = std::min(f.nearest, d);
-        if (d <= e.range + 3) f.threatened = true;
+        const int reach = e.range + 1 + (has_dash(e.type) ? 2 : 0);
+        if (d <= reach) f.engaged = true;
+        if (d <= reach + 2) f.threatened = true;
     }
     f.ours = our_dps * our_hp;
-    f.theirs = their_dps * their_hp;
+    f.theirs = std::max(1.0f, their_dps * their_hp);
     return f;
 }
 
@@ -610,7 +712,9 @@ bool flee() {
     auto score = [&](vec2 p) {
         int margin = 100;
         for (const auto& e : g_enemies) margin = std::min(margin, cheb(p, e.pos) - e.range);
-        return margin * 10.0f - field_value(g_spawn_field, p) * 0.5f;
+        int ally = 10;
+        for (const auto& a : g_allies) ally = std::min(ally, cheb(p, a.pos));
+        return std::min(margin, 4) * 10.0f - ally * 3.0f - field_value(g_spawn_field, p) * 0.5f;
     };
     float best_s = score(g_pos);
     vec2 best = g_pos;
@@ -644,6 +748,7 @@ bool flee() {
                 g_cast = true;
                 if (ab.use(dbest)) {
                     g_pos = me.position();
+                    load_occupancy();
                     return true;
                 }
                 g_moved = true;
@@ -666,11 +771,18 @@ int alive_count(const Group& g) {
     return n;
 }
 
-int allies_on(int gi) {
-    int n = 0;
-    for (int i = 0; i < 8; ++i)
-        if (i != g_index && g_shared[i] == gi + 1) ++n;
-    return n;
+void update_squad() {
+    g_leader = true;
+    g_squad_alive = 0;
+    bool first = true;
+    for (std::size_t i = 0; i < g_ally_handles.size(); ++i) {
+        if (static_cast<int>(i) % kSquads != g_squad) continue;
+        if (!g_ally_handles[i].is_alive()) continue;
+        ++g_squad_alive;
+        if (first && static_cast<int>(i) != g_index) g_leader = false;
+        first = false;
+    }
+    g_squad_alive = std::max(1, g_squad_alive);
 }
 
 // Estimated damage the tank takes while the team clears the group (strongest hitters first;
@@ -703,8 +815,7 @@ float group_score(int gi, int dist) {
         wait = std::max(0, g.ready - g_round - dist);
         if (wait > 40) return -1;
     }
-    const int helpers = allies_on(gi);
-    const int n = helpers + 1;
+    const int n = g_squad_alive;
     float hp = 0;
     if (g.state != 2)
         for (const auto& m : g.m) hp += g.state == 3 ? m.max_hp : m.hp;
@@ -716,11 +827,24 @@ float group_score(int gi, int dist) {
     }
     const float gem_w = g_round < 500 ? 2.5f : g_round < 1300 ? 3.5f : 6.0f;
     float value = (g.gems * gem_w + g.gold * gold_mult()) / n;
+    if (g_regions) value *= g.home == g_index ? 1.0f : g.home >= 0 ? kOtherLane : kEnemySide;
     if (g_round - g.enemy_seen < 25) value *= 0.5f;
     return value / (dist + kill + 6 + wait);
 }
 
 void choose_target() {
+    if (!g_leader) {
+        const int t = static_cast<int>(g_shared[g_squad]) - 1;
+        if (t >= 0 && t < static_cast<int>(g_groups.size())) {
+            if (t != g_target) {
+                g_target = t;
+                g_approach = g_range;
+                g_target_since = g_round;
+                if (!g_groups[t].has_field && cambc::fuel_remaining() > 45000) compute_group_field(g_groups[t]);
+            }
+            return;
+        }
+    }
     float best_s = 0;
     int best = -1;
     float cur_s = -1;
@@ -807,6 +931,50 @@ void shield_if_hit() {
     ab.use();
 }
 
+void scan_awake() {
+    g_incoming = 0;
+    g_awake.clear();
+    for (const auto p : cambc::vision::awake_camp_tiles().positions()) {
+        if (cheb(p, g_pos) > 6) continue;
+        const int gi = g_tile_group[p.y * W + p.x];
+        if (gi < 0) continue;
+        const auto& m = g_groups[gi].m[g_tile_member[p.y * W + p.x]];
+        g_awake.push_back(p);
+        if (cheb(p, g_pos) <= camp_range(m.type)) g_incoming += m.str;
+    }
+}
+
+float exposure_at(vec2 p) {
+    float e = 0;
+    for (auto c : g_awake) {
+        const auto& m = g_groups[g_tile_group[c.y * W + c.x]].m[g_tile_member[c.y * W + c.x]];
+        if (cheb(p, c) <= camp_range(m.type)) e += m.str;
+    }
+    return e;
+}
+
+// Step out of every awake camp's reach (camps never chase).
+bool leave_camps() {
+    auto& me = cambc::self();
+    if (g_moved || !me.can_move()) return false;
+    auto exposure = exposure_at;
+    float best_e = exposure(g_pos);
+    vec2 best = g_pos;
+    int best_home = field_value(g_spawn_field, g_pos);
+    for (auto d : kDirs) {
+        const vec2 n = g_pos + d;
+        if (blocked_now(n)) continue;
+        const float e = exposure(n);
+        const int h = field_value(g_spawn_field, n);
+        if (e < best_e || (e == best_e && h < best_home)) { best_e = e; best = n; best_home = h; }
+    }
+    if (best == g_pos) return false;
+    g_moved = true;
+    if (!me.move_absolute(best)) return false;
+    g_pos = best;
+    return true;
+}
+
 bool any_awake_camp_near(int radius) {
     for (const auto p : cambc::vision::awake_camp_tiles().positions())
         if (cheb(p, g_pos) <= radius) return true;
@@ -834,7 +1002,31 @@ void work_target() {
         }
         return;
     }
-    // Alive: hit what is in reach, otherwise approach.
+    // Alive: a group too strong for us alone waits for a squad mate before we wake it.
+    if (g_squad_alive > 1 && clear_damage(g, my_dps()) > g_hp * 0.5f) {
+        const bitboard awake = cambc::vision::awake_camp_tiles();
+        bool woke = false;
+        for (const auto& m : g.m)
+            if (m.hp > 0 && awake.is_set(m.pos)) woke = true;
+        int mates = 0;
+        for (const auto& a : g_allies)
+            if (cheb(a.pos, g_pos) <= 4) ++mates;
+        if (!woke && mates == 0) {
+            if (dist > 7) travel(g);
+            return;
+        }
+    }
+    // Too hurt to finish the job: get out of camp reach first, recall after.
+    if (g_incoming > 0) {
+        float left = 0;
+        for (const auto& m : g.m) left += m.hp;
+        const float turns_left = left / std::max(1.0f, my_dps());
+        if (g_hp < g_incoming * std::min(turns_left + 2.0f, 6.0f)) {
+            trace("leave");
+            if (leave_camps()) return;
+        }
+    }
+    // Hit what is in reach, otherwise approach.
     nuke_camps(g);
     if (attack_camps(g)) { shield_if_hit(); return; }
     if (dist > g_range + 6) { travel(g); return; }
@@ -879,6 +1071,7 @@ bool bank() {
             continue;
         }
         if (cambc::vision::has_altar_lock(a)) continue;
+        if (!me.can_move()) return true;
         me.submit_gems(a);
         return true;
     }
@@ -909,16 +1102,43 @@ bool want_bank() {
     return false;
 }
 
-bool want_recall() {
-    if (g_spawn.get(g_pos)) return false;
-    if (!g_enemies.empty()) return false;
-    if (any_awake_camp_near(6)) return false;
-    const int d = field_value(g_spawn_field, g_pos);
-    if (d <= 6) return false;
-    if (g_hp < g_max_hp * 0.4f) return true;
-    if (g_gold >= 150 && g_hp < g_max_hp * 0.7f) return true;
-    if (g_gold >= 300) return true;
+bool want_home() {
+    if (g_spawn.get(g_pos) || !cambc::self().can_move()) return false;
+    if (!g_enemies.empty() || g_incoming > 0) return false;
+    if (g_hp < g_max_hp * 0.5f) return true;
+    if (g_type == cambc::champion_type::tavi) return false; // shops in the field
+    if (g_gems == 0 && g_gold >= 90) return true;
+    if (g_gold >= 240) return true;
+    if (g_gems == 0 && g_gold >= 60 && g_hp < g_max_hp * 0.8f) return true;
     return false;
+}
+
+// Walk when spawn is close, otherwise recall.
+void go_home() {
+    if (field_value(g_spawn_field, g_pos) <= 6) {
+        step_static(g_spawn_field);
+        return;
+    }
+    cambc::self().recall();
+}
+
+// Shared bytes 5..7: tile and round of the latest fight an ally called help for.
+void call_help() {
+    cambc::shared_memory[5] = static_cast<std::uint8_t>(g_pos.x);
+    cambc::shared_memory[6] = static_cast<std::uint8_t>(g_pos.y);
+    cambc::shared_memory[7] = static_cast<std::uint8_t>(g_round & 255);
+}
+
+bool answer_help() {
+    const int age = (g_round - static_cast<int>(g_shared[7])) & 255;
+    if (age > 3 || (g_shared[5] == 0 && g_shared[6] == 0)) return false;
+    const vec2 call{static_cast<int>(g_shared[5]), static_cast<int>(g_shared[6])};
+    if (!in_bounds(call) || cheb(call, g_pos) > 14 || cheb(call, g_pos) <= 2) return false;
+    if (g_hp < g_max_hp * 0.5f || g_gems >= 30) return false;
+    bitboard goal;
+    goal.draw_chebyshev(call, 2.0f);
+    trace("help");
+    return step_dynamic(goal);
 }
 
 bool capturing() {
@@ -962,11 +1182,16 @@ void Bot::play_turn() {
     g_round = static_cast<int>(cambc::round_number());
     g_moved = g_attacked = g_cast = false;
 
+    static std::string last_line;
+    static bool was_alive = true;
     if (!me.is_alive()) {
+        if (kDebug && was_alive) std::cout << "DEATH r" << g_round << " me" << g_index << " last: " << last_line << '\n';
+        was_alive = false;
         shop();
         g_target = -1;
         return;
     }
+    was_alive = true;
     g_pos = me.position();
     g_hp = me.health();
     g_max_hp = me.max_health();
@@ -980,8 +1205,9 @@ void Bot::play_turn() {
         g_shared = bytes;
     }
 
+    update_squad();
     const auto state = me.state();
-    if (g_spawn.get(g_pos)) {
+    if (g_spawn.get(g_pos) || g_type == cambc::champion_type::tavi) {
         shop();
         g_gold = me.gold_count();
     }
@@ -989,6 +1215,7 @@ void Bot::play_turn() {
     if (g_target >= 0 && !g_groups[g_target].has_field) compute_group_field(g_groups[g_target]);
     scan_units();
     load_occupancy();
+    scan_awake();
     trace("scan");
     update_groups();
     update_altar_locks();
@@ -1004,23 +1231,51 @@ void Bot::play_turn() {
         if (!g_enemies.empty()) {
             const auto f = assess();
             const float caution = 1.25f + g_gems / 100.0f;
-            if (f.ours > f.theirs * caution) {
-                trace("fight");
-                done = do_fight();
-            } else if (f.threatened) {
-                trace("flee");
-                flee();
-                done = true;
+            if (kDebug) {
+                g_trace += "EN ours=" + std::to_string(static_cast<int>(f.ours / 1000)) + " theirs=" + std::to_string(static_cast<int>(f.theirs / 1000));
+                for (const auto& e : g_enemies)
+                    g_trace += " [" + std::to_string(e.pos.x) + "," + std::to_string(e.pos.y) + " hp" + std::to_string(static_cast<int>(e.hp)) + " t" + std::to_string(static_cast<int>(e.type)) + "]";
+                g_trace += " allies" + std::to_string(g_allies.size()) + " ";
             }
+            const float ratio = f.ours / f.theirs;
+            if (f.engaged) {
+                // Equal speeds: running from someone already in reach rarely works.
+                if (ratio > 0.7f + g_gems / 200.0f) {
+                    trace("fight");
+                    done = do_fight();
+                    call_help();
+                } else {
+                    trace("flee");
+                    flee();
+                    done = true;
+                }
+            } else if (f.threatened) {
+                if (ratio > caution + 0.25f) {
+                    trace("fight");
+                    done = do_fight();
+                } else {
+                    trace("flee");
+                    flee();
+                    done = true;
+                }
+            } else if (ratio > 2.0f && g_hp > g_max_hp * 0.5f) {
+                trace("hunt");
+                done = do_fight();
+            }
+        }
+        if (!done && g_enemies.empty()) done = answer_help();
+        if (!done && g_incoming > 0 && g_hp < g_max_hp * 0.35f && (g_target < 0 || g_groups[g_target].state != 1)) {
+            trace("leave");
+            done = leave_camps();
         }
         if (!done && !capturing()) {
             if (want_bank()) {
                 trace("bank");
                 bank();
                 done = true;
-            } else if (want_recall()) {
-                trace("recall");
-                me.recall();
+            } else if (want_home()) {
+                trace("home");
+                go_home();
                 done = true;
             }
         }
@@ -1033,13 +1288,15 @@ void Bot::play_turn() {
         }
     }
 
-    if (kDebug && (g_round % 25 == 0 || g_round < 4 || (g_round > 100 && g_round < 130)))
+    if (kDebug && (g_round % 25 == 0 || g_round < 4 || !g_enemies.empty()))
         std::cout << "dbg r" << g_round << " me" << g_index << " pos " << g_pos.x << "," << g_pos.y << " hp " << g_hp
                   << " gold " << g_gold << " gems " << g_gems << " tgt " << g_target
                   << (g_target >= 0 ? " st " + std::to_string(g_groups[g_target].state) + " d " + std::to_string(group_dist(g_groups[g_target], g_pos)) : std::string())
                   << " en " << g_enemies.size() << " fuel " << cambc::fuel_remaining() << " | " << g_trace << '\n';
+    if (kDebug) last_line = "r" + std::to_string(g_round) + " hp" + std::to_string(static_cast<int>(g_hp)) + " gems" + std::to_string(g_gems) + " tgt" + std::to_string(g_target) + " " + g_trace;
     g_trace.clear();
-    // Publish our target for the team.
-    cambc::shared_memory[static_cast<std::size_t>(g_index)] = static_cast<std::uint8_t>(g_target + 1);
+    // The squad leader publishes the squad target.
+    if (g_leader) cambc::shared_memory[static_cast<std::size_t>(g_squad)] = static_cast<std::uint8_t>(g_target + 1);
+    if (!g_regions && g_round >= 2 && cambc::fuel_remaining() > 50000) compute_regions();
     lazy_fields(55000);
 }
