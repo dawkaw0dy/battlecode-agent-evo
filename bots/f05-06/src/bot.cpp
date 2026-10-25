@@ -957,12 +957,15 @@ int Bot::choose_target() {
             if (c == static_cast<int>(gi % 255) + 1) shared = true;
         // Big groups are worth sharing: camps hit only the nearest champion.
         const bool big = !g.dirty && g.status == 0 && g.plan_dmg > maxhp * 0.6f;
-        if (shared && !big) factor *= 0.3f;
+        // Contested groups (middle / enemy side): go in company, or not at all.
+        const bool contested = g.owner == dm::kShared || g.owner == dm::kEnemySide;
+        if (contested) factor *= shared ? 1.6f : 0.6f;
+        else if (shared && !big) factor *= 0.3f;
         if (g.status == 1) factor *= (round_ - g.my_hit < 40) ? 1.3f : 0.4f;
         if (round_ <= flee_until_ + 20 && cheb(flee_from_, g.center) <= 10) factor *= 0.2f;
         if (round_ <= avoid_until_ && cheb(avoid_pos_, g.center) <= 5) factor *= 0.5f;
         if (rep && rc >= 2 && cheb(rp, g.center) <= 9) factor *= 0.3f;
-        cands.push_back({static_cast<int>(gi), eta, wait, value, factor, value * factor / (eta + wait + 13.0f), shared && big});
+        cands.push_back({static_cast<int>(gi), eta, wait, value, factor, value * factor / (eta + wait + 13.0f), shared && (big || contested)});
     }
     std::sort(cands.begin(), cands.end(), [](const Cand& a, const Cand& b) { return a.bound > b.bound; });
     int best = -1;
@@ -1191,7 +1194,7 @@ void Bot::play_turn() {
                     }
                 }
                 std::cout.flush();
-                if (b->round_ == 1000) {
+                if (b->round_ == 400) {
                     std::cout << "ACT k" << b->kind_;
                     for (int v : b->act_) std::cout << ' ' << v;
                     std::cout << " REC";
