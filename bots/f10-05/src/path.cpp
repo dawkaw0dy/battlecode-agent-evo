@@ -39,6 +39,9 @@ constexpr int kDashFrom = 3;     // dash for travel only with at least this many
 constexpr int kJumpMargin = 2;   // a route over holes must beat walking by this many steps (plus the cooldown)
 constexpr int kJumpMinWalk = 4;  // routes shorter than this are never worth a jump search
 constexpr int kJumpForce = 6;    // ... and by this many when the caller asked for no travel dash
+constexpr bool kCrystals = true;  // non-dashers buy a teleport crystal for routes over holes
+constexpr int kCrystalGain = 10;  // ... that save at least this many steps (the channel takes 3 turns)
+constexpr int kCrystalRange = 3;
 constexpr int kJumpBan = 12;     // rounds without jump routes after every dash landing was refused
 
 struct PathScratch {
@@ -46,6 +49,7 @@ struct PathScratch {
     cambc::distance_field f, sf, jf, w;
     bool danger_on = false;
     bool jump_route = false;     // this step follows the route over holes: dash only where walking cannot go on
+    bool crystal_route = false;  // ... and crosses with a teleport crystal instead of a dash
 };
 PathScratch* g_ps = nullptr;
 PathScratch& ps() {
@@ -86,6 +90,34 @@ void init_jump() {
 }
 
 int fdist(const cambc::distance_field& f, vec2 p) { return inside(p) ? raw_dist(f.ptr(), p) : kFar; }
+
+int crystals() {
+    try { return static_cast<int>(cambc::self().consumables()[cambc::consumable_type::tp_crystal].count()); }
+    catch (const cambc::error&) { return 0; }
+}
+
+// Start a crystal channel to the free tile within range 3 with the lowest distance on f (at least the two
+// steps of a hole crossing closer; go() checked that the route saves more than the channel). True when the
+// channel started.
+bool use_crystal(const cambc::distance_field& f, const cambc::bitboard& seen, vec2 pos) {
+    const int here = fdist(f, pos);
+    vec2 best{-1, -1};
+    int best_d = here - 1;
+    for (int dy = -kCrystalRange; dy <= kCrystalRange; ++dy)
+        for (int dx = -kCrystalRange; dx <= kCrystalRange; ++dx) {
+            const vec2 t{pos.x + dx, pos.y + dy};
+            if ((dx | dy) == 0 || !bit(seen, t) || !free_tile(t)) continue;
+            const int d = raw_dist(f.ptr(), t);
+            if (d < best_d) { best_d = d; best = t; }
+        }
+    if (best.x < 0 || !live()) return false;
+    try {
+        return cambc::self().consumables()[cambc::consumable_type::tp_crystal].use(best);
+    } catch (const cambc::error& e) {
+        warn("crystal", e);
+        return false;
+    }
+}
 bool in_danger(vec2 p) {
     const auto& s = ps();
     return s.danger_on && inside(p) && raw_bit(s.danger.ptr(), p);
@@ -184,7 +216,7 @@ bool Bot::go(const cambc::bitboard& goals_in, bool dash) {
     raw_set(s.here.ptr(), pos);
     s.seen.clear();
     s.f.compute_to(s.blocked, s.goals, s.here, s.seen);
-    s.jump_route = false;
+    s.jump_route = s.crystal_route = false;
     // Dashers: a route over thin holes, when it beats walking by more than the dash's cooldown.
     init_jump();
     const int now = static_cast<int>(cambc::round_number());
@@ -204,6 +236,27 @@ bool Bot::go(const cambc::bitboard& goals_in, bool dash) {
             if (jd + cd + kJumpMargin < walk_d && (dash || walk_d - jd >= kJumpForce)) {
                 s.jump_route = true;
                 return step_on(s.jf, s.jseen, s.goals, s.jblocked, true);
+            }
+        }
+    } else if (kCrystals && !dasher_ && g_has_thin && now >= g_jump_ban_until && walk_d >= kCrystalGain && walk_d < kFar
+               && fuel(45000)) {
+        // The others cross with a teleport crystal (bought on our spawn) when the route over holes saves a lot.
+        int held = crystals();
+        if (held > 0 || (spawn_local_.at(pos) && me.gold_count() >= 10)) {
+            andnot_into(s.blocked, *g_thin, s.jblocked);
+            s.jseen.clear();
+            s.jf.compute_to(s.jblocked, s.goals, s.here, s.jseen, static_cast<std::uint16_t>(walk_d - kCrystalGain));
+            if (bit(s.jseen, pos) && fdist(s.jf, pos) + kCrystalGain <= walk_d) {
+                if (held == 0) {
+                    try {
+                        if (me.can_buy(cambc::consumable_type::tp_crystal)) me.buy(cambc::consumable_type::tp_crystal);
+                    } catch (const cambc::error& e) { warn("buy crystal", e); }
+                    held = crystals();
+                }
+                if (held > 0) {
+                    s.jump_route = s.crystal_route = true;
+                    return step_on(s.jf, s.jseen, s.goals, s.jblocked, false);
+                }
             }
         }
     }
@@ -305,6 +358,17 @@ bool Bot::step_on(const cambc::distance_field& f, const cambc::bitboard& seen, c
             const vec2 t{pos.x + d.x, pos.y + d.y};
             if (free_tile(t) && bit(seen, t) && !bit(blocked, t) && raw_dist(f.ptr(), t) < here0) { want_dash = false; break; }
         }
+    }
+    if (s.crystal_route) {
+        if (want_dash) {
+            if (use_crystal(f, seen, pos)) {
+                moved_ = true;
+                invalidate();
+                return true;
+            }
+            g_jump_ban_until = static_cast<int>(cambc::round_number()) + kJumpBan;  // no landing: walk round
+        }
+        want_dash = false;
     }
     if (want_dash) {
         const bool cast_before = cast_;
