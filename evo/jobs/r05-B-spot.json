@@ -1,0 +1,156 @@
+{
+ "env_manifest_sha256": "8da1437926729df349b76cd9c211931c90673786ec5e4c6c97fa449d9ba532c4",
+ "generation": 5,
+ "heldout_repo": "dawkaw0dy/battlecode-agent-evo-heldout",
+ "job_id": "r05-B-spot",
+ "map_sha256": {
+  "00eight": "76b5ce0895130f5f423f3ac6a630c5cf8e1202d4150e6ad4e287c75d21794765",
+  "00great-wall": "1b22e5c068175913889a1ff497d310de303a9b1ddf78672f26c0777fda9f5bf2",
+  "00lanes": "8ca26ed2ea65c7d80ceb9604a7431ca1dc056922912b4e2f46cad06051e4886a",
+  "00monolith": "ba5674bf2ab26336eb99df0c9e97c16b27bd231deffc023de1d873a05a558313",
+  "00pilgrimage": "7d7ddb9c37c77cd8b3721423e155400d936eaa76fa3c62fe24b308d0fd5eb673",
+  "00quadrants": "261fe6c133f076653bda84e88965dc35c5a59a70e7730082b4c6df9ca892df92",
+  "00reverse-spiral": "f57669ffc98b76a5c2e4eccba41690dc193efc29f067ee960605617b2cfb48e5",
+  "00road-of-riches": "8365e18788720a079a906c0430e809317236acecccf888b517a1de409689b049",
+  "00rushbait-v2": "f4dcc30269aa7d0983e7d244f72c3d2a9a6d7ce918cd00495d465b78b2609157",
+  "00stampede": "49807e4756ec1b2030ed2ca7ebdd8a07f1a6ed7f2d2bd751e6941f5c0c877cdc",
+  "01big-world": "f1ecb726472858efb1d75d00b0d7668be18d83a010b2abf9a1f8c38aab456aa5",
+  "01starfish": "1edf115a0a788c010107148f975570961acc8e9fba4a013ad60f5ca2389cbb83",
+  "01the-farm": "5cca9ed6eaaf6ef15a170a4ea78488237fda7b256e182a2e3360a14b485e09c3",
+  "h-1b59": "b283e684b10c7a8d7c5bd4d6cd4533db04fbb6588748ef53ce73f7504cf0ba55",
+  "h-1b5b": "9a6c2084d609d27cf7b9eb183eb5e46f16a442caa7b187646540329a951b3502",
+  "h-1b5c": "d99b1540b5d9197f41f1a8d85618df73e0bdfb95784a6db1d583aa0851d962cd",
+  "h-1b5f": "8cbf98310de6c013efa1dfc4a8b8221606ff5a9ad65cd6975e1fc0c0abe0ca32",
+  "h-1ce9": "85704f93950c1337beac4efbe03e7bebe4fcd9c4789cacbf998edae5941797a5",
+  "h-1e79": "4571d396da0b989532f0ee03917548990c5fcf2c689ea216c486d9d6b64dca71",
+  "h-1e7b": "cc6e124455e6096d7b1ad999300fff96db6be35015c186f09544fa5c7c9427f5"
+ },
+ "runner_version": "cambc==3.0.5",
+ "runs_on": "ubuntu-22.04",
+ "shards": [
+  {
+   "a": "f05-02",
+   "b": "f05-03",
+   "maps": [
+    "00monolith",
+    "00quadrants"
+   ]
+  },
+  {
+   "a": "f05-02",
+   "b": "f05-03",
+   "heldout": true,
+   "maps": [
+    "h-1ce9"
+   ]
+  },
+  {
+   "a": "f05-02",
+   "b": "f05-05",
+   "maps": [
+    "00pilgrimage",
+    "01starfish"
+   ]
+  },
+  {
+   "a": "f05-02",
+   "b": "starter",
+   "maps": [
+    "00great-wall"
+   ]
+  },
+  {
+   "a": "f05-03",
+   "b": "f02-01",
+   "maps": [
+    "00road-of-riches",
+    "01big-world"
+   ]
+  },
+  {
+   "a": "f05-03",
+   "b": "f03-05",
+   "heldout": true,
+   "maps": [
+    "h-1b5f",
+    "h-1e7b"
+   ]
+  },
+  {
+   "a": "f05-03",
+   "b": "f05-05",
+   "maps": [
+    "00reverse-spiral"
+   ]
+  },
+  {
+   "a": "f05-03",
+   "b": "starter",
+   "maps": [
+    "00eight",
+    "00rushbait-v2",
+    "00stampede",
+    "01the-farm"
+   ]
+  },
+  {
+   "a": "f05-03",
+   "b": "starter",
+   "heldout": true,
+   "maps": [
+    "h-1b59",
+    "h-1b5b"
+   ]
+  },
+  {
+   "a": "f05-05",
+   "b": "f02-01",
+   "maps": [
+    "00lanes",
+    "01big-world"
+   ]
+  },
+  {
+   "a": "f05-05",
+   "b": "f02-01",
+   "heldout": true,
+   "maps": [
+    "h-1b5c"
+   ]
+  },
+  {
+   "a": "f05-05",
+   "b": "f03-05",
+   "maps": [
+    "00eight",
+    "00lanes"
+   ]
+  },
+  {
+   "a": "f05-05",
+   "b": "f04-05",
+   "heldout": true,
+   "maps": [
+    "h-1b5b",
+    "h-1e79"
+   ]
+  },
+  {
+   "a": "f05-05",
+   "b": "starter",
+   "maps": [
+    "00road-of-riches"
+   ]
+  }
+ ],
+ "src_sha256": {
+  "f02-01": "4c7ef7070e1438412f0d8535ba02f3cc7bc4e2249323fc504e66018e4f78727f",
+  "f03-05": "98fd79ae338c3590096ff21eefa715cc1a22794c2ad03aa03d835bc96f9edc90",
+  "f04-05": "c28582254ff7f36476845698f622d6f6e8e2bb7e9a2e598c3fe489d65518f0f1",
+  "f05-02": "08b3cf162662187e7e92595402a256bb20bb492b81926414b0c7d5b4dee640ba",
+  "f05-03": "fe02fe35d6a67ca98920e591c8fb5acbfd61eff8e7b0fc0f56fc1fd91e4e4cf2",
+  "f05-05": "a02a16de909cbb933ed5a4d62106cd50f111b4a45a280d6521845316c6e70f83",
+  "starter": "9023e6a089796897d6ed661f26054d1b81b298e048a09a5df75d3b9cb5d3c6a9"
+ },
+ "stage": "spot"
+}
