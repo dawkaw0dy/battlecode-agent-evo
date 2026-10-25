@@ -1146,7 +1146,7 @@ bool Bot::farm() {
     }
     cambc::bitboard goals;
     for (auto s : g.spawns) goals.draw_chebyshev(s, static_cast<float>(std::max(range, 1)));
-    if (!step_to(goals) && !move_blocked) {
+    if (!step_to(goals) && !move_blocked && !goals.is_set(pos)) {
         // No way through (monsters or units in the way): try another group for a while.
         if (++stuck_turns >= 4) {
             g.blocked_until = r + 60;
@@ -1171,6 +1171,7 @@ void Bot::play_turn() {
 
     if (!me.is_alive()) {
         debug_block({
+            ++act_count[0];
             if (was_alive) std::printf("DEATH r%u i%d t%d last=%s %s\n", round, my_index, type, last_act, last_info);
         });
         was_alive = false;
@@ -1328,6 +1329,25 @@ void Bot::play_turn() {
     }
     debug_block({
         if (!done) last_act = "idle";
+        {
+            static const char* names[] = {"idle", "engage", "retreat", "ambush", "low", "bank", "farm", "shop recall", "bank under fire", "heal"};
+            int k = 0;
+            for (int i = 0; i < 10; ++i)
+                if (std::string_view(last_act) == names[i]) k = i;
+            if (at_spawn && hp < max_hp * 0.95f) k = 9;
+            if (std::string_view(last_act) == "farm") {
+                // Split farm into walking and fighting.
+                if (!attacked && moved) k = 10;
+                if (!attacked && !moved) k = 11;
+            }
+            ++act_count[k];
+            if (round % 250 == 0) {
+                std::printf("ACT r%u i%d", round, my_index);
+                static const char* labels[] = {"idle", "eng", "ret", "amb", "low", "bank", "farmhit", "shoprec", "bankfire", "heal", "farmwalk", "farmwait"};
+                for (int i = 0; i < 12; ++i) std::printf(" %s=%d", labels[i], act_count[i]);
+                std::printf("\n");
+            }
+        }
         if (std::string_view(last_act) != "engage" && std::string_view(last_act) != "retreat") {
             std::snprintf(last_info, sizeof last_info, "hp%.0f pos(%d,%d) tgt%d cthr%.0f dmg%d en%zu gems%u bank%d", hp, pos.x, pos.y, target, camp_threat_at(pos), (int)damaged, enemies.size(), gems, (int)banking);
         }

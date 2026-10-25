@@ -135,6 +135,7 @@ private:
     const char* last_act = "";        // debug: what we did on our last living turn
     char last_info[160] = {};
     bool was_alive = true;
+    int act_count[12] = {};
 
     // setup and snapshot
     void init();
