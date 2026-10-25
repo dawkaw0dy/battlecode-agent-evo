@@ -11978,13 +11978,19 @@
    "pushed_commit": "53e6664468542f39f47a8e91a7048b0cc9a99297",
    "results_commit": "f1eeb0df86108164780cb08a59bab4a8e3be6e4d",
    "retries": 0,
+   "spotcheck": {
+    "games": 18,
+    "job": "r04-A-spot",
+    "pushed_at": 1792923947,
+    "pushed_commit": "0f96b65002fb3378c8d72b8472b301be91891f8a",
+    "status": "pending"
+   },
    "stage": "A",
    "status": "arrived"
   }
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-24T11:09:39Z g00 f00-02: launched session_01T9a4DEaRx34LkbgiQJuigb",
   "2026-10-24T11:09:54Z g00 f00-03: launched session_01CmUtKuVJa7srUhBwvFaHEe",
   "2026-10-24T11:10:09Z g00 f00-04: launched session_01773fjh1VqQ7vQjUYyYCXpz",
   "2026-10-24T11:10:24Z g00 f00-05: launched session_01Pbae7zDNdBYNjteJNfVcaE",
@@ -12183,7 +12189,8 @@
   "2026-10-25T10:22:04Z g04 f04-07: admitted (8b1f348f210d)",
   "2026-10-25T10:22:11Z g04 phase EVAL_A_PENDING",
   "2026-10-25T10:22:21Z g04 r04-A: pushed 53e6664468 with 28 shards",
-  "2026-10-25T10:25:37Z g04 phase EVAL_A_DONE: results for r04-A"
+  "2026-10-25T10:25:37Z g04 phase EVAL_A_DONE: results for r04-A",
+  "2026-10-25T10:25:47Z g04 r04-A-spot: pushed 0f96b65002 (18 sampled games, 12 shards)"
  ],
  "paused": null,
  "phase": "EVAL_A_DONE",
