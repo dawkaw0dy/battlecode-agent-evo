@@ -23430,7 +23430,6 @@
  },
  "launch_errors_in_a_row": 0,
  "log": [
-  "2026-10-25T08:27:24Z g03 phase EVAL_B_PENDING: stage A ranked: f03-05, f03-04, f03-03, f03-01, f02-01, f03-02, f00-03, f03-06, f01-07, f03-07, starter",
   "2026-10-25T08:27:43Z g03 r03-B: pushed 03b90ca6c3 with 44 shards",
   "2026-10-25T08:33:25Z g03 phase EVAL_B_DONE: results for r03-B",
   "2026-10-25T08:33:40Z g03 r03-B-spot: pushed cf43d426a7 (40 sampled games, 25 shards)",
@@ -23629,10 +23628,11 @@
   "2026-10-25T17:57:03Z g08 f08-04: admitted (a7b076bbcfd7)",
   "2026-10-25T17:57:08Z g08 f08-05: admitted (f76f866b3338)",
   "2026-10-25T17:57:13Z g08 f08-06: admitted (b0d83c4445f1)",
-  "2026-10-25T17:57:19Z g08 f08-07: admitted (fc0f8a40c15b)"
+  "2026-10-25T17:57:19Z g08 f08-07: admitted (fc0f8a40c15b)",
+  "2026-10-25T17:57:28Z g08 phase EVAL_A_PENDING"
  ],
  "paused": null,
- "phase": "ADMITTED",
+ "phase": "EVAL_A_PENDING",
  "sessions_launched": 64,
  "version": 1
 }
