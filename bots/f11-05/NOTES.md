@@ -1,31 +1,31 @@
 ## Strategy (≤10 lines)
-f09-01 unchanged in structure (mutation: parameter tweak, focus: combat): draft Vesper Vale, Vendetta, Marcella,
+f10-01 unchanged in structure (mutation: parameter tweak, focus: camps): draft Vesper Vale, Vendetta, Marcella,
 Tavi, Varg; home regions per champion; groups scored by value per champion-turn with a camp damage model; raids
 for bosses; gold into shards; a turn-by-turn focus-fire simulation decides fights (engage / retreat / recall);
-f04-05's fuel subsystem; f08-04's spells; f09-01's defense (ambush wards, bag caution, banking under fire).
-This generation: two fight-decision thresholds in enemies() (bot.cpp). A hurt champion (≤ 70% health instead of
-≤ 50%) that would not take the fight retreats from enemies even before they are in reach, and an engaged
-champion only hunts enemies within its range + 2 (was + 3) unless the simulation expects a kill.
+f04-05's fuel subsystem; f08-04's spells; f09-01's defense; f10-01's fight thresholds.
+This generation: one camp-farming parameter in choose() (bot.cpp). A group another champion already claims is
+shared only when its solo clear would take more than 30 turns (was 15) or needs trips home; shorter clears are
+left to the claimer, so champions spread over more groups instead of doubling up on medium ones (single elk).
 
 ## Key parameters
-- bot.cpp enemies(): kFleeHp 0.7 (was 0.5), kHuntPad 2 (was 3). Unchanged: kEngageBias −150, kSimTurns 10,
-  kAllyDelayMax 3, kKillNow 0.85, kReachPad 3, kHelpHp 0.6, kChaseTurns 8, sim damage term 60 × health lost.
-- defense.cpp (unchanged): kBagNeed 3, kRecallDist 7, kCancelDist 5, kFleeAltarGems 10, kAmbushRounds 4.
+- bot.cpp choose(): kShareTurns 30 (was 15). Unchanged: gold weight 0.35 (Vesper 0.5) × max(0.4, 1 − r/1500),
+  home 1 / shared 0.8 / other's home 0.6, enemy side ×0.7, reward ×1.3, current target ×1.25, sighting within 7
+  (≤ 24 rounds) ×0.5, claimed short clear ×0.3 per claimer, solo needs cap ≥ 5 × peak and ≤ 4 trips, raids ≤ 3
+  trips, kCaptureTurns 6, kTripTurns 8, kRallyRounds 35, kGatherTurns 10, kBossTurns 8.
+- bot.cpp enemies() (f10-01): kFleeHp 0.7, kHuntPad 2, kEngageBias −150, kSimTurns 10, kAllyDelayMax 3.
 
 ## Changes this generation
-- Baseline for free: evo-results r09 holds the parent's games vs f06-05/f07-02/f08-04 on all 40 local maps; my
-  copy reproduced them exactly (deterministic), so every variant was compared with those recorded games.
-- Screen set M = 16 maps the parent lost to f06-05/f07-02/f08-04 (00collision 00corners 00eight 00expanse
-  00monolith 00pilgrimage 00reverse-spiral 00road-of-riches 00rushbait-v2 00stampede 01fracture 01the-farm
-  00gemfight 01big-world 01gold-rush 00great-wall), both sides vs f08-04 and f06-05 (64 games). Parent 33/64
-  (+30). Beware: any change "wins back" some of these lost games (every variant gained 3–8 vs f06-05 on M), so
-  confirm on the other 24 maps (set N) where the parent's record is not selected for losses.
-- KEPT kFleeHp 0.5 → 0.7: M 45/64 (+280) (best screen). All 40 maps: vs f06-05 67/80 (+489) vs parent 58/80
-  (+363); vs f08-04 55/80 (+261) vs parent 56/80 (+286). Mirror vs the parent f09-01: 45W/35L (+45.5); deaths
-  2148 vs 2340, kills 2186 vs 1968.
-- KEPT kHuntPad 3 → 2 (on top of the above): M screen alone 36/64 (+183). Head-to-head vs kFleeHp-0.7 build
-  (all 40 maps, both sides): 45W/35L (+43). vs f08-04 all 40 maps: 55/80 (+306) vs parent 56/80 (+286).
-- 0 engine faults, 0 `bot error:` lines in all 900 games. Game budget: 900 games played.
+- Baseline for free: evo-results r10 holds the parent's games on the 40 local maps vs starter, f07-02, f08-04,
+  f09-01, f10-03; my copy reproduced them exactly (4/4 games checked). Screens:
+  S1/S2 = each local map, both sides, against one of f10-03/f09-01/f08-04/f07-02 in rotation (80 games each,
+  different map–opponent pairs; parent 51/80 +223 and 50/80 +223); starter speed = mean rounds to win vs starter
+  on 20 maps both sides (parent 1138 on the even-indexed maps, 1100 on the odd ones).
+- KEPT kShareTurns 15 → 30: S1 49/80 (+125), S2 58/80 (+281): 107/160 vs the parent's 101/160 (margin +203 vs
+  +223). Starter speed: 1111 vs 1138 on the even half, but 1113 vs 1100 on the odd half: neutral overall.
+  Head-to-head vs f10-01, all 40 maps both sides: 40W/40L (+8). Older panel (f00-03 … f06-05, 00ambush/01fracture/
+  00gemfight, both sides): 37/42. Weak evidence: the only change that was not worse on any screen.
+- 0 engine faults and 0 `bot error:` lines in all games (2 caught "warn: Champion cannot act." lines from parent
+  code in 442 team-games). Game budget: 852 games played.
 
 ## Tried and failed (keep entries from the parent's notes; add yours)
 - Fuel: host calls cost ~30–40 fuel, but every bitboard temporary (&, |, ~, shift) ~600 and a grow(r) ~4k·r;
@@ -119,11 +119,22 @@ champion only hunts enemies within its range + 2 (was + 3) unless the simulation
 - (f10-01) kSimTurns 10 → 7: 37/64 (+140).
 - (f10-01) kRecallDist 7 → 8: 39/64 (+194); combined with kFleeHp 0.6: 39/64 (+196). Not kept.
 - (f10-01) kFleeHp 0.6: 43/64 (+227) on M but on set N vs f08-04 35/48 (+334) vs parent 38/48 (+425); 0.7 kept.
+- (f11-05) Screens as in "Changes"; each 80-game peer screen has a noise of about ±4 wins, so most of these are
+  "no evidence of a gain" rather than proven losses. Diagnosis: on 00road-of-riches about half of all captures
+  are 0-gem gold-cluster groups (Vesper 9 of 11), and travel is the largest share of turns (Vesper 609/1200).
+- (f11-05) Vesper gold weight 0.5 → 0.35 (farm gems, not gold clusters): S1 46/80 (+164) vs parent 51/80 (+223).
+- (f11-05) Another champion's home group factor 0.6 → 0.8 (less territorial): S1 45/80 (+154).
+- (f11-05) kRallyRounds 35 → 20 (shorter raid wait): S1 51/80 (+250), starter speed +7 rounds (median 0): neutral.
+- (f11-05) On top of kShareTurns 30 (starter speed base 1111): kShareTurns 50: 1129; gold weight
+  max(0.3, 1 − r/1000) instead of max(0.4, 1 − r/1500): 1123; claimed short clear ×0.15 instead of ×0.3: 1140.
+- (f11-05) Groups near a recent enemy sighting ×0.3 instead of ×0.5: S1 43/80 (+58) vs 49/80 (+125).
 
 ## Known weaknesses
-- Gains are small and measured on mirrors of the same family (every panel bot drafts the same five): vs f08-04 the
-  kept build is level with the parent (55 vs 56/80); the gain is vs f06-05 and the parent itself. Not re-tested
-  this generation (budget): starter, f00-03 … f05-02, f07-02 (f07-02 plays almost exactly like f06-05 here).
+- Gains are small and measured on mirrors of the same family (every panel bot drafts the same five and shares the
+  camp logic): the kept change is level with the parent head-to-head (40/80) and only +6 wins over 160 peer games.
+- Lock runner: on 00road-of-riches Varg spends ~490 of 1200 turns in the bank/lock mode carrying locks (f10-03 turned
+  the runner off); outside this generation's camp focus, not changed.
+- Champions farm 0-gem gold-cluster groups often; no gold-weight variant tested better (here or in earlier gens).
 - Ambushes are sensed only with no visible enemy within 5: a hidden shooter during a visible fight is not modelled.
 - A hidden enemy is revealed only after it hits us, or by a scouting ward (only while enemies were seen lately).
 - Ward vision is the owner's alone; nothing about revealed enemies is shared beyond the 3-byte sighting.
